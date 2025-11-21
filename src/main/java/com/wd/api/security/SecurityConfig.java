@@ -1,6 +1,8 @@
 package com.wd.api.security;
 
 import com.wd.api.service.CustomUserDetailsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,6 +10,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -23,7 +26,10 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
     
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -70,19 +76,33 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // TEMPORARY: Allow all origins for development/testing
-        // TODO: Restore restrictive CORS policy before production deployment
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        // Get allowed origins from environment or use defaults
+        String allowedOriginsEnv = System.getenv("CORS_ALLOWED_ORIGINS");
+        boolean isDevelopment = "dev".equalsIgnoreCase(System.getenv("SPRING_PROFILES_ACTIVE")) 
+            || System.getProperty("spring.profiles.active", "").equalsIgnoreCase("dev");
         
-        /* COMMENTED OUT - RESTORE FOR PRODUCTION
-        // Allow specific origins for security
-        configuration.setAllowedOrigins(Arrays.asList(
-            "https://portal.walldotbuilders.com",
-            "https://www.walldotbuilders.com",
-            "http://localhost:3000",
-            "http://localhost:54928"
-        ));
-        */
+        if (isDevelopment || allowedOriginsEnv == null) {
+            // Development: Allow localhost and common dev ports
+            logger.warn("CORS: Using permissive configuration for development. RESTRICT FOR PRODUCTION!");
+            configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://127.0.0.1:*"
+            ));
+        } else {
+            // Production: Use environment variable or default secure origins
+            String[] origins = allowedOriginsEnv.split(",");
+            configuration.setAllowedOrigins(Arrays.asList(origins));
+            logger.info("CORS: Using restricted origins from environment: {}", Arrays.toString(origins));
+        }
+        
+        // Fallback to secure defaults if environment variable not set in production
+        if (!isDevelopment && (allowedOriginsEnv == null || allowedOriginsEnv.isEmpty())) {
+            configuration.setAllowedOrigins(Arrays.asList(
+                "https://portal.walldotbuilders.com",
+                "https://www.walldotbuilders.com"
+            ));
+            logger.warn("CORS: Using default production origins. Consider setting CORS_ALLOWED_ORIGINS environment variable.");
+        }
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList(

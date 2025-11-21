@@ -5,9 +5,12 @@ import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.repository.CustomerProjectRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +23,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/customer-projects")
 public class CustomerProjectController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(CustomerProjectController.class);
     
     @Autowired
     private CustomerProjectRepository customerProjectRepository;
@@ -36,8 +41,7 @@ public class CustomerProjectController {
                     .collect(Collectors.toList());
             return ResponseEntity.ok(responses);
         } catch (Exception e) {
-            System.err.println("Error fetching customer projects: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error fetching customer projects", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -54,9 +58,8 @@ public class CustomerProjectController {
             }
             return ResponseEntity.ok(new CustomerProjectResponse(projectOpt.get()));
         } catch (Exception e) {
-            System.err.println("Error fetching customer project: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Error fetching customer project: " + e.getMessage());
+            logger.error("Error fetching customer project with ID: {}", id, e);
+            return ResponseEntity.internalServerError().body("Error fetching customer project");
         }
     }
     
@@ -64,6 +67,7 @@ public class CustomerProjectController {
      * Create customer project
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<?> createCustomerProject(@RequestBody CustomerProjectCreateRequest request) {
         try {
             // Validate required fields
@@ -102,7 +106,7 @@ public class CustomerProjectController {
                     createdBy = authentication.getName();
                 }
             } catch (Exception e) {
-                System.err.println("Error getting current user: " + e.getMessage());
+                logger.warn("Error getting current user for project creation", e);
             }
             
             // Generate unique project code
@@ -115,7 +119,11 @@ public class CustomerProjectController {
             project.setStartDate(request.getStartDate());
             project.setEndDate(request.getEndDate());
             // Set progress to 0 if not provided
-            project.setProgress(request.getProgress() != null ? request.getProgress() : 0.0);
+            if (request.getProgress() != null) {
+                project.setProgress(request.getProgress());
+            } else {
+                project.setProgress(0.0);
+            }
             project.setCreatedBy(createdBy);
             project.setProjectPhase(request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()
                     ? request.getProjectPhase().trim() : "Planning");
@@ -123,17 +131,21 @@ public class CustomerProjectController {
                     ? request.getState().trim() : "Kerala");
             project.setDistrict(request.getDistrict() != null && !request.getDistrict().trim().isEmpty()
                     ? request.getDistrict().trim() : null);
+            // Handle sqfeet - already converted to BigDecimal by @JsonSetter
             project.setSqfeet(request.getSqfeet());
+            // Handle leadId - already converted to Long by @JsonSetter
             project.setLeadId(request.getLeadId());
             project.setCode(projectCode);
             
             CustomerProject savedProject = customerProjectRepository.save(project);
             return ResponseEntity.status(HttpStatus.CREATED).body(new CustomerProjectResponse(savedProject));
             
+        } catch (IllegalArgumentException e) {
+            logger.warn("Validation error creating customer project: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Validation error: " + e.getMessage());
         } catch (Exception e) {
-            System.err.println("Error creating customer project: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Error creating customer project: " + e.getMessage());
+            logger.error("Error creating customer project", e);
+            return ResponseEntity.internalServerError().body("Error creating customer project");
         }
     }
     
@@ -141,8 +153,20 @@ public class CustomerProjectController {
      * Update customer project
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<?> updateCustomerProject(@PathVariable Long id, @RequestBody CustomerProjectUpdateRequest request) {
         try {
+            // Log incoming request for debugging
+            logger.debug("UPDATE CUSTOMER PROJECT REQUEST - Project ID: {}", id);
+            if (request != null) {
+                logger.debug("Request details - name: {}, location: {}, code: {}, leadId: {}, sqfeet: {}, progress: {}, startDate: {}, endDate: {}, projectPhase: {}, state: {}, district: {}",
+                    request.getName(), request.getLocation(), request.getCode(), request.getLeadId(),
+                    request.getSqfeet(), request.getProgress(), request.getStartDate(), request.getEndDate(),
+                    request.getProjectPhase(), request.getState(), request.getDistrict());
+            } else {
+                logger.warn("UPDATE CUSTOMER PROJECT REQUEST - Request body is NULL for project ID: {}", id);
+            }
+            
             // Validate ID
             if (id == null) {
                 return ResponseEntity.badRequest().body("Project ID is required");
@@ -150,47 +174,99 @@ public class CustomerProjectController {
             
             Optional<CustomerProject> projectOpt = customerProjectRepository.findById(id);
             if (!projectOpt.isPresent()) {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Project with ID " + id + " not found");
             }
             
             CustomerProject project = projectOpt.get();
+            logger.debug("Existing project - ID: {}, code: {}", project.getId(), project.getCode());
             
             // Validate required fields
             if (request == null) {
+                logger.warn("UPDATE CUSTOMER PROJECT - Request body is null for project ID: {}", id);
                 return ResponseEntity.badRequest().body("Request body is required");
             }
             
+            logger.debug("Validating request fields for project ID: {}", id);
             if (request.getName() == null || request.getName().trim().isEmpty()) {
+                logger.warn("UPDATE CUSTOMER PROJECT - Project name is null or empty for project ID: {}", id);
                 return ResponseEntity.badRequest().body("Project name is required");
             }
+            logger.debug("Name validation passed: {}", request.getName());
             
             if (request.getLocation() == null || request.getLocation().trim().isEmpty()) {
+                logger.warn("UPDATE CUSTOMER PROJECT - Location is null or empty for project ID: {}", id);
                 return ResponseEntity.badRequest().body("Location is required");
             }
+            logger.debug("Location validation passed: {}", request.getLocation());
             
             // Validate progress if provided
             if (request.getProgress() != null) {
+                logger.debug("Validating progress: {}", request.getProgress());
                 if (request.getProgress() < 0 || request.getProgress() > 100) {
+                    logger.warn("UPDATE CUSTOMER PROJECT - Progress out of range: {} for project ID: {}", request.getProgress(), id);
                     return ResponseEntity.badRequest().body("Progress must be between 0 and 100");
                 }
+                logger.debug("Progress validation passed");
+            } else {
+                logger.debug("Progress is null (optional field)");
             }
             
             // Validate end date is after start date if both provided
             if (request.getStartDate() != null && request.getEndDate() != null) {
+                logger.debug("Validating dates - start: {}, end: {}", request.getStartDate(), request.getEndDate());
                 if (request.getEndDate().isBefore(request.getStartDate())) {
+                    logger.warn("UPDATE CUSTOMER PROJECT - End date is before start date for project ID: {}", id);
                     return ResponseEntity.badRequest().body("End date must be after start date");
                 }
+                logger.debug("Date validation passed");
+            } else {
+                logger.debug("Dates validation skipped (one or both are null)");
             }
             
             // Validate code uniqueness if code is being changed
+            logger.debug("CODE VALIDATION - Project ID: {}", id);
             if (request.getCode() != null && !request.getCode().trim().isEmpty()) {
                 String newCode = request.getCode().trim();
-                if (!newCode.equals(project.getCode())) {
-                    Optional<CustomerProject> existingProject = customerProjectRepository.findByCode(newCode);
-                    if (existingProject.isPresent() && !existingProject.get().getId().equals(id)) {
-                        return ResponseEntity.badRequest().body("Project code already exists");
+                String existingCode = project.getCode();
+                logger.debug("Code validation - new: '{}' (length: {}), existing: '{}' (length: {})", 
+                    newCode, newCode.length(), existingCode, existingCode != null ? existingCode.length() : 0);
+                
+                // Normalize codes for comparison (trim and handle null)
+                String normalizedNewCode = newCode.trim();
+                String normalizedExistingCode = (existingCode != null) ? existingCode.trim() : null;
+                
+                // Only check uniqueness if code is actually being changed
+                boolean codeChanged = (normalizedExistingCode == null || !normalizedNewCode.equals(normalizedExistingCode));
+                logger.debug("Code changed: {}, normalized new: '{}', normalized existing: '{}'", 
+                    codeChanged, normalizedNewCode, normalizedExistingCode);
+                
+                if (codeChanged) {
+                    logger.debug("Code is being changed, checking uniqueness for: '{}'", normalizedNewCode);
+                    Optional<CustomerProject> existingProject = customerProjectRepository.findByCode(normalizedNewCode);
+                    if (existingProject.isPresent()) {
+                        CustomerProject foundProject = existingProject.get();
+                        Long existingProjectId = foundProject.getId();
+                        String foundProjectCode = foundProject.getCode();
+                        logger.debug("Found project with code '{}' - ID: {}, code: '{}'", 
+                            normalizedNewCode, existingProjectId, foundProjectCode);
+                        
+                        // Only fail if it's a different project
+                        // Use Objects.equals for null-safe comparison
+                        if (!java.util.Objects.equals(existingProjectId, id)) {
+                            logger.warn("UPDATE CUSTOMER PROJECT - Code conflict! Code '{}' belongs to project ID {}, not {}", 
+                                normalizedNewCode, existingProjectId, id);
+                            return ResponseEntity.badRequest().body("Project code '" + normalizedNewCode + "' already exists for project ID " + existingProjectId);
+                        } else {
+                            logger.debug("Code belongs to same project (ID {}), update allowed", id);
+                        }
+                    } else {
+                        logger.debug("No existing project with code '{}', update allowed", normalizedNewCode);
                     }
+                } else {
+                    logger.debug("Code unchanged (both are '{}'), skipping uniqueness check", normalizedNewCode);
                 }
+            } else {
+                logger.debug("Code is null or empty in request, keeping existing code: '{}'", project.getCode());
             }
             
             // Update fields
@@ -198,7 +274,12 @@ public class CustomerProjectController {
             project.setLocation(request.getLocation().trim());
             project.setStartDate(request.getStartDate());
             project.setEndDate(request.getEndDate());
-            project.setProgress(request.getProgress());
+            // Handle progress - can be null
+            if (request.getProgress() != null) {
+                project.setProgress(request.getProgress());
+            } else {
+                project.setProgress(null);
+            }
             // Don't update createdBy - it should remain as original creator
             project.setProjectPhase(request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()
                     ? request.getProjectPhase().trim() : null);
@@ -206,20 +287,127 @@ public class CustomerProjectController {
                     ? request.getState().trim() : null);
             project.setDistrict(request.getDistrict() != null && !request.getDistrict().trim().isEmpty()
                     ? request.getDistrict().trim() : null);
+            // Handle sqfeet - already converted to BigDecimal by @JsonSetter
             project.setSqfeet(request.getSqfeet());
+            
+            // Handle leadId - already converted to Long by @JsonSetter
             project.setLeadId(request.getLeadId());
             // Allow code to be updated in edit screen
+            // Note: Code uniqueness was already validated above
             if (request.getCode() != null && !request.getCode().trim().isEmpty()) {
-                project.setCode(request.getCode().trim());
+                String newCode = request.getCode().trim();
+                String currentCode = project.getCode();
+                logger.debug("Updating code - new: '{}', current: '{}' for project ID: {}", newCode, currentCode, id);
+                // Update the code (uniqueness already validated)
+                project.setCode(newCode);
+                logger.debug("Code updated to: '{}' for project ID: {}", project.getCode(), id);
+            } else if (request.getCode() != null && request.getCode().trim().isEmpty()) {
+                // If empty string is sent, set to null
+                logger.debug("Empty code provided, setting to null for project ID: {}", id);
+                project.setCode(null);
+            } else {
+                // If code is null in request, keep existing code (don't change it)
+                logger.debug("Code not provided in request, keeping existing: '{}' for project ID: {}", project.getCode(), id);
             }
             
-            CustomerProject updatedProject = customerProjectRepository.save(project);
-            return ResponseEntity.ok(new CustomerProjectResponse(updatedProject));
+            // Validate entity state before save - ensure required fields are set
+            logger.debug("Validating entity state before save for project ID: {}", id);
+            if (project.getName() == null || project.getName().trim().isEmpty()) {
+                logger.error("UPDATE CUSTOMER PROJECT - Project name is null or empty for project ID: {}", id);
+                return ResponseEntity.badRequest().body("Project name cannot be empty after update");
+            }
+            logger.debug("Name is valid: {}", project.getName());
             
+            if (project.getLocation() == null || project.getLocation().trim().isEmpty()) {
+                logger.error("UPDATE CUSTOMER PROJECT - Project location is null or empty for project ID: {}", id);
+                return ResponseEntity.badRequest().body("Location cannot be empty after update");
+            }
+            logger.debug("Location is valid: {}", project.getLocation());
+            
+            // Ensure name and location are trimmed
+            if (!project.getName().equals(project.getName().trim())) {
+                project.setName(project.getName().trim());
+            }
+            if (!project.getLocation().equals(project.getLocation().trim())) {
+                project.setLocation(project.getLocation().trim());
+            }
+            logger.debug("Entity validation passed for project ID: {}", id);
+            
+            // Log the project state before save for debugging
+            logger.debug("BEFORE SAVE - Project ID: {}, name: {}, location: {}, code: {}, leadId: {}, sqfeet: {}, progress: {}, state: {}, district: {}, phase: {}, startDate: {}, endDate: {}, createdBy: {}, createdAt: {}, updatedAt: {}",
+                id, project.getName(), project.getLocation(), project.getCode(), project.getLeadId(),
+                project.getSqfeet(), project.getProgress(), project.getState(), project.getDistrict(),
+                project.getProjectPhase(), project.getStartDate(), project.getEndDate(),
+                project.getCreatedBy(), project.getCreatedAt(), project.getUpdatedAt());
+            
+            try {
+                logger.debug("Attempting to save project ID: {}", id);
+                CustomerProject updatedProject = customerProjectRepository.save(project);
+                logger.info("Customer project updated successfully - ID: {}", updatedProject.getId());
+                
+                // Create response
+                try {
+                    CustomerProjectResponse response = new CustomerProjectResponse(updatedProject);
+                    logger.debug("Response created successfully for project ID: {}", id);
+                    return ResponseEntity.ok(response);
+                } catch (Exception e) {
+                    logger.error("Error creating response for project ID: {}", id, e);
+                    // Still return success but with error in response creation
+                    return ResponseEntity.ok().body("Project updated successfully but error creating response");
+                }
+            } catch (org.hibernate.exception.ConstraintViolationException e) {
+                logger.error("Hibernate constraint violation saving project ID: {} - SQL State: {}, Error Code: {}", 
+                    id, e.getSQLState(), e.getErrorCode(), e);
+                return ResponseEntity.badRequest().body("Database constraint violation: " + 
+                    (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+            } catch (org.hibernate.exception.DataException e) {
+                logger.error("Hibernate data exception saving project ID: {} - SQL State: {}", 
+                    id, e.getSQLState(), e);
+                return ResponseEntity.badRequest().body("Data error: " + 
+                    (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+            } catch (org.hibernate.exception.SQLGrammarException e) {
+                logger.error("Hibernate SQL grammar exception saving project ID: {} - SQL: {}", 
+                    id, e.getSQL(), e);
+                return ResponseEntity.internalServerError().body("SQL error: " + 
+                    (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+            } catch (Exception e) {
+                logger.error("Unexpected error during save for project ID: {} - Exception type: {}", 
+                    id, e.getClass().getName(), e);
+                throw e; // Re-throw to be caught by outer catch block
+            }
+            
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            logger.error("Data integrity violation updating customer project ID: {} - Root cause: {}", 
+                id, e.getRootCause() != null ? e.getRootCause().getMessage() : "null", e);
+            String errorMsg = e.getMessage();
+            String rootCause = e.getRootCause() != null ? e.getRootCause().getMessage() : "";
+            if (errorMsg != null && (errorMsg.contains("code") || rootCause.contains("code"))) {
+                return ResponseEntity.badRequest().body("Project code already exists or violates constraint: " + rootCause);
+            } else if (errorMsg != null && (errorMsg.contains("lead_id") || rootCause.contains("lead_id"))) {
+                return ResponseEntity.badRequest().body("Invalid lead ID: " + rootCause);
+            } else if (errorMsg != null && (errorMsg.contains("null") || rootCause.contains("null"))) {
+                return ResponseEntity.badRequest().body("Required field is null: " + rootCause);
+            } else {
+                return ResponseEntity.badRequest().body("Data integrity violation: " + errorMsg + 
+                    (rootCause != null && !rootCause.isEmpty() ? " - Root cause: " + rootCause : ""));
+            }
+        } catch (IllegalArgumentException e) {
+            logger.warn("Validation error updating customer project ID: {} - {}", id, e.getMessage());
+            return ResponseEntity.badRequest().body("Validation error: " + e.getMessage());
+        } catch (jakarta.validation.ConstraintViolationException e) {
+            logger.warn("Constraint violation updating customer project ID: {}", id, e);
+            StringBuilder violations = new StringBuilder("Constraint violations: ");
+            e.getConstraintViolations().forEach(v -> {
+                violations.append(v.getPropertyPath()).append(": ").append(v.getMessage()).append("; ");
+            });
+            return ResponseEntity.badRequest().body(violations.toString());
         } catch (Exception e) {
-            System.err.println("Error updating customer project: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Error updating customer project: " + e.getMessage());
+            logger.error("Error updating customer project ID: {}", id, e);
+            // If it's a 400-level error, return bad request, otherwise 500
+            if (e instanceof IllegalArgumentException || e instanceof jakarta.validation.ConstraintViolationException) {
+                return ResponseEntity.badRequest().body("Validation error: " + e.getMessage());
+            }
+            return ResponseEntity.internalServerError().body("Error updating customer project");
         }
     }
     
@@ -227,6 +415,7 @@ public class CustomerProjectController {
      * Delete customer project
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteCustomerProject(@PathVariable Long id) {
         try {
             if (id == null) {
@@ -242,9 +431,8 @@ public class CustomerProjectController {
             return ResponseEntity.ok().build();
             
         } catch (Exception e) {
-            System.err.println("Error deleting customer project: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Error deleting customer project: " + e.getMessage());
+            logger.error("Error deleting customer project with ID: {}", id, e);
+            return ResponseEntity.internalServerError().body("Error deleting customer project");
         }
     }
     
@@ -260,8 +448,7 @@ public class CustomerProjectController {
                     .collect(Collectors.toList());
             return ResponseEntity.ok(responses);
         } catch (Exception e) {
-            System.err.println("Error fetching customer projects by lead ID: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error fetching customer projects by lead ID: {}", leadId, e);
             return ResponseEntity.internalServerError().build();
         }
     }

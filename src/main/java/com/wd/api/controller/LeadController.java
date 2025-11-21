@@ -5,9 +5,12 @@ import com.wd.api.dao.model.Leads;
 import com.wd.api.dto.LeadCreateRequest;
 import com.wd.api.dto.PaginatedResponse;
 import com.wd.api.dto.PaginationParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -18,6 +21,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/leads")
 public class LeadController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(LeadController.class);
 
     @Autowired
     private ILeadsDAO leadsDAO;
@@ -27,18 +32,19 @@ public class LeadController {
     // =====================================================
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<List<Leads>> getAllLeads() {
         try {
             List<Leads> leads = leadsDAO.getAllLeads();
             return ResponseEntity.ok(leads);
         } catch (Exception e) {
-            System.err.println("Error in getAllLeads controller: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error in getAllLeads controller", e);
             return ResponseEntity.internalServerError().body(null);
         }
     }
 
     @GetMapping("/paginated")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<PaginatedResponse<Leads>> getLeadsPaginated(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int limit,
@@ -106,8 +112,7 @@ public class LeadController {
             PaginatedResponse<Leads> response = leadsDAO.getLeadsPaginated(params);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            System.err.println("Error in getLeadsPaginated controller: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error in getLeadsPaginated controller", e);
             return ResponseEntity.internalServerError().body(null);
         }
     }
@@ -297,8 +302,7 @@ public class LeadController {
                 return ResponseEntity.badRequest().build();
             }
         } catch (Exception e) {
-            System.err.println("Error creating lead: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error creating lead", e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -306,8 +310,7 @@ public class LeadController {
     @PutMapping("/{leadId}")
     public ResponseEntity<Leads> updateLead(@PathVariable String leadId, @RequestBody Leads lead) {
         try {
-            System.out.println("Updating lead with ID: " + leadId);
-            System.out.println("Request data: " + lead);
+            logger.debug("Updating lead with ID: {}, request data: {}", leadId, lead);
             
             // Set the lead ID from path parameter (override any ID in request body)
             lead.setLeadId(leadId);
@@ -368,8 +371,7 @@ public class LeadController {
                 return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
-            System.err.println("Error updating lead: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error updating lead with ID: {}", leadId, e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -598,19 +600,25 @@ public class LeadController {
         }
     }
     
-    @GetMapping("/debug/{leadId}")
-    public ResponseEntity<String> debugLead(@PathVariable String leadId) {
-        try {
-            Leads lead = leadsDAO.getLeadById(leadId);
-            if (lead != null) {
-                return ResponseEntity.ok("Lead found: " + lead.toString());
-            } else {
-                return ResponseEntity.ok("Lead not found with ID: " + leadId);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.ok("Debug error: " + e.getMessage());
-        }
-    }
+    /**
+     * Debug endpoint - REMOVE IN PRODUCTION
+     * This endpoint should be secured with admin-only access or removed entirely
+     * TODO: Remove this endpoint before production deployment
+     */
+    // @GetMapping("/debug/{leadId}")
+    // @PreAuthorize("hasRole('ADMIN')") // Uncomment and secure if needed
+    // public ResponseEntity<String> debugLead(@PathVariable String leadId) {
+    //     try {
+    //         Leads lead = leadsDAO.getLeadById(leadId);
+    //         if (lead != null) {
+    //             return ResponseEntity.ok("Lead found: " + lead.toString());
+    //         } else {
+    //             return ResponseEntity.ok("Lead not found with ID: " + leadId);
+    //         }
+    //     } catch (Exception e) {
+    //         return ResponseEntity.ok("Debug error: " + e.getMessage());
+    //     }
+    // }
     
     /**
      * Validates if the customer type is allowed by the database constraint
@@ -742,8 +750,7 @@ public class LeadController {
                 ));
             }
         } catch (Exception e) {
-            System.err.println("Error creating contact form lead: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error creating contact form lead", e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "An error occurred. Please try again."
@@ -846,8 +853,7 @@ public class LeadController {
                 ));
             }
         } catch (Exception e) {
-            System.err.println("Error creating client referral lead: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error creating client referral lead", e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "An error occurred. Please try again."
@@ -994,8 +1000,7 @@ public class LeadController {
                 ));
             }
         } catch (Exception e) {
-            System.err.println("Error creating calculator lead: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error creating calculator lead", e);
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "An error occurred. Please try again."

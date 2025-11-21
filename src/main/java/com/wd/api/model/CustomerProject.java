@@ -49,7 +49,7 @@ public class CustomerProject {
     @Column(name = "sqfeet", columnDefinition = "NUMERIC(10,2)")
     private BigDecimal sqfeet;
     
-    @Column(name = "lead_id")
+    @Column(name = "lead_id", nullable = true)
     private Long leadId;
     
     @Column(length = 255)

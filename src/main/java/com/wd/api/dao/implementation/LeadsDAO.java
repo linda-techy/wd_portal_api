@@ -1,5 +1,8 @@
 package com.wd.api.dao.implementation;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.wd.api.dao.interfaces.ILeadsDAO;
 import com.wd.api.dao.model.Leads;
 import com.wd.api.dto.PaginatedResponse;
@@ -20,6 +23,8 @@ import java.sql.SQLException;
 
 @Repository
 public class LeadsDAO implements ILeadsDAO {
+    
+    private static final Logger logger = LoggerFactory.getLogger(LeadsDAO.class);
 
     private final JdbcTemplate jdbcTemplate;
     
@@ -86,7 +91,7 @@ public class LeadsDAO implements ILeadsDAO {
             return jdbcTemplate.query(sql, leadsRowMapper);
         } catch (Exception e) {
             // Log the error for debugging
-            System.err.println("Error in getAllLeads: " + e.getMessage());
+            logger.error("Error in getAllLeads", e);
             e.printStackTrace();
             throw e;
         }
@@ -198,7 +203,7 @@ public class LeadsDAO implements ILeadsDAO {
             );
             
         } catch (Exception e) {
-            System.err.println("Error in getLeadsPaginated: " + e.getMessage());
+            logger.error("Error in getLeadsPaginated", e);
             e.printStackTrace();
             throw e;
         }

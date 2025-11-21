@@ -1,6 +1,7 @@
 package com.wd.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -24,9 +25,10 @@ public class CustomerProjectUpdateRequest {
     
     private String state;
     private String district;
+    
     private BigDecimal sqfeet;
     
-    @JsonProperty("lead_id")
+    // leadId will be set via @JsonSetter annotated setter method
     private Long leadId;
     
     private String code;
@@ -111,7 +113,29 @@ public class CustomerProjectUpdateRequest {
         return sqfeet;
     }
 
-    public void setSqfeet(BigDecimal sqfeet) {
+    // Custom setter to handle both BigDecimal and Number types from JSON
+    @JsonSetter("sqfeet")
+    public void setSqfeet(Object sqfeet) {
+        if (sqfeet == null) {
+            this.sqfeet = null;
+        } else if (sqfeet instanceof BigDecimal) {
+            this.sqfeet = (BigDecimal) sqfeet;
+        } else if (sqfeet instanceof Number) {
+            this.sqfeet = BigDecimal.valueOf(((Number) sqfeet).doubleValue());
+        } else if (sqfeet instanceof String) {
+            String str = (String) sqfeet;
+            if (str.trim().isEmpty()) {
+                this.sqfeet = null;
+            } else {
+                this.sqfeet = new BigDecimal(str);
+            }
+        } else {
+            this.sqfeet = null;
+        }
+    }
+    
+    // Regular setter for BigDecimal (for programmatic use)
+    public void setSqfeetValue(BigDecimal sqfeet) {
         this.sqfeet = sqfeet;
     }
 
@@ -119,7 +143,35 @@ public class CustomerProjectUpdateRequest {
         return leadId;
     }
 
-    public void setLeadId(Long leadId) {
+    // Custom setter to handle both Long and Integer types from JSON
+    @JsonSetter("lead_id")
+    public void setLeadId(Object leadIdObj) {
+        if (leadIdObj == null) {
+            this.leadId = null;
+        } else if (leadIdObj instanceof Long) {
+            this.leadId = (Long) leadIdObj;
+        } else if (leadIdObj instanceof Integer) {
+            this.leadId = ((Integer) leadIdObj).longValue();
+        } else if (leadIdObj instanceof Number) {
+            this.leadId = ((Number) leadIdObj).longValue();
+        } else if (leadIdObj instanceof String) {
+            String str = (String) leadIdObj;
+            if (str.trim().isEmpty()) {
+                this.leadId = null;
+            } else {
+                try {
+                    this.leadId = Long.parseLong(str);
+                } catch (NumberFormatException e) {
+                    this.leadId = null;
+                }
+            }
+        } else {
+            this.leadId = null;
+        }
+    }
+    
+    // Regular setter for Long (for programmatic use)
+    public void setLeadIdValue(Long leadId) {
         this.leadId = leadId;
     }
 
