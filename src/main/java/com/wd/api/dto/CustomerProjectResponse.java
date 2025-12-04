@@ -10,38 +10,42 @@ public class CustomerProjectResponse {
     private Long id;
     private String name;
     private String location;
-    
+
     @JsonProperty("start_date")
     private LocalDate startDate;
-    
+
     @JsonProperty("end_date")
     private LocalDate endDate;
-    
+
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
-    
+
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
-    
+
     private Double progress;
-    
+
     @JsonProperty("created_by")
     private String createdBy;
-    
+
     @JsonProperty("project_phase")
     private String projectPhase;
-    
+
     private String state;
     private String district;
     private BigDecimal sqfeet;
-    
+
     @JsonProperty("lead_id")
     private Long leadId;
-    
+
+    @JsonProperty("team_members")
+    private java.util.List<TeamMemberDTO> teamMembers;
+
     private String code;
 
     // Constructors
-    public CustomerProjectResponse() {}
+    public CustomerProjectResponse() {
+    }
 
     public CustomerProjectResponse(CustomerProject project) {
         this.id = project.getId();
@@ -59,6 +63,35 @@ public class CustomerProjectResponse {
         this.sqfeet = project.getSqfeet();
         this.leadId = project.getLeadId();
         this.code = project.getCode();
+        if (project.getProjectMembers() != null && !project.getProjectMembers().isEmpty()) {
+            this.teamMembers = project.getProjectMembers().stream()
+                    .map(pm -> {
+                        if (pm.getPortalUser() != null) {
+                            return new TeamMemberDTO(
+                                    pm.getPortalUser().getId(),
+                                    pm.getPortalUser().getFirstName(),
+                                    pm.getPortalUser().getLastName(),
+                                    pm.getPortalUser().getEmail(),
+                                    "PORTAL");
+                        } else if (pm.getCustomerUser() != null) {
+                            return new TeamMemberDTO(
+                                    pm.getCustomerUser().getId(),
+                                    pm.getCustomerUser().getFirstName(),
+                                    pm.getCustomerUser().getLastName(),
+                                    pm.getCustomerUser().getEmail(),
+                                    "CUSTOMER");
+                        }
+                        return null;
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .collect(java.util.stream.Collectors.toList());
+        } else if (project.getTeamMembers() != null) {
+            // Fallback to old team members for backward compatibility
+            this.teamMembers = project.getTeamMembers().stream()
+                    .map(user -> new TeamMemberDTO(user.getId(), user.getFirstName(), user.getLastName(),
+                            user.getEmail(), "UNKNOWN"))
+                    .collect(java.util.stream.Collectors.toList());
+        }
     }
 
     // Getters and Setters
@@ -181,5 +214,12 @@ public class CustomerProjectResponse {
     public void setCode(String code) {
         this.code = code;
     }
-}
 
+    public java.util.List<TeamMemberDTO> getTeamMembers() {
+        return teamMembers;
+    }
+
+    public void setTeamMembers(java.util.List<TeamMemberDTO> teamMembers) {
+        this.teamMembers = teamMembers;
+    }
+}

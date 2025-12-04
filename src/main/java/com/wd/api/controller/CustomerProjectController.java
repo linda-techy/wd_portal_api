@@ -4,7 +4,11 @@ import com.wd.api.dto.CustomerProjectCreateRequest;
 import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
 import com.wd.api.model.CustomerProject;
+import com.wd.api.model.ProjectMember;
+import com.wd.api.model.User;
+import com.wd.api.dto.TeamMemberSelectionDTO;
 import com.wd.api.repository.CustomerProjectRepository;
+import com.wd.api.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,12 +27,27 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/customer-projects")
 public class CustomerProjectController {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(CustomerProjectController.class);
-    
+
     @Autowired
     private CustomerProjectRepository customerProjectRepository;
-    
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private com.wd.api.repository.ProjectMemberRepository projectMemberRepository;
+
+    @Autowired
+    private com.wd.api.repository.PortalUserRepository portalUserRepository;
+
+    @Autowired
+    private com.wd.api.repository.CustomerUserRepository customerUserRepository;
+
+    @Autowired
+    private com.wd.api.repository.PortalRoleRepository portalRoleRepository;
+
     /**
      * Get all customer projects
      */
@@ -45,7 +64,7 @@ public class CustomerProjectController {
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
     /**
      * Get customer project by ID
      */
@@ -62,56 +81,57 @@ public class CustomerProjectController {
             return ResponseEntity.internalServerError().body("Error fetching customer project");
         }
     }
-    
+
     /**
      * Create customer project
      */
     @PostMapping
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after verifying role names in database
+    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
+    // verifying role names in database
     public ResponseEntity<?> createCustomerProject(@RequestBody CustomerProjectCreateRequest request) {
         try {
             // Validate required fields
             if (request == null) {
                 return ResponseEntity.badRequest().body("Request body is required");
             }
-            
+
             if (request.getName() == null || request.getName().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body("Project name is required");
             }
-            
+
             if (request.getLocation() == null || request.getLocation().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body("Location is required");
             }
-            
+
             // Validate progress if provided
             if (request.getProgress() != null) {
                 if (request.getProgress() < 0 || request.getProgress() > 100) {
                     return ResponseEntity.badRequest().body("Progress must be between 0 and 100");
                 }
             }
-            
+
             // Validate end date is after start date if both provided
             if (request.getStartDate() != null && request.getEndDate() != null) {
                 if (request.getEndDate().isBefore(request.getStartDate())) {
                     return ResponseEntity.badRequest().body("End date must be after start date");
                 }
             }
-            
+
             // Get current logged-in user
             String createdBy = null;
             try {
                 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                if (authentication != null && authentication.isAuthenticated() 
+                if (authentication != null && authentication.isAuthenticated()
                         && !authentication.getName().equals("anonymousUser")) {
                     createdBy = authentication.getName();
                 }
             } catch (Exception e) {
                 logger.warn("Error getting current user for project creation", e);
             }
-            
+
             // Generate unique project code
             String projectCode = generateUniqueProjectCode();
-            
+
             // Create new project
             CustomerProject project = new CustomerProject();
             project.setName(request.getName().trim());
@@ -126,20 +146,32 @@ public class CustomerProjectController {
             }
             project.setCreatedBy(createdBy);
             project.setProjectPhase(request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()
-                    ? request.getProjectPhase().trim() : "Planning");
+                    ? request.getProjectPhase().trim()
+                    : "Planning");
             project.setState(request.getState() != null && !request.getState().trim().isEmpty()
-                    ? request.getState().trim() : "Kerala");
+                    ? request.getState().trim()
+                    : "Kerala");
             project.setDistrict(request.getDistrict() != null && !request.getDistrict().trim().isEmpty()
-                    ? request.getDistrict().trim() : null);
+                    ? request.getDistrict().trim()
+                    : null);
             // Handle sqfeet - already converted to BigDecimal by @JsonSetter
             project.setSqfeet(request.getSqfeet());
             // Handle leadId - already converted to Long by @JsonSetter
             project.setLeadId(request.getLeadId());
             project.setCode(projectCode);
-            
+
+            // Handle team members
+            // 1. Auto-assign Portal Admins
+            assignPortalAdmins(project);
+
+            // 2. Assign selected team members
+            if (request.getTeamMembers() != null && !request.getTeamMembers().isEmpty()) {
+                assignSelectedMembers(project, request.getTeamMembers());
+            }
+
             CustomerProject savedProject = customerProjectRepository.save(project);
             return ResponseEntity.status(HttpStatus.CREATED).body(new CustomerProjectResponse(savedProject));
-            
+
         } catch (IllegalArgumentException e) {
             logger.warn("Validation error creating customer project: {}", e.getMessage());
             return ResponseEntity.badRequest().body("Validation error: " + e.getMessage());
@@ -148,69 +180,73 @@ public class CustomerProjectController {
             return ResponseEntity.internalServerError().body("Error creating customer project");
         }
     }
-    
+
     /**
      * Update customer project
      */
     @PutMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after verifying role names in database
-    public ResponseEntity<?> updateCustomerProject(@PathVariable Long id, @RequestBody CustomerProjectUpdateRequest request) {
+    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
+    // verifying role names in database
+    public ResponseEntity<?> updateCustomerProject(@PathVariable Long id,
+            @RequestBody CustomerProjectUpdateRequest request) {
         try {
             // Log incoming request for debugging
             logger.debug("UPDATE CUSTOMER PROJECT REQUEST - Project ID: {}", id);
             if (request != null) {
-                logger.debug("Request details - name: {}, location: {}, code: {}, leadId: {}, sqfeet: {}, progress: {}, startDate: {}, endDate: {}, projectPhase: {}, state: {}, district: {}",
-                    request.getName(), request.getLocation(), request.getCode(), request.getLeadId(),
-                    request.getSqfeet(), request.getProgress(), request.getStartDate(), request.getEndDate(),
-                    request.getProjectPhase(), request.getState(), request.getDistrict());
+                logger.debug(
+                        "Request details - name: {}, location: {}, code: {}, leadId: {}, sqfeet: {}, progress: {}, startDate: {}, endDate: {}, projectPhase: {}, state: {}, district: {}",
+                        request.getName(), request.getLocation(), request.getCode(), request.getLeadId(),
+                        request.getSqfeet(), request.getProgress(), request.getStartDate(), request.getEndDate(),
+                        request.getProjectPhase(), request.getState(), request.getDistrict());
             } else {
                 logger.warn("UPDATE CUSTOMER PROJECT REQUEST - Request body is NULL for project ID: {}", id);
             }
-            
+
             // Validate ID
             if (id == null) {
                 return ResponseEntity.badRequest().body("Project ID is required");
             }
-            
+
             Optional<CustomerProject> projectOpt = customerProjectRepository.findById(id);
             if (!projectOpt.isPresent()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Project with ID " + id + " not found");
             }
-            
+
             CustomerProject project = projectOpt.get();
             logger.debug("Existing project - ID: {}, code: {}", project.getId(), project.getCode());
-            
+
             // Validate required fields
             if (request == null) {
                 logger.warn("UPDATE CUSTOMER PROJECT - Request body is null for project ID: {}", id);
                 return ResponseEntity.badRequest().body("Request body is required");
             }
-            
+
             logger.debug("Validating request fields for project ID: {}", id);
             if (request.getName() == null || request.getName().trim().isEmpty()) {
                 logger.warn("UPDATE CUSTOMER PROJECT - Project name is null or empty for project ID: {}", id);
                 return ResponseEntity.badRequest().body("Project name is required");
             }
             logger.debug("Name validation passed: {}", request.getName());
-            
+
             if (request.getLocation() == null || request.getLocation().trim().isEmpty()) {
                 logger.warn("UPDATE CUSTOMER PROJECT - Location is null or empty for project ID: {}", id);
                 return ResponseEntity.badRequest().body("Location is required");
             }
             logger.debug("Location validation passed: {}", request.getLocation());
-            
+
             // Validate progress if provided
             if (request.getProgress() != null) {
                 logger.debug("Validating progress: {}", request.getProgress());
                 if (request.getProgress() < 0 || request.getProgress() > 100) {
-                    logger.warn("UPDATE CUSTOMER PROJECT - Progress out of range: {} for project ID: {}", request.getProgress(), id);
+                    logger.warn("UPDATE CUSTOMER PROJECT - Progress out of range: {} for project ID: {}",
+                            request.getProgress(), id);
                     return ResponseEntity.badRequest().body("Progress must be between 0 and 100");
                 }
                 logger.debug("Progress validation passed");
             } else {
                 logger.debug("Progress is null (optional field)");
             }
-            
+
             // Validate end date is after start date if both provided
             if (request.getStartDate() != null && request.getEndDate() != null) {
                 logger.debug("Validating dates - start: {}, end: {}", request.getStartDate(), request.getEndDate());
@@ -222,24 +258,25 @@ public class CustomerProjectController {
             } else {
                 logger.debug("Dates validation skipped (one or both are null)");
             }
-            
+
             // Validate code uniqueness if code is being changed
             logger.debug("CODE VALIDATION - Project ID: {}", id);
             if (request.getCode() != null && !request.getCode().trim().isEmpty()) {
                 String newCode = request.getCode().trim();
                 String existingCode = project.getCode();
-                logger.debug("Code validation - new: '{}' (length: {}), existing: '{}' (length: {})", 
-                    newCode, newCode.length(), existingCode, existingCode != null ? existingCode.length() : 0);
-                
+                logger.debug("Code validation - new: '{}' (length: {}), existing: '{}' (length: {})",
+                        newCode, newCode.length(), existingCode, existingCode != null ? existingCode.length() : 0);
+
                 // Normalize codes for comparison (trim and handle null)
                 String normalizedNewCode = newCode.trim();
                 String normalizedExistingCode = (existingCode != null) ? existingCode.trim() : null;
-                
+
                 // Only check uniqueness if code is actually being changed
-                boolean codeChanged = (normalizedExistingCode == null || !normalizedNewCode.equals(normalizedExistingCode));
-                logger.debug("Code changed: {}, normalized new: '{}', normalized existing: '{}'", 
-                    codeChanged, normalizedNewCode, normalizedExistingCode);
-                
+                boolean codeChanged = (normalizedExistingCode == null
+                        || !normalizedNewCode.equals(normalizedExistingCode));
+                logger.debug("Code changed: {}, normalized new: '{}', normalized existing: '{}'",
+                        codeChanged, normalizedNewCode, normalizedExistingCode);
+
                 if (codeChanged) {
                     logger.debug("Code is being changed, checking uniqueness for: '{}'", normalizedNewCode);
                     Optional<CustomerProject> existingProject = customerProjectRepository.findByCode(normalizedNewCode);
@@ -247,15 +284,17 @@ public class CustomerProjectController {
                         CustomerProject foundProject = existingProject.get();
                         Long existingProjectId = foundProject.getId();
                         String foundProjectCode = foundProject.getCode();
-                        logger.debug("Found project with code '{}' - ID: {}, code: '{}'", 
-                            normalizedNewCode, existingProjectId, foundProjectCode);
-                        
+                        logger.debug("Found project with code '{}' - ID: {}, code: '{}'",
+                                normalizedNewCode, existingProjectId, foundProjectCode);
+
                         // Only fail if it's a different project
                         // Use Objects.equals for null-safe comparison
                         if (!java.util.Objects.equals(existingProjectId, id)) {
-                            logger.warn("UPDATE CUSTOMER PROJECT - Code conflict! Code '{}' belongs to project ID {}, not {}", 
-                                normalizedNewCode, existingProjectId, id);
-                            return ResponseEntity.badRequest().body("Project code '" + normalizedNewCode + "' already exists for project ID " + existingProjectId);
+                            logger.warn(
+                                    "UPDATE CUSTOMER PROJECT - Code conflict! Code '{}' belongs to project ID {}, not {}",
+                                    normalizedNewCode, existingProjectId, id);
+                            return ResponseEntity.badRequest().body("Project code '" + normalizedNewCode
+                                    + "' already exists for project ID " + existingProjectId);
                         } else {
                             logger.debug("Code belongs to same project (ID {}), update allowed", id);
                         }
@@ -268,7 +307,7 @@ public class CustomerProjectController {
             } else {
                 logger.debug("Code is null or empty in request, keeping existing code: '{}'", project.getCode());
             }
-            
+
             // Update fields
             project.setName(request.getName().trim());
             project.setLocation(request.getLocation().trim());
@@ -282,16 +321,37 @@ public class CustomerProjectController {
             }
             // Don't update createdBy - it should remain as original creator
             project.setProjectPhase(request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()
-                    ? request.getProjectPhase().trim() : null);
+                    ? request.getProjectPhase().trim()
+                    : null);
             project.setState(request.getState() != null && !request.getState().trim().isEmpty()
-                    ? request.getState().trim() : null);
+                    ? request.getState().trim()
+                    : null);
             project.setDistrict(request.getDistrict() != null && !request.getDistrict().trim().isEmpty()
-                    ? request.getDistrict().trim() : null);
+                    ? request.getDistrict().trim()
+                    : null);
             // Handle sqfeet - already converted to BigDecimal by @JsonSetter
             project.setSqfeet(request.getSqfeet());
-            
+
             // Handle leadId - already converted to Long by @JsonSetter
             project.setLeadId(request.getLeadId());
+
+            // Handle team members
+            if (request.getTeamMembers() != null) {
+                // Clear existing project members (except maybe admins? User didn't specify, but
+                // usually update replaces selection)
+                // However, the requirement says "add all portal_users who's role is admin".
+                // If we clear, we should re-add admins or just ensure they are there.
+                // For simplicity, let's clear and re-process everything including auto-admins
+                // to be safe.
+                project.getProjectMembers().clear();
+
+                // 1. Auto-assign Portal Admins (ensure they are always there)
+                assignPortalAdmins(project);
+
+                // 2. Assign selected team members
+                assignSelectedMembers(project, request.getTeamMembers());
+            }
+
             // Allow code to be updated in edit screen
             // Note: Code uniqueness was already validated above
             if (request.getCode() != null && !request.getCode().trim().isEmpty()) {
@@ -307,9 +367,10 @@ public class CustomerProjectController {
                 project.setCode(null);
             } else {
                 // If code is null in request, keep existing code (don't change it)
-                logger.debug("Code not provided in request, keeping existing: '{}' for project ID: {}", project.getCode(), id);
+                logger.debug("Code not provided in request, keeping existing: '{}' for project ID: {}",
+                        project.getCode(), id);
             }
-            
+
             // Validate entity state before save - ensure required fields are set
             logger.debug("Validating entity state before save for project ID: {}", id);
             if (project.getName() == null || project.getName().trim().isEmpty()) {
@@ -317,13 +378,13 @@ public class CustomerProjectController {
                 return ResponseEntity.badRequest().body("Project name cannot be empty after update");
             }
             logger.debug("Name is valid: {}", project.getName());
-            
+
             if (project.getLocation() == null || project.getLocation().trim().isEmpty()) {
                 logger.error("UPDATE CUSTOMER PROJECT - Project location is null or empty for project ID: {}", id);
                 return ResponseEntity.badRequest().body("Location cannot be empty after update");
             }
             logger.debug("Location is valid: {}", project.getLocation());
-            
+
             // Ensure name and location are trimmed
             if (!project.getName().equals(project.getName().trim())) {
                 project.setName(project.getName().trim());
@@ -332,19 +393,20 @@ public class CustomerProjectController {
                 project.setLocation(project.getLocation().trim());
             }
             logger.debug("Entity validation passed for project ID: {}", id);
-            
+
             // Log the project state before save for debugging
-            logger.debug("BEFORE SAVE - Project ID: {}, name: {}, location: {}, code: {}, leadId: {}, sqfeet: {}, progress: {}, state: {}, district: {}, phase: {}, startDate: {}, endDate: {}, createdBy: {}, createdAt: {}, updatedAt: {}",
-                id, project.getName(), project.getLocation(), project.getCode(), project.getLeadId(),
-                project.getSqfeet(), project.getProgress(), project.getState(), project.getDistrict(),
-                project.getProjectPhase(), project.getStartDate(), project.getEndDate(),
-                project.getCreatedBy(), project.getCreatedAt(), project.getUpdatedAt());
-            
+            logger.debug(
+                    "BEFORE SAVE - Project ID: {}, name: {}, location: {}, code: {}, leadId: {}, sqfeet: {}, progress: {}, state: {}, district: {}, phase: {}, startDate: {}, endDate: {}, createdBy: {}, createdAt: {}, updatedAt: {}",
+                    id, project.getName(), project.getLocation(), project.getCode(), project.getLeadId(),
+                    project.getSqfeet(), project.getProgress(), project.getState(), project.getDistrict(),
+                    project.getProjectPhase(), project.getStartDate(), project.getEndDate(),
+                    project.getCreatedBy(), project.getCreatedAt(), project.getUpdatedAt());
+
             try {
                 logger.debug("Attempting to save project ID: {}", id);
                 CustomerProject updatedProject = customerProjectRepository.save(project);
                 logger.info("Customer project updated successfully - ID: {}", updatedProject.getId());
-                
+
                 // Create response
                 try {
                     CustomerProjectResponse response = new CustomerProjectResponse(updatedProject);
@@ -356,40 +418,41 @@ public class CustomerProjectController {
                     return ResponseEntity.ok().body("Project updated successfully but error creating response");
                 }
             } catch (org.hibernate.exception.ConstraintViolationException e) {
-                logger.error("Hibernate constraint violation saving project ID: {} - SQL State: {}, Error Code: {}", 
-                    id, e.getSQLState(), e.getErrorCode(), e);
-                return ResponseEntity.badRequest().body("Database constraint violation: " + 
-                    (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+                logger.error("Hibernate constraint violation saving project ID: {} - SQL State: {}, Error Code: {}",
+                        id, e.getSQLState(), e.getErrorCode(), e);
+                return ResponseEntity.badRequest().body("Database constraint violation: " +
+                        (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
             } catch (org.hibernate.exception.DataException e) {
-                logger.error("Hibernate data exception saving project ID: {} - SQL State: {}", 
-                    id, e.getSQLState(), e);
-                return ResponseEntity.badRequest().body("Data error: " + 
-                    (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+                logger.error("Hibernate data exception saving project ID: {} - SQL State: {}",
+                        id, e.getSQLState(), e);
+                return ResponseEntity.badRequest().body("Data error: " +
+                        (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
             } catch (org.hibernate.exception.SQLGrammarException e) {
-                logger.error("Hibernate SQL grammar exception saving project ID: {} - SQL: {}", 
-                    id, e.getSQL(), e);
-                return ResponseEntity.internalServerError().body("SQL error: " + 
-                    (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+                logger.error("Hibernate SQL grammar exception saving project ID: {} - SQL: {}",
+                        id, e.getSQL(), e);
+                return ResponseEntity.internalServerError().body("SQL error: " +
+                        (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
             } catch (Exception e) {
-                logger.error("Unexpected error during save for project ID: {} - Exception type: {}", 
-                    id, e.getClass().getName(), e);
+                logger.error("Unexpected error during save for project ID: {} - Exception type: {}",
+                        id, e.getClass().getName(), e);
                 throw e; // Re-throw to be caught by outer catch block
             }
-            
+
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            logger.error("Data integrity violation updating customer project ID: {} - Root cause: {}", 
-                id, e.getRootCause() != null ? e.getRootCause().getMessage() : "null", e);
+            logger.error("Data integrity violation updating customer project ID: {} - Root cause: {}",
+                    id, e.getRootCause() != null ? e.getRootCause().getMessage() : "null", e);
             String errorMsg = e.getMessage();
             String rootCause = e.getRootCause() != null ? e.getRootCause().getMessage() : "";
             if (errorMsg != null && (errorMsg.contains("code") || rootCause.contains("code"))) {
-                return ResponseEntity.badRequest().body("Project code already exists or violates constraint: " + rootCause);
+                return ResponseEntity.badRequest()
+                        .body("Project code already exists or violates constraint: " + rootCause);
             } else if (errorMsg != null && (errorMsg.contains("lead_id") || rootCause.contains("lead_id"))) {
                 return ResponseEntity.badRequest().body("Invalid lead ID: " + rootCause);
             } else if (errorMsg != null && (errorMsg.contains("null") || rootCause.contains("null"))) {
                 return ResponseEntity.badRequest().body("Required field is null: " + rootCause);
             } else {
-                return ResponseEntity.badRequest().body("Data integrity violation: " + errorMsg + 
-                    (rootCause != null && !rootCause.isEmpty() ? " - Root cause: " + rootCause : ""));
+                return ResponseEntity.badRequest().body("Data integrity violation: " + errorMsg +
+                        (rootCause != null && !rootCause.isEmpty() ? " - Root cause: " + rootCause : ""));
             }
         } catch (IllegalArgumentException e) {
             logger.warn("Validation error updating customer project ID: {} - {}", id, e.getMessage());
@@ -410,32 +473,33 @@ public class CustomerProjectController {
             return ResponseEntity.internalServerError().body("Error updating customer project");
         }
     }
-    
+
     /**
      * Delete customer project
      */
     @DeleteMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: Re-enable after verifying role names in database
+    // @PreAuthorize("hasRole('ADMIN')") // TODO: Re-enable after verifying role
+    // names in database
     public ResponseEntity<?> deleteCustomerProject(@PathVariable Long id) {
         try {
             if (id == null) {
                 return ResponseEntity.badRequest().body("Project ID is required");
             }
-            
+
             Optional<CustomerProject> projectOpt = customerProjectRepository.findById(id);
             if (!projectOpt.isPresent()) {
                 return ResponseEntity.notFound().build();
             }
-            
+
             customerProjectRepository.deleteById(id);
             return ResponseEntity.ok().build();
-            
+
         } catch (Exception e) {
             logger.error("Error deleting customer project with ID: {}", id, e);
             return ResponseEntity.internalServerError().body("Error deleting customer project");
         }
     }
-    
+
     /**
      * Get customer projects by lead ID
      */
@@ -452,7 +516,75 @@ public class CustomerProjectController {
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
+    private void assignPortalAdmins(CustomerProject project) {
+        try {
+            Optional<com.wd.api.model.PortalRole> adminRoleOpt = portalRoleRepository.findByCodeIgnoreCase("ADMIN");
+            if (adminRoleOpt.isPresent()) {
+                List<com.wd.api.model.PortalUser> admins = portalUserRepository
+                        .findByRoleId(adminRoleOpt.get().getId());
+                for (com.wd.api.model.PortalUser admin : admins) {
+                    // Check if already assigned
+                    boolean alreadyAssigned = project.getProjectMembers().stream()
+                            .anyMatch(pm -> pm.getPortalUser() != null
+                                    && pm.getPortalUser().getId().equals(admin.getId()));
+
+                    if (!alreadyAssigned) {
+                        ProjectMember member = new ProjectMember();
+                        member.setProject(project);
+                        member.setPortalUser(admin);
+                        member.setRoleInProject("ADMIN");
+                        project.getProjectMembers().add(member);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error auto-assigning admins", e);
+        }
+    }
+
+    private void assignSelectedMembers(CustomerProject project, List<TeamMemberSelectionDTO> selectedMembers) {
+        for (TeamMemberSelectionDTO selection : selectedMembers) {
+            if (selection.getId() == null || selection.getType() == null)
+                continue;
+
+            if ("PORTAL".equalsIgnoreCase(selection.getType())) {
+                // Check if already assigned (e.g. via admin auto-assign)
+                boolean alreadyAssigned = project.getProjectMembers().stream()
+                        .anyMatch(pm -> pm.getPortalUser() != null
+                                && pm.getPortalUser().getId().equals(selection.getId()));
+
+                if (!alreadyAssigned) {
+                    Optional<com.wd.api.model.PortalUser> userOpt = portalUserRepository.findById(selection.getId());
+                    if (userOpt.isPresent()) {
+                        ProjectMember member = new ProjectMember();
+                        member.setProject(project);
+                        member.setPortalUser(userOpt.get());
+                        member.setRoleInProject("MEMBER");
+                        project.getProjectMembers().add(member);
+                    }
+                }
+            } else if ("CUSTOMER".equalsIgnoreCase(selection.getType())) {
+                // Check if already assigned
+                boolean alreadyAssigned = project.getProjectMembers().stream()
+                        .anyMatch(pm -> pm.getCustomerUser() != null
+                                && pm.getCustomerUser().getId().equals(selection.getId()));
+
+                if (!alreadyAssigned) {
+                    Optional<com.wd.api.model.CustomerUser> userOpt = customerUserRepository
+                            .findById(selection.getId());
+                    if (userOpt.isPresent()) {
+                        ProjectMember member = new ProjectMember();
+                        member.setProject(project);
+                        member.setCustomerUser(userOpt.get());
+                        member.setRoleInProject("MEMBER");
+                        project.getProjectMembers().add(member);
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Generate unique project code
      * Format: PROJ-{short UUID}
@@ -471,8 +603,7 @@ public class CustomerProjectController {
                 break;
             }
         } while (customerProjectRepository.findByCode(code).isPresent());
-        
+
         return code;
     }
 }
-

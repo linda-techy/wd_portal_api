@@ -8,33 +8,37 @@ import java.time.LocalDate;
 public class CustomerProjectUpdateRequest {
     private String name;
     private String location;
-    
+
     @JsonProperty("start_date")
     private LocalDate startDate;
-    
+
     @JsonProperty("end_date")
     private LocalDate endDate;
-    
+
     private Double progress;
-    
+
     @JsonProperty("created_by")
     private String createdBy;
-    
+
     @JsonProperty("project_phase")
     private String projectPhase;
-    
+
     private String state;
     private String district;
-    
+
     private BigDecimal sqfeet;
-    
+
     // leadId will be set via @JsonSetter annotated setter method
     private Long leadId;
-    
+
+    @JsonProperty("team_members")
+    private java.util.List<TeamMemberSelectionDTO> teamMembers;
+
     private String code;
 
     // Constructors
-    public CustomerProjectUpdateRequest() {}
+    public CustomerProjectUpdateRequest() {
+    }
 
     // Getters and Setters
     public String getName() {
@@ -133,7 +137,7 @@ public class CustomerProjectUpdateRequest {
             this.sqfeet = null;
         }
     }
-    
+
     // Regular setter for BigDecimal (for programmatic use)
     public void setSqfeetValue(BigDecimal sqfeet) {
         this.sqfeet = sqfeet;
@@ -169,7 +173,7 @@ public class CustomerProjectUpdateRequest {
             this.leadId = null;
         }
     }
-    
+
     // Regular setter for Long (for programmatic use)
     public void setLeadIdValue(Long leadId) {
         this.leadId = leadId;
@@ -182,5 +186,12 @@ public class CustomerProjectUpdateRequest {
     public void setCode(String code) {
         this.code = code;
     }
-}
 
+    public java.util.List<TeamMemberSelectionDTO> getTeamMembers() {
+        return teamMembers;
+    }
+
+    public void setTeamMembers(java.util.List<TeamMemberSelectionDTO> teamMembers) {
+        this.teamMembers = teamMembers;
+    }
+}

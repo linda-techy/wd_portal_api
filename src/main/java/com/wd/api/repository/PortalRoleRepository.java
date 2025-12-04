@@ -9,6 +9,8 @@ import java.util.Optional;
 @Repository
 public interface PortalRoleRepository extends JpaRepository<PortalRole, Long> {
     Optional<PortalRole> findByName(String name);
-    Optional<PortalRole> findByCode(String code);
-}
 
+    Optional<PortalRole> findByCode(String code);
+
+    Optional<PortalRole> findByCodeIgnoreCase(String code);
+}
