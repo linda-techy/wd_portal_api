@@ -24,23 +24,24 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/portal-users")
 public class PortalUserController {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(PortalUserController.class);
-    
+
     @Autowired
     private PortalUserRepository portalUserRepository;
-    
+
     @Autowired
     private PortalRoleRepository portalRoleRepository;
-    
+
     @Autowired
     private PasswordEncoder passwordEncoder;
-    
+
     /**
      * Get all portal users
      */
     @GetMapping
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after verifying role names in database
+    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
+    // verifying role names in database
     public ResponseEntity<?> getAllPortalUsers() {
         try {
             List<PortalUser> users = portalUserRepository.findAll();
@@ -53,7 +54,7 @@ public class PortalUserController {
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
     /**
      * Get portal user by ID
      */
@@ -70,33 +71,34 @@ public class PortalUserController {
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
     /**
      * Create portal user
      */
     @PostMapping
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: Re-enable after verifying role names in database
+    // @PreAuthorize("hasRole('ADMIN')") // TODO: Re-enable after verifying role
+    // names in database
     public ResponseEntity<?> createPortalUser(@Valid @RequestBody PortalUserCreateRequest request) {
         try {
             // Validate required fields
             if (request == null) {
                 return ResponseEntity.badRequest().body("Request body is required");
             }
-            
+
             // Check if email already exists
             if (portalUserRepository.findByEmail(request.getEmail().trim()).isPresent()) {
                 return ResponseEntity.badRequest().body("Email already exists");
             }
-            
+
             // Validate password
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body("Password is required");
             }
-            
+
             if (request.getPassword().trim().length() < 6) {
                 return ResponseEntity.badRequest().body("Password must be at least 6 characters");
             }
-            
+
             // Create new user
             PortalUser user = new PortalUser();
             user.setEmail(request.getEmail().trim().toLowerCase());
@@ -105,40 +107,42 @@ public class PortalUserController {
             user.setLastName(request.getLastName().trim());
             user.setRoleId(request.getRoleId());
             user.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
-            
+
             PortalUser savedUser = portalUserRepository.save(user);
             return ResponseEntity.status(HttpStatus.CREATED).body(new PortalUserResponse(savedUser));
-            
+
         } catch (Exception e) {
             logger.error("Error creating portal user", e);
             return ResponseEntity.internalServerError().body("Error creating portal user");
         }
     }
-    
+
     /**
      * Update portal user
      */
     @PutMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after verifying role names in database
-    public ResponseEntity<?> updatePortalUser(@PathVariable Long id, @Valid @RequestBody PortalUserUpdateRequest request) {
+    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
+    // verifying role names in database
+    public ResponseEntity<?> updatePortalUser(@PathVariable Long id,
+            @Valid @RequestBody PortalUserUpdateRequest request) {
         try {
             // Validate ID
             if (id == null) {
                 return ResponseEntity.badRequest().body("User ID is required");
             }
-            
+
             Optional<PortalUser> userOpt = portalUserRepository.findById(id);
             if (!userOpt.isPresent()) {
                 return ResponseEntity.notFound().build();
             }
-            
+
             PortalUser user = userOpt.get();
-            
+
             // Validate request
             if (request == null) {
                 return ResponseEntity.badRequest().body("Request body is required");
             }
-            
+
             // Update email if provided and check uniqueness
             if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
                 String newEmail = request.getEmail().trim().toLowerCase();
@@ -150,7 +154,7 @@ public class PortalUserController {
                     user.setEmail(newEmail);
                 }
             }
-            
+
             // Update password if provided
             if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
                 if (request.getPassword().trim().length() < 6) {
@@ -158,57 +162,58 @@ public class PortalUserController {
                 }
                 user.setPassword(passwordEncoder.encode(request.getPassword().trim()));
             }
-            
+
             // Update other fields
             if (request.getFirstName() != null && !request.getFirstName().trim().isEmpty()) {
                 user.setFirstName(request.getFirstName().trim());
             }
-            
+
             if (request.getLastName() != null && !request.getLastName().trim().isEmpty()) {
                 user.setLastName(request.getLastName().trim());
             }
-            
+
             if (request.getRoleId() != null) {
                 user.setRoleId(request.getRoleId());
             }
-            
+
             if (request.getEnabled() != null) {
                 user.setEnabled(request.getEnabled());
             }
-            
+
             PortalUser updatedUser = portalUserRepository.save(user);
             return ResponseEntity.ok(new PortalUserResponse(updatedUser));
-            
+
         } catch (Exception e) {
             logger.error("Error updating portal user with ID: {}", id, e);
             return ResponseEntity.internalServerError().body("Error updating portal user");
         }
     }
-    
+
     /**
      * Delete portal user
      */
     @DeleteMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: Re-enable after verifying role names in database
+    // @PreAuthorize("hasRole('ADMIN')") // TODO: Re-enable after verifying role
+    // names in database
     public ResponseEntity<?> deletePortalUser(@PathVariable Long id) {
         try {
             if (id == null) {
                 return ResponseEntity.badRequest().body("User ID is required");
             }
-            
+
             if (!portalUserRepository.existsById(id)) {
                 return ResponseEntity.notFound().build();
             }
-            
+
             portalUserRepository.deleteById(id);
             return ResponseEntity.ok().build();
-            
+
         } catch (Exception e) {
             logger.error("Error deleting portal user with ID: {}", id, e);
             return ResponseEntity.internalServerError().build();
         }
     }
-    
+
     /**
      * Get all portal roles for dropdown
      */
@@ -224,5 +229,46 @@ public class PortalUserController {
             return ResponseEntity.internalServerError().build();
         }
     }
-}
 
+    /**
+     * Change password
+     */
+    @PostMapping("/{id}/change-password")
+    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
+    // verifying role names
+    public ResponseEntity<?> changePassword(@PathVariable Long id,
+            @Valid @RequestBody com.wd.api.dto.ChangePasswordRequest request) {
+        try {
+            if (id == null) {
+                return ResponseEntity.badRequest().body("User ID is required");
+            }
+
+            Optional<PortalUser> userOpt = portalUserRepository.findById(id);
+            if (!userOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            PortalUser user = userOpt.get();
+
+            // Validate current password
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                return ResponseEntity.badRequest().body("Incorrect current password");
+            }
+
+            // Validate new password
+            if (request.getNewPassword() == null || request.getNewPassword().trim().length() < 6) {
+                return ResponseEntity.badRequest().body("New password must be at least 6 characters");
+            }
+
+            // Update password
+            user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
+            portalUserRepository.save(user);
+
+            return ResponseEntity.ok().body("Password changed successfully");
+
+        } catch (Exception e) {
+            logger.error("Error changing password for user ID: {}", id, e);
+            return ResponseEntity.internalServerError().body("Error changing password");
+        }
+    }
+}
