@@ -158,6 +158,7 @@ public class CustomerProjectController {
             project.setSqfeet(request.getSqfeet());
             // Handle leadId - already converted to Long by @JsonSetter
             project.setLeadId(request.getLeadId());
+            project.setCustomerId(request.getCustomerId());
             project.setCode(projectCode);
 
             // Handle team members
@@ -334,6 +335,7 @@ public class CustomerProjectController {
 
             // Handle leadId - already converted to Long by @JsonSetter
             project.setLeadId(request.getLeadId());
+            project.setCustomerId(request.getCustomerId());
 
             // Handle team members
             if (request.getTeamMembers() != null) {

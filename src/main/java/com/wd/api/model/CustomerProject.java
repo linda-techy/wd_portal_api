@@ -52,6 +52,9 @@ public class CustomerProject {
     @Column(name = "lead_id", nullable = true)
     private Long leadId;
 
+    @Column(name = "customer_id", nullable = true)
+    private Long customerId;
+
     @Column(length = 255)
     private String code;
 
@@ -184,6 +187,14 @@ public class CustomerProject {
 
     public void setLeadId(Long leadId) {
         this.leadId = leadId;
+    }
+
+    public Long getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
     }
 
     public String getCode() {

@@ -38,6 +38,9 @@ public class CustomerProjectResponse {
     @JsonProperty("lead_id")
     private Long leadId;
 
+    @JsonProperty("customer_id")
+    private Long customerId;
+
     @JsonProperty("team_members")
     private java.util.List<TeamMemberDTO> teamMembers;
 
@@ -62,6 +65,7 @@ public class CustomerProjectResponse {
         this.district = project.getDistrict();
         this.sqfeet = project.getSqfeet();
         this.leadId = project.getLeadId();
+        this.customerId = project.getCustomerId();
         this.code = project.getCode();
         if (project.getProjectMembers() != null && !project.getProjectMembers().isEmpty()) {
             this.teamMembers = project.getProjectMembers().stream()
@@ -205,6 +209,14 @@ public class CustomerProjectResponse {
 
     public void setLeadId(Long leadId) {
         this.leadId = leadId;
+    }
+
+    public Long getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
     }
 
     public String getCode() {

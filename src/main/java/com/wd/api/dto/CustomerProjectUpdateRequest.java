@@ -31,6 +31,9 @@ public class CustomerProjectUpdateRequest {
     // leadId will be set via @JsonSetter annotated setter method
     private Long leadId;
 
+    @JsonProperty("customer_id")
+    private Long customerId;
+
     @JsonProperty("team_members")
     private java.util.List<TeamMemberSelectionDTO> teamMembers;
 
@@ -177,6 +180,14 @@ public class CustomerProjectUpdateRequest {
     // Regular setter for Long (for programmatic use)
     public void setLeadIdValue(Long leadId) {
         this.leadId = leadId;
+    }
+
+    public Long getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
     }
 
     public String getCode() {
