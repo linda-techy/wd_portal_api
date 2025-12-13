@@ -22,6 +22,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 @RestController
 @RequestMapping("/customers")
 public class CustomerController {
@@ -42,6 +50,29 @@ public class CustomerController {
     @Autowired
     private PasswordEncoder passwordEncoder;
     
+    /**
+     * Get all customers (paginated)
+     */
+    @GetMapping("/paginated")
+    public ResponseEntity<Page<CustomerResponse>> getCustomersPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction) {
+        try {
+            Sort sort = direction.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+            Pageable pageable = PageRequest.of(page, size, sort);
+            
+            Page<CustomerUser> customerPage = customerUserRepository.findAll(pageable);
+            Page<CustomerResponse> responsePage = customerPage.map(CustomerResponse::new);
+            
+            return ResponseEntity.ok(responsePage);
+        } catch (Exception e) {
+            logger.error("Error fetching paginated customers", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     /**
      * Get all customers
      */
@@ -234,7 +265,10 @@ public class CustomerController {
             }
             
             customerUserRepository.deleteById(id);
-            return ResponseEntity.ok().body("Customer deleted successfully");
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Customer deleted successfully");
+            return ResponseEntity.ok(response);
             
         } catch (Exception e) {
             logger.error("Error deleting customer with ID: {}", id, e);
