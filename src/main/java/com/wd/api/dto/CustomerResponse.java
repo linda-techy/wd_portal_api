@@ -106,5 +106,16 @@ public class CustomerResponse {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+    
+    @JsonProperty("project_count")
+    private int projectCount;
+
+    public int getProjectCount() {
+        return projectCount;
+    }
+
+    public void setProjectCount(int projectCount) {
+        this.projectCount = projectCount;
+    }
 }
 

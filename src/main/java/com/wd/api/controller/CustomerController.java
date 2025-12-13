@@ -64,7 +64,11 @@ public class CustomerController {
             Pageable pageable = PageRequest.of(page, size, sort);
             
             Page<CustomerUser> customerPage = customerUserRepository.findAll(pageable);
-            Page<CustomerResponse> responsePage = customerPage.map(CustomerResponse::new);
+            Page<CustomerResponse> responsePage = customerPage.map(customer -> {
+                CustomerResponse response = new CustomerResponse(customer);
+                response.setProjectCount(customerProjectRepository.countByCustomerId(customer.getId()));
+                return response;
+            });
             
             return ResponseEntity.ok(responsePage);
         } catch (Exception e) {
@@ -82,7 +86,11 @@ public class CustomerController {
         try {
             List<CustomerUser> customerUsers = customerUserRepository.findAll();
             List<CustomerResponse> customers = customerUsers.stream()
-                    .map(CustomerResponse::new)
+                    .map(customer -> {
+                        CustomerResponse response = new CustomerResponse(customer);
+                        response.setProjectCount(customerProjectRepository.countByCustomerId(customer.getId()));
+                        return response;
+                    })
                     .collect(Collectors.toList());
             return ResponseEntity.ok(customers);
         } catch (Exception e) {
@@ -99,7 +107,9 @@ public class CustomerController {
         try {
             Optional<CustomerUser> customerOpt = customerUserRepository.findById(id);
             if (customerOpt.isPresent()) {
-                return ResponseEntity.ok(new CustomerResponse(customerOpt.get()));
+                CustomerResponse response = new CustomerResponse(customerOpt.get());
+                response.setProjectCount(customerProjectRepository.countByCustomerId(id));
+                return ResponseEntity.ok(response);
             } else {
                 return ResponseEntity.notFound().build();
             }
@@ -231,7 +241,9 @@ public class CustomerController {
             // Save the updated customer
             try {
                 CustomerUser updatedCustomer = customerUserRepository.save(customerUser);
-                return ResponseEntity.ok(new CustomerResponse(updatedCustomer));
+                CustomerResponse response = new CustomerResponse(updatedCustomer);
+                response.setProjectCount(customerProjectRepository.countByCustomerId(updatedCustomer.getId()));
+                return ResponseEntity.ok(response);
             } catch (Exception e) {
                 logger.error("Error saving customer with ID: {}", id, e);
                 return ResponseEntity.internalServerError().body("Error saving customer");
@@ -261,7 +273,9 @@ public class CustomerController {
             // Check for associated projects
             List<com.wd.api.model.CustomerProject> projects = customerProjectRepository.findByCustomerId(id);
             if (!projects.isEmpty()) {
-                return ResponseEntity.badRequest().body("Cannot delete customer with associated projects. Please delete the projects first.");
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("message", "Cannot delete customer with associated projects. Please delete the projects first.");
+                return ResponseEntity.badRequest().body(errorResponse);
             }
             
             customerUserRepository.deleteById(id);

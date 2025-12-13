@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface CustomerProjectRepository extends JpaRepository<CustomerProject, Long> {
     List<CustomerProject> findByLeadId(Long leadId);
     List<CustomerProject> findByCustomerId(Long customerId);
+    int countByCustomerId(Long customerId);
     Optional<CustomerProject> findByCode(String code);
 }
 
