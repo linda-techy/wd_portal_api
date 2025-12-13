@@ -21,7 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/leads")
 public class LeadController {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(LeadController.class);
 
     @Autowired
@@ -32,7 +32,8 @@ public class LeadController {
     // =====================================================
 
     @GetMapping
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after verifying role names in database
+    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
+    // verifying role names in database
     public ResponseEntity<List<Leads>> getAllLeads() {
         try {
             List<Leads> leads = leadsDAO.getAllLeads();
@@ -44,7 +45,8 @@ public class LeadController {
     }
 
     @GetMapping("/paginated")
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after verifying role names in database
+    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
+    // verifying role names in database
     public ResponseEntity<PaginatedResponse<Leads>> getLeadsPaginated(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int limit,
@@ -65,7 +67,7 @@ public class LeadController {
             @RequestParam(defaultValue = "desc") String sortOrder) {
         try {
             // Input validation
-            if (page < 1) {
+            if (page < 0) {
                 return ResponseEntity.badRequest().body(null);
             }
             if (limit < 1 || limit > 100) {
@@ -91,7 +93,8 @@ public class LeadController {
             }
 
             PaginationParams params = new PaginationParams();
-            params.setPage(page);
+            // Convert 0-based page (from API/Flutter) to 1-based page (for DAO)
+            params.setPage(page + 1);
             params.setLimit(limit);
             params.setSearch(search);
             params.setStatus(status);
@@ -118,8 +121,8 @@ public class LeadController {
     }
 
     private boolean isValidSortBy(String sortBy) {
-        return sortBy != null && (sortBy.equals("created_at") || sortBy.equals("name") || 
-                sortBy.equals("email") || sortBy.equals("phone") || sortBy.equals("status") || 
+        return sortBy != null && (sortBy.equals("created_at") || sortBy.equals("name") ||
+                sortBy.equals("email") || sortBy.equals("phone") || sortBy.equals("status") ||
                 sortBy.equals("priority") || sortBy.equals("budget") || sortBy.equals("updated_at"));
     }
 
@@ -156,13 +159,13 @@ public class LeadController {
                 email = ""; // Set empty string instead of null for required field
             }
             lead.setEmail(email);
-            
+
             String phone = request.getPhone();
             if (phone == null || phone.trim().isEmpty()) {
                 phone = ""; // Set empty string instead of null for required field
             }
             lead.setPhone(phone);
-            
+
             String whatsapp = request.getWhatsappNumber();
             if (whatsapp == null || whatsapp.trim().isEmpty()) {
                 whatsapp = ""; // Set empty string instead of null for required field
@@ -179,26 +182,26 @@ public class LeadController {
                 customerType = "other"; // Set default value for empty/null
             }
             lead.setCustomerType(customerType);
-            
+
             // Handle project-related fields
             String projectType = request.getProjectType();
             if (projectType == null || projectType.trim().isEmpty()) {
                 projectType = ""; // Default for required field
             }
             lead.setProjectType(projectType);
-            
+
             String projectDescription = request.getProjectDescription();
             if (projectDescription == null || projectDescription.trim().isEmpty()) {
                 projectDescription = ""; // Default for required field
             }
             lead.setProjectDescription(projectDescription);
-            
+
             String requirements = request.getRequirements();
             if (requirements == null || requirements.trim().isEmpty()) {
                 requirements = ""; // Default for required field
             }
             lead.setRequirements(requirements);
-            
+
             lead.setBudget(request.getBudget());
             lead.setProjectSqftArea(request.getProjectSqftArea());
             String status = request.getLeadStatus();
@@ -222,7 +225,7 @@ public class LeadController {
                 }
             }
             lead.setLeadSource(source);
-            
+
             String priority = request.getPriority();
             if (priority == null || priority.trim().isEmpty()) {
                 priority = "low";
@@ -233,51 +236,50 @@ public class LeadController {
                 }
             }
             lead.setPriority(priority);
-            
+
             // Handle assigned team field
             String assignedTeam = request.getAssignedTeam();
             if (assignedTeam == null || assignedTeam.trim().isEmpty()) {
                 assignedTeam = ""; // Default for required field
             }
             lead.setAssignedTeam(assignedTeam);
-            
+
             // Handle notes field
             String notes = request.getNotes();
             if (notes == null || notes.trim().isEmpty()) {
                 notes = ""; // Default for required field
             }
             lead.setNotes(notes);
-            
-            
+
             // Handle lost reason
             String lostReason = request.getLostReason();
             if (lostReason == null || lostReason.trim().isEmpty()) {
                 lostReason = null; // Can be null
             }
             lead.setLostReason(lostReason);
-            
+
             // Handle client rating and probability to win
             Integer clientRating = request.getClientRating();
             if (clientRating == null) {
                 clientRating = 0; // Default value
             }
             lead.setClientRating(clientRating);
-            
+
             Integer probabilityToWin = request.getProbabilityToWin();
             if (probabilityToWin == null) {
                 probabilityToWin = 0; // Default value
             }
             lead.setProbabilityToWin(probabilityToWin);
-            
+
             lead.setNextFollowUp(request.getNextFollowUp());
             lead.setLastContactDate(request.getLastContactDate());
-            
+
             // Set location fields - allow null values as per DB schema
             lead.setState(request.getState());
             lead.setDistrict(request.getDistrict());
             lead.setLocation(request.getLocation());
             lead.setAddress(request.getAddress());
-            
+
             // Set date of enquiry - parse from ISO string if provided
             if (request.getDateOfEnquiry() != null && !request.getDateOfEnquiry().trim().isEmpty()) {
                 try {
@@ -291,7 +293,7 @@ public class LeadController {
             } else {
                 lead.setDateOfEnquiry(LocalDate.now());
             }
-            
+
             int result = leadsDAO.createLead(lead);
             if (result > 0) {
                 // Get the created lead using the auto-generated lead_id
@@ -311,15 +313,15 @@ public class LeadController {
     public ResponseEntity<Leads> updateLead(@PathVariable String leadId, @RequestBody Leads lead) {
         try {
             logger.debug("Updating lead with ID: {}, request data: {}", leadId, lead);
-            
+
             // Set the lead ID from path parameter (override any ID in request body)
             lead.setLeadId(leadId);
-            
+
             // Validate required fields
             if (lead.getName() == null || lead.getName().trim().isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
-            
+
             // Normalize and validate customer type
             if (lead.getCustomerType() != null && !lead.getCustomerType().trim().isEmpty()) {
                 String customerType = lead.getCustomerType().trim().toLowerCase();
@@ -330,7 +332,7 @@ public class LeadController {
             } else {
                 lead.setCustomerType("other"); // Set default value for empty/null
             }
-            
+
             // Normalize and validate lead source
             if (lead.getLeadSource() != null && !lead.getLeadSource().trim().isEmpty()) {
                 String leadSource = lead.getLeadSource().trim().toLowerCase();
@@ -341,7 +343,7 @@ public class LeadController {
             } else {
                 lead.setLeadSource("website"); // Set default value for empty/null
             }
-            
+
             // Normalize and validate lead status
             if (lead.getLeadStatus() != null && !lead.getLeadStatus().trim().isEmpty()) {
                 String leadStatus = lead.getLeadStatus().trim().toLowerCase();
@@ -352,7 +354,7 @@ public class LeadController {
             } else {
                 lead.setLeadStatus("new_inquiry"); // Set default value for empty/null
             }
-            
+
             // Normalize and validate priority
             if (lead.getPriority() != null && !lead.getPriority().trim().isEmpty()) {
                 String priority = lead.getPriority().trim().toLowerCase();
@@ -363,7 +365,7 @@ public class LeadController {
             } else {
                 lead.setPriority("low"); // Set default value for empty/null
             }
-            
+
             int result = leadsDAO.updateLead(lead);
             if (result > 0) {
                 return ResponseEntity.ok(lead);
@@ -462,7 +464,7 @@ public class LeadController {
 
     @PutMapping("/{id}/assign")
     public ResponseEntity<Void> assignLeadToTeamMember(
-            @PathVariable String id, 
+            @PathVariable String id,
             @RequestParam UUID teamMemberId) {
         try {
             int result = leadsDAO.assignLeadToTeamMember(id, teamMemberId);
@@ -478,7 +480,7 @@ public class LeadController {
 
     @PutMapping("/{id}/status")
     public ResponseEntity<Void> updateLeadStatus(
-            @PathVariable String id, 
+            @PathVariable String id,
             @RequestParam String status) {
         try {
             int result = leadsDAO.updateLeadStatus(id, status);
@@ -494,7 +496,7 @@ public class LeadController {
 
     @PutMapping("/{id}/priority")
     public ResponseEntity<Void> updateLeadPriority(
-            @PathVariable String id, 
+            @PathVariable String id,
             @RequestParam String priority) {
         try {
             int result = leadsDAO.updateLeadPriority(id, priority);
@@ -524,7 +526,7 @@ public class LeadController {
 
     @PutMapping("/{id}/lost")
     public ResponseEntity<Void> markLeadAsLost(
-            @PathVariable String id, 
+            @PathVariable String id,
             @RequestParam String reason) {
         try {
             int result = leadsDAO.markLeadAsLost(id, reason);
@@ -599,7 +601,7 @@ public class LeadController {
             return ResponseEntity.ok("Schema error: " + e.getMessage());
         }
     }
-    
+
     /**
      * Debug endpoint - REMOVE IN PRODUCTION
      * This endpoint should be secured with admin-only access or removed entirely
@@ -608,82 +610,74 @@ public class LeadController {
     // @GetMapping("/debug/{leadId}")
     // @PreAuthorize("hasRole('ADMIN')") // Uncomment and secure if needed
     // public ResponseEntity<String> debugLead(@PathVariable String leadId) {
-    //     try {
-    //         Leads lead = leadsDAO.getLeadById(leadId);
-    //         if (lead != null) {
-    //             return ResponseEntity.ok("Lead found: " + lead.toString());
-    //         } else {
-    //             return ResponseEntity.ok("Lead not found with ID: " + leadId);
-    //         }
-    //     } catch (Exception e) {
-    //         return ResponseEntity.ok("Debug error: " + e.getMessage());
-    //     }
+    // try {
+    // Leads lead = leadsDAO.getLeadById(leadId);
+    // if (lead != null) {
+    // return ResponseEntity.ok("Lead found: " + lead.toString());
+    // } else {
+    // return ResponseEntity.ok("Lead not found with ID: " + leadId);
     // }
-    
+    // } catch (Exception e) {
+    // return ResponseEntity.ok("Debug error: " + e.getMessage());
+    // }
+    // }
+
     /**
      * Validates if the customer type is allowed by the database constraint
      */
     private boolean isValidCustomerType(String customerType) {
-        return customerType != null && (
-            customerType.equals("individual") ||
-            customerType.equals("business") ||
-            customerType.equals("government") ||
-            customerType.equals("institution") ||
-            customerType.equals("channel_partner") ||
-            customerType.equals("other")
-        );
+        return customerType != null && (customerType.equals("individual") ||
+                customerType.equals("business") ||
+                customerType.equals("government") ||
+                customerType.equals("institution") ||
+                customerType.equals("channel_partner") ||
+                customerType.equals("other"));
     }
-    
+
     /**
      * Validates if the lead source is allowed by the database constraint
      */
     private boolean isValidLeadSource(String leadSource) {
-        return leadSource != null && (
-            leadSource.equals("website") ||
-            leadSource.equals("whatsapp") ||
-            leadSource.equals("calculator") ||
-            leadSource.equals("google_business_profile") ||
-            leadSource.equals("referral_client") ||
-            leadSource.equals("referral_architect") ||
-            leadSource.equals("social_media") ||
-            leadSource.equals("whatsapp_business") ||
-            leadSource.equals("online_ads") ||
-            leadSource.equals("direct_walkin") ||
-            leadSource.equals("event_trade_show") ||
-            leadSource.equals("print_advertising")
-        );
+        return leadSource != null && (leadSource.equals("website") ||
+                leadSource.equals("whatsapp") ||
+                leadSource.equals("calculator") ||
+                leadSource.equals("google_business_profile") ||
+                leadSource.equals("referral_client") ||
+                leadSource.equals("referral_architect") ||
+                leadSource.equals("social_media") ||
+                leadSource.equals("whatsapp_business") ||
+                leadSource.equals("online_ads") ||
+                leadSource.equals("direct_walkin") ||
+                leadSource.equals("event_trade_show") ||
+                leadSource.equals("print_advertising"));
     }
-    
+
     /**
      * Validates if the lead status is allowed by the database constraint
      */
     private boolean isValidLeadStatus(String leadStatus) {
-        return leadStatus != null && (
-            leadStatus.equals("new_inquiry") ||
-            leadStatus.equals("contacted") ||
-            leadStatus.equals("qualified_lead") ||
-            leadStatus.equals("proposal_sent") ||
-            leadStatus.equals("negotiation") ||
-            leadStatus.equals("project_won") ||
-            leadStatus.equals("lost")
-        );
+        return leadStatus != null && (leadStatus.equals("new_inquiry") ||
+                leadStatus.equals("contacted") ||
+                leadStatus.equals("qualified_lead") ||
+                leadStatus.equals("proposal_sent") ||
+                leadStatus.equals("negotiation") ||
+                leadStatus.equals("project_won") ||
+                leadStatus.equals("lost"));
     }
-    
+
     /**
      * Validates if the priority is allowed by the database constraint
      */
     private boolean isValidPriority(String priority) {
-        return priority != null && (
-            priority.equals("low") ||
-            priority.equals("medium") ||
-            priority.equals("high")
-        );
+        return priority != null && (priority.equals("low") ||
+                priority.equals("medium") ||
+                priority.equals("high"));
     }
-    
+
     // =====================================================
     // PUBLIC API ENDPOINTS (No Authentication Required)
     // =====================================================
-    
+
     /**
      * Public endpoint for contact form submissions
      * POST /leads/contact
@@ -692,35 +686,35 @@ public class LeadController {
     public ResponseEntity<?> submitContactFormLead(@RequestBody Map<String, Object> contactData) {
         try {
             Leads lead = new Leads();
-            
+
             // Client Information
             lead.setName((String) contactData.get("name"));
             lead.setEmail((String) contactData.get("email"));
             lead.setPhone((String) contactData.get("phone"));
             lead.setWhatsappNumber((String) contactData.get("phone")); // Use phone as WhatsApp
-            
+
             // Lead Source & Status
             lead.setLeadSource("website");
             lead.setLeadStatus("new_inquiry");
-            
+
             // Customer Type & Priority (defaults)
             lead.setCustomerType("individual");
             lead.setPriority("medium");
-            
+
             // Project Information
             String projectType = (String) contactData.get("projectType");
             lead.setProjectType(projectType != null && !projectType.isEmpty() ? projectType : "turnkey_project");
-            
+
             String message = (String) contactData.get("message");
             lead.setProjectDescription(message != null ? message : "");
             lead.setRequirements("");
-            
+
             // Location Information
             lead.setState((String) contactData.get("state"));
             lead.setDistrict((String) contactData.get("district"));
             lead.setLocation("");
             lead.setAddress("");
-            
+
             // Tracking Fields (defaults)
             lead.setBudget(null);
             lead.setProjectSqftArea(null);
@@ -731,33 +725,30 @@ public class LeadController {
             lead.setLastContactDate(null);
             lead.setLostReason(null);
             lead.setDateOfEnquiry(LocalDate.now());
-            
+
             // Notes
             lead.setNotes("Contact Form Submission: " + (message != null ? message : ""));
-            
+
             // Create lead
             int result = leadsDAO.createLead(lead);
             if (result > 0) {
                 return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Thank you! We'll contact you soon.",
-                    "leadSource", "website"
-                ));
+                        "success", true,
+                        "message", "Thank you! We'll contact you soon.",
+                        "leadSource", "website"));
             } else {
                 return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", "Failed to submit inquiry"
-                ));
+                        "success", false,
+                        "message", "Failed to submit inquiry"));
             }
         } catch (Exception e) {
             logger.error("Error creating contact form lead", e);
             return ResponseEntity.internalServerError().body(Map.of(
-                "success", false,
-                "message", "An error occurred. Please try again."
-            ));
+                    "success", false,
+                    "message", "An error occurred. Please try again."));
         }
     }
-    
+
     /**
      * Public endpoint for client referral submissions
      * POST /leads/referral
@@ -766,50 +757,55 @@ public class LeadController {
     public ResponseEntity<?> submitClientReferralLead(@RequestBody Map<String, Object> referralData) {
         try {
             Leads lead = new Leads();
-            
+
             // Referral Information (the person being referred)
             lead.setName((String) referralData.get("referralName"));
             lead.setEmail((String) referralData.get("referralEmail"));
             lead.setPhone((String) referralData.get("referralPhone"));
             lead.setWhatsappNumber((String) referralData.get("referralPhone"));
-            
+
             // Lead Source & Status
             lead.setLeadSource("referral_client");
             lead.setLeadStatus("new_inquiry");
-            
+
             // Customer Type & Priority (defaults)
             lead.setCustomerType("individual");
             lead.setPriority("medium");
-            
+
             // Project Information
             String projectType = (String) referralData.get("projectType");
             lead.setProjectType(projectType != null && !projectType.isEmpty() ? projectType : "turnkey_project");
-            
+
             // Parse budget if provided
             String budgetStr = (String) referralData.get("estimatedBudget");
             java.math.BigDecimal budget = null;
             if (budgetStr != null && !budgetStr.isEmpty()) {
                 // Convert budget range text to numeric value
-                if (budgetStr.contains("15-25")) budget = new java.math.BigDecimal("2000000");
-                else if (budgetStr.contains("25-50")) budget = new java.math.BigDecimal("3750000");
-                else if (budgetStr.contains("50-75")) budget = new java.math.BigDecimal("6250000");
-                else if (budgetStr.contains("75") || budgetStr.contains("1 Crore")) budget = new java.math.BigDecimal("8750000");
-                else if (budgetStr.contains("Above") || budgetStr.contains("1 Crore")) budget = new java.math.BigDecimal("15000000");
+                if (budgetStr.contains("15-25"))
+                    budget = new java.math.BigDecimal("2000000");
+                else if (budgetStr.contains("25-50"))
+                    budget = new java.math.BigDecimal("3750000");
+                else if (budgetStr.contains("50-75"))
+                    budget = new java.math.BigDecimal("6250000");
+                else if (budgetStr.contains("75") || budgetStr.contains("1 Crore"))
+                    budget = new java.math.BigDecimal("8750000");
+                else if (budgetStr.contains("Above") || budgetStr.contains("1 Crore"))
+                    budget = new java.math.BigDecimal("15000000");
             }
             lead.setBudget(budget);
-            
+
             String location = (String) referralData.get("location");
             String message = (String) referralData.get("message");
-            
+
             lead.setProjectDescription(message != null ? message : "");
             lead.setRequirements("");
-            
+
             // Location Information (parse from location field)
             lead.setState("Kerala"); // Default state for referrals
             lead.setDistrict("");
             lead.setLocation(location != null ? location : "");
             lead.setAddress("");
-            
+
             // Tracking Fields (defaults)
             lead.setProjectSqftArea(null);
             lead.setAssignedTeam("");
@@ -819,48 +815,44 @@ public class LeadController {
             lead.setLastContactDate(null);
             lead.setLostReason(null);
             lead.setDateOfEnquiry(LocalDate.now());
-            
+
             // Notes - Include referrer information
             String yourName = (String) referralData.get("yourName");
             String yourEmail = (String) referralData.get("yourEmail");
             String yourPhone = (String) referralData.get("yourPhone");
-            
+
             String notes = String.format(
-                "Client Referral\nReferred by: %s (Email: %s, Phone: %s)",
-                yourName != null ? yourName : "Unknown",
-                yourEmail != null ? yourEmail : "N/A",
-                yourPhone != null ? yourPhone : "N/A"
-            );
-            
+                    "Client Referral\nReferred by: %s (Email: %s, Phone: %s)",
+                    yourName != null ? yourName : "Unknown",
+                    yourEmail != null ? yourEmail : "N/A",
+                    yourPhone != null ? yourPhone : "N/A");
+
             if (message != null && !message.trim().isEmpty()) {
                 notes += "\n\nAdditional Message: " + message;
             }
-            
+
             lead.setNotes(notes);
-            
+
             // Create lead
             int result = leadsDAO.createLead(lead);
             if (result > 0) {
                 return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Thank you! Your referral has been submitted successfully.",
-                    "leadSource", "referral_client"
-                ));
+                        "success", true,
+                        "message", "Thank you! Your referral has been submitted successfully.",
+                        "leadSource", "referral_client"));
             } else {
                 return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", "Failed to submit referral"
-                ));
+                        "success", false,
+                        "message", "Failed to submit referral"));
             }
         } catch (Exception e) {
             logger.error("Error creating client referral lead", e);
             return ResponseEntity.internalServerError().body(Map.of(
-                "success", false,
-                "message", "An error occurred. Please try again."
-            ));
+                    "success", false,
+                    "message", "An error occurred. Please try again."));
         }
     }
-    
+
     /**
      * Public endpoint for home cost calculator submissions
      * POST /leads/calculator/home-cost
@@ -869,33 +861,33 @@ public class LeadController {
     public ResponseEntity<?> submitCalculatorLead(@RequestBody Map<String, Object> calculatorData) {
         try {
             Leads lead = new Leads();
-            
+
             // Client Information (WhatsApp number only from calculator)
             String whatsappNumber = (String) calculatorData.get("whatsappNumber");
-            
+
             // Generate random short UUID for name (e.g., "CALC-a3b5c7d9")
             String shortUUID = "CALC-" + UUID.randomUUID().toString().substring(0, 8);
             lead.setName(shortUUID);
-            
+
             lead.setEmail(""); // Not captured in calculator
-            
+
             // Set WhatsApp number in both phone and whatsapp_number columns
             String phoneNumber = whatsappNumber != null ? whatsappNumber : "";
             lead.setPhone(phoneNumber);
             lead.setWhatsappNumber(phoneNumber);
-            
+
             // Lead Source & Status
             lead.setLeadSource("calculator_home_cost");
             lead.setLeadStatus("new_inquiry");
-            
+
             // Customer Type & Priority (defaults)
             lead.setCustomerType("individual");
             lead.setPriority("medium");
-            
+
             // Project Information from calculator
             String typeOfConstruction = (String) calculatorData.get("typeOfConstruction");
             String projectType = "turnkey_project"; // Default
-            
+
             // Map construction type to project type
             if (typeOfConstruction != null) {
                 switch (typeOfConstruction.toLowerCase()) {
@@ -913,11 +905,11 @@ public class LeadController {
                 }
             }
             lead.setProjectType(projectType);
-            
+
             // Parse costs from calculator
             Object totalCostMinObj = calculatorData.get("totalCostMin");
             Object totalCostMaxObj = calculatorData.get("totalCostMax");
-            
+
             java.math.BigDecimal budget = null;
             if (totalCostMinObj != null && totalCostMaxObj != null) {
                 // Take average of min and max
@@ -927,52 +919,52 @@ public class LeadController {
                 budget = new java.math.BigDecimal(avgCost);
             }
             lead.setBudget(budget);
-            
+
             // Parse construction area
             Object constructionAreaObj = calculatorData.get("totalConstructionArea");
             java.math.BigDecimal projectSqftArea = null;
             if (constructionAreaObj != null) {
                 double area = constructionAreaObj instanceof Number ? ((Number) constructionAreaObj).doubleValue() : 0;
-                
+
                 // Convert to sqft if in sqm
                 String unitOfArea = (String) calculatorData.get("unitOfArea");
                 if ("sqm".equalsIgnoreCase(unitOfArea)) {
                     area = area * 10.7639; // Convert sqm to sqft
                 }
-                
+
                 projectSqftArea = new java.math.BigDecimal(area);
             }
             lead.setProjectSqftArea(projectSqftArea);
-            
+
             // Project description from calculator data
             String description = String.format(
-                "Home Cost Calculator Estimate\nType: %s\nArea: %.2f %s\nEstimated Cost: ₹%.2f - ₹%.2f",
-                typeOfConstruction != null ? typeOfConstruction : "N/A",
-                constructionAreaObj instanceof Number ? ((Number) constructionAreaObj).doubleValue() : 0,
-                calculatorData.get("unitOfArea") != null ? calculatorData.get("unitOfArea") : "sqft",
-                totalCostMinObj instanceof Number ? ((Number) totalCostMinObj).doubleValue() : 0,
-                totalCostMaxObj instanceof Number ? ((Number) totalCostMaxObj).doubleValue() : 0
-            );
+                    "Home Cost Calculator Estimate\nType: %s\nArea: %.2f %s\nEstimated Cost: ₹%.2f - ₹%.2f",
+                    typeOfConstruction != null ? typeOfConstruction : "N/A",
+                    constructionAreaObj instanceof Number ? ((Number) constructionAreaObj).doubleValue() : 0,
+                    calculatorData.get("unitOfArea") != null ? calculatorData.get("unitOfArea") : "sqft",
+                    totalCostMinObj instanceof Number ? ((Number) totalCostMinObj).doubleValue() : 0,
+                    totalCostMaxObj instanceof Number ? ((Number) totalCostMaxObj).doubleValue() : 0);
             lead.setProjectDescription(description);
             lead.setRequirements("");
-            
+
             // Location Information
             String state = (String) calculatorData.get("state");
             String district = (String) calculatorData.get("district");
-            
-            // Capitalize first letter to match portal format (e.g., "thrissur" -> "Thrissur")
+
+            // Capitalize first letter to match portal format (e.g., "thrissur" ->
+            // "Thrissur")
             if (state != null && !state.isEmpty()) {
                 state = state.substring(0, 1).toUpperCase() + state.substring(1);
             }
             if (district != null && !district.isEmpty()) {
                 district = district.substring(0, 1).toUpperCase() + district.substring(1);
             }
-            
+
             lead.setState(state);
             lead.setDistrict(district);
             lead.setLocation("");
             lead.setAddress("");
-            
+
             // Tracking Fields (defaults)
             lead.setAssignedTeam("");
             lead.setClientRating(3);
@@ -981,30 +973,27 @@ public class LeadController {
             lead.setLastContactDate(null);
             lead.setLostReason(null);
             lead.setDateOfEnquiry(LocalDate.now());
-            
+
             // Notes
             lead.setNotes("Submitted via Home Cost Calculator");
-            
+
             // Create lead
             int result = leadsDAO.createLead(lead);
             if (result > 0) {
                 return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Estimate saved successfully!",
-                    "leadSource", "calculator_home_cost"
-                ));
+                        "success", true,
+                        "message", "Estimate saved successfully!",
+                        "leadSource", "calculator_home_cost"));
             } else {
                 return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", "Failed to save estimate"
-                ));
+                        "success", false,
+                        "message", "Failed to save estimate"));
             }
         } catch (Exception e) {
             logger.error("Error creating calculator lead", e);
             return ResponseEntity.internalServerError().body(Map.of(
-                "success", false,
-                "message", "An error occurred. Please try again."
-            ));
+                    "success", false,
+                    "message", "An error occurred. Please try again."));
         }
     }
-} 
+}
