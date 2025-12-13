@@ -6,6 +6,7 @@ import com.wd.api.dto.CustomerUpdateRequest;
 import com.wd.api.dto.CustomerRoleDTO;
 import com.wd.api.model.CustomerUser;
 import com.wd.api.repository.CustomerUserRepository;
+import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.CustomerRoleRepository;
 // import com.wd.api.utils.ValidationUtils; // TODO: Re-enable after testing
 import org.slf4j.Logger;
@@ -30,6 +31,11 @@ public class CustomerController {
     @Autowired
     private CustomerUserRepository customerUserRepository;
     
+    @Autowired
+    private CustomerProjectRepository customerProjectRepository;
+
+
+
     @Autowired
     private CustomerRoleRepository customerRoleRepository;
     
@@ -219,6 +225,12 @@ public class CustomerController {
             Optional<CustomerUser> customerOpt = customerUserRepository.findById(id);
             if (!customerOpt.isPresent()) {
                 return ResponseEntity.notFound().build();
+            }
+
+            // Check for associated projects
+            List<com.wd.api.model.CustomerProject> projects = customerProjectRepository.findByCustomerId(id);
+            if (!projects.isEmpty()) {
+                return ResponseEntity.badRequest().body("Cannot delete customer with associated projects. Please delete the projects first.");
             }
             
             customerUserRepository.deleteById(id);
