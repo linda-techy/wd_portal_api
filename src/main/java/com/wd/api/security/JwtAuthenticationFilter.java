@@ -21,44 +21,44 @@ import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    
+
     @Autowired
     private JwtService jwtService;
-    
+
     @Autowired
     private UserDetailsService userDetailsService;
-    
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
-        
+            FilterChain filterChain) throws ServletException, IOException {
+
         final String authHeader = request.getHeader("Authorization");
-        
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("DEBUG: No Bearer token for " + request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
-        
+
         final String jwt = authHeader.substring(7);
-        
+
         // Validate token first
         if (!jwtService.validateToken(jwt)) {
             filterChain.doFilter(request, response);
             return;
         }
-        
+
         if (SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
             return;
         }
-        
+
         // Extract token type and subject
         String tokenType = jwtService.extractTokenType(jwt);
         String actualSubject = jwtService.extractActualSubject(jwt);
-        
+
         // Handle different token types
         if ("PARTNER".equals(tokenType)) {
             // Partnership user authentication
@@ -67,41 +67,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Portal user authentication (default)
             handlePortalAuthentication(jwt, actualSubject, request);
         }
-        
+
         filterChain.doFilter(request, response);
     }
-    
+
     private void handlePartnerAuthentication(String jwt, String phone, HttpServletRequest request) {
         // Create simple authentication for partnership users
         List<GrantedAuthority> authorities = List.of(
-            new SimpleGrantedAuthority("ROLE_PARTNER")
-        );
-        
+                new SimpleGrantedAuthority("ROLE_PARTNER"));
+
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-            phone, // Phone number as principal
-            null,
-            authorities
-        );
+                phone, // Phone number as principal
+                null,
+                authorities);
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
     }
-    
+
     private void handlePortalAuthentication(String jwt, String email, HttpServletRequest request) {
         try {
+            System.out.println("DEBUG: Loading user for: " + email);
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
-            
+
             if (jwtService.validateToken(jwt, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    userDetails,
-                    null,
-                    userDetails.getAuthorities()
-                );
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                System.out.println(
+                        "DEBUG: Authenticated " + email + " with authorities: " + userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         } catch (Exception e) {
             // If user not found in portal users, skip authentication
-            // This allows the request to proceed to the controller where it will be rejected
+            // This allows the request to proceed to the controller where it will be
+            // rejected
         }
     }
-} 
+}

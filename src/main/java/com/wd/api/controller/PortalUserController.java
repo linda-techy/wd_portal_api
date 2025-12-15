@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-// import org.springframework.security.access.prepost.PreAuthorize; // TODO: Re-enable after verifying role names
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,7 +40,7 @@ public class PortalUserController {
      * Get all portal users
      */
     @GetMapping
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     // verifying role names in database
     public ResponseEntity<?> getAllPortalUsers() {
         try {
@@ -76,7 +76,7 @@ public class PortalUserController {
      * Create portal user
      */
     @PostMapping
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: Re-enable after verifying role
+    @PreAuthorize("hasRole('ADMIN')")
     // names in database
     public ResponseEntity<?> createPortalUser(@Valid @RequestBody PortalUserCreateRequest request) {
         try {
@@ -121,7 +121,7 @@ public class PortalUserController {
      * Update portal user
      */
     @PutMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     // verifying role names in database
     public ResponseEntity<?> updatePortalUser(@PathVariable Long id,
             @Valid @RequestBody PortalUserUpdateRequest request) {
@@ -193,7 +193,7 @@ public class PortalUserController {
      * Delete portal user
      */
     @DeleteMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: Re-enable after verifying role
+    @PreAuthorize("hasRole('ADMIN')")
     // names in database
     public ResponseEntity<?> deletePortalUser(@PathVariable Long id) {
         try {
@@ -234,7 +234,7 @@ public class PortalUserController {
      * Change password
      */
     @PostMapping("/{id}/change-password")
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     // verifying role names
     public ResponseEntity<?> changePassword(@PathVariable Long id,
             @Valid @RequestBody com.wd.api.dto.ChangePasswordRequest request) {

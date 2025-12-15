@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-// import org.springframework.security.access.prepost.PreAuthorize; // TODO: Re-enable after verifying role names
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -86,8 +86,7 @@ public class CustomerProjectController {
      * Create customer project
      */
     @PostMapping
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
-    // verifying role names in database
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<?> createCustomerProject(@RequestBody CustomerProjectCreateRequest request) {
         try {
             // Validate required fields
@@ -186,8 +185,7 @@ public class CustomerProjectController {
      * Update customer project
      */
     @PutMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // TODO: Re-enable after
-    // verifying role names in database
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<?> updateCustomerProject(@PathVariable Long id,
             @RequestBody CustomerProjectUpdateRequest request) {
         try {
@@ -480,8 +478,7 @@ public class CustomerProjectController {
      * Delete customer project
      */
     @DeleteMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: Re-enable after verifying role
-    // names in database
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteCustomerProject(@PathVariable Long id) {
         try {
             if (id == null) {

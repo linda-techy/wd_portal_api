@@ -27,7 +27,7 @@ public class TaskController {
     private UserRepository userRepository;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<List<Task>> getAllTasks(Authentication authentication) {
         String email = authentication.getName();
 
@@ -46,7 +46,7 @@ public class TaskController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
         Optional<Task> task = taskService.getTaskById(id);
         return task.map(ResponseEntity::ok)
@@ -54,7 +54,7 @@ public class TaskController {
     }
 
     @GetMapping("/my-tasks")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<List<Task>> getMyTasks(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
@@ -63,7 +63,7 @@ public class TaskController {
     }
 
     @GetMapping("/by-status/{status}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<List<Task>> getTasksByStatus(@PathVariable String status) {
         try {
             Task.TaskStatus taskStatus = Task.TaskStatus.valueOf(status.toUpperCase());
@@ -74,7 +74,7 @@ public class TaskController {
     }
 
     @GetMapping("/by-project/{projectId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<List<Task>> getTasksByProject(@PathVariable Long projectId) {
         return ResponseEntity.ok(taskService.getTasksByProject(projectId));
     }
@@ -91,7 +91,7 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task task) {
         try {
             Task updatedTask = taskService.updateTask(id, task);

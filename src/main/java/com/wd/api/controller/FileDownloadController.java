@@ -37,13 +37,13 @@ public class FileDownloadController {
     @GetMapping("/**")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<Resource> serveFile(HttpServletRequest request,
-                                               @RequestParam(required = false) String download,
-                                               @RequestHeader(value = "Range", required = false) String rangeHeader) {
+            @RequestParam(required = false) String download,
+            @RequestHeader(value = "Range", required = false) String rangeHeader) {
         try {
             // Get the full request path (everything after /api/storage/)
             String requestURI = request.getRequestURI();
             String requestPath;
-            
+
             if (requestURI.startsWith("/api/storage/")) {
                 requestPath = requestURI.substring("/api/storage/".length());
             } else if (requestURI.startsWith("/api/storage")) {
@@ -53,15 +53,15 @@ public class FileDownloadController {
                 }
             } else {
                 String pathInfo = request.getPathInfo();
-                requestPath = (pathInfo != null && pathInfo.startsWith("/")) 
-                    ? pathInfo.substring(1) 
-                    : (pathInfo != null ? pathInfo : "");
+                requestPath = (pathInfo != null && pathInfo.startsWith("/"))
+                        ? pathInfo.substring(1)
+                        : (pathInfo != null ? pathInfo : "");
             }
-            
+
             if (requestPath == null || requestPath.isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
-            
+
             // URL decode the path
             try {
                 requestPath = URLDecoder.decode(requestPath, StandardCharsets.UTF_8);
@@ -94,7 +94,7 @@ public class FileDownloadController {
             // Build response headers
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.parseMediaType(contentType));
-            
+
             if ("true".equals(download)) {
                 headers.setContentDispositionFormData("attachment", resource.getFilename());
             } else {
@@ -113,4 +113,3 @@ public class FileDownloadController {
         }
     }
 }
-
