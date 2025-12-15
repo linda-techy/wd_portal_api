@@ -56,6 +56,53 @@ public class PortalUserController {
     }
 
     /**
+     * Get paginated portal users
+     */
+    @GetMapping("/paginated")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<?> getPortalUsersPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sort,
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestParam(required = false) String search) {
+        try {
+            // Validate parameters
+            if (page < 0) {
+                return ResponseEntity.badRequest().body("Page must be >= 0");
+            }
+            if (size < 1 || size > 100) {
+                return ResponseEntity.badRequest().body("Size must be between 1 and 100");
+            }
+
+            // Create pageable
+            org.springframework.data.domain.Sort.Direction sortDirection = direction.equalsIgnoreCase("desc")
+                    ? org.springframework.data.domain.Sort.Direction.DESC
+                    : org.springframework.data.domain.Sort.Direction.ASC;
+
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page,
+                    size, sortDirection, sort);
+
+            // Get paginated results with optional search
+            org.springframework.data.domain.Page<PortalUser> userPage;
+            if (search != null && !search.trim().isEmpty()) {
+                userPage = portalUserRepository.searchUsers(search.trim(), pageable);
+            } else {
+                userPage = portalUserRepository.findAll(pageable);
+            }
+
+            // Convert to response DTOs
+            org.springframework.data.domain.Page<PortalUserResponse> responsePage = userPage
+                    .map(PortalUserResponse::new);
+
+            return ResponseEntity.ok(responsePage);
+        } catch (Exception e) {
+            logger.error("Error fetching paginated portal users", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
      * Get portal user by ID
      */
     @GetMapping("/{id}")
