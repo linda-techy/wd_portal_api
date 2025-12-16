@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
@@ -33,6 +32,9 @@ public class AuthService {
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
+    @Autowired
+    private PermissionService permissionService;
+
     public LoginResponse login(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -48,10 +50,8 @@ public class AuthService {
         // Save refresh token
         saveRefreshToken(user, refreshToken);
 
-        // Get user permissions
-        List<String> permissions = user.getAuthorities().stream()
-                .map(Object::toString)
-                .collect(Collectors.toList());
+        // Get user permissions (ADMIN users will get ALL permissions automatically)
+        List<String> permissions = permissionService.getUserPermissions(user);
 
         LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
                 user.getId(),
