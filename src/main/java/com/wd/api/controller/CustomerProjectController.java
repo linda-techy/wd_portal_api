@@ -9,6 +9,10 @@ import com.wd.api.model.User;
 import com.wd.api.dto.TeamMemberSelectionDTO;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.UserRepository;
+import com.wd.api.repository.TaskRepository;
+import com.wd.api.repository.ProjectDocumentRepository;
+import com.wd.api.model.Task;
+import com.wd.api.model.ProjectDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +51,12 @@ public class CustomerProjectController {
 
     @Autowired
     private com.wd.api.repository.PortalRoleRepository portalRoleRepository;
+
+    @Autowired
+    private TaskRepository taskRepository;
+
+    @Autowired
+    private ProjectDocumentRepository projectDocumentRepository;
 
     /**
      * Get all customer projects
@@ -490,12 +500,30 @@ public class CustomerProjectController {
                 return ResponseEntity.notFound().build();
             }
 
+            // Manual Cascade Delete for Dependents
+            // 1. Delete Tasks
+            List<Task> tasks = taskRepository.findByProjectId(id);
+            if (!tasks.isEmpty()) {
+                logger.info("Deleting {} tasks for project ID: {}", tasks.size(), id);
+                taskRepository.deleteAll(tasks);
+            }
+
+            // 2. Delete Documents
+            List<ProjectDocument> docs = projectDocumentRepository.findAllByProjectId(id);
+            if (!docs.isEmpty()) {
+                logger.info("Deleting {} documents for project ID: {}", docs.size(), id);
+                projectDocumentRepository.deleteAll(docs);
+            }
+
+            // 3. Project Members are handled by CascadeType.ALL in Entity
+
             customerProjectRepository.deleteById(id);
+            logger.info("Customer project deleted successfully - ID: {}", id);
             return ResponseEntity.ok().build();
 
         } catch (Exception e) {
             logger.error("Error deleting customer project with ID: {}", id, e);
-            return ResponseEntity.internalServerError().body("Error deleting customer project");
+            return ResponseEntity.internalServerError().body("Error deleting customer project: " + e.getMessage());
         }
     }
 
