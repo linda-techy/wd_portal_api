@@ -23,6 +23,9 @@ public class CustomerProjectUpdateRequest {
     @JsonProperty("project_phase")
     private String projectPhase;
 
+    @JsonProperty("project_type")
+    private String projectType;
+
     private String state;
     private String district;
 
@@ -98,6 +101,14 @@ public class CustomerProjectUpdateRequest {
 
     public void setProjectPhase(String projectPhase) {
         this.projectPhase = projectPhase;
+    }
+
+    public String getProjectType() {
+        return projectType;
+    }
+
+    public void setProjectType(String projectType) {
+        this.projectType = projectType;
     }
 
     public String getState() {

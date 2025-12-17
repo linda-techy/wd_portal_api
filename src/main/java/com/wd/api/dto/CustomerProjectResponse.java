@@ -31,6 +31,9 @@ public class CustomerProjectResponse {
     @JsonProperty("project_phase")
     private String projectPhase;
 
+    @JsonProperty("project_type")
+    private String projectType;
+
     private String state;
     private String district;
     private BigDecimal sqfeet;
@@ -60,7 +63,9 @@ public class CustomerProjectResponse {
         this.updatedAt = project.getUpdatedAt();
         this.progress = project.getProgress();
         this.createdBy = project.getCreatedBy();
+        this.createdBy = project.getCreatedBy();
         this.projectPhase = project.getProjectPhase();
+        this.projectType = project.getProjectType();
         this.state = project.getState();
         this.district = project.getDistrict();
         this.sqfeet = project.getSqfeet();
@@ -177,6 +182,14 @@ public class CustomerProjectResponse {
 
     public void setProjectPhase(String projectPhase) {
         this.projectPhase = projectPhase;
+    }
+
+    public String getProjectType() {
+        return projectType;
+    }
+
+    public void setProjectType(String projectType) {
+        this.projectType = projectType;
     }
 
     public String getState() {

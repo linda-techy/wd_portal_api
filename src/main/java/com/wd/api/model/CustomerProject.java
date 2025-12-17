@@ -58,6 +58,9 @@ public class CustomerProject {
     @Column(length = 255)
     private String code;
 
+    @Column(name = "project_type", length = 255)
+    private String projectType;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "customer_project_team_members", joinColumns = @JoinColumn(name = "project_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
     private java.util.Set<User> teamMembers = new java.util.HashSet<>();
@@ -203,6 +206,14 @@ public class CustomerProject {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public String getProjectType() {
+        return projectType;
+    }
+
+    public void setProjectType(String projectType) {
+        this.projectType = projectType;
     }
 
     public java.util.Set<User> getTeamMembers() {

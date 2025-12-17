@@ -157,6 +157,9 @@ public class CustomerProjectController {
             project.setProjectPhase(request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()
                     ? request.getProjectPhase().trim()
                     : "Planning");
+            project.setProjectType(request.getProjectType() != null && !request.getProjectType().trim().isEmpty()
+                    ? request.getProjectType().trim()
+                    : "turnkey_project");
             project.setState(request.getState() != null && !request.getState().trim().isEmpty()
                     ? request.getState().trim()
                     : "Kerala");
@@ -331,6 +334,9 @@ public class CustomerProjectController {
             // Don't update createdBy - it should remain as original creator
             project.setProjectPhase(request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()
                     ? request.getProjectPhase().trim()
+                    : null);
+            project.setProjectType(request.getProjectType() != null && !request.getProjectType().trim().isEmpty()
+                    ? request.getProjectType().trim()
                     : null);
             project.setState(request.getState() != null && !request.getState().trim().isEmpty()
                     ? request.getState().trim()
