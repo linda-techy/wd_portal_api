@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "customer_projects")
@@ -12,6 +13,9 @@ public class CustomerProject {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "project_uuid", nullable = false, updatable = false)
+    private UUID projectUuid;
 
     @Column(nullable = false, length = 255)
     private String name;
@@ -72,6 +76,9 @@ public class CustomerProject {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (projectUuid == null) {
+            projectUuid = UUID.randomUUID();
+        }
     }
 
     @PreUpdate
