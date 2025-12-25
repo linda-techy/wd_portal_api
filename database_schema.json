@@ -1,0 +1,5038 @@
+{
+  "activity_feeds": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "metadata",
+        "type": "jsonb",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "jsonb"
+      },
+      {
+        "name": "reference_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "reference_type",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "title",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "activity_type_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "activity_feeds_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "activity_type_id",
+        "references_table": "activity_types",
+        "references_column": "id",
+        "constraint": "fkrijq5v86vxcm6ru8041y07l8y"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fk8vxso9srli6g5ys0gw6md5vwu"
+      },
+      {
+        "column": "created_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkifmkjq5ptm24btd55dw3rrmwr"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "activity_types": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "color",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 20,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "icon",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "activity_types_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": [
+      {
+        "column": "name",
+        "constraint": "uk36uexkiww6jkyqnxwjl5a9mmy"
+      }
+    ]
+  },
+  "boq_items": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "amount",
+        "type": "numeric",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 15,
+        "scale": 2,
+        "udt_name": "numeric"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "description",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "item_code",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "notes",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "quantity",
+        "type": "numeric",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 10,
+        "scale": 2,
+        "udt_name": "numeric"
+      },
+      {
+        "name": "rate",
+        "type": "numeric",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 15,
+        "scale": 2,
+        "udt_name": "numeric"
+      },
+      {
+        "name": "specifications",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "unit",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "created_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "work_type_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "total_amount",
+        "type": "numeric",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 10,
+        "scale": 2,
+        "udt_name": "numeric"
+      },
+      {
+        "name": "unit_rate",
+        "type": "numeric",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 10,
+        "scale": 2,
+        "udt_name": "numeric"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "boq_items_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "created_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fklqww6v3kexlgm5ss3aycfve8u"
+      },
+      {
+        "column": "work_type_id",
+        "references_table": "boq_work_types",
+        "references_column": "id",
+        "constraint": "fkm6mh1qtpb6w21tm0pe6a36rwb"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkkh466bkw2qge7d6l7d1byjb3d"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "boq_work_types": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "description",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "display_order",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "boq_work_types_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": [
+      {
+        "column": "name",
+        "constraint": "uk1i0jdn9894gfki9ovniwmbrm8"
+      }
+    ]
+  },
+  "cctv_cameras": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "camera_name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "camera_type",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "installation_date",
+        "type": "date",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "date"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "is_installed",
+        "type": "boolean",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "last_active",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "location",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "notes",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "resolution",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 20,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "snapshot_url",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "stream_url",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "cctv_cameras_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkr8rbfccbeoc5kmkg1mr5swf64"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "customer_permissions": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "description",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "customer_permissions_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": [
+      {
+        "column": "name",
+        "constraint": "ukd2dsyjdoj1ypo3g6qirg52r3j"
+      }
+    ]
+  },
+  "customer_project_members": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "project_id",
+        "constraint": "customer_project_members_pkey"
+      },
+      {
+        "column": "customer_id",
+        "constraint": "customer_project_members_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "customer_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkbo3qp9wmb4wg8hw70n8npjqt8"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fke04jjaqfg0oacn7bkvoamc6y6"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "customer_project_team_members": {
+    "columns": [
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "user_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "user_id",
+        "constraint": "customer_project_team_members_pkey"
+      },
+      {
+        "column": "project_id",
+        "constraint": "customer_project_team_members_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "user_id",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fk1vs5iyhrj41sehb4xqutcww22"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkn9f8aohu429cdo3bwc2cicxoo"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "customer_projects": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": "nextval('customer_projects_id_seq'::regclass)",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "location",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "start_date",
+        "type": "date",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "date"
+      },
+      {
+        "name": "end_date",
+        "type": "date",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "date"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": "CURRENT_TIMESTAMP",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": "CURRENT_TIMESTAMP",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "created_by",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "project_phase",
+        "type": "character varying",
+        "default": "'design'::character varying",
+        "nullable": "NO",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "state",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "district",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "sqfeet",
+        "type": "numeric",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 10,
+        "scale": 2,
+        "udt_name": "numeric"
+      },
+      {
+        "name": "lead_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "code",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "design_package",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "is_design_agreement_signed",
+        "type": "boolean",
+        "default": "false",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "project_uuid",
+        "type": "uuid",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "uuid"
+      },
+      {
+        "name": "sq_feet",
+        "type": "double precision",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 53,
+        "scale": null,
+        "udt_name": "float8"
+      },
+      {
+        "name": "customer_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_type",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "customer_projects_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "lead_id",
+        "references_table": "leads",
+        "references_column": "lead_id",
+        "constraint": "customer_projects_lead_id_fkey"
+      },
+      {
+        "column": "customer_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "customer_projects_customer_id_fkey"
+      }
+    ],
+    "unique_constraints": [
+      {
+        "column": "project_uuid",
+        "constraint": "uk_public_id"
+      },
+      {
+        "column": "project_uuid",
+        "constraint": "uk_project_uuid"
+      }
+    ]
+  },
+  "customer_refresh_tokens": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "expiry_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "revoked",
+        "type": "boolean",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "token",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "user_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "customer_refresh_tokens_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "user_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkhw16i2stt9e4ap142kehwhej7"
+      }
+    ],
+    "unique_constraints": [
+      {
+        "column": "token",
+        "constraint": "ukqcqvjabf31kvnwlum3ov60k50"
+      }
+    ]
+  },
+  "customer_role_permissions": {
+    "columns": [
+      {
+        "name": "role_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "permission_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "role_id",
+        "constraint": "customer_role_permissions_pkey"
+      },
+      {
+        "column": "permission_id",
+        "constraint": "customer_role_permissions_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "permission_id",
+        "references_table": "customer_permissions",
+        "references_column": "id",
+        "constraint": "fk971hjshnyhgpfiqi7a0w30bhc"
+      },
+      {
+        "column": "role_id",
+        "references_table": "customer_roles",
+        "references_column": "id",
+        "constraint": "fk3glguhg80ib0f54bq71yq4eog"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "customer_roles": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "description",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "customer_roles_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": [
+      {
+        "column": "name",
+        "constraint": "ukv1ve0r9c7213mhupixlwu81p"
+      }
+    ]
+  },
+  "customer_users": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "email",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "enabled",
+        "type": "boolean",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "first_name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "last_name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "password",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "role_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "customer_users_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "role_id",
+        "references_table": "customer_roles",
+        "references_column": "id",
+        "constraint": "fkqx1hmhiu5qt3u44jp5y7qju30"
+      }
+    ],
+    "unique_constraints": [
+      {
+        "column": "email",
+        "constraint": "uk1hvnsegn6oau1wh8qnufurrq"
+      }
+    ]
+  },
+  "design_steps": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": "nextval('design_steps_id_seq'::regclass)",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "step_name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "weight_percentage",
+        "type": "double precision",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 53,
+        "scale": null,
+        "udt_name": "float8"
+      },
+      {
+        "name": "category",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "display_order",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "design_steps_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": []
+  },
+  "document_categories": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "description",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "display_order",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "document_categories_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": [
+      {
+        "column": "name",
+        "constraint": "uk22naemx2gvf78rvbmpp6bnvm8"
+      }
+    ]
+  },
+  "feedback_forms": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "form_type",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "title",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "created_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "form_schema",
+        "type": "jsonb",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "jsonb"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "feedback_forms_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "created_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fk5bjnxe848ef7xvfbqg3mcswck"
+      },
+      {
+        "column": "created_by_id",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fkiljy7u0xr6yhxtlwex6cdx23d"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkrg89f5gompuve6aynus52hnxf"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "feedback_responses": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "comments",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "is_completed",
+        "type": "boolean",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "rating",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "response_data",
+        "type": "jsonb",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "jsonb"
+      },
+      {
+        "name": "submitted_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "customer_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "form_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "feedback_responses_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "form_id",
+        "references_table": "feedback_forms",
+        "references_column": "id",
+        "constraint": "fka43t0sunco2xtwvliq9lwug2e"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fks5ay8f602mdn84wb98b3wxgpo"
+      },
+      {
+        "column": "customer_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fk3u36cg2hqu4if6aiphw54406l"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "gallery_images": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "caption",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "image_path",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "location_tag",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "tags",
+        "type": "ARRAY",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "_varchar"
+      },
+      {
+        "name": "taken_date",
+        "type": "date",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "date"
+      },
+      {
+        "name": "thumbnail_path",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "uploaded_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "site_report_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "uploaded_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "image_url",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "gallery_images_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "uploaded_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkqqocbhr47a74k0o25ko3l8asf"
+      },
+      {
+        "column": "site_report_id",
+        "references_table": "site_reports",
+        "references_column": "id",
+        "constraint": "fk636vlslcidemefmf1guohcns7"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkae7ww18j1dwchd0urcgcc4cmd"
+      },
+      {
+        "column": "uploaded_by_id",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fk1gsnl3r27gk7xkgvmxfj2wnwl"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "leads": {
+    "columns": [
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "email",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "phone",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "whatsapp_number",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "lead_source",
+        "type": "character varying",
+        "default": "'website'::character varying",
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "lead_status",
+        "type": "character varying",
+        "default": "'New Inquiry'::character varying",
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "priority",
+        "type": "character varying",
+        "default": "'low'::character varying",
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "customer_type",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "address",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "project_type",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "project_description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "requirements",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "budget",
+        "type": "numeric",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 38,
+        "scale": 2,
+        "udt_name": "numeric"
+      },
+      {
+        "name": "next_follow_up",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "last_contact_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "assigned_team",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "notes",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "client_rating",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "probability_to_win",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "lost_reason",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": "CURRENT_TIMESTAMP",
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": "CURRENT_TIMESTAMP",
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "lead_id",
+        "type": "bigint",
+        "default": "nextval('leads_lead_id_seq'::regclass)",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "date_of_enquiry",
+        "type": "date",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "date"
+      },
+      {
+        "name": "state",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "district",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "location",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "project_sqft_area",
+        "type": "numeric",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 38,
+        "scale": 2,
+        "udt_name": "numeric"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "lead_id",
+        "constraint": "leads_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": []
+  },
+  "observations": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "image_path",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "location",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "priority",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 20,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "reported_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "resolution_notes",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "resolved_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "status",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "title",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "reported_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "reported_by_role_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "resolved_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "severity",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "observations_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "reported_by_role_id",
+        "references_table": "staff_roles",
+        "references_column": "id",
+        "constraint": "fkkg99mufg8wdwxvurdqn50uo1h"
+      },
+      {
+        "column": "reported_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkh2iq646mb3751rf8t4mx5tiqg"
+      },
+      {
+        "column": "resolved_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fk6ppqi5hu02gtxr6tsvbch7u3w"
+      },
+      {
+        "column": "reported_by_id",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fkt868io5pqej0xtq8d93h8jnfl"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkm2f8vvxtpx5ki0j8nq3rf1rex"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "partnership_users": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": "nextval('partnership_users_id_seq'::regclass)",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "phone",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 15,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "email",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "password_hash",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "full_name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "designation",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "partnership_type",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "firm_name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "company_name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "gst_number",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 20,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "license_number",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "rera_number",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "cin_number",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "ifsc_code",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 20,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "employee_id",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "experience",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "specialization",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "portfolio_link",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "certifications",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "area_of_operation",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "areas_covered",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "land_types",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "materials_supplied",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "business_size",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "location",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "industry",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "project_type",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "project_scale",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "timeline",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "years_of_practice",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "area_served",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "business_name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "additional_contact",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "message",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "status",
+        "type": "character varying",
+        "default": "'pending'::character varying",
+        "nullable": "YES",
+        "max_length": 20,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": "CURRENT_TIMESTAMP",
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": "CURRENT_TIMESTAMP",
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "approved_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "last_login",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "created_by",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "updated_by",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "partnership_users_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": [
+      {
+        "column": "phone",
+        "constraint": "partnership_users_phone_key"
+      },
+      {
+        "column": "email",
+        "constraint": "partnership_users_email_key"
+      }
+    ]
+  },
+  "portal_permissions": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": "nextval('portal_permissions_id_seq'::regclass)",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "description",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "portal_permissions_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": [
+      {
+        "column": "name",
+        "constraint": "portal_permissions_name_key"
+      }
+    ]
+  },
+  "portal_project_documents": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "file_path",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "file_size",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "file_type",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "filename",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "upload_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "version",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "category_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "uploaded_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "portal_project_documents_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "category_id",
+        "references_table": "document_categories",
+        "references_column": "id",
+        "constraint": "fkf0kuhu8w8ong6cyofhdxc5q0u"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkt6b5xbbkq04k0bbqx0537c6v1"
+      },
+      {
+        "column": "uploaded_by_id",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fkcwwj2dd86c5oqp39oljrdwter"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "portal_refresh_tokens": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": "nextval('portal_refresh_tokens_id_seq'::regclass)",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "token",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 4096,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "user_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "expiry_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "revoked",
+        "type": "boolean",
+        "default": "false",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "portal_refresh_tokens_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "user_id",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fk_refresh_token_user"
+      }
+    ],
+    "unique_constraints": [
+      {
+        "column": "token",
+        "constraint": "portal_refresh_tokens_token_key"
+      }
+    ]
+  },
+  "portal_role_permissions": {
+    "columns": [
+      {
+        "name": "role_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "permission_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "role_id",
+        "constraint": "portal_role_permissions_pkey"
+      },
+      {
+        "column": "permission_id",
+        "constraint": "portal_role_permissions_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "permission_id",
+        "references_table": "portal_permissions",
+        "references_column": "id",
+        "constraint": "fk_role_permissions_permission"
+      },
+      {
+        "column": "role_id",
+        "references_table": "portal_roles",
+        "references_column": "id",
+        "constraint": "fk_role_permissions_role"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "portal_roles": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": "nextval('portal_roles_id_seq'::regclass)",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "description",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "code",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "portal_roles_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": [
+      {
+        "column": "name",
+        "constraint": "portal_roles_name_key"
+      }
+    ]
+  },
+  "portal_users": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": "nextval('portal_users_id_seq'::regclass)",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "email",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "password",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "first_name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "last_name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "role_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "enabled",
+        "type": "boolean",
+        "default": "true",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": "now()",
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": "now()",
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "portal_users_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "role_id",
+        "references_table": "portal_roles",
+        "references_column": "id",
+        "constraint": "fk_users_role"
+      }
+    ],
+    "unique_constraints": [
+      {
+        "column": "email",
+        "constraint": "portal_users_email_key"
+      }
+    ]
+  },
+  "project_design_steps": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": "nextval('project_design_steps_id_seq'::regclass)",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_uuid",
+        "type": "uuid",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "uuid"
+      },
+      {
+        "name": "step_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "status",
+        "type": "character varying",
+        "default": "'not_started'::design_step_status",
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "progress_percentage",
+        "type": "double precision",
+        "default": "0",
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 53,
+        "scale": null,
+        "udt_name": "float8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "completed_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "completion_percentage",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "notes",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "started_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "design_step_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "project_design_steps_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "design_step_id",
+        "references_table": "design_steps",
+        "references_column": "id",
+        "constraint": "fkt1uho6p7ws2hbbwm3ojfjx3hf"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkmrhe9x1ne46dc1mb6ur6awrw2"
+      },
+      {
+        "column": "project_uuid",
+        "references_table": "customer_projects",
+        "references_column": "project_uuid",
+        "constraint": "project_design_steps_project_uuid_fkey"
+      },
+      {
+        "column": "step_id",
+        "references_table": "design_steps",
+        "references_column": "id",
+        "constraint": "project_design_steps_step_id_fkey"
+      }
+    ],
+    "unique_constraints": [
+      {
+        "column": "project_uuid",
+        "constraint": "project_design_steps_project_uuid_step_id_key"
+      },
+      {
+        "column": "step_id",
+        "constraint": "uks3dj3lcbaub9v8nwqyhpd8dkj"
+      },
+      {
+        "column": "project_id",
+        "constraint": "uks3dj3lcbaub9v8nwqyhpd8dkj"
+      },
+      {
+        "column": "step_id",
+        "constraint": "project_design_steps_project_uuid_step_id_key"
+      }
+    ]
+  },
+  "project_documents": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "file_path",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "file_size",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "file_type",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "filename",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "upload_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "version",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "category_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "uploaded_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "project_documents_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "category_id",
+        "references_table": "document_categories",
+        "references_column": "id",
+        "constraint": "fkj438f54f119la1oe7w430kd2v"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fko1849milgj9fm1dlrhhtt7hp4"
+      },
+      {
+        "column": "uploaded_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkr1yhrxuag0vpktryqfdg99wpi"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "project_members": {
+    "columns": [
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "role_in_project",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "portal_user_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "customer_user_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [],
+    "foreign_keys": [
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "customer_project_members_project_id_fkey"
+      },
+      {
+        "column": "portal_user_id",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fk5ajy4kwtf762clwvs3eo12igv"
+      },
+      {
+        "column": "customer_user_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkeloybnlc7ktjw6bd00uwxuyuv"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "project_queries": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "category",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "priority",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 20,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "raised_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "resolution",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "resolved_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "status",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "title",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "assigned_to_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "raised_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "raised_by_role_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "resolved_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "answer",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "question",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "responded_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "subject",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "asked_by",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "responded_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "project_queries_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "raised_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkapornmbdlg75md81jrsmwyuv0"
+      },
+      {
+        "column": "resolved_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fk83911kpqa93gl9ak0w092anpi"
+      },
+      {
+        "column": "raised_by_role_id",
+        "references_table": "staff_roles",
+        "references_column": "id",
+        "constraint": "fkhub5dfimfwa754gpwdyufi5tf"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkfvlx38n2cey7tbb14o924446d"
+      },
+      {
+        "column": "assigned_to_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkpjypo3yyjdsfuljugmwdhk4yp"
+      },
+      {
+        "column": "responded_by_id",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fkl24n5uyuycjqu47g6a0ldb267"
+      },
+      {
+        "column": "asked_by",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fksklguikhgfieupc2l5vwhk0jw"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "quality_checks": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "priority",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 20,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "resolution_notes",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "resolved_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "sop_reference",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "status",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "title",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "assigned_to_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "resolved_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "check_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "remarks",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "result",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "conducted_by",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "quality_checks_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "created_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkd0ilsi06473ncmokysceof4qm"
+      },
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fk6k7aya4yudvnj98cm14xdwx82"
+      },
+      {
+        "column": "resolved_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fk8naaioq2imyr59pxd0pw9gvwk"
+      },
+      {
+        "column": "assigned_to_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkfydh46ddmfjg7md4lrrdnh2ni"
+      },
+      {
+        "column": "conducted_by",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fk77jvh8x0tisg84kvbg5ditl8b"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "site_reports": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "equipment_used",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "manpower_deployed",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "report_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "title",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "weather",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "work_progress",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "created_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "status",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "submitted_by",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "site_reports_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkt8k6tjrbmgd7k1quky0ecdbjm"
+      },
+      {
+        "column": "submitted_by",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fk8lg7o9du7l5pufj5pfqowhg1c"
+      },
+      {
+        "column": "created_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkh0794dh3vnvjymnydp25psui7"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "site_visits": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "attendees",
+        "type": "ARRAY",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "_varchar"
+      },
+      {
+        "name": "check_in_time",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "check_out_time",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "findings",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "location",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "notes",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "purpose",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "weather_conditions",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "visitor_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "visitor_role_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "visit_date",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "visited_by",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "site_visits_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkk8p1eic6wrms7n1gce5wgmexr"
+      },
+      {
+        "column": "visitor_role_id",
+        "references_table": "staff_roles",
+        "references_column": "id",
+        "constraint": "fk7shglvmg5rionq1staxx4215r"
+      },
+      {
+        "column": "visitor_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fkrqu6mg7usj8qbvy92r1omvcpx"
+      },
+      {
+        "column": "visited_by",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fk2mlo0yptsmuws2bkldrobmoa6"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "sqft_categories": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "default": "gen_random_uuid()",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "uuid"
+      },
+      {
+        "name": "category",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 50,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "lowest_sqft",
+        "type": "integer",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "highest_sqft",
+        "type": "integer",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "modified_by",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "update_date",
+        "type": "timestamp without time zone",
+        "default": "CURRENT_TIMESTAMP",
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "max_sqft",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "min_sqft",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "sqft_categories_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": []
+  },
+  "staff_roles": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 100,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "display_order",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "staff_roles_pkey"
+      }
+    ],
+    "foreign_keys": [],
+    "unique_constraints": [
+      {
+        "column": "name",
+        "constraint": "ukegtydy8obpfjtyrcqe2972dhe"
+      }
+    ]
+  },
+  "tasks": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": "nextval('tasks_id_seq'::regclass)",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "title",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "status",
+        "type": "character varying",
+        "default": "'PENDING'::character varying",
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "priority",
+        "type": "character varying",
+        "default": "'MEDIUM'::character varying",
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "assigned_to",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_by",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "due_date",
+        "type": "date",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "date"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": "CURRENT_TIMESTAMP",
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp without time zone",
+        "default": "CURRENT_TIMESTAMP",
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "tasks_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fk_task_project"
+      },
+      {
+        "column": "created_by",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fk_task_created_by"
+      },
+      {
+        "column": "assigned_to",
+        "references_table": "portal_users",
+        "references_column": "id",
+        "constraint": "fk_task_assigned_to"
+      }
+    ],
+    "unique_constraints": []
+  },
+  "view_360": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "capture_date",
+        "type": "date",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "date"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "text"
+      },
+      {
+        "name": "is_active",
+        "type": "boolean",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "bool"
+      },
+      {
+        "name": "location",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "thumbnail_url",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "title",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 255,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "uploaded_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "view_count",
+        "type": "integer",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": 32,
+        "scale": 0,
+        "udt_name": "int4"
+      },
+      {
+        "name": "view_url",
+        "type": "character varying",
+        "default": null,
+        "nullable": "NO",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      },
+      {
+        "name": "project_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "uploaded_by_id",
+        "type": "bigint",
+        "default": null,
+        "nullable": "NO",
+        "max_length": null,
+        "precision": 64,
+        "scale": 0,
+        "udt_name": "int8"
+      },
+      {
+        "name": "created_at",
+        "type": "timestamp without time zone",
+        "default": null,
+        "nullable": "YES",
+        "max_length": null,
+        "precision": null,
+        "scale": null,
+        "udt_name": "timestamp"
+      },
+      {
+        "name": "panorama_url",
+        "type": "character varying",
+        "default": null,
+        "nullable": "YES",
+        "max_length": 500,
+        "precision": null,
+        "scale": null,
+        "udt_name": "varchar"
+      }
+    ],
+    "primary_keys": [
+      {
+        "column": "id",
+        "constraint": "view_360_pkey"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "column": "project_id",
+        "references_table": "customer_projects",
+        "references_column": "id",
+        "constraint": "fkbgsw6xu4j1bq1i6auab1hdaik"
+      },
+      {
+        "column": "uploaded_by_id",
+        "references_table": "customer_users",
+        "references_column": "id",
+        "constraint": "fk1qd9nno51wg2jylikme0pjqxr"
+      }
+    ],
+    "unique_constraints": []
+  }
+}

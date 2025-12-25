@@ -5,7 +5,6 @@ import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.ProjectMember;
-import com.wd.api.model.User;
 import com.wd.api.dto.TeamMemberSelectionDTO;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.UserRepository;
@@ -16,6 +15,10 @@ import com.wd.api.model.ProjectDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -59,19 +62,41 @@ public class CustomerProjectController {
     private ProjectDocumentRepository projectDocumentRepository;
 
     /**
-     * Get all customer projects
+     * Get all customer projects with support for pagination and search
      */
     @GetMapping
-    public ResponseEntity<List<CustomerProjectResponse>> getAllCustomerProjects() {
+    public ResponseEntity<?> getAllCustomerProjects(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id,desc") String[] sort) {
         try {
-            List<CustomerProject> projects = customerProjectRepository.findAll();
-            List<CustomerProjectResponse> responses = projects.stream()
-                    .map(CustomerProjectResponse::new)
-                    .collect(Collectors.toList());
+            // Create Sort object
+            Sort sortObj = Sort.by(sort[0]);
+            if (sort.length > 1 && sort[1].equalsIgnoreCase("asc")) {
+                sortObj = sortObj.ascending();
+            } else {
+                sortObj = sortObj.descending();
+            }
+
+            Pageable pageable = PageRequest.of(page, size, sortObj);
+            Page<CustomerProject> projectPage;
+
+            if (search != null && !search.trim().isEmpty()) {
+                String searchPattern = search.trim();
+                projectPage = customerProjectRepository
+                        .findByNameContainingIgnoreCaseOrLocationContainingIgnoreCaseOrStateContainingIgnoreCaseOrProjectPhaseContainingIgnoreCase(
+                                searchPattern, searchPattern, searchPattern, searchPattern, pageable);
+            } else {
+                projectPage = customerProjectRepository.findAll(pageable);
+            }
+
+            Page<CustomerProjectResponse> responses = projectPage.map(CustomerProjectResponse::new);
+
             return ResponseEntity.ok(responses);
         } catch (Exception e) {
             logger.error("Error fetching customer projects", e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError().body("Error fetching projects: " + e.getMessage());
         }
     }
 
@@ -79,7 +104,7 @@ public class CustomerProjectController {
      * Get customer project by ID
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCustomerProjectById(@PathVariable Long id) {
+    public ResponseEntity<?> getCustomerProjectById(@PathVariable @org.springframework.lang.NonNull Long id) {
         try {
             Optional<CustomerProject> projectOpt = customerProjectRepository.findById(id);
             if (!projectOpt.isPresent()) {
@@ -112,13 +137,6 @@ public class CustomerProjectController {
                 return ResponseEntity.badRequest().body("Location is required");
             }
 
-            // Validate progress if provided
-            if (request.getProgress() != null) {
-                if (request.getProgress() < 0 || request.getProgress() > 100) {
-                    return ResponseEntity.badRequest().body("Progress must be between 0 and 100");
-                }
-            }
-
             // Validate end date is after start date if both provided
             if (request.getStartDate() != null && request.getEndDate() != null) {
                 if (request.getEndDate().isBefore(request.getStartDate())) {
@@ -147,12 +165,7 @@ public class CustomerProjectController {
             project.setLocation(request.getLocation().trim());
             project.setStartDate(request.getStartDate());
             project.setEndDate(request.getEndDate());
-            // Set progress to 0 if not provided
-            if (request.getProgress() != null) {
-                project.setProgress(request.getProgress());
-            } else {
-                project.setProgress(0.0);
-            }
+
             project.setCreatedBy(createdBy);
             project.setProjectPhase(request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()
                     ? request.getProjectPhase().trim()
@@ -206,9 +219,9 @@ public class CustomerProjectController {
             logger.debug("UPDATE CUSTOMER PROJECT REQUEST - Project ID: {}", id);
             if (request != null) {
                 logger.debug(
-                        "Request details - name: {}, location: {}, code: {}, leadId: {}, sqfeet: {}, progress: {}, startDate: {}, endDate: {}, projectPhase: {}, state: {}, district: {}",
+                        "Request details - name: {}, location: {}, code: {}, leadId: {}, sqfeet: {}, startDate: {}, endDate: {}, projectPhase: {}, state: {}, district: {}",
                         request.getName(), request.getLocation(), request.getCode(), request.getLeadId(),
-                        request.getSqfeet(), request.getProgress(), request.getStartDate(), request.getEndDate(),
+                        request.getSqfeet(), request.getStartDate(), request.getEndDate(),
                         request.getProjectPhase(), request.getState(), request.getDistrict());
             } else {
                 logger.warn("UPDATE CUSTOMER PROJECT REQUEST - Request body is NULL for project ID: {}", id);
@@ -245,19 +258,6 @@ public class CustomerProjectController {
                 return ResponseEntity.badRequest().body("Location is required");
             }
             logger.debug("Location validation passed: {}", request.getLocation());
-
-            // Validate progress if provided
-            if (request.getProgress() != null) {
-                logger.debug("Validating progress: {}", request.getProgress());
-                if (request.getProgress() < 0 || request.getProgress() > 100) {
-                    logger.warn("UPDATE CUSTOMER PROJECT - Progress out of range: {} for project ID: {}",
-                            request.getProgress(), id);
-                    return ResponseEntity.badRequest().body("Progress must be between 0 and 100");
-                }
-                logger.debug("Progress validation passed");
-            } else {
-                logger.debug("Progress is null (optional field)");
-            }
 
             // Validate end date is after start date if both provided
             if (request.getStartDate() != null && request.getEndDate() != null) {
@@ -325,12 +325,7 @@ public class CustomerProjectController {
             project.setLocation(request.getLocation().trim());
             project.setStartDate(request.getStartDate());
             project.setEndDate(request.getEndDate());
-            // Handle progress - can be null
-            if (request.getProgress() != null) {
-                project.setProgress(request.getProgress());
-            } else {
-                project.setProgress(null);
-            }
+
             // Don't update createdBy - it should remain as original creator
             project.setProjectPhase(request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()
                     ? request.getProjectPhase().trim()
@@ -412,9 +407,9 @@ public class CustomerProjectController {
 
             // Log the project state before save for debugging
             logger.debug(
-                    "BEFORE SAVE - Project ID: {}, name: {}, location: {}, code: {}, leadId: {}, sqfeet: {}, progress: {}, state: {}, district: {}, phase: {}, startDate: {}, endDate: {}, createdBy: {}, createdAt: {}, updatedAt: {}",
+                    "BEFORE SAVE - Project ID: {}, name: {}, location: {}, code: {}, leadId: {}, sqfeet: {}, state: {}, district: {}, phase: {}, startDate: {}, endDate: {}, createdBy: {}, createdAt: {}, updatedAt: {}",
                     id, project.getName(), project.getLocation(), project.getCode(), project.getLeadId(),
-                    project.getSqfeet(), project.getProgress(), project.getState(), project.getDistrict(),
+                    project.getSqfeet(), project.getState(), project.getDistrict(),
                     project.getProjectPhase(), project.getStartDate(), project.getEndDate(),
                     project.getCreatedBy(), project.getCreatedAt(), project.getUpdatedAt());
 

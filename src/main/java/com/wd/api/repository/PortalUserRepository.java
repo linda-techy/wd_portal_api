@@ -15,14 +15,15 @@ import java.util.Optional;
 public interface PortalUserRepository extends JpaRepository<PortalUser, Long> {
     Optional<PortalUser> findByEmail(String email);
 
-    List<PortalUser> findByRoleId(Long roleId);
+    @Query("SELECT u FROM PortalUser u WHERE u.role.id = :roleId")
+    List<PortalUser> findByRoleId(@Param("roleId") Long roleId);
 
     @Query("SELECT u FROM PortalUser u WHERE " +
             "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "u.roleId IN (SELECT r.id FROM PortalRole r WHERE " +
+            "u.role.id IN (SELECT r.id FROM PortalRole r WHERE " +
             "LOWER(r.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(r.code) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(r.description) LIKE LOWER(CONCAT('%', :search, '%')))")

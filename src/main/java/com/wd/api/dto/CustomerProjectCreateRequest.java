@@ -15,8 +15,6 @@ public class CustomerProjectCreateRequest {
     @JsonProperty("end_date")
     private LocalDate endDate;
 
-    private Double progress;
-
     @JsonProperty("created_by")
     private String createdBy;
 
@@ -78,14 +76,6 @@ public class CustomerProjectCreateRequest {
 
     public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
-    }
-
-    public Double getProgress() {
-        return progress;
-    }
-
-    public void setProgress(Double progress) {
-        this.progress = progress;
     }
 
     public String getCreatedBy() {

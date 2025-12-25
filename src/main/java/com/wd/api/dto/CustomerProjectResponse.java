@@ -23,8 +23,6 @@ public class CustomerProjectResponse {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
-    private Double progress;
-
     @JsonProperty("created_by")
     private String createdBy;
 
@@ -49,6 +47,15 @@ public class CustomerProjectResponse {
 
     private String code;
 
+    @JsonProperty("design_package")
+    private String designPackage;
+
+    @JsonProperty("is_design_agreement_signed")
+    private Boolean isDesignAgreementSigned;
+
+    @JsonProperty("sq_feet")
+    private Double sqFeet;
+
     // Constructors
     public CustomerProjectResponse() {
     }
@@ -61,7 +68,7 @@ public class CustomerProjectResponse {
         this.endDate = project.getEndDate();
         this.createdAt = project.getCreatedAt();
         this.updatedAt = project.getUpdatedAt();
-        this.progress = project.getProgress();
+
         this.createdBy = project.getCreatedBy();
         this.createdBy = project.getCreatedBy();
         this.projectPhase = project.getProjectPhase();
@@ -72,6 +79,10 @@ public class CustomerProjectResponse {
         this.leadId = project.getLeadId();
         this.customerId = project.getCustomerId();
         this.code = project.getCode();
+        this.designPackage = project.getDesignPackage();
+        this.isDesignAgreementSigned = project.getIsDesignAgreementSigned();
+
+        this.sqFeet = project.getSqFeet();
         if (project.getProjectMembers() != null && !project.getProjectMembers().isEmpty()) {
             this.teamMembers = project.getProjectMembers().stream()
                     .map(pm -> {
@@ -93,12 +104,6 @@ public class CustomerProjectResponse {
                         return null;
                     })
                     .filter(java.util.Objects::nonNull)
-                    .collect(java.util.stream.Collectors.toList());
-        } else if (project.getTeamMembers() != null) {
-            // Fallback to old team members for backward compatibility
-            this.teamMembers = project.getTeamMembers().stream()
-                    .map(user -> new TeamMemberDTO(user.getId(), user.getFirstName(), user.getLastName(),
-                            user.getEmail(), "UNKNOWN"))
                     .collect(java.util.stream.Collectors.toList());
         }
     }
@@ -158,14 +163,6 @@ public class CustomerProjectResponse {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public Double getProgress() {
-        return progress;
-    }
-
-    public void setProgress(Double progress) {
-        this.progress = progress;
     }
 
     public String getCreatedBy() {
@@ -246,5 +243,29 @@ public class CustomerProjectResponse {
 
     public void setTeamMembers(java.util.List<TeamMemberDTO> teamMembers) {
         this.teamMembers = teamMembers;
+    }
+
+    public String getDesignPackage() {
+        return designPackage;
+    }
+
+    public void setDesignPackage(String designPackage) {
+        this.designPackage = designPackage;
+    }
+
+    public Boolean getIsDesignAgreementSigned() {
+        return isDesignAgreementSigned;
+    }
+
+    public void setIsDesignAgreementSigned(Boolean isDesignAgreementSigned) {
+        this.isDesignAgreementSigned = isDesignAgreementSigned;
+    }
+
+    public Double getSqFeet() {
+        return sqFeet;
+    }
+
+    public void setSqFeet(Double sqFeet) {
+        this.sqFeet = sqFeet;
     }
 }

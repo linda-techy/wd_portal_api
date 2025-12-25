@@ -152,7 +152,12 @@ public class PortalUserController {
             user.setPassword(passwordEncoder.encode(request.getPassword().trim()));
             user.setFirstName(request.getFirstName().trim());
             user.setLastName(request.getLastName().trim());
-            user.setRoleId(request.getRoleId());
+
+            // Set role by looking up PortalRole entity
+            if (request.getRoleId() != null) {
+                portalRoleRepository.findById(request.getRoleId()).ifPresent(user::setRole);
+            }
+
             user.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
 
             PortalUser savedUser = portalUserRepository.save(user);
@@ -220,7 +225,7 @@ public class PortalUserController {
             }
 
             if (request.getRoleId() != null) {
-                user.setRoleId(request.getRoleId());
+                portalRoleRepository.findById(request.getRoleId()).ifPresent(user::setRole);
             }
 
             if (request.getEnabled() != null) {

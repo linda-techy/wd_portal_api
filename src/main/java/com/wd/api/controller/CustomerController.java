@@ -151,7 +151,11 @@ public class CustomerController {
             customerUser.setLastName(request.getLastName().trim());
             customerUser.setPassword(passwordEncoder.encode(request.getPassword().trim()));
             customerUser.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
-            customerUser.setRoleId(request.getRoleId());
+
+            // Set role by looking up CustomerRole entity
+            if (request.getRoleId() != null) {
+                customerRoleRepository.findById(request.getRoleId()).ifPresent(customerUser::setRole);
+            }
 
             CustomerUser savedCustomer = customerUserRepository.save(customerUser);
             return ResponseEntity.status(HttpStatus.CREATED).body(new CustomerResponse(savedCustomer));
@@ -233,7 +237,7 @@ public class CustomerController {
 
             // Update role ID if provided
             if (request.getRoleId() != null) {
-                customerUser.setRoleId(request.getRoleId());
+                customerRoleRepository.findById(request.getRoleId()).ifPresent(customerUser::setRole);
             }
 
             // Save the updated customer

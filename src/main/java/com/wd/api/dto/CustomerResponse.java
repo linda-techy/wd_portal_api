@@ -7,26 +7,27 @@ import java.time.LocalDateTime;
 public class CustomerResponse {
     private Long id;
     private String email;
-    
+
     @JsonProperty("first_name")
     private String firstName;
-    
+
     @JsonProperty("last_name")
     private String lastName;
-    
+
     private Boolean enabled;
-    
+
     @JsonProperty("role_id")
     private Long roleId;
-    
+
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
-    
+
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
     // Constructors
-    public CustomerResponse() {}
+    public CustomerResponse() {
+    }
 
     public CustomerResponse(CustomerUser customerUser) {
         if (customerUser == null) {
@@ -37,7 +38,7 @@ public class CustomerResponse {
         this.firstName = customerUser.getFirstName() != null ? customerUser.getFirstName() : "";
         this.lastName = customerUser.getLastName() != null ? customerUser.getLastName() : "";
         this.enabled = customerUser.getEnabled() != null ? customerUser.getEnabled() : true;
-        this.roleId = customerUser.getRoleId();
+        this.roleId = customerUser.getRole() != null ? customerUser.getRole().getId() : null;
         this.createdAt = customerUser.getCreatedAt();
         this.updatedAt = customerUser.getUpdatedAt();
     }
@@ -106,7 +107,7 @@ public class CustomerResponse {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
-    
+
     @JsonProperty("project_count")
     private int projectCount;
 
@@ -118,4 +119,3 @@ public class CustomerResponse {
         this.projectCount = projectCount;
     }
 }
-

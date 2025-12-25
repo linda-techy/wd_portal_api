@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -35,9 +37,6 @@ public class CustomerProject {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "progress")
-    private Double progress;
-
     @Column(name = "created_by")
     private String createdBy;
 
@@ -65,12 +64,18 @@ public class CustomerProject {
     @Column(name = "project_type", length = 255)
     private String projectType;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "customer_project_team_members", joinColumns = @JoinColumn(name = "project_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
-    private java.util.Set<User> teamMembers = new java.util.HashSet<>();
+    @Column(name = "design_package", length = 255)
+    private String designPackage;
 
+    @Column(name = "is_design_agreement_signed", nullable = false)
+    private Boolean isDesignAgreementSigned = false;
+
+    @Column(name = "sq_feet")
+    private Double sqFeet;
+
+    // Project members - SINGLE source of truth for team management
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private java.util.Set<ProjectMember> projectMembers = new java.util.HashSet<>();
+    private Set<ProjectMember> projectMembers = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {
@@ -141,14 +146,6 @@ public class CustomerProject {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public Double getProgress() {
-        return progress;
-    }
-
-    public void setProgress(Double progress) {
-        this.progress = progress;
     }
 
     public String getCreatedBy() {
@@ -223,19 +220,35 @@ public class CustomerProject {
         this.projectType = projectType;
     }
 
-    public java.util.Set<User> getTeamMembers() {
-        return teamMembers;
-    }
-
-    public void setTeamMembers(java.util.Set<User> teamMembers) {
-        this.teamMembers = teamMembers;
-    }
-
-    public java.util.Set<ProjectMember> getProjectMembers() {
+    public Set<ProjectMember> getProjectMembers() {
         return projectMembers;
     }
 
-    public void setProjectMembers(java.util.Set<ProjectMember> projectMembers) {
+    public void setProjectMembers(Set<ProjectMember> projectMembers) {
         this.projectMembers = projectMembers;
+    }
+
+    public String getDesignPackage() {
+        return designPackage;
+    }
+
+    public void setDesignPackage(String designPackage) {
+        this.designPackage = designPackage;
+    }
+
+    public Boolean getIsDesignAgreementSigned() {
+        return isDesignAgreementSigned;
+    }
+
+    public void setIsDesignAgreementSigned(Boolean isDesignAgreementSigned) {
+        this.isDesignAgreementSigned = isDesignAgreementSigned;
+    }
+
+    public Double getSqFeet() {
+        return sqFeet;
+    }
+
+    public void setSqFeet(Double sqFeet) {
+        this.sqFeet = sqFeet;
     }
 }
