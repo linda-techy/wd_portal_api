@@ -40,6 +40,12 @@ public class CustomerProjectUpdateRequest {
 
     private String code;
 
+    @JsonProperty("design_package")
+    private String designPackage;
+
+    @JsonProperty("is_design_agreement_signed")
+    private Boolean isDesignAgreementSigned;
+
     // Constructors
     public CustomerProjectUpdateRequest() {
     }
@@ -205,5 +211,21 @@ public class CustomerProjectUpdateRequest {
 
     public void setTeamMembers(java.util.List<TeamMemberSelectionDTO> teamMembers) {
         this.teamMembers = teamMembers;
+    }
+
+    public String getDesignPackage() {
+        return designPackage;
+    }
+
+    public void setDesignPackage(String designPackage) {
+        this.designPackage = designPackage;
+    }
+
+    public Boolean getIsDesignAgreementSigned() {
+        return isDesignAgreementSigned;
+    }
+
+    public void setIsDesignAgreementSigned(Boolean isDesignAgreementSigned) {
+        this.isDesignAgreementSigned = isDesignAgreementSigned;
     }
 }

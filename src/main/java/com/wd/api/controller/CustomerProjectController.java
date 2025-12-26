@@ -345,6 +345,10 @@ public class CustomerProjectController {
             // Handle leadId - already converted to Long by @JsonSetter
             project.setLeadId(request.getLeadId());
             project.setCustomerId(request.getCustomerId());
+            project.setDesignPackage(request.getDesignPackage());
+            if (request.getIsDesignAgreementSigned() != null) {
+                project.setIsDesignAgreementSigned(request.getIsDesignAgreementSigned());
+            }
 
             // Handle team members
             if (request.getTeamMembers() != null) {
