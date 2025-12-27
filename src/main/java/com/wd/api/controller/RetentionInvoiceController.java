@@ -1,0 +1,132 @@
+package com.wd.api.controller;
+
+import com.wd.api.dto.PaymentDtos.*;
+import com.wd.api.service.PaymentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * Phase 2 Controller: Retention Money & GST Invoice Management
+ */
+@RestController
+@RequestMapping("/api/payments")
+public class RetentionInvoiceController {
+
+    private static final Logger logger = LoggerFactory.getLogger(RetentionInvoiceController.class);
+    private final PaymentService paymentService;
+
+    public RetentionInvoiceController(PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
+
+    /**
+     * Release retention money for a payment
+     * POST /api/payments/retention/{paymentId}/release
+     */
+    @PostMapping("/retention/{paymentId}/release")
+    public ResponseEntity<?> releaseRetention(
+            @PathVariable Long paymentId,
+            @RequestBody ReleaseRetentionRequest request,
+            Authentication auth) {
+        try {
+            Long userId = getUserIdFromAuth(auth);
+
+            paymentService.releaseRetention(
+                    paymentId,
+                    request.getReleaseAmount(),
+                    request.getReleaseReason(),
+                    userId);
+
+            return ResponseEntity.ok(new ApiResponse<>(
+                    true,
+                    "Retention released successfully",
+                    null));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid retention release request: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        } catch (Exception e) {
+            logger.error("Error releasing retention", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, "Failed to release retention: " + e.getMessage(), null));
+        }
+    }
+
+    /**
+     * Generate GST invoice for a payment
+     * POST /api/payments/invoices/generate
+     */
+    @PostMapping("/invoices/generate")
+    public ResponseEntity<?> generateInvoice(
+            @RequestBody GenerateInvoiceRequest request,
+            Authentication auth) {
+        try {
+            Long userId = getUserIdFromAuth(auth);
+
+            com.wd.api.model.TaxInvoice invoice = paymentService.generateGstInvoice(
+                    request.getPaymentId(),
+                    request.getPlaceOfSupply(),
+                    request.getCustomerGstin(),
+                    userId);
+
+            TaxInvoiceResponse response = toTaxInvoiceResponse(invoice);
+
+            return ResponseEntity.ok(new ApiResponse<>(
+                    true,
+                    "GST invoice generated successfully",
+                    response));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            logger.warn("Invalid invoice generation request: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        } catch (Exception e) {
+            logger.error("Error generating invoice", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, "Failed to generate invoice: " + e.getMessage(), null));
+        }
+    }
+
+    // Helper: Map TaxInvoice entity to DTO
+    private TaxInvoiceResponse toTaxInvoiceResponse(com.wd.api.model.TaxInvoice inv) {
+        TaxInvoiceResponse r = new TaxInvoiceResponse();
+        r.setId(inv.getId());
+        r.setInvoiceNumber(inv.getInvoiceNumber());
+        r.setPaymentId(inv.getPaymentId());
+        r.setCompanyGstin(inv.getCompanyGstin());
+        r.setCustomerGstin(inv.getCustomerGstin());
+        r.setPlaceOfSupply(inv.getPlaceOfSupply());
+        r.setIsInterstate(inv.getIsInterstate());
+        r.setTaxableValue(inv.getTaxableValue());
+        r.setCgstRate(inv.getCgstRate());
+        r.setCgstAmount(inv.getCgstAmount());
+        r.setSgstRate(inv.getSgstRate());
+        r.setSgstAmount(inv.getSgstAmount());
+        r.setIgstRate(inv.getIgstRate());
+        r.setIgstAmount(inv.getIgstAmount());
+        r.setTotalTaxAmount(inv.getTotalTaxAmount());
+        r.setInvoiceTotal(inv.getInvoiceTotal());
+        r.setInvoiceDate(inv.getInvoiceDate());
+        r.setFinancialYear(inv.getFinancialYear());
+        return r;
+    }
+
+    // Helper: Extract user ID from authentication
+    private Long getUserIdFromAuth(Authentication auth) {
+        if (auth == null || auth.getPrincipal() == null) {
+            return null;
+        }
+        try {
+            if (auth.getPrincipal() instanceof com.wd.api.model.User) {
+                return ((com.wd.api.model.User) auth.getPrincipal()).getId();
+            }
+            return Long.parseLong(auth.getName());
+        } catch (Exception e) {
+            logger.warn("Could not extract user ID from auth: {}", auth.getName());
+            return null;
+        }
+    }
+}

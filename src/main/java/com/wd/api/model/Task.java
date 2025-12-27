@@ -41,7 +41,19 @@ public class Task {
     @JoinColumn(name = "project_id")
     private CustomerProject project;
 
-    @Column(name = "due_date")
+    /**
+     * MANDATORY: Task completion deadline
+     * 
+     * Business Rationale (Construction Domain):
+     * - Every construction task requires a deadline for project timeline tracking
+     * - Enables proactive alert system for overdue/approaching deadlines
+     * - Critical for resource planning and performance accountability
+     * - Supports manager dashboards and project timeline views
+     * 
+     * Validation: Must be present and >= task creation date
+     */
+    @jakarta.validation.constraints.NotNull(message = "Due date is mandatory for task accountability and project timeline tracking")
+    @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
     @CreationTimestamp

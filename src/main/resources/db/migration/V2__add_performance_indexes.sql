@@ -45,14 +45,14 @@ CREATE INDEX IF NOT EXISTS idx_site_reports_project_id
 ON site_reports(project_id);
 
 CREATE INDEX IF NOT EXISTS idx_site_reports_submitted_by_id 
-ON site_reports(submitted_by_id);
+ON site_reports(submitted_by);
 
 -- Site Visits
 CREATE INDEX IF NOT EXISTS idx_site_visits_project_id 
 ON site_visits(project_id);
 
 CREATE INDEX IF NOT EXISTS idx_site_visits_visited_by_id 
-ON site_visits(visited_by_id);
+ON site_visits(visited_by);
 
 -- BOQ Items
 CREATE INDEX IF NOT EXISTS idx_boq_items_project_id 
@@ -72,7 +72,7 @@ CREATE INDEX IF NOT EXISTS idx_project_documents_project_id
 ON project_documents(project_id);
 
 CREATE INDEX IF NOT EXISTS idx_project_documents_category_id 
-ON project_documents(document_category_id);
+ON project_documents(category_id);
 
 -- Gallery Images
 CREATE INDEX IF NOT EXISTS idx_gallery_images_project_id 
@@ -93,7 +93,7 @@ CREATE INDEX IF NOT EXISTS idx_quality_checks_project_id
 ON quality_checks(project_id);
 
 CREATE INDEX IF NOT EXISTS idx_quality_checks_inspector_id 
-ON quality_checks(inspector_id);
+ON quality_checks(conducted_by);
 
 -- Feedback
 CREATE INDEX IF NOT EXISTS idx_feedback_forms_project_id 
@@ -110,7 +110,7 @@ CREATE INDEX IF NOT EXISTS idx_project_queries_project_id
 ON project_queries(project_id);
 
 CREATE INDEX IF NOT EXISTS idx_project_queries_customer_id 
-ON project_queries(customer_id);
+ON project_queries(asked_by);
 
 -- ==============================================================
 -- QUERY OPTIMIZATION INDEXES
@@ -124,7 +124,7 @@ CREATE INDEX IF NOT EXISTS idx_leads_assigned_team
 ON leads(assigned_team);
 
 CREATE INDEX IF NOT EXISTS idx_leads_source 
-ON leads(source);
+ON leads(lead_source);
 
 -- Project phase filtering
 CREATE INDEX IF NOT EXISTS idx_customer_projects_phase 
@@ -154,7 +154,7 @@ ON tasks(due_date);
 
 -- Leads - follow up date
 CREATE INDEX IF NOT EXISTS idx_leads_follow_up_date 
-ON leads(follow_up_date);
+ON leads(next_follow_up);
 
 -- Projects - start/end dates
 CREATE INDEX IF NOT EXISTS idx_customer_projects_start_date 

@@ -73,6 +73,10 @@ public class CustomerProject {
     @Column(name = "sq_feet")
     private Double sqFeet;
 
+    // Project manager - has full control over all project tasks
+    @Column(name = "project_manager_id")
+    private Long projectManagerId;
+
     // Project members - SINGLE source of truth for team management
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ProjectMember> projectMembers = new HashSet<>();
@@ -250,5 +254,21 @@ public class CustomerProject {
 
     public void setSqFeet(Double sqFeet) {
         this.sqFeet = sqFeet;
+    }
+
+    public Long getProjectManagerId() {
+        return projectManagerId;
+    }
+
+    public void setProjectManagerId(Long projectManagerId) {
+        this.projectManagerId = projectManagerId;
+    }
+
+    public UUID getProjectUuid() {
+        return projectUuid;
+    }
+
+    public void setProjectUuid(UUID projectUuid) {
+        this.projectUuid = projectUuid;
     }
 }

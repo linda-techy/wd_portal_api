@@ -12,7 +12,11 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
-    
+
     @Query("SELECT u FROM User u WHERE u.role.id = :roleId AND u.enabled = true")
     List<User> findByRoleId(@Param("roleId") Long roleId);
-} 
+
+    // Alert system: Find all enabled users with specific role name
+    @Query("SELECT u FROM User u WHERE u.role.name = :roleName AND u.enabled = true")
+    List<User> findByRoleName(@Param("roleName") String roleName);
+}

@@ -1,5 +1,5 @@
 # WallDot Builders - Database Schema Documentation
-**Total Tables:** 38
+**Total Tables:** 42
 **Database:** PostgreSQL (wdTestDB)
 
 ## Table of Contents
@@ -16,31 +16,38 @@
 11. [customer_role_permissions](#customer-role-permissions)
 12. [customer_roles](#customer-roles)
 13. [customer_users](#customer-users)
-14. [design_steps](#design-steps)
-15. [document_categories](#document-categories)
-16. [feedback_forms](#feedback-forms)
-17. [feedback_responses](#feedback-responses)
-18. [gallery_images](#gallery-images)
-19. [leads](#leads)
-20. [observations](#observations)
-21. [partnership_users](#partnership-users)
-22. [portal_permissions](#portal-permissions)
-23. [portal_project_documents](#portal-project-documents)
-24. [portal_refresh_tokens](#portal-refresh-tokens)
-25. [portal_role_permissions](#portal-role-permissions)
-26. [portal_roles](#portal-roles)
-27. [portal_users](#portal-users)
-28. [project_design_steps](#project-design-steps)
-29. [project_documents](#project-documents)
-30. [project_members](#project-members)
-31. [project_queries](#project-queries)
-32. [quality_checks](#quality-checks)
-33. [site_reports](#site-reports)
-34. [site_visits](#site-visits)
-35. [sqft_categories](#sqft-categories)
-36. [staff_roles](#staff-roles)
-37. [tasks](#tasks)
-38. [view_360](#view-360)
+14. [design_package_payments](#design-package-payments) *(NEW)*
+15. [design_steps](#design-steps)
+16. [document_categories](#document-categories)
+17. [feedback_forms](#feedback-forms)
+18. [feedback_responses](#feedback-responses)
+19. [gallery_images](#gallery-images)
+20. [leads](#leads)
+21. [observations](#observations)
+22. [partnership_users](#partnership-users)
+23. [payment_schedule](#payment-schedule) *(NEW)*
+24. [payment_transactions](#payment-transactions) *(NEW)*
+25. [portal_permissions](#portal-permissions)
+26. [portal_project_documents](#portal-project-documents)
+27. [portal_refresh_tokens](#portal-refresh-tokens)
+28. [portal_role_permissions](#portal-role-permissions)
+29. [portal_roles](#portal-roles)
+30. [portal_users](#portal-users)
+31. [project_design_steps](#project-design-steps)
+32. [project_documents](#project-documents)
+33. [project_members](#project-members)
+34. [project_queries](#project-queries)
+35. [quality_checks](#quality-checks)
+36. [retention_releases](#retention-releases) *(NEW)*
+37. [site_reports](#site-reports)
+38. [site_visits](#site-visits)
+39. [sqft_categories](#sqft-categories)
+40. [staff_roles](#staff-roles)
+41. [task_assignment_history](#task-assignment-history) *(NEW)*
+42. [tasks](#tasks)
+43. [tax_invoices](#tax-invoices) *(NEW)*
+44. [view_360](#view-360)
+
 
 ---
 
@@ -292,6 +299,7 @@
 
 | `customer_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `customer_users.id` |
 | `project_type` | `character varying(255)` | ✓ | `-` | - |
+| `project_manager_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` Project manager with full task edit rights |
 
 ### Primary Key
 
@@ -1109,7 +1117,45 @@
 
 ---
 
+## task_assignment_history
+
+Audit trail for all task assignments. Tracks who assigned what to whom and when, for full transparency and historical record.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `nextval('task_assignment_history_id_seq')` | 🔑 PK |
+| `task_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `tasks.id` ON DELETE CASCADE |
+| `assigned_from_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` Previous assignee (NULL if unassigned) |
+| `assigned_to_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` New assignee (NULL if being unassigned) |
+| `assigned_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `portal_users.id` User who made the change |
+| `assigned_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | When assignment was made |
+| `notes` | `text` | ✓ | `-` | Optional notes about why assignment changed |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `task_id` → `tasks.id` (ON DELETE CASCADE)
+- `assigned_from_id` → `portal_users.id`
+- `assigned_to_id` → `portal_users.id`
+- `assigned_by_id` → `portal_users.id`
+
+### Indexes
+
+- `idx_task_assignment_history_task` on `task_id`
+- `idx_task_assignment_history_assigned_at` on `assigned_at DESC`
+- `idx_task_assignment_history_assigned_to` on `assigned_to_id`
+
+---
+
 ## tasks
+
+**Production-Grade Task Management System**  
+**Business Context:** Construction task tracking with mandatory deadlines for project timeline accountability and proactive alert system.
 
 ### Columns
 
@@ -1118,12 +1164,12 @@
 | `id` | `bigint(64,0)` | ✗ | `nextval('tasks_id_seq'::reg...` | 🔑 PK |
 | `title` | `character varying(255)` | ✗ | `-` | - |
 | `description` | `text` | ✓ | `-` | - |
-| `status` | `character varying(255)` | ✗ | `'PENDING'::character varying` | - |
-| `priority` | `character varying(255)` | ✗ | `'MEDIUM'::character varying` | - |
+| `status` | `character varying(255)` | ✗ | `'PENDING'::character varying` | Enum: PENDING, IN_PROGRESS, COMPLETED, CANCELLED |
+| `priority` | `character varying(255)` | ✗ | `'MEDIUM'::character varying` | Enum: LOW, MEDIUM, HIGH, URGENT |
 | `assigned_to` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
 | `created_by` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
 | `project_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `customer_projects.id` |
-| `due_date` | `date` | ✓ | `-` | - |
+| `due_date` | `date` | ✗ | `-` | **⚠️ MANDATORY** - Required for task accountability and timeline tracking. Must be >= created_at date. |
 | `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
 | `updated_at` | `timestamp without time zone` | ✓ | `CURRENT_TIMESTAMP` | - |
 
@@ -1136,6 +1182,26 @@
 - `project_id` → `customer_projects.id`
 - `created_by` → `portal_users.id`
 - `assigned_to` → `portal_users.id`
+
+### Constraints
+
+- **`chk_task_due_date_valid`**: Business rule constraint ensuring `due_date >= created_at::date`  
+  _Rationale:_ Prevents backdating tasks which violates construction timeline integrity
+
+### Indexes
+
+| Index Name | Columns | Filter | Purpose |
+|------------|---------|--------|---------|
+| `idx_tasks_overdue` | `(due_date, status)` | `WHERE status NOT IN ('COMPLETED', 'CANCELLED')` | Overdue task queries for manager dashboards |
+| `idx_tasks_project_due` | `(project_id, due_date, status)` | `WHERE status NOT IN ('COMPLETED', 'CANCELLED')` | Project timeline views, Gantt charts |
+| `idx_tasks_assigned_due` | `(assigned_to, due_date, status)` | `WHERE status NOT IN ('COMPLETED', 'CANCELLED')` | "My Tasks" views, assignee workload |
+| `idx_tasks_priority_due` | `(priority, due_date, status)` | `WHERE status NOT IN ('COMPLETED', 'CANCELLED')` | Priority-based alerts, escalation logic |
+
+**Alert System Foundation:** These indexes enable efficient queries for:
+- Overdue task detection
+- Approaching deadline alerts (due in next 3 days)
+- Manager dashboard performance
+- Project timeline monitoring
 
 ---
 
@@ -1168,6 +1234,116 @@
 
 - `project_id` → `customer_projects.id`
 - `uploaded_by_id` → `customer_users.id`
+
+---
+
+## design_package_payments
+
+Master record for a project's design package payment agreement.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `nextval('design_package_payments_id_seq')` | 🔑 PK |
+| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` 🔒 UNIQUE |
+| `package_name` | `character varying(50)` | ✗ | `-` | e.g., 'Custom', 'Premium', 'Bespoke' |
+| `rate_per_sqft` | `numeric(10,2)` | ✗ | `-` | - |
+| `total_sqft` | `numeric(10,2)` | ✗ | `-` | - |
+| `base_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `gst_percentage` | `numeric(5,2)` | ✗ | `18.00` | - |
+| `gst_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `discount_percentage` | `numeric(5,2)` | ✓ | `0` | Configurable per package |
+| `discount_amount` | `numeric(15,2)` | ✓ | `0` | - |
+| `total_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `payment_type` | `character varying(20)` | ✗ | `-` | 'FULL' or 'INSTALLMENT' |
+| `status` | `character varying(20)` | ✗ | `'PENDING'` | 'PENDING', 'PARTIAL', 'PAID' |
+| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
+| `updated_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
+| `created_by_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `retention_percentage` | `numeric(5,2)` | ✗ | `10.00` | Percentage held as retention (5-10%) |
+| `retention_amount` | `numeric(15,2)` | ✗ | `0` | Calculated retention amount |
+| `retention_released_amount` | `numeric(15,2)` | ✗ | `0` | Total released so far |
+| `defect_liability_end_date` | `date` | ✓ | `-` | When retention can be released |
+| `retention_status` | `character varying(20)` | ✗ | `'ACTIVE'` | 'ACTIVE', 'PARTIALLY_RELEASED', 'RELEASED' |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `created_by_id` → `portal_users.id`
+
+### Unique Constraints
+
+- `project_id`
+
+---
+
+## payment_schedule
+
+Individual installment records for a design package payment.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `nextval('payment_schedule_id_seq')` | 🔑 PK |
+| `design_payment_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `design_package_payments.id` |
+| `installment_number` | `integer(32,0)` | ✗ | `-` | 1, 2, 3, etc. |
+| `description` | `character varying(100)` | ✗ | `-` | e.g., 'Advance', 'Design Phase', 'Post-Design' |
+| `amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `due_date` | `date` | ✓ | `-` | Milestone-based, optional |
+| `status` | `character varying(20)` | ✗ | `'PENDING'` | 'PENDING', 'PAID', 'OVERDUE' |
+| `paid_amount` | `numeric(15,2)` | ✓ | `0` | - |
+| `paid_date` | `timestamp without time zone` | ✓ | `-` | - |
+| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `design_payment_id` → `design_package_payments.id`
+
+---
+
+## payment_transactions
+
+Actual payment records when money is received.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `nextval('payment_transactions_id_seq')` | 🔑 PK |
+| `schedule_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `payment_schedule.id` |
+| `amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `payment_method` | `character varying(50)` | ✓ | `-` | 'BANK_TRANSFER', 'UPI', 'CHEQUE', 'CASH' |
+| `reference_number` | `character varying(100)` | ✓ | `-` | Transaction/cheque number |
+| `payment_date` | `timestamp without time zone` | ✗ | `-` | - |
+| `notes` | `text` | ✓ | `-` | - |
+| `recorded_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `portal_users.id` |
+| `receipt_number` | `character varying(50)` | ✓ | `-` | 🔒 UNIQUE (Format: WAL/PAY/YYYY/NNN) |
+| `status` | `character varying(20)` | ✗ | `'COMPLETED'` | 'COMPLETED', 'FAILED', 'CANCELLED' |
+| `tds_percentage` | `numeric(5,2)` | ✗ | `0` | TDS rate (0-100). Common: 2% for Section 194C |
+| `tds_amount` | `numeric(15,2)` | ✗ | `0` | Calculated TDS deduction |
+| `net_amount` | `numeric(15,2)` | ✗ | `-` | Amount received after TDS (amount - tds_amount) |
+| `tds_deducted_by` | `character varying(50)` | ✗ | `'CUSTOMER'` | 'CUSTOMER', 'SELF', 'NONE' |
+| `payment_category` | `character varying(50)` | ✗ | `'PROGRESS'` | 'ADVANCE', 'PROGRESS', 'FINAL', 'RETENTION_RELEASE' |
+| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `schedule_id` → `payment_schedule.id`
+- `recorded_by_id` → `portal_users.id`
 
 ---
 
