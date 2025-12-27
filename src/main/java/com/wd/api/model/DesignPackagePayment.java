@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import com.wd.api.model.CustomerProject;
 
 @Entity
 @Table(name = "design_package_payments")

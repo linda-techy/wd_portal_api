@@ -7,7 +7,6 @@ import com.wd.api.model.CustomerProject;
 import com.wd.api.model.ProjectMember;
 import com.wd.api.dto.TeamMemberSelectionDTO;
 import com.wd.api.repository.CustomerProjectRepository;
-import com.wd.api.repository.UserRepository;
 import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.ProjectDocumentRepository;
 import com.wd.api.model.Task;
@@ -39,12 +38,6 @@ public class CustomerProjectController {
 
     @Autowired
     private CustomerProjectRepository customerProjectRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private com.wd.api.repository.ProjectMemberRepository projectMemberRepository;
 
     @Autowired
     private com.wd.api.repository.PortalUserRepository portalUserRepository;

@@ -1,7 +1,6 @@
 package com.wd.api.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "activity_types")

@@ -70,36 +70,4 @@ public class EmailService {
         logger.info("===============================================");
     }
 
-    /**
-     * Generate email subject based on severity
-     */
-    private String getSubject(TaskAlert.AlertSeverity severity, Task task) {
-        return switch (severity) {
-            case CRITICAL -> "🚨 CRITICAL: Task Overdue - " + task.getTitle();
-            case HIGH -> "⚠️ HIGH: Task Due Today - " + task.getTitle();
-            case MEDIUM -> "📅 Upcoming Deadline - " + task.getTitle();
-            case LOW -> "Task Notification - " + task.getTitle();
-        };
-    }
-
-    /**
-     * Format message as HTML email (production)
-     */
-    private String formatEmailHtml(String message, Task task) {
-        return """
-                <html>
-                <body style="font-family: Arial, sans-serif;">
-                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
-                        <h2 style="color: #d32f2f;">Task Alert</h2>
-                        <pre style="white-space: pre-wrap;">%s</pre>
-                        <hr>
-                        <p style="color: #666; font-size: 12px;">
-                            This is an automated alert from WallDot Builders Portal.
-                            <br>Task ID: %s
-                        </p>
-                    </div>
-                </body>
-                </html>
-                """.formatted(message, task.getId());
-    }
 }

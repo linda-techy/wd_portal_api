@@ -8,7 +8,6 @@ import com.wd.api.model.CustomerUser;
 import com.wd.api.repository.CustomerUserRepository;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.CustomerRoleRepository;
-// import com.wd.api.utils.ValidationUtils; // TODO: Re-enable after testing
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +20,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

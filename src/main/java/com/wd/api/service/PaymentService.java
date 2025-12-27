@@ -309,20 +309,6 @@ public class PaymentService {
         return response;
     }
 
-    private String generateReceiptNumber() {
-        LocalDateTime now = LocalDateTime.now();
-        int year = now.getYear();
-
-        // Find last transaction id to approximate sequence (or use a dedicated sequence
-        // table for production)
-        // For WAL/PAY/YYYY/NNN format
-        Long lastId = transactionRepository.findTopByOrderByIdDesc()
-                .map(PaymentTransaction::getId)
-                .orElse(0L);
-
-        return String.format("WAL/PAY/%d/%04d", year, lastId + 1);
-    }
-
     // ===== Phase 2: Retention Money Management =====
 
     @Transactional
