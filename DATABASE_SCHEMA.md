@@ -1,5 +1,5 @@
 # WallDot Builders - Database Schema Documentation
-**Total Tables:** 42
+**Total Tables:** 44
 **Database:** PostgreSQL (wdTestDB)
 
 ## Table of Contents
@@ -47,6 +47,8 @@
 42. [tasks](#tasks)
 43. [tax_invoices](#tax-invoices) *(NEW)*
 44. [view_360](#view-360)
+45. [challan_sequences](#challan_sequences) *(NEW)*
+46. [payment_challans](#payment_challans) *(NEW)*
 
 
 ---
@@ -1344,6 +1346,69 @@ Actual payment records when money is received.
 
 - `schedule_id` → `payment_schedule.id`
 - `recorded_by_id` → `portal_users.id`
+
+---
+
+## challan_sequences
+
+Tracks the last used sequence number for each financial year to ensure gapless, sequential numbering.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `fy` | `varchar(10)` | ✗ | `-` | 🔒 UNIQUE (e.g., '2024-25') |
+| `last_sequence` | `integer` | ✗ | `0` | Last number issued in this FY |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+
+### Primary Key
+
+- `id`
+
+### Unique Constraints
+
+- `fy`
+
+---
+
+## payment_challans
+
+Formal challans generated for financial transactions. Each transaction is eligible for exactly one challan.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `transaction_id` | `bigint` | ✗ | `-` | 🔒 UNIQUE 🔗 FK → `payment_transactions.id` |
+| `challan_number` | `varchar(50)` | ✗ | `-` | 🔒 UNIQUE (Format: WAL/CH/FY/NNN) |
+| `fy` | `varchar(10)` | ✗ | `-` | Financial Year of issuance |
+| `sequence_number` | `integer` | ✗ | `-` | Sequential number within the FY |
+| `transaction_date` | `timestamp` | ✗ | `-` | Denormalized for efficient range queries |
+| `generated_at` | `timestamp` | ✗ | `now()` | - |
+| `generated_by_id` | `bigint` | ✗ | `-` | 🔗 FK → `portal_users.id` |
+| `status` | `varchar(20)` | ✗ | `'ISSUED'` | 'ISSUED', 'CANCELLED' |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `transaction_id` → `payment_transactions.id`
+- `generated_by_id` → `portal_users.id`
+
+### Unique Constraints
+
+- `transaction_id`
+- `challan_number`
+
+### Indexes
+
+- `idx_payment_challans_fy` on `fy`
+- `idx_payment_challans_date` on `transaction_date`
 
 ---
 

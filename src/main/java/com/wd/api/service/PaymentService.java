@@ -331,6 +331,12 @@ public class PaymentService {
         response.setTdsDeductedBy(transaction.getTdsDeductedBy());
         response.setPaymentCategory(transaction.getPaymentCategory());
         response.setCreatedAt(transaction.getCreatedAt());
+
+        if (transaction.getChallan() != null) {
+            response.setChallanId(transaction.getChallan().getId());
+            response.setChallanNumber(transaction.getChallan().getChallanNumber());
+        }
+
         return response;
     }
 

@@ -426,6 +426,8 @@ public class PaymentDtos {
         private String tdsDeductedBy;
         private String paymentCategory;
         private LocalDateTime createdAt;
+        private Long challanId;
+        private String challanNumber;
 
         // Getters and Setters
         public Long getId() {
@@ -522,6 +524,22 @@ public class PaymentDtos {
 
         public void setCreatedAt(LocalDateTime createdAt) {
             this.createdAt = createdAt;
+        }
+
+        public Long getChallanId() {
+            return challanId;
+        }
+
+        public void setChallanId(Long challanId) {
+            this.challanId = challanId;
+        }
+
+        public String getChallanNumber() {
+            return challanNumber;
+        }
+
+        public void setChallanNumber(String challanNumber) {
+            this.challanNumber = challanNumber;
         }
 
         public BigDecimal getTdsPercentage() {

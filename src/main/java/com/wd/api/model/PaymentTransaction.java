@@ -55,6 +55,9 @@ public class PaymentTransaction {
     @Column(name = "payment_category", length = 50, nullable = false)
     private String paymentCategory = "PROGRESS";
 
+    @OneToOne(mappedBy = "transaction", fetch = FetchType.LAZY)
+    private PaymentChallan challan;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -212,5 +215,13 @@ public class PaymentTransaction {
 
     public void setPaymentCategory(String paymentCategory) {
         this.paymentCategory = paymentCategory;
+    }
+
+    public PaymentChallan getChallan() {
+        return challan;
+    }
+
+    public void setChallan(PaymentChallan challan) {
+        this.challan = challan;
     }
 }
