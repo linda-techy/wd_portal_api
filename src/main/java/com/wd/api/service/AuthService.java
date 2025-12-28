@@ -13,6 +13,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -65,47 +66,46 @@ public class AuthService {
                 permissions);
     }
 
+    @Transactional
     public RefreshTokenResponse refreshToken(RefreshTokenRequest request) {
-        String refreshToken = request.getRefreshToken();
-        System.out.println("Processing refresh token request. Token length: "
-                + (refreshToken != null ? refreshToken.length() : "null"));
+        String refreshTokenStr = request.getRefreshToken();
 
-        // Validate refresh token
-        if (!jwtService.validateToken(refreshToken)) {
-            System.out.println("Refresh token validation failed: Signature or format invalid");
-            throw new RuntimeException("Invalid refresh token");
+        // 1. Basic format validation
+        if (!jwtService.validateToken(refreshTokenStr)) {
+            throw new RuntimeException("Invalid refresh token format");
         }
 
-        // Get user from refresh token
-        String userEmail = jwtService.extractUsername(refreshToken);
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> {
-                    System.out.println("User not found for email: " + userEmail);
-                    return new RuntimeException("User not found");
-                });
+        // 2. Retrieve token from DB
+        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshTokenStr)
+                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
 
-        // Check if refresh token exists and is not revoked
-        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> {
-                    System.out.println("Refresh token not found in database for user: " + userEmail);
-                    return new RuntimeException("Refresh token not found");
-                });
+        User user = storedToken.getUser();
 
+        // 3. Replay Protection: If token is revoked, it might be a reuse attack
+        if (storedToken.getRevoked()) {
+            // Revoke all tokens for this user for safety
+            refreshTokenRepository.deleteByUser_Id(user.getId());
+            throw new RuntimeException(
+                    "Refresh token has been revoked - possible replay attack detected. All sessions invalidated.");
+        }
+
+        // 4. Check Expiry
         if (storedToken.isExpired()) {
-            System.out.println("Refresh token expired for user: " + userEmail);
+            refreshTokenRepository.delete(storedToken);
             throw new RuntimeException("Refresh token expired");
         }
 
-        if (storedToken.getRevoked()) {
-            System.out.println("Refresh token revoked for user: " + userEmail);
-            throw new RuntimeException("Refresh token revoked");
-        }
+        // 5. Rotate Token: Revoke current and issue new
+        storedToken.setRevoked(true);
+        refreshTokenRepository.save(storedToken);
 
-        // Generate new access token
         String newAccessToken = jwtService.generateAccessToken(user);
-        System.out.println("Successfully refreshed token for user: " + userEmail);
+        String newRefreshTokenStr = jwtService.generateRefreshToken(user);
 
-        return new RefreshTokenResponse(newAccessToken, jwtService.getAccessTokenExpiration());
+        // Save new refresh token
+        saveRefreshToken(user, newRefreshTokenStr);
+
+        return new RefreshTokenResponse(newAccessToken, newRefreshTokenStr, jwtService.getAccessTokenExpiration());
     }
 
     public void logout(String refreshToken) {

@@ -12,21 +12,22 @@ import java.util.Optional;
 
 @Repository
 public interface CustomerProjectRepository extends JpaRepository<CustomerProject, Long> {
-    List<CustomerProject> findByLeadId(Long leadId);
+        List<CustomerProject> findByLeadId(Long leadId);
 
-    List<CustomerProject> findByCustomerId(Long customerId);
+        List<CustomerProject> findByCustomer_Id(Long customerId);
 
-    int countByCustomerId(Long customerId);
+        int countByCustomer_Id(Long customerId);
 
-    Optional<CustomerProject> findByCode(String code);
+        Optional<CustomerProject> findByCode(String code);
 
-    // Search with pagination
-    @NonNull
-    Page<CustomerProject> findByNameContainingIgnoreCaseOrLocationContainingIgnoreCaseOrStateContainingIgnoreCaseOrProjectPhaseContainingIgnoreCase(
-            @NonNull String name, @NonNull String location, @NonNull String state, @NonNull String projectPhase,
-            @NonNull Pageable pageable);
+        // Search with pagination
+        @NonNull
+        Page<CustomerProject> findByNameContainingIgnoreCaseOrLocationContainingIgnoreCaseOrStateContainingIgnoreCaseOrProjectPhaseContainingIgnoreCase(
+                        @NonNull String name, @NonNull String location, @NonNull String state,
+                        @NonNull String projectPhase,
+                        @NonNull Pageable pageable);
 
-    @NonNull
-    Page<CustomerProject> findAll(
-            @NonNull Pageable pageable);
+        @NonNull
+        Page<CustomerProject> findAll(
+                        @NonNull Pageable pageable);
 }

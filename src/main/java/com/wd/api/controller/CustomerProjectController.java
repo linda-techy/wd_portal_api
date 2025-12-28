@@ -176,7 +176,12 @@ public class CustomerProjectController {
             project.setSqfeet(request.getSqfeet());
             // Handle leadId - already converted to Long by @JsonSetter
             project.setLeadId(request.getLeadId());
-            project.setCustomerId(request.getCustomerId());
+
+            if (request.getCustomerId() != null) {
+                customerUserRepository.findById(request.getCustomerId())
+                        .ifPresent(project::setCustomer);
+            }
+
             project.setCode(projectCode);
 
             // Handle team members
@@ -337,7 +342,12 @@ public class CustomerProjectController {
 
             // Handle leadId - already converted to Long by @JsonSetter
             project.setLeadId(request.getLeadId());
-            project.setCustomerId(request.getCustomerId());
+
+            if (request.getCustomerId() != null) {
+                customerUserRepository.findById(request.getCustomerId())
+                        .ifPresent(project::setCustomer);
+            }
+
             project.setDesignPackage(request.getDesignPackage());
             if (request.getIsDesignAgreementSigned() != null) {
                 project.setIsDesignAgreementSigned(request.getIsDesignAgreementSigned());

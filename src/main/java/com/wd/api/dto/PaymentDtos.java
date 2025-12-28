@@ -151,6 +151,8 @@ public class PaymentDtos {
     public static class DesignPaymentResponse {
         private Long id;
         private Long projectId;
+        private String projectName;
+        private String customerName;
         private String packageName;
         private BigDecimal ratePerSqft;
         private BigDecimal totalSqft;
@@ -182,6 +184,22 @@ public class PaymentDtos {
 
         public void setProjectId(Long projectId) {
             this.projectId = projectId;
+        }
+
+        public String getProjectName() {
+            return projectName;
+        }
+
+        public void setProjectName(String projectName) {
+            this.projectName = projectName;
+        }
+
+        public String getCustomerName() {
+            return customerName;
+        }
+
+        public void setCustomerName(String customerName) {
+            this.customerName = customerName;
         }
 
         public String getPackageName() {
@@ -392,6 +410,8 @@ public class PaymentDtos {
 
     public static class TransactionResponse {
         private Long id;
+        private String projectName;
+        private String customerName;
         private BigDecimal amount;
         private String paymentMethod;
         private String referenceNumber;
@@ -414,6 +434,22 @@ public class PaymentDtos {
 
         public void setId(Long id) {
             this.id = id;
+        }
+
+        public String getProjectName() {
+            return projectName;
+        }
+
+        public void setProjectName(String projectName) {
+            this.projectName = projectName;
+        }
+
+        public String getCustomerName() {
+            return customerName;
+        }
+
+        public void setCustomerName(String customerName) {
+            this.customerName = customerName;
         }
 
         public BigDecimal getAmount() {

@@ -325,7 +325,7 @@
 |-------------|-----------|----------|---------|-------|
 | `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
 | `expiry_date` | `timestamp without time zone` | ✗ | `-` | - |
-| `revoked` | `boolean` | ✗ | `-` | - |
+| `revoked` | `boolean` | ✗ | `false` | Set to `true` after rotation. If a revoked token is used, all user tokens are invalidated. |
 | `token` | `character varying(255)` | ✗ | `-` | 🔒 UNIQUE |
 | `user_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_users.id` |
 
@@ -743,7 +743,7 @@
 | `token` | `character varying(4096)` | ✗ | `-` | 🔒 UNIQUE |
 | `user_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `portal_users.id` |
 | `expiry_date` | `timestamp without time zone` | ✗ | `-` | - |
-| `revoked` | `boolean` | ✗ | `false` | - |
+| `revoked` | `boolean` | ✗ | `false` | Set to `true` after rotation. If a revoked token is used, all user tokens are invalidated. |
 
 ### Primary Key
 

@@ -55,8 +55,9 @@ public class CustomerProject {
     @Column(name = "lead_id", nullable = true)
     private Long leadId;
 
-    @Column(name = "customer_id", nullable = true)
-    private Long customerId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private CustomerUser customer;
 
     @Column(length = 255)
     private String code;
@@ -201,11 +202,15 @@ public class CustomerProject {
     }
 
     public Long getCustomerId() {
-        return customerId;
+        return customer != null ? customer.getId() : null;
     }
 
-    public void setCustomerId(Long customerId) {
-        this.customerId = customerId;
+    public CustomerUser getCustomer() {
+        return customer;
+    }
+
+    public void setCustomer(CustomerUser customer) {
+        this.customer = customer;
     }
 
     public String getCode() {

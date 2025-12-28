@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -63,7 +62,7 @@ public class CustomerController {
             Page<CustomerUser> customerPage = customerUserRepository.findAll(pageable);
             Page<CustomerResponse> responsePage = customerPage.map(customer -> {
                 CustomerResponse response = new CustomerResponse(customer);
-                response.setProjectCount(customerProjectRepository.countByCustomerId(customer.getId()));
+                response.setProjectCount(customerProjectRepository.countByCustomer_Id(customer.getId()));
                 return response;
             });
 
@@ -85,7 +84,7 @@ public class CustomerController {
             List<CustomerResponse> customers = customerUsers.stream()
                     .map(customer -> {
                         CustomerResponse response = new CustomerResponse(customer);
-                        response.setProjectCount(customerProjectRepository.countByCustomerId(customer.getId()));
+                        response.setProjectCount(customerProjectRepository.countByCustomer_Id(customer.getId()));
                         return response;
                     })
                     .collect(Collectors.toList());
@@ -105,7 +104,7 @@ public class CustomerController {
             Optional<CustomerUser> customerOpt = customerUserRepository.findById(id);
             if (customerOpt.isPresent()) {
                 CustomerResponse response = new CustomerResponse(customerOpt.get());
-                response.setProjectCount(customerProjectRepository.countByCustomerId(id));
+                response.setProjectCount(customerProjectRepository.countByCustomer_Id(id));
                 return ResponseEntity.ok(response);
             } else {
                 return ResponseEntity.notFound().build();
@@ -243,7 +242,7 @@ public class CustomerController {
             try {
                 CustomerUser updatedCustomer = customerUserRepository.save(customerUser);
                 CustomerResponse response = new CustomerResponse(updatedCustomer);
-                response.setProjectCount(customerProjectRepository.countByCustomerId(updatedCustomer.getId()));
+                response.setProjectCount(customerProjectRepository.countByCustomer_Id(updatedCustomer.getId()));
                 return ResponseEntity.ok(response);
             } catch (Exception e) {
                 logger.error("Error saving customer with ID: {}", id, e);
@@ -273,7 +272,7 @@ public class CustomerController {
             }
 
             // Check for associated projects
-            List<com.wd.api.model.CustomerProject> projects = customerProjectRepository.findByCustomerId(id);
+            List<com.wd.api.model.CustomerProject> projects = customerProjectRepository.findByCustomer_Id(id);
             if (!projects.isEmpty()) {
                 Map<String, String> errorResponse = new HashMap<>();
                 errorResponse.put("message",

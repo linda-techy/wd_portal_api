@@ -140,8 +140,8 @@ public class PaymentService {
     public org.springframework.data.domain.Page<DesignPaymentResponse> getPendingPayments(String search,
             org.springframework.data.domain.Pageable pageable) {
         org.springframework.data.jpa.domain.Specification<DesignPackagePayment> spec = org.springframework.data.jpa.domain.Specification
-                .where(com.wd.api.repository.spec.PaymentSpecification.statusNot("PAID"))
-                .and(com.wd.api.repository.spec.PaymentSpecification.search(search));
+                .allOf(com.wd.api.repository.spec.PaymentSpecification.statusNot("PAID"),
+                        com.wd.api.repository.spec.PaymentSpecification.search(search));
 
         return paymentRepository.findAll(spec, pageable)
                 .map(this::toDesignPaymentResponse);
@@ -153,10 +153,10 @@ public class PaymentService {
             org.springframework.data.domain.Pageable pageable) {
 
         org.springframework.data.jpa.domain.Specification<PaymentTransaction> spec = org.springframework.data.jpa.domain.Specification
-                .where(com.wd.api.repository.spec.TransactionSpecification.search(search))
-                .and(com.wd.api.repository.spec.TransactionSpecification.methodIs(method))
-                .and(com.wd.api.repository.spec.TransactionSpecification.statusIs(status))
-                .and(com.wd.api.repository.spec.TransactionSpecification.dateBetween(start, end));
+                .allOf(com.wd.api.repository.spec.TransactionSpecification.search(search),
+                        com.wd.api.repository.spec.TransactionSpecification.methodIs(method),
+                        com.wd.api.repository.spec.TransactionSpecification.statusIs(status),
+                        com.wd.api.repository.spec.TransactionSpecification.dateBetween(start, end));
 
         return transactionRepository.findAll(spec, pageable)
                 .map(this::toTransactionResponse);
@@ -241,6 +241,17 @@ public class PaymentService {
         DesignPaymentResponse response = new DesignPaymentResponse();
         response.setId(payment.getId());
         response.setProjectId(payment.getProjectId());
+
+        // Populate metadata
+        if (payment.getProject() != null) {
+            response.setProjectName(payment.getProject().getName());
+            if (payment.getProject().getCustomer() != null) {
+                String fullName = payment.getProject().getCustomer().getFirstName() + " " +
+                        payment.getProject().getCustomer().getLastName();
+                response.setCustomerName(fullName.trim());
+            }
+        }
+
         response.setPackageName(payment.getPackageName());
         response.setRatePerSqft(payment.getRatePerSqft());
         response.setTotalSqft(payment.getTotalSqft());
@@ -292,6 +303,20 @@ public class PaymentService {
     private TransactionResponse toTransactionResponse(PaymentTransaction transaction) {
         TransactionResponse response = new TransactionResponse();
         response.setId(transaction.getId());
+
+        // Populate metadata
+        if (transaction.getSchedule() != null && transaction.getSchedule().getDesignPayment() != null) {
+            com.wd.api.model.DesignPackagePayment payment = transaction.getSchedule().getDesignPayment();
+            if (payment.getProject() != null) {
+                response.setProjectName(payment.getProject().getName());
+                if (payment.getProject().getCustomer() != null) {
+                    String fullName = payment.getProject().getCustomer().getFirstName() + " " +
+                            payment.getProject().getCustomer().getLastName();
+                    response.setCustomerName(fullName.trim());
+                }
+            }
+        }
+
         response.setAmount(transaction.getAmount());
         response.setPaymentMethod(transaction.getPaymentMethod());
         response.setReferenceNumber(transaction.getReferenceNumber());
