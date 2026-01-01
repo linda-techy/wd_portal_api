@@ -134,4 +134,51 @@ public class AuthService {
 
         refreshTokenRepository.save(token);
     }
+
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private com.wd.api.repository.RoleRepository roleRepository;
+
+    @Transactional
+    public void createTestUser() {
+        if (userRepository.findByEmail("admin@test.com").isPresent()) {
+            return;
+        }
+
+        com.wd.api.model.Role adminRole = roleRepository.findAll().stream()
+                .filter(r -> "ADMIN".equalsIgnoreCase(r.getName()) || "ADMIN".equalsIgnoreCase(r.getCode()))
+                .findFirst()
+                .orElse(roleRepository.findById(1L).orElse(roleRepository.findById(5L).orElse(null)));
+
+        if (adminRole == null) {
+            // Fallback: This might fail if sequence is out of sync, but we have no choice
+            // if table is empty
+            try {
+                com.wd.api.model.Role role = new com.wd.api.model.Role();
+                role.setName("ADMIN");
+                role.setCode("ADMIN");
+                role.setDescription("Administrator Role");
+                adminRole = roleRepository.save(role);
+            } catch (Exception e) {
+                // Ignore if duplicate
+                adminRole = roleRepository.findByName("ADMIN").orElse(null);
+            }
+        }
+
+        if (adminRole == null) {
+            throw new RuntimeException("Could not find or create a Role for test user.");
+        }
+
+        User user = new User();
+        user.setEmail("admin@test.com");
+        user.setPassword(passwordEncoder.encode("password"));
+        user.setFirstName("Test");
+        user.setLastName("Admin");
+        user.setRole(adminRole);
+        user.setEnabled(true);
+
+        userRepository.save(user);
+    }
 }

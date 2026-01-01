@@ -12,40 +12,42 @@ import java.util.stream.Collectors;
 
 @Service
 public class ProjectDocumentService {
-    
+
     private final ProjectDocumentRepository documentRepository;
     private final CustomerProjectRepository projectRepository;
     private final DocumentCategoryRepository categoryRepository;
     private final PortalUserRepository userRepository;
     private final FileStorageService fileStorageService;
-    
+
     public ProjectDocumentService(ProjectDocumentRepository documentRepository,
-                                  CustomerProjectRepository projectRepository,
-                                  DocumentCategoryRepository categoryRepository,
-                                  PortalUserRepository userRepository,
-                                  FileStorageService fileStorageService) {
+            CustomerProjectRepository projectRepository,
+            DocumentCategoryRepository categoryRepository,
+            PortalUserRepository userRepository,
+            FileStorageService fileStorageService) {
         this.documentRepository = documentRepository;
         this.projectRepository = projectRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.fileStorageService = fileStorageService;
     }
-    
+
     @Transactional
-    public ProjectDocumentDto uploadDocument(Long projectId, MultipartFile file, 
-                                             DocumentUploadRequest request, Long userId) {
+    public ProjectDocumentDto uploadDocument(Long projectId, MultipartFile file,
+            DocumentUploadRequest request, Long userId) {
         CustomerProject project = projectRepository.findById(projectId)
-            .orElseThrow(() -> new RuntimeException("Project not found"));
-        
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
         DocumentCategory category = categoryRepository.findById(request.categoryId())
-            .orElseThrow(() -> new RuntimeException("Category not found"));
-        
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
         PortalUser user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
         // Store file
-        String filePath = fileStorageService.storeFile(file, "projects/" + projectId + "/documents");
-        
+        String sanitizedCategory = sanitizeFolderName(category.getName());
+        String relativePath = "projects/" + projectId + "/" + sanitizedCategory;
+        String filePath = fileStorageService.storeFile(file, relativePath);
+
         ProjectDocument document = new ProjectDocument();
         document.setProject(project);
         document.setCategory(category);
@@ -55,12 +57,12 @@ public class ProjectDocumentService {
         document.setFileType(file.getContentType());
         document.setUploadedBy(user);
         document.setDescription(request.description());
-        
+
         document = documentRepository.save(document);
-        
+
         return toDto(document);
     }
-    
+
     public List<ProjectDocumentDto> getProjectDocuments(Long projectId, Long categoryId) {
         List<ProjectDocument> documents;
         if (categoryId != null) {
@@ -70,34 +72,37 @@ public class ProjectDocumentService {
         }
         return documents.stream().map(this::toDto).collect(Collectors.toList());
     }
-    
+
     public List<DocumentCategoryDto> getAllCategories() {
         return categoryRepository.findAllByOrderByDisplayOrderAsc().stream()
-            .map(c -> new DocumentCategoryDto(c.getId(), c.getName(), c.getDescription(), c.getDisplayOrder()))
-            .collect(Collectors.toList());
+                .map(c -> new DocumentCategoryDto(c.getId(), c.getName(), c.getDescription(), c.getDisplayOrder()))
+                .collect(Collectors.toList());
     }
-    
+
     private ProjectDocumentDto toDto(ProjectDocument doc) {
         // Generate download URL - adjust base URL based on your configuration
         String downloadUrl = "/api/storage/" + doc.getFilePath();
-        
+
         return new ProjectDocumentDto(
-            doc.getId(),
-            doc.getProject().getId(),
-            doc.getCategory().getId(),
-            doc.getCategory().getName(),
-            doc.getFilename(),
-            doc.getFilePath(),
-            downloadUrl,
-            doc.getFileSize(),
-            doc.getFileType(),
-            doc.getUploadedBy().getId(),
-            doc.getUploadedBy().getFirstName() + " " + doc.getUploadedBy().getLastName(),
-            doc.getUploadDate(),
-            doc.getDescription(),
-            doc.getVersion(),
-            doc.getIsActive()
-        );
+                doc.getId(),
+                doc.getProject().getId(),
+                doc.getCategory().getId(),
+                doc.getCategory().getName(),
+                doc.getFilename(),
+                doc.getFilePath(),
+                downloadUrl,
+                doc.getFileSize(),
+                doc.getFileType(),
+                doc.getUploadedBy().getId(),
+                doc.getUploadedBy().getFirstName() + " " + doc.getUploadedBy().getLastName(),
+                doc.getUploadDate(),
+                doc.getDescription(),
+                doc.getVersion(),
+                doc.getIsActive());
+    }
+
+    private String sanitizeFolderName(String name) {
+        // Replace invalid characters with underscore
+        return name.replaceAll("[^a-zA-Z0-9.-]", "_");
     }
 }
-

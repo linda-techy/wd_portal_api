@@ -226,4 +226,8 @@ public class TaskAlertService {
             this.mediumAlerts = mediumAlerts;
         }
     }
+
+    public List<TaskAlert> getRecentAlerts() {
+        return alertRepository.findTop10ByOrderBySentAtDesc();
+    }
 }

@@ -1,4 +1,4 @@
-# WallDot Builders - Database Schema Documentation
+﻿# WallDot Builders - Database Schema Documentation
 **Total Tables:** 44
 **Database:** PostgreSQL (wdTestDB)
 
@@ -289,6 +289,7 @@
 
 | `created_by` | `character varying(255)` | ✓ | `-` | - |
 | `project_phase` | `character varying(100)` | ✗ | `'design'::character varying` | - |
+| contract_type | character varying(50) | âœ— | 'TURNKEY' | 'TURNKEY', 'LABOR_ONLY', 'ITEM_RATE', 'COST_PLUS' |
 | `state` | `character varying(50)` | ✗ | `-` | - |
 | `district` | `character varying(50)` | ✗ | `-` | - |
 | `sqfeet` | `numeric(10,2)` | ✓ | `-` | - |
@@ -453,6 +454,16 @@
 ### Unique Constraints
 
 - `name`
+
+### Default Categories (V1_13)
+- Floor Plan Layout
+- 3D Elevation
+- Detailed Project Costing
+- Structural Drawings
+- MEP Drawings
+- Collaboration Agreement
+- Site Photos
+- Other
 
 ---
 
@@ -1412,3 +1423,247 @@ Formal challans generated for financial transactions. Each transaction is eligib
 
 ---
 
+## vendors
+
+Masters for material suppliers and labor contractors.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `name` | `varchar(255)` | ✗ | `-` | - |
+| `contact_person` | `varchar(255)` | ✓ | `-` | - |
+| `phone` | `varchar(20)` | ✗ | `-` | 🔒 UNIQUE |
+| `email` | `varchar(255)` | ✓ | `-` | 🔒 UNIQUE |
+| `gstin` | `varchar(15)` | ✓ | `-` | 🔒 UNIQUE |
+| `address` | `text` | ✓ | `-` | - |
+| `vendor_type` | `varchar(50)` | ✗ | `-` | 'MATERIAL', 'LABOUR', 'SERVICES' |
+| `bank_name` | `varchar(255)` | ✓ | `-` | - |
+| `account_number` | `varchar(50)` | ✓ | `-` | - |
+| `ifsc_code` | `varchar(20)` | ✓ | `-` | - |
+| `is_active` | `boolean` | ✗ | `true` | - |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+
+---
+
+## purchase_orders
+
+Project-specific material or labor purchase orders.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `po_number` | `varchar(50)` | ✗ | `-` | 🔒 UNIQUE (WAL/PO/YY/NNN) |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `vendor_id` | `bigint` | ✗ | `-` | 🔗 FK → `vendors.id` |
+| `po_date` | `date` | ✗ | `-` | - |
+| `expected_delivery_date` | `date` | ✓ | `-` | - |
+| `total_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `gst_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `net_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `status` | `varchar(20)` | ✗ | `'DRAFT'` | 'DRAFT', 'ISSUED', 'RECEIVED', 'CANCELLED' |
+| `notes` | `text` | ✓ | `-` | - |
+| `created_by_id` | `bigint` | ✗ | `-` | 🔗 FK → `portal_users.id` |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+
+---
+
+## purchase_order_items
+
+Line items within a Purchase Order.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `po_id` | `bigint` | ✗ | `-` | 🔗 FK → `purchase_orders.id` ON DELETE CASCADE |
+| `description` | `varchar(255)` | ✗ | `-` | Material/Work name |
+| `quantity` | `numeric(15,2)` | ✗ | `-` | - |
+| `unit` | `varchar(50)` | ✗ | `-` | - |
+| `rate` | `numeric(15,2)` | ✗ | `-` | - |
+| `gst_percentage` | `numeric(5,2)` | ✗ | `18.00` | - |
+| `amount` | `numeric(15,2)` | ✗ | `-` | (Qty * Rate) |
+
+---
+
+## goods_received_notes (GRN)
+
+Records of material actually received at site against a PO.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `grn_number` | `varchar(50)` | ✗ | `-` | 🔒 UNIQUE (WAL/GRN/YY/NNN) |
+| `po_id` | `bigint` | ✗ | `-` | 🔗 FK → `purchase_orders.id` |
+| `received_date` | `timestamp` | ✗ | `now()` | - |
+| `received_by_id` | `bigint` | ✗ | `-` | 🔗 FK → `portal_users.id` |
+| `invoice_number` | `varchar(100)` | ✓ | `-` | Vendor's Invoice Refernece |
+| `invoice_date` | `date` | ✓ | `-` | - |
+| `challan_number` | `varchar(100)` | ✓ | `-` | Delivery Challan Reference |
+| `notes` | `text` | ✓ | `-` | - |
+
+---
+
+## project_phases *(NEW)*
+
+Formal tracking of construction phases with planned vs actual timelines.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `phase_name` | `varchar(100)` | ✗ | `-` | e.g., 'Foundation', 'Shuttering', 'Plaster' |
+| `planned_start` | `date` | ✓ | `-` | - |
+| `planned_end` | `date` | ✓ | `-` | - |
+| `actual_start` | `date` | ✓ | `-` | - |
+| `actual_end` | `date` | ✓ | `-` | - |
+| `status` | `varchar(20)` | ✗ | `'NOT_STARTED'` | 'NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'DELAYED' |
+| `display_order` | `integer` | ✓ | `-` | - |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+
+---
+
+## delay_logs *(NEW)*
+
+Records of project delays with categorized reasons for EOT (Extension of Time) documentation.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `phase_id` | `bigint` | ✓ | `-` | 🔗 FK → `project_phases.id` |
+| `delay_type` | `varchar(50)` | ✗ | `-` | 'WEATHER', 'LABOUR_STRIKE', 'MATERIAL_DELAY', 'CLIENT_APPROVAL', 'OTHER' |
+| `from_date` | `date` | ✗ | `-` | - |
+| `to_date` | `date` | ✓ | `-` | - |
+| `reason_text` | `text` | ✓ | `-` | - |
+| `logged_by_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `phase_id` → `project_phases.id`
+- `logged_by_id` → `portal_users.id`
+
+---
+
+## project_variations *(NEW)*
+
+Change orders and additional work requests from clients.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `description` | `text` | ✗ | `-` | - |
+| `estimated_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `client_approved` | `boolean` | ✓ | `false` | - |
+| `approved_by_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `approved_at` | `timestamp` | ✓ | `-` | - |
+| `status` | `varchar(20)` | ✗ | `'DRAFT'` | 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED' |
+| `notes` | `text` | ✓ | `-` | - |
+| `created_by_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `approved_by_id` → `portal_users.id`
+- `created_by_id` → `portal_users.id`
+
+---
+
+## stock_adjustments *(NEW)*
+
+Records of material wastage, theft, damage, and inventory corrections.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `material_id` | `bigint` | ✗ | `-` | 🔗 FK → `materials.id` |
+| `adjustment_type` | `varchar(30)` | ✗ | `-` | 'WASTAGE', 'THEFT', 'DAMAGE', 'CORRECTION', 'TRANSFER_OUT' |
+| `quantity` | `numeric(15,2)` | ✗ | `-` | - |
+| `reason` | `text` | ✓ | `-` | - |
+| `adjusted_by_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `adjusted_at` | `timestamp` | ✗ | `now()` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `material_id` → `materials.id`
+- `adjusted_by_id` → `portal_users.id`
+
+---
+
+ 
+ # #   s u b c o n t r a c t _ w o r k _ o r d e r s   * ( N E W ) * 
+ 
+ T r a c k s   p i e c e - r a t e   a n d   l u m p - s u m   s u b c o n t r a c t o r   a g r e e m e n t s .   E n a b l e s   m a n a g e m e n t   o f   6 0 - 7 0 % %   o f   c o n s t r u c t i o n   w o r k . 
+ 
+ # # #   C o l u m n s 
+ 
+ |   C o l u m n   N a m e   |   D a t a   T y p e   |   N u l l a b l e   |   D e f a u l t   |   N o t e s   | 
+ | - - - - - - - - - - - - - | - - - - - - - - - - - | - - - - - - - - - - | - - - - - - - - - | - - - - - - - | 
+ |   ` i d `   |   ` b i g i n t `   |   '  |   ` n e x t v a l `   |   =��  P K   | 
+ |   ` w o r k _ o r d e r _ n u m b e r `   |   ` v a r c h a r ( 5 0 ) `   |   '  |   ` - `   |   =��  U N I Q U E   ( W A L / S C / Y Y / N N N )   | 
+ |   ` p r o j e c t _ i d `   |   ` b i g i n t `   |   '  |   ` - `   |   =��  F K   �!  ` c u s t o m e r _ p r o j e c t s . i d `   | 
+ |   ` v e n d o r _ i d `   |   ` b i g i n t `   |   '  |   ` - `   |   =��  F K   �!  ` v e n d o r s . i d `   ( v e n d o r _ t y p e = ' L A B O U R ' )   | 
+ |   ` s c o p e _ d e s c r i p t i o n `   |   ` t e x t `   |   '  |   ` - `   |   W o r k   s c o p e   | 
+ |   ` m e a s u r e m e n t _ b a s i s `   |   ` v a r c h a r ( 2 0 ) `   |   '  |   ` ' U N I T _ R A T E ' `   |   ' L U M P S U M ' ,   ' U N I T _ R A T E '   | 
+ |   ` n e g o t i a t e d _ a m o u n t `   |   ` n u m e r i c ( 1 5 , 2 ) `   |   '  |   ` - `   |   T o t a l   c o n t r a c t   v a l u e   | 
+ |   ` s t a t u s `   |   ` v a r c h a r ( 2 0 ) `   |   '  |   ` ' D R A F T ' `   |   ' D R A F T ' ,   ' I S S U E D ' ,   ' I N _ P R O G R E S S ' ,   ' C O M P L E T E D ' ,   ' T E R M I N A T E D '   | 
+ |   ` c r e a t e d _ a t `   |   ` t i m e s t a m p `   |   '  |   ` n o w ( ) `   |   -   | 
+ 
+ - - - 
+ 
+ # #   s u b c o n t r a c t _ m e a s u r e m e n t s   * ( N E W ) * 
+ 
+ P r o g r e s s   m e a s u r e m e n t s   f o r   u n i t - r a t e   s u b c o n t r a c t s . 
+ 
+ - - - 
+ 
+ # #   s u b c o n t r a c t _ p a y m e n t s   * ( N E W ) * 
+ 
+ P a y m e n t   r e c o r d s   f o r   s u b c o n t r a c t o r s   w i t h   T D S   c a l c u l a t i o n   ( S e c t i o n   1 9 4 C ) . 
+ 
+ - - - 
+ 
+ 

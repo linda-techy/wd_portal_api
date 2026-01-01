@@ -82,6 +82,10 @@ public class CustomerProject {
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ProjectMember> projectMembers = new HashSet<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "contract_type", length = 50)
+    private com.wd.api.model.enums.ContractType contractType = com.wd.api.model.enums.ContractType.TURNKEY;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -275,5 +279,13 @@ public class CustomerProject {
 
     public void setProjectUuid(UUID projectUuid) {
         this.projectUuid = projectUuid;
+    }
+
+    public com.wd.api.model.enums.ContractType getContractType() {
+        return contractType;
+    }
+
+    public void setContractType(com.wd.api.model.enums.ContractType contractType) {
+        this.contractType = contractType;
     }
 }

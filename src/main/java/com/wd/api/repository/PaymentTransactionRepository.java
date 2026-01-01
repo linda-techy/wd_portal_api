@@ -14,6 +14,8 @@ public interface PaymentTransactionRepository
 
     List<PaymentTransaction> findByScheduleIdOrderByPaymentDateDesc(Long scheduleId);
 
+    List<PaymentTransaction> findByScheduleId(Long scheduleId);
+
     Optional<PaymentTransaction> findTopByOrderByIdDesc();
 
     // Database function for safe receipt number generation (fixes race condition)

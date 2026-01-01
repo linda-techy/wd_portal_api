@@ -12,4 +12,6 @@ public interface PaymentScheduleRepository extends JpaRepository<PaymentSchedule
     List<PaymentSchedule> findByDesignPaymentIdOrderByInstallmentNumberAsc(Long designPaymentId);
 
     List<PaymentSchedule> findByStatus(String status);
+
+    List<PaymentSchedule> findByDesignPayment_Project_Id(Long projectId);
 }

@@ -182,6 +182,20 @@ public class CustomerProjectController {
                         .ifPresent(project::setCustomer);
             }
 
+            // Handle contract type
+            if (request.getContractType() != null && !request.getContractType().trim().isEmpty()) {
+                try {
+                    project.setContractType(
+                            com.wd.api.model.enums.ContractType.valueOf(request.getContractType().toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    logger.warn("Invalid contract type provided: {}", request.getContractType());
+                    // Default to TURNKEY if invalid
+                    project.setContractType(com.wd.api.model.enums.ContractType.TURNKEY);
+                }
+            } else {
+                project.setContractType(com.wd.api.model.enums.ContractType.TURNKEY);
+            }
+
             project.setCode(projectCode);
 
             // Handle team members

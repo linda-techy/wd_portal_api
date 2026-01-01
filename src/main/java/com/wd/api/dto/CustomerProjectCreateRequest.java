@@ -207,4 +207,15 @@ public class CustomerProjectCreateRequest {
     public void setTeamMembers(java.util.List<TeamMemberSelectionDTO> teamMembers) {
         this.teamMembers = teamMembers;
     }
+
+    @JsonProperty("contract_type")
+    private String contractType;
+
+    public String getContractType() {
+        return contractType;
+    }
+
+    public void setContractType(String contractType) {
+        this.contractType = contractType;
+    }
 }

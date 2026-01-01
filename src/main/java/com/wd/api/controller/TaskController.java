@@ -48,7 +48,29 @@ public class TaskController {
     private TaskAuthorizationService authService;
 
     @Autowired
+    private com.wd.api.service.TaskAlertService taskAlertService;
+
+    @Autowired
     private com.wd.api.scheduler.TaskAlertScheduler taskAlertScheduler;
+
+    // ... existing methods ...
+
+    // ... existing tasks methods ...
+
+    /**
+     * Get alert statistics (Dashboard)
+     */
+    @GetMapping("/alerts/stats")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<?> getAlertStats(@RequestParam(defaultValue = "7") int days) {
+        return ResponseEntity.ok(taskAlertService.getAlertStats(days));
+    }
+
+    @GetMapping("/alerts/recent")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<List<com.wd.api.model.TaskAlert>> getRecentAlerts() {
+        return ResponseEntity.ok(taskAlertService.getRecentAlerts());
+    }
 
     /**
      * Get all tasks - admins see all, users see only theirs

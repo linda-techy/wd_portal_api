@@ -17,9 +17,12 @@ public class FileStorageService {
 
     private final Path fileStorageLocation;
 
-    public FileStorageService(FileUploadConfig fileUploadConfig) {
-        // Trim any whitespace from the upload directory path
-        String uploadDir = fileUploadConfig.getUploadDir().trim();
+    public FileStorageService(FileUploadConfig fileUploadConfig,
+            @org.springframework.beans.factory.annotation.Value("${storageBasePath}") String storageBasePath) {
+        String uploadDir = storageBasePath.trim();
+
+        System.out.println("Initializing File Storage at: " + uploadDir);
+
         this.fileStorageLocation = Paths.get(uploadDir)
                 .toAbsolutePath().normalize();
 
