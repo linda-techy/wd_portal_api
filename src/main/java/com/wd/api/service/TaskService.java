@@ -90,6 +90,13 @@ public class TaskService {
     }
 
     /**
+     * Get tasks for a specific lead
+     */
+    public List<Task> getTasksByLead(Long leadId) {
+        return taskRepository.findByLeadLeadId(leadId);
+    }
+
+    /**
      * Create new task
      * Anyone can create tasks (enforced at controller with @PreAuthorize)
      */
@@ -160,6 +167,11 @@ public class TaskService {
         // Handle project change if provided
         if (taskDetails.getProject() != null) {
             task.setProject(taskDetails.getProject());
+        }
+
+        // Handle lead change if provided
+        if (taskDetails.getLead() != null) {
+            task.setLead(taskDetails.getLead());
         }
 
         Task updated = taskRepository.save(task);

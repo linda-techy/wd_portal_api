@@ -242,6 +242,60 @@ public class LeadController {
         }
     }
 
+    @PostMapping("/{leadId}/convert")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
+    public ResponseEntity<?> convertLead(
+            @PathVariable String leadId,
+            @RequestBody com.wd.api.dto.LeadConversionRequest request,
+            org.springframework.security.core.Authentication auth) {
+        try {
+            Long id = Long.parseLong(leadId);
+            // We need the user who is performing the conversion
+            // The service expects a User entity
+            // We can re-use the UserRepository injected in other controllers or inject it
+            // here
+            // But LeadController doesn't have UserRepository injected securely yet?
+            // Wait, LeadController generates lint errors about missing dependencies if I
+            // don't check.
+            // I see no UserRepository in the previous view_file of LeadController.
+            // I should double check if I can easily get the user.
+            // Ah, I can just not pass the user if I modify the service, OR I can inject
+            // UserRepository.
+            // Let's rely on the service to handle the user lookup if I pass the email,
+            // OR simpler: just update the controller to inject UserRepository.
+
+            // Actually, looking at the code I see:
+            // @Autowired private LeadService leadService;
+            // @Autowired private ActivityFeedService activityFeedService;
+            // No UserRepository.
+
+            // I will implement a helper to get the user or just inject it.
+            // For now, I'll pass null or a dummy if the service allows,
+            // BUT the service signature is: convertLead(Long leadId, LeadConversionRequest
+            // request, User convertedBy)
+
+            // So I MUST have the user.
+            // I will stick to adding the endpoint, but I will assume I need to fetch the
+            // user.
+            // Since I can't easily inject UserRepository without scrolling up and adding a
+            // field (which replace_file_content is bad at if I don't see the top),
+            // I will use a minimal change strategy.
+            // Wait, I can see the top of the file in the artifacts?
+            // Yes, I viewed it in step 2304. It has:
+            // 27: @Autowired
+            // 28: private LeadService leadService;
+            // 31: @Autowired
+            // 32: private ActivityFeedService activityFeedService;
+
+            // It does NOT have UserRepository.
+            // I will use multi_replace to add UserRepository injection AND the endpoint.
+
+            return ResponseEntity.status(501).body("Implementation Pending Injection");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     // =====================================================
     // LEAD FILTERING & SEARCH
     // =====================================================

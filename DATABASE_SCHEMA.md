@@ -86,7 +86,7 @@
 | `title` | `character varying(255)` | ✗ | `-` | - |
 | `activity_type_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `activity_types.id` |
 | `created_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_users.id` |
-| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `project_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `customer_projects.id` |
 
 ### Primary Key
 

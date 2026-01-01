@@ -41,6 +41,10 @@ public class Task {
     @JoinColumn(name = "project_id")
     private CustomerProject project;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lead_id")
+    private com.wd.api.dao.model.Leads lead;
+
     /**
      * MANDATORY: Task completion deadline
      * 
@@ -69,7 +73,8 @@ public class Task {
     }
 
     public Task(Long id, String title, String description, TaskStatus status, TaskPriority priority,
-            User assignedTo, User createdBy, CustomerProject project, LocalDate dueDate,
+            User assignedTo, User createdBy, CustomerProject project, com.wd.api.dao.model.Leads lead,
+            LocalDate dueDate,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.title = title;
@@ -79,6 +84,7 @@ public class Task {
         this.assignedTo = assignedTo;
         this.createdBy = createdBy;
         this.project = project;
+        this.lead = lead;
         this.dueDate = dueDate;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -147,6 +153,14 @@ public class Task {
 
     public void setProject(CustomerProject project) {
         this.project = project;
+    }
+
+    public com.wd.api.dao.model.Leads getLead() {
+        return lead;
+    }
+
+    public void setLead(com.wd.api.dao.model.Leads lead) {
+        this.lead = lead;
     }
 
     public LocalDate getDueDate() {

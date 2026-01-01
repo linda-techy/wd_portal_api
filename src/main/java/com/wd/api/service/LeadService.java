@@ -35,6 +35,15 @@ public class LeadService {
     @Autowired
     private com.wd.api.repository.PortalUserRepository portalUserRepository;
 
+    @Autowired
+    private com.wd.api.repository.CustomerUserRepository customerUserRepository;
+
+    @Autowired
+    private com.wd.api.repository.CustomerProjectRepository customerProjectRepository;
+
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     @Transactional
     public Leads createLead(Leads lead) {
         if (lead.getDateOfEnquiry() == null) {
@@ -401,5 +410,76 @@ public class LeadService {
             default:
                 return dbColumn; // Assume matches property name (e.g., name, email, priority)
         }
+    }
+
+    /**
+     * Enterprise One-Click Lead Conversion
+     * Converts a simplified Lead into a full-fledged Customer Project
+     * 1. Creates/Links Customer User account
+     * 2. Creates Customer Project
+     * 3. Links Project to Lead
+     * 4. Updates Lead Status to WON
+     * 5. Logs Audit Activity
+     */
+    @Transactional
+    public com.wd.api.model.CustomerProject convertLead(Long leadId, com.wd.api.dto.LeadConversionRequest request,
+            com.wd.api.model.User convertedBy) {
+        Leads lead = leadsRepository.findById(leadId)
+                .orElseThrow(() -> new RuntimeException("Lead not found"));
+
+        if ("WON".equalsIgnoreCase(lead.getLeadStatus())) {
+            throw new RuntimeException("Lead is already converted");
+        }
+
+        // 1. Create or Find Customer User
+        com.wd.api.model.CustomerUser customer = customerUserRepository.findByEmail(lead.getEmail())
+                .orElseGet(() -> createCustomerFromLead(lead));
+
+        // 2. Create Project
+        com.wd.api.model.CustomerProject project = new com.wd.api.model.CustomerProject();
+        project.setName(request.getProjectName() != null ? request.getProjectName() : lead.getName() + " Project");
+        project.setCustomer(customer);
+        project.setLeadId(lead.getId()); // Link back to lead
+        project.setStartDate(request.getStartDate() != null ? request.getStartDate() : java.time.LocalDate.now());
+        project.setProjectPhase("planning"); // Default phase
+        project.setState("Active");
+        project.setLocation(request.getLocation() != null ? request.getLocation() : lead.getLocation());
+        project.setSqFeet(lead.getProjectSqftArea() != null ? lead.getProjectSqftArea().doubleValue() : 0.0);
+        project.setProjectType(request.getProjectType());
+
+        // Assign Project Manager if selected
+        if (request.getProjectManagerId() != null) {
+            project.setProjectManagerId(request.getProjectManagerId());
+        }
+
+        project = customerProjectRepository.save(project);
+
+        // 3. Update Lead
+        lead.setLeadStatus("WON");
+        leadsRepository.save(lead);
+
+        // 4. Log Activity
+        try {
+            activityFeedService.logSystemActivity(
+                    "LEAD_CONVERTED",
+                    "Lead Converted",
+                    "Lead converted to Project: " + project.getName(),
+                    lead.getId(),
+                    "LEAD");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return project;
+    }
+
+    private com.wd.api.model.CustomerUser createCustomerFromLead(Leads lead) {
+        com.wd.api.model.CustomerUser customer = new com.wd.api.model.CustomerUser();
+        customer.setEmail(lead.getEmail());
+        customer.setFirstName(lead.getName()); // Basic mapping
+        customer.setEnabled(true);
+        // Set temp password or handle via invitation flow
+        customer.setPassword(passwordEncoder.encode("Welcome@123"));
+        return customerUserRepository.save(customer);
     }
 }
