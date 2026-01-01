@@ -39,6 +39,7 @@ public class ProjectPhase {
     @Column(name = "actual_end")
     private LocalDate actualEnd;
 
+    @Builder.Default
     @Column(length = 20)
     private String status = "NOT_STARTED"; // NOT_STARTED, IN_PROGRESS, COMPLETED, DELAYED
 

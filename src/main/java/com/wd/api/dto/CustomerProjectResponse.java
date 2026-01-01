@@ -53,9 +53,6 @@ public class CustomerProjectResponse {
     @JsonProperty("is_design_agreement_signed")
     private Boolean isDesignAgreementSigned;
 
-    @JsonProperty("sq_feet")
-    private Double sqFeet;
-
     // Constructors
     public CustomerProjectResponse() {
     }
@@ -82,7 +79,6 @@ public class CustomerProjectResponse {
         this.designPackage = project.getDesignPackage();
         this.isDesignAgreementSigned = project.getIsDesignAgreementSigned();
 
-        this.sqFeet = project.getSqFeet();
         if (project.getProjectMembers() != null && !project.getProjectMembers().isEmpty()) {
             this.teamMembers = project.getProjectMembers().stream()
                     .map(pm -> {
@@ -261,11 +257,4 @@ public class CustomerProjectResponse {
         this.isDesignAgreementSigned = isDesignAgreementSigned;
     }
 
-    public Double getSqFeet() {
-        return sqFeet;
-    }
-
-    public void setSqFeet(Double sqFeet) {
-        this.sqFeet = sqFeet;
-    }
 }

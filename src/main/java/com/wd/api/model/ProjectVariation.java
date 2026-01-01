@@ -30,6 +30,7 @@ public class ProjectVariation {
     @Column(name = "estimated_amount", precision = 15, scale = 2, nullable = false)
     private BigDecimal estimatedAmount;
 
+    @Builder.Default
     @Column(name = "client_approved")
     private Boolean clientApproved = false;
 
@@ -40,6 +41,7 @@ public class ProjectVariation {
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 
+    @Builder.Default
     @Column(length = 20)
     private String status = "DRAFT"; // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED
 

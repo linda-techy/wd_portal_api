@@ -5,8 +5,7 @@ import com.wd.api.dto.CustomerResponse;
 import com.wd.api.dto.CustomerUpdateRequest;
 import com.wd.api.dto.CustomerRoleDTO;
 import com.wd.api.model.CustomerUser;
-import com.wd.api.repository.CustomerUserRepository;
-import com.wd.api.repository.CustomerProjectRepository;
+import com.wd.api.service.CustomerUserService;
 import com.wd.api.repository.CustomerRoleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,14 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,16 +32,10 @@ public class CustomerController {
     private static final Logger logger = LoggerFactory.getLogger(CustomerController.class);
 
     @Autowired
-    private CustomerUserRepository customerUserRepository;
-
-    @Autowired
-    private CustomerProjectRepository customerProjectRepository;
+    private CustomerUserService customerUserService;
 
     @Autowired
     private CustomerRoleRepository customerRoleRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
     /**
      * Get all customers (paginated)
@@ -58,14 +49,7 @@ public class CustomerController {
         try {
             Sort sort = direction.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
             Pageable pageable = PageRequest.of(page, size, sort);
-
-            Page<CustomerUser> customerPage = customerUserRepository.findAll(pageable);
-            Page<CustomerResponse> responsePage = customerPage.map(customer -> {
-                CustomerResponse response = new CustomerResponse(customer);
-                response.setProjectCount(customerProjectRepository.countByCustomer_Id(customer.getId()));
-                return response;
-            });
-
+            Page<CustomerResponse> responsePage = customerUserService.getAllCustomersPaginated(pageable);
             return ResponseEntity.ok(responsePage);
         } catch (Exception e) {
             logger.error("Error fetching paginated customers", e);
@@ -80,14 +64,7 @@ public class CustomerController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<List<CustomerResponse>> getAllCustomers() {
         try {
-            List<CustomerUser> customerUsers = customerUserRepository.findAll();
-            List<CustomerResponse> customers = customerUsers.stream()
-                    .map(customer -> {
-                        CustomerResponse response = new CustomerResponse(customer);
-                        response.setProjectCount(customerProjectRepository.countByCustomer_Id(customer.getId()));
-                        return response;
-                    })
-                    .collect(Collectors.toList());
+            List<CustomerResponse> customers = customerUserService.getAllCustomers();
             return ResponseEntity.ok(customers);
         } catch (Exception e) {
             logger.error("Error fetching customers", e);
@@ -101,14 +78,9 @@ public class CustomerController {
     @GetMapping("/{id}")
     public ResponseEntity<CustomerResponse> getCustomerById(@PathVariable Long id) {
         try {
-            Optional<CustomerUser> customerOpt = customerUserRepository.findById(id);
-            if (customerOpt.isPresent()) {
-                CustomerResponse response = new CustomerResponse(customerOpt.get());
-                response.setProjectCount(customerProjectRepository.countByCustomer_Id(id));
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            return customerUserService.getCustomerResponseById(id)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             logger.error("Error fetching customer with ID: {}", id, e);
             return ResponseEntity.internalServerError().build();
@@ -122,42 +94,11 @@ public class CustomerController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<?> createCustomer(@RequestBody CustomerCreateRequest request) {
         try {
-            // Validate required fields
-            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Email is required");
-            }
-            if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("First name is required");
-            }
-            if (request.getLastName() == null || request.getLastName().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Last name is required");
-            }
-            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Password is required");
-            }
-
-            // Check if email already exists
-            Optional<CustomerUser> existingCustomer = customerUserRepository.findByEmail(request.getEmail());
-            if (existingCustomer.isPresent()) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists");
-            }
-
-            // Create new customer user
-            CustomerUser customerUser = new CustomerUser();
-            customerUser.setEmail(request.getEmail().trim());
-            customerUser.setFirstName(request.getFirstName().trim());
-            customerUser.setLastName(request.getLastName().trim());
-            customerUser.setPassword(passwordEncoder.encode(request.getPassword().trim()));
-            customerUser.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
-
-            // Set role by looking up CustomerRole entity
-            if (request.getRoleId() != null) {
-                customerRoleRepository.findById(request.getRoleId()).ifPresent(customerUser::setRole);
-            }
-
-            CustomerUser savedCustomer = customerUserRepository.save(customerUser);
+            CustomerUser savedCustomer = customerUserService.createCustomer(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(new CustomerResponse(savedCustomer));
-
+        } catch (IllegalArgumentException e) {
+            logger.warn("Validation error creating customer: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             logger.error("Error creating customer", e);
             return ResponseEntity.internalServerError().body("Error creating customer");
@@ -171,87 +112,14 @@ public class CustomerController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<?> updateCustomer(@PathVariable Long id, @RequestBody CustomerUpdateRequest request) {
         try {
-            // Validate ID
-            if (id == null) {
-                return ResponseEntity.badRequest().body("Customer ID is required");
-            }
-
-            Optional<CustomerUser> customerOpt = customerUserRepository.findById(id);
-            if (!customerOpt.isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            CustomerUser customerUser = customerOpt.get();
-
-            // Validate required fields
-            if (request == null) {
-                return ResponseEntity.badRequest().body("Request body is required");
-            }
-
-            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Email is required");
-            }
-            if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("First name is required");
-            }
-            if (request.getLastName() == null || request.getLastName().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Last name is required");
-            }
-
-            // Validate password only if provided
-            if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
-                if (request.getPassword().trim().length() < 6) {
-                    return ResponseEntity.badRequest().body("Password must be at least 6 characters");
-                }
-            }
-
-            // Check if email is being changed and if new email already exists
-            if (!customerUser.getEmail().equals(request.getEmail())) {
-                Optional<CustomerUser> existingCustomer = customerUserRepository.findByEmail(request.getEmail());
-                if (existingCustomer.isPresent()) {
-                    return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists");
-                }
-            }
-
-            // Update fields
-            customerUser.setEmail(request.getEmail().trim());
-            customerUser.setFirstName(request.getFirstName().trim());
-            customerUser.setLastName(request.getLastName().trim());
-
-            // Update password only if provided (leave empty to keep current)
-            if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
-                try {
-                    customerUser.setPassword(passwordEncoder.encode(request.getPassword().trim()));
-                } catch (Exception e) {
-                    logger.error("Error encoding password for customer ID: {}", id, e);
-                    return ResponseEntity.internalServerError().body("Error encoding password");
-                }
-            }
-
-            // Update enabled status
-            if (request.getEnabled() != null) {
-                customerUser.setEnabled(request.getEnabled());
-            }
-
-            // Update role ID if provided
-            if (request.getRoleId() != null) {
-                customerRoleRepository.findById(request.getRoleId()).ifPresent(customerUser::setRole);
-            }
-
-            // Save the updated customer
-            try {
-                CustomerUser updatedCustomer = customerUserRepository.save(customerUser);
-                CustomerResponse response = new CustomerResponse(updatedCustomer);
-                response.setProjectCount(customerProjectRepository.countByCustomer_Id(updatedCustomer.getId()));
-                return ResponseEntity.ok(response);
-            } catch (Exception e) {
-                logger.error("Error saving customer with ID: {}", id, e);
-                return ResponseEntity.internalServerError().body("Error saving customer");
-            }
-
+            CustomerUser updatedCustomer = customerUserService.updateCustomer(id, request);
+            CustomerResponse response = new CustomerResponse(updatedCustomer);
+            return customerUserService.getCustomerResponseById(id)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.ok(response));
         } catch (IllegalArgumentException e) {
-            logger.warn("Illegal argument error updating customer ID: {} - {}", id, e.getMessage());
-            return ResponseEntity.badRequest().body("Invalid request: " + e.getMessage());
+            logger.warn("Validation error updating customer ID: {} - {}", id, e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             logger.error("Error updating customer with ID: {}", id, e);
             return ResponseEntity.internalServerError().body("Error updating customer");
@@ -263,29 +131,20 @@ public class CustomerController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    // names in database
     public ResponseEntity<?> deleteCustomer(@PathVariable Long id) {
         try {
-            Optional<CustomerUser> customerOpt = customerUserRepository.findById(id);
-            if (!customerOpt.isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            // Check for associated projects
-            List<com.wd.api.model.CustomerProject> projects = customerProjectRepository.findByCustomer_Id(id);
-            if (!projects.isEmpty()) {
-                Map<String, String> errorResponse = new HashMap<>();
-                errorResponse.put("message",
-                        "Cannot delete customer with associated projects. Please delete the projects first.");
-                return ResponseEntity.badRequest().body(errorResponse);
-            }
-
-            customerUserRepository.deleteById(id);
-
+            customerUserService.deleteCustomer(id);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Customer deleted successfully");
             return ResponseEntity.ok(response);
-
+        } catch (IllegalArgumentException e) {
+            logger.warn("Customer not found for deletion: {}", id);
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
+            logger.warn("Cannot delete customer with associated projects: {}", id);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
         } catch (Exception e) {
             logger.error("Error deleting customer with ID: {}", id, e);
             return ResponseEntity.internalServerError().body("Error deleting customer");

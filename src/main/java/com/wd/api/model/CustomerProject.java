@@ -71,9 +71,6 @@ public class CustomerProject {
     @Column(name = "is_design_agreement_signed", nullable = false)
     private Boolean isDesignAgreementSigned = false;
 
-    @Column(name = "sq_feet")
-    private Double sqFeet;
-
     // Project manager - has full control over all project tasks
     @Column(name = "project_manager_id")
     private Long projectManagerId;
@@ -262,14 +259,6 @@ public class CustomerProject {
 
     public void setIsDesignAgreementSigned(Boolean isDesignAgreementSigned) {
         this.isDesignAgreementSigned = isDesignAgreementSigned;
-    }
-
-    public Double getSqFeet() {
-        return sqFeet;
-    }
-
-    public void setSqFeet(Double sqFeet) {
-        this.sqFeet = sqFeet;
     }
 
     public Long getProjectManagerId() {

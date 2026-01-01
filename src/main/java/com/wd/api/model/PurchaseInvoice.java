@@ -74,6 +74,7 @@ public class PurchaseInvoice {
     @Column(name = "payment_terms", length = 100)
     private String paymentTerms;
 
+    @Builder.Default
     @Column(nullable = false)
     private String status = "PENDING"; // PENDING, APPROVED, REJECTED
 
