@@ -2,6 +2,7 @@ package com.wd.api.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import com.wd.api.model.PortalUser;
 
 @Entity
 @Table(name = "activity_feeds")
@@ -18,7 +19,7 @@ public class ActivityFeed {
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
+    @JoinColumn(name = "project_id", nullable = true)
     private CustomerProject project;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -26,8 +27,12 @@ public class ActivityFeed {
     private ActivityType activityType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_id", nullable = false)
+    @JoinColumn(name = "created_by_id", nullable = true)
     private CustomerUser createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "portal_user_id", nullable = true)
+    private PortalUser portalUser;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -117,6 +122,14 @@ public class ActivityFeed {
 
     public void setReferenceType(String referenceType) {
         this.referenceType = referenceType;
+    }
+
+    public PortalUser getPortalUser() {
+        return portalUser;
+    }
+
+    public void setPortalUser(PortalUser portalUser) {
+        this.portalUser = portalUser;
     }
 
     public String getMetadata() {

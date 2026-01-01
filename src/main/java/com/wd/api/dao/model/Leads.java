@@ -105,6 +105,14 @@ public class Leads {
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "assigned_to_id")
+    private com.wd.api.model.PortalUser assignedTo;
+
+    @Transient
+    @JsonProperty("assigned_to_id")
+    private Long assignedToId;
+
     @Column(name = "updated_at")
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
@@ -332,5 +340,21 @@ public class Leads {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public com.wd.api.model.PortalUser getAssignedTo() {
+        return assignedTo;
+    }
+
+    public void setAssignedTo(com.wd.api.model.PortalUser assignedTo) {
+        this.assignedTo = assignedTo;
+    }
+
+    public Long getAssignedToId() {
+        return assignedToId;
+    }
+
+    public void setAssignedToId(Long assignedToId) {
+        this.assignedToId = assignedToId;
     }
 }

@@ -29,6 +29,12 @@ public class LeadService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private ActivityFeedService activityFeedService;
+
+    @Autowired
+    private com.wd.api.repository.PortalUserRepository portalUserRepository;
+
     @Transactional
     public Leads createLead(Leads lead) {
         if (lead.getDateOfEnquiry() == null) {
@@ -37,12 +43,46 @@ public class LeadService {
         if (lead.getCreatedAt() == null) {
             lead.setCreatedAt(java.time.LocalDateTime.now());
         }
-        return leadsRepository.save(lead);
+
+        // Handle Assignment
+        if (lead.getAssignedToId() != null) {
+            com.wd.api.model.PortalUser user = portalUserRepository.findById(lead.getAssignedToId()).orElse(null);
+            if (user != null) {
+                lead.setAssignedTo(user);
+                lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
+            }
+        }
+
+        Leads savedLead = leadsRepository.save(lead);
+        try {
+            activityFeedService.logSystemActivity(
+                    "LEAD_CREATED",
+                    "New Lead Created",
+                    "Lead " + savedLead.getName() + " was created.",
+                    savedLead.getId(),
+                    "LEAD");
+
+            if (savedLead.getAssignedTo() != null) {
+                activityFeedService.logSystemActivity(
+                        "LEAD_ASSIGNED",
+                        "Lead Assigned",
+                        "Lead assigned to " + savedLead.getAssignedTeam(),
+                        savedLead.getId(),
+                        "LEAD");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return savedLead;
     }
 
     @Transactional
     public Leads updateLead(Long id, Leads leadDetails) {
         return leadsRepository.findById(id).map(lead -> {
+            String oldStatus = lead.getLeadStatus();
+            String oldAssigned = lead.getAssignedTeam();
+            Long oldAssignedId = lead.getAssignedTo() != null ? lead.getAssignedTo().getId() : null;
+
             lead.setName(leadDetails.getName());
             lead.setEmail(leadDetails.getEmail());
             lead.setPhone(leadDetails.getPhone());
@@ -69,7 +109,66 @@ public class LeadService {
             lead.setLostReason(leadDetails.getLostReason());
             lead.setDateOfEnquiry(leadDetails.getDateOfEnquiry());
             lead.setUpdatedAt(java.time.LocalDateTime.now());
-            return leadsRepository.save(lead);
+
+            // Handle Assignment Update
+            if (leadDetails.getAssignedToId() != null) {
+                if (!leadDetails.getAssignedToId().equals(oldAssignedId)) {
+                    com.wd.api.model.PortalUser user = portalUserRepository.findById(leadDetails.getAssignedToId())
+                            .orElse(null);
+                    if (user != null) {
+                        lead.setAssignedTo(user);
+                        lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
+                    }
+                }
+            } else if (leadDetails.getAssignedToId() == null && oldAssignedId != null) {
+                // Determine if we should clear it?
+                // Currently Request might send null if not changing.
+                // But DTO usually sends whole object.
+                // Let's assume if sent as 0 or explicit null action needed?
+                // For now, if passed ID is distinct (and valid), we update.
+            }
+
+            Leads savedLead = leadsRepository.save(lead);
+
+            try {
+                activityFeedService.logSystemActivity(
+                        "LEAD_UPDATED",
+                        "Lead Updated",
+                        "Lead " + savedLead.getName() + " was updated.",
+                        savedLead.getId(),
+                        "LEAD");
+
+                if (savedLead.getLeadStatus() != null && !savedLead.getLeadStatus().equals(oldStatus)) {
+                    activityFeedService.logSystemActivity(
+                            "LEAD_STATUS_CHANGED",
+                            "Lead Status Changed",
+                            "Status changed from " + oldStatus + " to " + savedLead.getLeadStatus(),
+                            savedLead.getId(),
+                            "LEAD");
+                }
+
+                // Logic updated to check assignedTo relationship change or fallback string
+                // change
+                boolean assignedChanged = false;
+                if (savedLead.getAssignedTo() != null
+                        && (oldAssignedId == null || !savedLead.getAssignedTo().getId().equals(oldAssignedId))) {
+                    assignedChanged = true;
+                } else if (savedLead.getAssignedTeam() != null && !savedLead.getAssignedTeam().equals(oldAssigned)) {
+                    assignedChanged = true;
+                }
+
+                if (assignedChanged) {
+                    activityFeedService.logSystemActivity(
+                            "LEAD_ASSIGNED",
+                            "Lead Assigned",
+                            "Lead assigned to " + savedLead.getAssignedTeam(),
+                            savedLead.getId(),
+                            "LEAD");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return savedLead;
         }).orElse(null);
     }
 
@@ -82,6 +181,10 @@ public class LeadService {
         return false;
     }
 
+    public List<com.wd.api.model.ActivityFeed> getLeadActivities(Long leadId) {
+        return activityFeedService.getActivitiesForLead(leadId);
+    }
+
     public Leads getLeadById(Long id) {
         return leadsRepository.findById(id).orElse(null);
     }
@@ -92,8 +195,6 @@ public class LeadService {
 
     public Page<Leads> getLeadsPaginated(PaginationParams params) {
         Sort sort = Sort.by(Sort.Direction.fromString(params.getSortOrder()), mapSortField(params.getSortBy()));
-        // params.getPage() is 1-based (validated in controller/Flutter fix).
-        // PageRequest is 0-based.
         int pageZeroBased = Math.max(0, params.getPage() - 1);
         Pageable pageable = PageRequest.of(pageZeroBased, params.getLimit(), sort);
 
@@ -122,6 +223,35 @@ public class LeadService {
                         cb.like(cb.lower(root.get("name")), likePattern),
                         cb.like(cb.lower(root.get("email")), likePattern),
                         cb.like(cb.lower(root.get("phone")), likePattern)));
+            }
+
+            if (params.getAssignedTeam() != null && !params.getAssignedTeam().isEmpty()) {
+                try {
+                    Long id = Long.parseLong(params.getAssignedTeam());
+                    predicates.add(cb.equal(root.get("assignedTo").get("id"), id));
+                } catch (NumberFormatException e) {
+                    predicates.add(cb.equal(root.get("assignedTeam"), params.getAssignedTeam()));
+                }
+            }
+
+            if (params.getState() != null && !params.getState().isEmpty()) {
+                predicates.add(cb.equal(root.get("state"), params.getState()));
+            }
+            if (params.getDistrict() != null && !params.getDistrict().isEmpty()) {
+                predicates.add(cb.equal(root.get("district"), params.getDistrict()));
+            }
+            if (params.getMinBudget() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("budget"), params.getMinBudget()));
+            }
+            if (params.getMaxBudget() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("budget"), params.getMaxBudget()));
+            }
+            if (params.getStartDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), params.getStartDate().atStartOfDay()));
+            }
+            if (params.getEndDate() != null) {
+                predicates.add(
+                        cb.lessThanOrEqualTo(root.get("createdAt"), params.getEndDate().plusDays(1).atStartOfDay()));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -178,17 +308,8 @@ public class LeadService {
             lead.setName(rs.getString("name"));
             lead.setEmail(rs.getString("email"));
             // ... minimal mapping or full mapping.
-            // Ideally we use leadsRepository.findByNextFollowUpBefore...
-            // But for safety of compilation, let's returning empty list or rely on
-            // repository
             return lead;
         });
-        // Better: use Repository
-        // return
-        // leadsRepository.findByNextFollowUpBeforeAndLeadStatusNotIn(LocalDateTime.now(),
-        // List.of("converted", "lost"));
-        // I haven't defined that method. So I'll return empty List for now to satisfy
-        // compiler, or use simple query.
     }
 
     public List<Leads> getLeadsByStatus(String status) {
@@ -203,8 +324,13 @@ public class LeadService {
         return leadsRepository.findByPriority(priority);
     }
 
-    public List<Leads> getLeadsByAssignedTo(String teamId) {
-        return leadsRepository.findByAssignedTeam(teamId);
+    public List<Leads> getLeadsByAssignedTo(String teamIdLike) {
+        try {
+            Long id = Long.parseLong(teamIdLike);
+            return leadsRepository.findByAssignedTo_Id(id);
+        } catch (NumberFormatException e) {
+            return leadsRepository.findByAssignedTeam(teamIdLike);
+        }
     }
 
     public List<Leads> searchLeads(String query) {

@@ -10,36 +10,38 @@ import java.util.List;
 @Repository
 public interface LeadsRepository extends JpaRepository<Leads, Long>, JpaSpecificationExecutor<Leads> {
 
-    // Custom query methods matching Controller requirements
+        // Custom query methods matching Controller requirements
 
-    List<Leads> findByLeadStatus(String leadStatus);
+        List<Leads> findByLeadStatus(String leadStatus);
 
-    List<Leads> findByAssignedTeam(String assignedTeam);
+        List<Leads> findByAssignedTeam(String assignedTeam);
 
-    List<Leads> findByLeadSource(String leadSource);
+        List<Leads> findByAssignedTo_Id(Long assignedToId);
 
-    List<Leads> findByPriority(String priority);
+        List<Leads> findByLeadSource(String leadSource);
 
-    // For date range (using generic derived query)
-    // List<Leads> findByCreatedAtBetween(LocalDateTime startDate, LocalDateTime
-    // endDate);
-    // But LeadController uses DateOfEnquiry or CreatedAt?
-    // Controller: getLeadsByDateRange -> calls DAO.getLeadsByDateRange
-    // DAO maps it to "date_of_enquiry".
+        List<Leads> findByPriority(String priority);
 
-    List<Leads> findByDateOfEnquiryBetween(java.time.LocalDate startDate, java.time.LocalDate endDate);
+        // For date range (using generic derived query)
+        // List<Leads> findByCreatedAtBetween(LocalDateTime startDate, LocalDateTime
+        // endDate);
+        // But LeadController uses DateOfEnquiry or CreatedAt?
+        // Controller: getLeadsByDateRange -> calls DAO.getLeadsByDateRange
+        // DAO maps it to "date_of_enquiry".
 
-    // Search
-    // findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase...
-    // But better to use Specifications for complex search.
+        List<Leads> findByDateOfEnquiryBetween(java.time.LocalDate startDate, java.time.LocalDate endDate);
 
-    // For simple search:
-    List<Leads> findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneContainingIgnoreCase(String name,
-            String email, String phone);
+        // Search
+        // findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase...
+        // But better to use Specifications for complex search.
 
-    // Analytics Helper Methods (counting)
-    long countByLeadStatus(String status);
+        // For simple search:
+        List<Leads> findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneContainingIgnoreCase(String name,
+                        String email, String phone);
 
-    List<Leads> findByNextFollowUpBeforeAndLeadStatusNotIn(java.time.LocalDateTime date,
-            java.util.Collection<String> statuses);
+        // Analytics Helper Methods (counting)
+        long countByLeadStatus(String status);
+
+        List<Leads> findByNextFollowUpBeforeAndLeadStatusNotIn(java.time.LocalDateTime date,
+                        java.util.Collection<String> statuses);
 }

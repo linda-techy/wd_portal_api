@@ -27,6 +27,9 @@ public class LeadController {
     @Autowired
     private LeadService leadService;
 
+    @Autowired
+    private com.wd.api.service.ActivityFeedService activityFeedService;
+
     // =====================================================
     // LEAD CRUD OPERATIONS
     // =====================================================
@@ -123,6 +126,20 @@ public class LeadController {
         }
     }
 
+    @GetMapping("/{leadId}/activities")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<List<com.wd.api.model.ActivityFeed>> getLeadActivities(@PathVariable String leadId) {
+        try {
+            Long id = Long.parseLong(leadId);
+            return ResponseEntity.ok(leadService.getLeadActivities(id));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            logger.error("Error fetching lead activities", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<?> createLead(@RequestBody LeadCreateRequest request) {
@@ -159,6 +176,7 @@ public class LeadController {
             lead.setPriority(priority != null && !priority.isEmpty() ? priority.trim().toLowerCase() : "low");
 
             lead.setAssignedTeam(request.getAssignedTeam() != null ? request.getAssignedTeam() : "");
+            lead.setAssignedToId(request.getAssignedToId());
             lead.setNotes(request.getNotes() != null ? request.getNotes() : "");
             lead.setLostReason(request.getLostReason());
 
@@ -236,10 +254,10 @@ public class LeadController {
 
     @GetMapping("/assigned/{teamMemberId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Leads>> getLeadsByAssignedTo(@PathVariable UUID teamMemberId) {
+    public ResponseEntity<List<Leads>> getLeadsByAssignedTo(@PathVariable String teamMemberId) {
         // Assuming database stores UUID as string in assigned_team or we filter by
         // string
-        return ResponseEntity.ok(leadService.getLeadsByAssignedTo(teamMemberId.toString()));
+        return ResponseEntity.ok(leadService.getLeadsByAssignedTo(teamMemberId));
     }
 
     @GetMapping("/source/{source}")
