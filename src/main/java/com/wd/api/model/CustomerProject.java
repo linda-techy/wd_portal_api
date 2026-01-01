@@ -295,4 +295,20 @@ public class CustomerProject {
     public void setContractType(com.wd.api.model.enums.ContractType contractType) {
         this.contractType = contractType;
     }
+
+    public Long getConvertedById() {
+        return convertedById;
+    }
+
+    public void setConvertedById(Long convertedById) {
+        this.convertedById = convertedById;
+    }
+
+    public LocalDateTime getConvertedAt() {
+        return convertedAt;
+    }
+
+    public void setConvertedAt(LocalDateTime convertedAt) {
+        this.convertedAt = convertedAt;
+    }
 }

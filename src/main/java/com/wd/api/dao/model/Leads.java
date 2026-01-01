@@ -117,6 +117,22 @@ public class Leads {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
+    // Lead Scoring System fields
+    @Column(name = "score")
+    private Integer score = 0;
+
+    @Column(name = "score_category", length = 20)
+    @JsonProperty("score_category")
+    private String scoreCategory = "COLD";
+
+    @Column(name = "last_scored_at")
+    @JsonProperty("last_scored_at")
+    private LocalDateTime lastScoredAt;
+
+    @Column(name = "score_factors", columnDefinition = "jsonb")
+    @JsonProperty("score_factors")
+    private String scoreFactors;
+
     // Getters and Setters
     public String getName() {
         return name;
@@ -356,5 +372,37 @@ public class Leads {
 
     public void setAssignedToId(Long assignedToId) {
         this.assignedToId = assignedToId;
+    }
+
+    public Integer getScore() {
+        return score;
+    }
+
+    public void setScore(Integer score) {
+        this.score = score;
+    }
+
+    public String getScoreCategory() {
+        return scoreCategory;
+    }
+
+    public void setScoreCategory(String scoreCategory) {
+        this.scoreCategory = scoreCategory;
+    }
+
+    public LocalDateTime getLastScoredAt() {
+        return lastScoredAt;
+    }
+
+    public void setLastScoredAt(LocalDateTime lastScoredAt) {
+        this.lastScoredAt = lastScoredAt;
+    }
+
+    public String getScoreFactors() {
+        return scoreFactors;
+    }
+
+    public void setScoreFactors(String scoreFactors) {
+        this.scoreFactors = scoreFactors;
     }
 }

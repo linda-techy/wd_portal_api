@@ -487,7 +487,7 @@ public class LeadController {
 
             // 5. Get authenticated user for audit trail
             String username = authentication.getName();
-            com.wd.api.model.User convertedBy = userRepository.findByUsername(username)
+            com.wd.api.model.User convertedBy = userRepository.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
 
             // 6. Perform conversion using service layer (transactional)

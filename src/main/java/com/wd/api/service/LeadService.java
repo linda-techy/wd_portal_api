@@ -451,6 +451,13 @@ public class LeadService {
         if (request.getProjectManagerId() != null) {
             project.setProjectManagerId(request.getProjectManagerId());
         }
+        project.setCreatedBy(convertedBy.getUsername());
+
+        // Set conversion tracking metadata
+        project.setConvertedById(convertedBy.getId());
+        // convertedAt is automatically set by database trigger, but we can set it
+        // explicitly too
+        project.setConvertedAt(java.time.LocalDateTime.now());
 
         project = customerProjectRepository.save(project);
 

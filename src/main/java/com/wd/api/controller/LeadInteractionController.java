@@ -94,7 +94,7 @@ public class LeadInteractionController {
             Authentication authentication) {
         try {
             String username = authentication.getName();
-            com.wd.api.model.User user = userRepository.findByUsername(username)
+            com.wd.api.model.User user = userRepository.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             LeadInteraction created = interactionService.createInteraction(interaction, user.getId());
@@ -122,7 +122,7 @@ public class LeadInteractionController {
             String notes = (String) body.get("notes");
 
             String username = authentication.getName();
-            com.wd.api.model.User user = userRepository.findByUsername(username)
+            com.wd.api.model.User user = userRepository.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             LeadInteraction created = interactionService.logQuickInteraction(leadId, type, notes, user.getId());
@@ -147,7 +147,7 @@ public class LeadInteractionController {
             LocalDateTime nextActionDate = LocalDateTime.parse((String) body.get("nextActionDate"));
 
             String username = authentication.getName();
-            com.wd.api.model.User user = userRepository.findByUsername(username)
+            com.wd.api.model.User user = userRepository.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             LeadInteraction created = interactionService.scheduleFollowUp(leadId, nextAction, nextActionDate,

@@ -62,7 +62,7 @@ public class LeadQuotationController {
             Authentication authentication) {
         try {
             String username = authentication.getName();
-            com.wd.api.model.User user = userRepository.findByUsername(username)
+            com.wd.api.model.User user = userRepository.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             LeadQuotation created = quotationService.createQuotation(quotation, user.getId());
