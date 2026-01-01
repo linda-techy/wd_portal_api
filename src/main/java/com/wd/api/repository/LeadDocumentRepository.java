@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface LeadDocumentRepository extends JpaRepository<LeadDocument, Long> {
-    List<LeadDocument> findByLeadLeadIdAndIsActiveTrue(Long leadId);
+    List<LeadDocument> findByLeadIdAndIsActiveTrue(Long leadId);
 }

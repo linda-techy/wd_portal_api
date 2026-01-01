@@ -93,7 +93,7 @@ public class TaskService {
      * Get tasks for a specific lead
      */
     public List<Task> getTasksByLead(Long leadId) {
-        return taskRepository.findByLeadLeadId(leadId);
+        return taskRepository.findByLeadId(leadId);
     }
 
     /**

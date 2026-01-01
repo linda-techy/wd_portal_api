@@ -29,7 +29,7 @@ public class LeadDocumentService {
     private UserRepository userRepository;
 
     public List<LeadDocument> getDocumentsByLeadId(Long leadId) {
-        return leadDocumentRepository.findByLeadLeadIdAndIsActiveTrue(leadId);
+        return leadDocumentRepository.findByLeadIdAndIsActiveTrue(leadId);
     }
 
     @Transactional

@@ -30,6 +30,12 @@ public class LeadController {
     @Autowired
     private com.wd.api.service.ActivityFeedService activityFeedService;
 
+    @Autowired
+    private com.wd.api.repository.UserRepository userRepository;
+
+    @Autowired
+    private com.wd.api.repository.CustomerProjectRepository customerProjectRepository;
+
     // =====================================================
     // LEAD CRUD OPERATIONS
     // =====================================================
@@ -242,60 +248,6 @@ public class LeadController {
         }
     }
 
-    @PostMapping("/{leadId}/convert")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
-    public ResponseEntity<?> convertLead(
-            @PathVariable String leadId,
-            @RequestBody com.wd.api.dto.LeadConversionRequest request,
-            org.springframework.security.core.Authentication auth) {
-        try {
-            Long id = Long.parseLong(leadId);
-            // We need the user who is performing the conversion
-            // The service expects a User entity
-            // We can re-use the UserRepository injected in other controllers or inject it
-            // here
-            // But LeadController doesn't have UserRepository injected securely yet?
-            // Wait, LeadController generates lint errors about missing dependencies if I
-            // don't check.
-            // I see no UserRepository in the previous view_file of LeadController.
-            // I should double check if I can easily get the user.
-            // Ah, I can just not pass the user if I modify the service, OR I can inject
-            // UserRepository.
-            // Let's rely on the service to handle the user lookup if I pass the email,
-            // OR simpler: just update the controller to inject UserRepository.
-
-            // Actually, looking at the code I see:
-            // @Autowired private LeadService leadService;
-            // @Autowired private ActivityFeedService activityFeedService;
-            // No UserRepository.
-
-            // I will implement a helper to get the user or just inject it.
-            // For now, I'll pass null or a dummy if the service allows,
-            // BUT the service signature is: convertLead(Long leadId, LeadConversionRequest
-            // request, User convertedBy)
-
-            // So I MUST have the user.
-            // I will stick to adding the endpoint, but I will assume I need to fetch the
-            // user.
-            // Since I can't easily inject UserRepository without scrolling up and adding a
-            // field (which replace_file_content is bad at if I don't see the top),
-            // I will use a minimal change strategy.
-            // Wait, I can see the top of the file in the artifacts?
-            // Yes, I viewed it in step 2304. It has:
-            // 27: @Autowired
-            // 28: private LeadService leadService;
-            // 31: @Autowired
-            // 32: private ActivityFeedService activityFeedService;
-
-            // It does NOT have UserRepository.
-            // I will use multi_replace to add UserRepository injection AND the endpoint.
-
-            return ResponseEntity.status(501).body("Implementation Pending Injection");
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
     // =====================================================
     // LEAD FILTERING & SEARCH
     // =====================================================
@@ -463,6 +415,108 @@ public class LeadController {
             return ResponseEntity.ok(Map.of("success", true, "message", "Estimate saved!"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("success", false));
+        }
+    }
+
+    // =====================================================
+    // LEAD CONVERSION TO PROJECT
+    // =====================================================
+
+    /**
+     * Convert a lead to a customer project
+     * Enterprise-grade implementation with:
+     * - Duplicate conversion prevention
+     * - User authentication and authorization
+     * - Comprehensive validation
+     * - Transactional integrity
+     * - Activity logging
+     * 
+     * @param leadId         The ID of the lead to convert
+     * @param request        Conversion request with project details
+     * @param authentication Spring Security authentication object
+     * @return ResponseEntity with created project or error
+     */
+    @PostMapping("/{leadId}/convert")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
+    public ResponseEntity<?> convertLead(
+            @PathVariable String leadId,
+            @RequestBody com.wd.api.dto.LeadConversionRequest request,
+            org.springframework.security.core.Authentication authentication) {
+
+        try {
+            // 1. Validate lead ID format
+            Long id;
+            try {
+                id = Long.parseLong(leadId);
+            } catch (NumberFormatException e) {
+                logger.warn("Invalid lead ID format: {}", leadId);
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "Invalid lead ID format"));
+            }
+
+            // 2. Check if lead exists
+            com.wd.api.dao.model.Leads lead = leadService.getLeadById(id);
+            if (lead == null) {
+                logger.warn("Lead not found for conversion: {}", id);
+                return ResponseEntity.status(404)
+                        .body(Map.of("success", false, "message", "Lead not found"));
+            }
+
+            // 3. Validate lead status - prevent conversion of already converted or lost
+            // leads
+            if ("WON".equalsIgnoreCase(lead.getLeadStatus()) || "converted".equalsIgnoreCase(lead.getLeadStatus())) {
+                logger.warn("Attempt to convert already converted lead: {}", id);
+                return ResponseEntity.status(409)
+                        .body(Map.of("success", false, "message", "Lead is already converted to a project"));
+            }
+
+            if ("LOST".equalsIgnoreCase(lead.getLeadStatus()) || "lost".equalsIgnoreCase(lead.getLeadStatus())) {
+                logger.warn("Attempt to convert lost lead: {}", id);
+                return ResponseEntity.status(400)
+                        .body(Map.of("success", false, "message",
+                                "Cannot convert a lost lead. Please update lead status first."));
+            }
+
+            // 4. Check for duplicate conversion (verify no existing project linked to this
+            // lead)
+            if (customerProjectRepository.existsByLeadId(id)) {
+                logger.warn("Duplicate conversion attempt for lead: {}", id);
+                return ResponseEntity.status(409)
+                        .body(Map.of("success", false, "message", "This lead has already been converted to a project"));
+            }
+
+            // 5. Get authenticated user for audit trail
+            String username = authentication.getName();
+            com.wd.api.model.User convertedBy = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
+
+            // 6. Perform conversion using service layer (transactional)
+            com.wd.api.model.CustomerProject project = leadService.convertLead(id, request, convertedBy);
+
+            // 7. Return success with project details
+            logger.info("Lead {} successfully converted to project {} by user {}",
+                    id, project.getId(), username);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Lead successfully converted to project",
+                    "projectId", project.getId(),
+                    "projectName", project.getName()));
+
+        } catch (IllegalArgumentException e) {
+            logger.error("Validation error during lead conversion: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", e.getMessage()));
+
+        } catch (IllegalStateException e) {
+            logger.error("State error during lead conversion: {}", e.getMessage());
+            return ResponseEntity.status(409)
+                    .body(Map.of("success", false, "message", e.getMessage()));
+
+        } catch (Exception e) {
+            logger.error("Unexpected error converting lead {}", leadId, e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("success", false, "message", "An unexpected error occurred during conversion"));
         }
     }
 }

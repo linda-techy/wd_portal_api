@@ -23,7 +23,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
         List<Task> findByCreatedByOrAssignedTo(User createdBy, User assignedTo);
 
-        List<Task> findByLeadLeadId(Long leadId);
+        List<Task> findByLeadId(Long leadId);
 
         // ===== Task Deadline Alert Queries (V11 Alert System) =====
         // Note: These queries leverage indexes created in V10 migration

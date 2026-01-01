@@ -86,6 +86,13 @@ public class CustomerProject {
     @Column(name = "contract_type", length = 50)
     private com.wd.api.model.enums.ContractType contractType = com.wd.api.model.enums.ContractType.TURNKEY;
 
+    // Lead conversion tracking
+    @Column(name = "converted_by_id")
+    private Long convertedById;
+
+    @Column(name = "converted_at")
+    private LocalDateTime convertedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

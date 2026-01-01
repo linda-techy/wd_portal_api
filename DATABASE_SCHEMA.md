@@ -1,5 +1,5 @@
 ﻿# WallDot Builders - Database Schema Documentation
-**Total Tables:** 44
+**Total Tables:** 47
 **Database:** PostgreSQL (wdTestDB)
 
 ## Table of Contents
@@ -23,32 +23,37 @@
 18. [feedback_responses](#feedback-responses)
 19. [gallery_images](#gallery-images)
 20. [leads](#leads)
-21. [observations](#observations)
-22. [partnership_users](#partnership-users)
-23. [payment_schedule](#payment-schedule) *(NEW)*
-24. [payment_transactions](#payment-transactions) *(NEW)*
-25. [portal_permissions](#portal-permissions)
-26. [portal_project_documents](#portal-project-documents)
-27. [portal_refresh_tokens](#portal-refresh-tokens)
-28. [portal_role_permissions](#portal-role-permissions)
-29. [portal_roles](#portal-roles)
-30. [portal_users](#portal-users)
-31. [project_design_steps](#project-design-steps)
-32. [project_documents](#project-documents)
-33. [project_members](#project-members)
-34. [project_queries](#project-queries)
-35. [quality_checks](#quality-checks)
-36. [retention_releases](#retention-releases) *(NEW)*
-37. [site_reports](#site-reports)
-38. [site_visits](#site-visits)
-39. [sqft_categories](#sqft-categories)
-40. [staff_roles](#staff-roles)
-41. [task_assignment_history](#task-assignment-history) *(NEW)*
-42. [tasks](#tasks)
-43. [tax_invoices](#tax-invoices) *(NEW)*
-44. [view_360](#view-360)
-45. [challan_sequences](#challan_sequences) *(NEW)*
-46. [payment_challans](#payment_challans) *(NEW)*
+21. [lead_documents](#lead-documents) *(NEW - V1_20)*
+22. [lead_quotations](#lead-quotations) *(NEW - V1_22)*
+23. [lead_quotation_items](#lead-quotation-items) *(NEW - V1_22)*
+24. [lead_interactions](#lead-interactions) *(NEW - V1_23)*
+25. [observations](#observations)
+26. [partnership_users](#partnership-users)
+27. [payment_schedule](#payment-schedule) *(NEW)*
+28. [payment_transactions](#payment-transactions) *(NEW)*
+29. [portal_permissions](#portal-permissions)
+30. [portal_project_documents](#portal-project-documents)
+31. [portal_refresh_tokens](#portal-refresh-tokens)
+32. [portal_role_permissions](#portal-role-permissions)
+33. [portal_roles](#portal-roles)
+34. [portal_users](#portal-users)
+35. [project_design_steps](#project-design-steps)
+36. [project_documents](#project-documents)
+37. [project_members](#project-members)
+38. [project_queries](#project-queries)
+39. [quality_checks](#quality-checks)
+40. [retention_releases](#retention-releases) *(NEW)*
+41. [site_reports](#site-reports)
+42. [site_visits](#site-visits)
+43. [sqft_categories](#sqft-categories)
+44. [staff_roles](#staff-roles)
+45. [task_assignment_history](#task-assignment-history) *(NEW)*
+46. [tasks](#tasks)
+47. [tax_invoices](#tax-invoices) *(NEW)*
+48. [view_360](#view-360)
+49. [challan_sequences](#challan_sequences) *(NEW)*
+50. [payment_challans](#payment_challans) *(NEW)*
+
 
 
 ---
@@ -591,10 +596,48 @@
 | `district` | `character varying(255)` | ✓ | `-` | - |
 | `location` | `character varying(255)` | ✓ | `-` | - |
 | `project_sqft_area` | `numeric(38,2)` | ✓ | `-` | - |
+| `assigned_to_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` (V1_18) |
 
 ### Primary Key
 
 - `lead_id`
+
+###Foreign Keys
+
+- `assigned_to_id` → `portal_users.id`
+
+---
+
+## lead_documents
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|----------|
+| `id` | `bigserial` | ✗ | `-` | 🔑 PK |
+| `lead_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `leads.lead_id` |
+| `filename` | `character varying(255)` | ✗ | `-` | - |
+| `file_path` | `character varying(500)` | ✗ | `-` | - |
+| `file_type` | `character varying(50)` | ✓ | `-` | - |
+| `file_size` | `bigint(64,0)` | ✓ | `-` | - |
+| `description` | `text` | ✓ | `-` | - |
+| `category` | `character varying(50)` | ✓ | `-` | Document category e.g., 'REQUIREMENTS', 'SITE_PHOTO', 'PROPOSAL' |
+| `uploaded_by_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `uploaded_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
+| `is_active` | `boolean` | ✓ | `TRUE` | Soft delete flag |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `lead_id` → `leads.lead_id` ON DELETE CASCADE
+- `uploaded_by_id` → `portal_users.id`
+
+### Indexes
+
+- `idx_lead_documents_lead` on `lead_id`
 
 ---
 
@@ -1182,6 +1225,7 @@ Audit trail for all task assignments. Tracks who assigned what to whom and when,
 | `assigned_to` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
 | `created_by` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
 | `project_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `customer_projects.id` |
+| `lead_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `leads.lead_id` (V1_19) - For pre-sales tasks |
 | `due_date` | `date` | ✗ | `-` | **⚠️ MANDATORY** - Required for task accountability and timeline tracking. Must be >= created_at date. |
 | `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
 | `updated_at` | `timestamp without time zone` | ✓ | `CURRENT_TIMESTAMP` | - |
@@ -1193,6 +1237,7 @@ Audit trail for all task assignments. Tracks who assigned what to whom and when,
 ### Foreign Keys
 
 - `project_id` → `customer_projects.id`
+- `lead_id` → `leads.lead_id`
 - `created_by` → `portal_users.id`
 - `assigned_to` → `portal_users.id`
 
