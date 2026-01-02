@@ -109,4 +109,9 @@ public class PurchaseInvoice {
         }
         return LocalDate.now().isAfter(dueDate);
     }
+
+    // Manual getter to test Lombok issue
+    public String getStatus() {
+        return status;
+    }
 }

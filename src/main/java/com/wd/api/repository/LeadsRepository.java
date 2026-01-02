@@ -44,4 +44,10 @@ public interface LeadsRepository extends JpaRepository<Leads, Long>, JpaSpecific
 
         List<Leads> findByNextFollowUpBeforeAndLeadStatusNotIn(java.time.LocalDateTime date,
                         java.util.Collection<String> statuses);
+
+        @org.springframework.data.jpa.repository.Query("SELECT l.leadSource, COUNT(l) FROM Leads l GROUP BY l.leadSource")
+        List<Object[]> countLeadsBySource();
+
+        @org.springframework.data.jpa.repository.Query("SELECT l.priority, COUNT(l) FROM Leads l GROUP BY l.priority")
+        List<Object[]> countLeadsByPriority();
 }

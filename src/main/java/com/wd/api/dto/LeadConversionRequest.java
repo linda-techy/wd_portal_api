@@ -8,6 +8,7 @@ public class LeadConversionRequest {
     private LocalDate startDate;
     private Long projectManagerId; // Optional assignment of PM
     private String location;
+    private Long quotationId; // Optional Quote to convert from
 
     // Getters and Setters
     public String getProjectName() {
@@ -48,5 +49,13 @@ public class LeadConversionRequest {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public Long getQuotationId() {
+        return quotationId;
+    }
+
+    public void setQuotationId(Long quotationId) {
+        this.quotationId = quotationId;
     }
 }

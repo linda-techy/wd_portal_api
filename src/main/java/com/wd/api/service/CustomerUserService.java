@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +31,13 @@ import java.util.stream.Collectors;
 public class CustomerUserService {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerUserService.class);
+
+    // Email validation pattern (RFC 5322 simplified)
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+
+    // Password pattern: min 8 chars, uppercase, lowercase, digit, special char
+    private static final Pattern PASSWORD_PATTERN = Pattern
+            .compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$");
 
     @Autowired
     private CustomerUserRepository customerUserRepository;
@@ -49,12 +57,14 @@ public class CustomerUserService {
      */
     @Transactional(readOnly = true)
     public Page<CustomerResponse> getAllCustomersPaginated(Pageable pageable) {
-        // For paginated queries, we still need per-customer count
-        // TODO: Create paginated version of custom query
-        Page<CustomerUser> customerPage = customerUserRepository.findAll(pageable);
-        return customerPage.map(customer -> {
+        // Optimized query to fetch customers and project counts in one go
+        Page<Object[]> results = customerUserRepository.findAllCustomersWithProjectCountPaginated(pageable);
+
+        return results.map(result -> {
+            CustomerUser customer = (CustomerUser) result[0];
+            Long projectCount = (Long) result[1];
             CustomerResponse response = new CustomerResponse(customer);
-            response.setProjectCount(customerProjectRepository.countByCustomer_Id(customer.getId()));
+            response.setProjectCount(projectCount.intValue());
             return response;
         });
     }
@@ -120,6 +130,15 @@ public class CustomerUserService {
         customerUser.setPassword(passwordEncoder.encode(request.getPassword().trim()));
         customerUser.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
 
+        // Map business fields
+        customerUser.setPhone(request.getPhone());
+        customerUser.setWhatsappNumber(request.getWhatsappNumber());
+        customerUser.setAddress(request.getAddress());
+        customerUser.setCompanyName(request.getCompanyName());
+        customerUser.setGstNumber(request.getGstNumber());
+        customerUser.setLeadSource(request.getLeadSource());
+        customerUser.setNotes(request.getNotes());
+
         // Set role by looking up CustomerRole entity
         if (request.getRoleId() != null) {
             customerRoleRepository.findById(request.getRoleId()).ifPresent(customerUser::setRole);
@@ -158,6 +177,22 @@ public class CustomerUserService {
         customerUser.setEmail(request.getEmail().trim());
         customerUser.setFirstName(request.getFirstName().trim());
         customerUser.setLastName(request.getLastName().trim());
+
+        // Update business fields
+        if (request.getPhone() != null)
+            customerUser.setPhone(request.getPhone());
+        if (request.getWhatsappNumber() != null)
+            customerUser.setWhatsappNumber(request.getWhatsappNumber());
+        if (request.getAddress() != null)
+            customerUser.setAddress(request.getAddress());
+        if (request.getCompanyName() != null)
+            customerUser.setCompanyName(request.getCompanyName());
+        if (request.getGstNumber() != null)
+            customerUser.setGstNumber(request.getGstNumber());
+        if (request.getLeadSource() != null)
+            customerUser.setLeadSource(request.getLeadSource());
+        if (request.getNotes() != null)
+            customerUser.setNotes(request.getNotes());
 
         // Update password only if provided
         if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
@@ -202,6 +237,10 @@ public class CustomerUserService {
         if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             throw new IllegalArgumentException("Email is required");
         }
+
+        // Validate email format
+        validateEmail(request.getEmail());
+
         if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
             throw new IllegalArgumentException("First name is required");
         }
@@ -212,9 +251,8 @@ public class CustomerUserService {
             throw new IllegalArgumentException("Password is required");
         }
 
-        // TODO: Add email format validation
-        // TODO: Add stronger password validation (uppercase, lowercase, numbers,
-        // special chars)
+        // Validate password strength
+        validatePassword(request.getPassword());
     }
 
     private void validateCustomerUpdateRequest(CustomerUpdateRequest request) {
@@ -224,13 +262,41 @@ public class CustomerUserService {
         if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             throw new IllegalArgumentException("Email is required");
         }
+
+        // Validate email format
+        validateEmail(request.getEmail());
+
         if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
             throw new IllegalArgumentException("First name is required");
         }
         if (request.getLastName() == null || request.getLastName().trim().isEmpty()) {
             throw new IllegalArgumentException("Last name is required");
         }
+    }
 
-        // TODO: Add email format validation
+    /**
+     * Validate email format using regex pattern
+     */
+    private void validateEmail(String email) {
+        if (!EMAIL_PATTERN.matcher(email.trim()).matches()) {
+            throw new IllegalArgumentException(
+                    "Invalid email format. Please provide a valid email address.");
+        }
+    }
+
+    /**
+     * Validate password strength
+     * Requirements: min 8 chars, uppercase, lowercase, digit, special char
+     * (@$!%*?&)
+     */
+    private void validatePassword(String password) {
+        if (password.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters long");
+        }
+        if (!PASSWORD_PATTERN.matcher(password).matches()) {
+            throw new IllegalArgumentException(
+                    "Password must contain at least one uppercase letter, one lowercase letter, " +
+                            "one digit, and one special character (@$!%*?&)");
+        }
     }
 }

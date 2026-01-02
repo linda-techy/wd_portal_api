@@ -55,6 +55,9 @@ public class CustomerProject {
     @Column(name = "lead_id", nullable = true)
     private Long leadId;
 
+    @Column(name = "budget", precision = 15, scale = 2)
+    private BigDecimal budget;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     private CustomerUser customer;
@@ -89,6 +92,25 @@ public class CustomerProject {
 
     @Column(name = "converted_at")
     private LocalDateTime convertedAt;
+
+    // Link back to original lead source
+    @Column(name = "converted_from_lead_id")
+    private Long convertedFromLeadId;
+
+    @Column(name = "plot_area", columnDefinition = "NUMERIC(10,2)")
+    private BigDecimal plotArea;
+
+    @Column(name = "floors")
+    private Integer floors;
+
+    @Column(length = 20)
+    private String facing; // North, South, East, West, NE, NW, SE, SW
+
+    @Column(name = "permit_status", length = 50)
+    private String permitStatus; // Applied, Approved, Not Required, Rejected
+
+    @Column(name = "project_description", columnDefinition = "TEXT")
+    private String projectDescription;
 
     @PrePersist
     protected void onCreate() {
@@ -191,6 +213,14 @@ public class CustomerProject {
 
     public void setDistrict(String district) {
         this.district = district;
+    }
+
+    public BigDecimal getBudget() {
+        return budget;
+    }
+
+    public void setBudget(BigDecimal budget) {
+        this.budget = budget;
     }
 
     public BigDecimal getSqfeet() {
@@ -299,5 +329,53 @@ public class CustomerProject {
 
     public void setConvertedAt(LocalDateTime convertedAt) {
         this.convertedAt = convertedAt;
+    }
+
+    public Long getConvertedFromLeadId() {
+        return convertedFromLeadId;
+    }
+
+    public void setConvertedFromLeadId(Long convertedFromLeadId) {
+        this.convertedFromLeadId = convertedFromLeadId;
+    }
+
+    public BigDecimal getPlotArea() {
+        return plotArea;
+    }
+
+    public void setPlotArea(BigDecimal plotArea) {
+        this.plotArea = plotArea;
+    }
+
+    public Integer getFloors() {
+        return floors;
+    }
+
+    public void setFloors(Integer floors) {
+        this.floors = floors;
+    }
+
+    public String getFacing() {
+        return facing;
+    }
+
+    public void setFacing(String facing) {
+        this.facing = facing;
+    }
+
+    public String getPermitStatus() {
+        return permitStatus;
+    }
+
+    public void setPermitStatus(String permitStatus) {
+        this.permitStatus = permitStatus;
+    }
+
+    public String getProjectDescription() {
+        return projectDescription;
+    }
+
+    public void setProjectDescription(String projectDescription) {
+        this.projectDescription = projectDescription;
     }
 }

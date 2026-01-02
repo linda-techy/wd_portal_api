@@ -406,6 +406,13 @@
 | `password` | `character varying(255)` | ✗ | `-` | - |
 | `updated_at` | `timestamp without time zone` | ✓ | `-` | - |
 | `role_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `customer_roles.id` |
+| `phone` | `character varying(20)` | ✓ | `-` | - |
+| `whatsapp_number` | `character varying(20)` | ✓ | `-` | - |
+| `address` | `text` | ✓ | `-` | - |
+| `company_name` | `character varying(255)` | ✓ | `-` | - |
+| `gst_number` | `character varying(50)` | ✓ | `-` | - |
+| `lead_source` | `character varying(50)` | ✓ | `-` | - |
+| `notes` | `text` | ✓ | `-` | - |
 
 ### Primary Key
 
@@ -597,6 +604,8 @@
 | `location` | `character varying(255)` | ✓ | `-` | - |
 | `project_sqft_area` | `numeric(38,2)` | ✓ | `-` | - |
 | `assigned_to_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` (V1_18) |
+| `plot_area` | `numeric(10,2)` | ✓ | `-` | (V1_32) |
+| `floors` | `integer` | ✓ | `-` | (V1_32) |
 
 ### Primary Key
 
@@ -638,6 +647,107 @@
 ### Indexes
 
 - `idx_lead_documents_lead` on `lead_id`
+
+---
+
+
+---
+
+## lead_interactions
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `nextval` | 🔑 PK |
+| `lead_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `leads.lead_id` |
+| `interaction_type` | `character varying(50)` | ✗ | `-` | 'CALL', 'EMAIL', 'MEETING', etc. |
+| `interaction_date` | `timestamp without time zone` | ✗ | `now()` | - |
+| `duration_minutes` | `integer` | ✓ | `-` | - |
+| `subject` | `character varying(255)` | ✓ | `-` | - |
+| `notes` | `text` | ✓ | `-` | - |
+| `outcome` | `character varying(100)` | ✓ | `-` | - |
+| `next_action` | `character varying(255)` | ✓ | `-` | - |
+| `next_action_date` | `timestamp without time zone` | ✓ | `-` | - |
+| `location` | `character varying(255)` | ✓ | `-` | - |
+| `metadata` | `text` | ✓ | `-` | - |
+| `created_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `portal_users.id` |
+| `created_at` | `timestamp without time zone` | ✗ | `now()` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `lead_id` → `leads.lead_id`
+- `created_by_id` → `portal_users.id`
+
+---
+
+## lead_quotations
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `nextval` | 🔑 PK |
+| `lead_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `leads.lead_id` |
+| `quotation_number` | `character varying(50)` | ✗ | `-` | 🔒 UNIQUE |
+| `version` | `integer` | ✗ | `1` | - |
+| `title` | `character varying(255)` | ✗ | `-` | - |
+| `description` | `text` | ✓ | `-` | - |
+| `total_amount` | `numeric(12,2)` | ✗ | `-` | - |
+| `tax_amount` | `numeric(12,2)` | ✓ | `-` | - |
+| `discount_amount` | `numeric(12,2)` | ✓ | `-` | - |
+| `final_amount` | `numeric(12,2)` | ✗ | `-` | - |
+| `validity_days` | `integer` | ✓ | `30` | - |
+| `status` | `character varying(50)` | ✗ | `'DRAFT'` | 'DRAFT', 'SENT', 'ACCEPTED', etc. |
+| `sent_at` | `timestamp without time zone` | ✓ | `-` | - |
+| `viewed_at` | `timestamp without time zone` | ✓ | `-` | - |
+| `responded_at` | `timestamp without time zone` | ✓ | `-` | - |
+| `created_by_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `created_at` | `timestamp without time zone` | ✗ | `now()` | - |
+| `updated_at` | `timestamp without time zone` | ✗ | `now()` | - |
+| `notes` | `text` | ✓ | `-` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `lead_id` → `leads.lead_id`
+- `created_by_id` → `portal_users.id`
+
+### Unique Constraints
+
+- `quotation_number`
+
+---
+
+## lead_quotation_items
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `nextval` | 🔑 PK |
+| `quotation_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `lead_quotations.id` |
+| `item_number` | `integer` | ✗ | `-` | - |
+| `description` | `text` | ✗ | `-` | - |
+| `quantity` | `numeric(10,2)` | ✗ | `1` | - |
+| `unit_price` | `numeric(12,2)` | ✗ | `-` | - |
+| `total_price` | `numeric(12,2)` | ✗ | `-` | - |
+| `notes` | `text` | ✓ | `-` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `quotation_id` → `lead_quotations.id`
 
 ---
 
@@ -1712,3 +1822,35 @@ Records of material wastage, theft, damage, and inventory corrections.
  - - - 
  
  
+
+---
+
+## project_warranties *(NEW)*
+
+Tracks warranties for project components provided by vendors or manufacturers.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `component_name` | `varchar(255)` | ✗ | `-` | e.g., 'Waterproofing', 'Structure' |
+| `description` | `text` | ✓ | `-` | - |
+| `provider_name` | `varchar(255)` | ✓ | `-` | - |
+| `start_date` | `date` | ✓ | `-` | - |
+| `end_date` | `date` | ✓ | `-` | - |
+| `status` | `varchar(20)` | ✓ | `'ACTIVE'` | 'ACTIVE', 'EXPIRED', 'VOID' |
+| `coverage_details` | `text` | ✓ | `-` | - |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✓ | `now()` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+
+---

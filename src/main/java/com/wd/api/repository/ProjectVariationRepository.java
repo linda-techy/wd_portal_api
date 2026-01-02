@@ -10,4 +10,6 @@ public interface ProjectVariationRepository extends JpaRepository<ProjectVariati
     List<ProjectVariation> findByProjectIdOrderByCreatedAtDesc(Long projectId);
 
     List<ProjectVariation> findByProjectIdAndStatus(Long projectId, String status);
+
+    List<ProjectVariation> findByProjectId(Long projectId);
 }

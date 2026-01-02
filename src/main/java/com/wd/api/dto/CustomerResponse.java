@@ -14,6 +14,27 @@ public class CustomerResponse {
     @JsonProperty("last_name")
     private String lastName;
 
+    @JsonProperty("phone")
+    private String phone;
+
+    @JsonProperty("whatsapp_number")
+    private String whatsappNumber;
+
+    @JsonProperty("address")
+    private String address;
+
+    @JsonProperty("company_name")
+    private String companyName;
+
+    @JsonProperty("gst_number")
+    private String gstNumber;
+
+    @JsonProperty("lead_source")
+    private String leadSource;
+
+    @JsonProperty("notes")
+    private String notes;
+
     private Boolean enabled;
 
     @JsonProperty("role_id")
@@ -36,7 +57,16 @@ public class CustomerResponse {
         this.id = customerUser.getId();
         this.email = customerUser.getEmail() != null ? customerUser.getEmail() : "";
         this.firstName = customerUser.getFirstName() != null ? customerUser.getFirstName() : "";
+        this.email = customerUser.getEmail() != null ? customerUser.getEmail() : "";
+        this.firstName = customerUser.getFirstName() != null ? customerUser.getFirstName() : "";
         this.lastName = customerUser.getLastName() != null ? customerUser.getLastName() : "";
+        this.phone = customerUser.getPhone();
+        this.whatsappNumber = customerUser.getWhatsappNumber();
+        this.address = customerUser.getAddress();
+        this.companyName = customerUser.getCompanyName();
+        this.gstNumber = customerUser.getGstNumber();
+        this.leadSource = customerUser.getLeadSource();
+        this.notes = customerUser.getNotes();
         this.enabled = customerUser.getEnabled() != null ? customerUser.getEnabled() : true;
         this.roleId = customerUser.getRole() != null ? customerUser.getRole().getId() : null;
         this.createdAt = customerUser.getCreatedAt();

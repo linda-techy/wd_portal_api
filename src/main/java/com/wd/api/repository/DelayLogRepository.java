@@ -10,4 +10,6 @@ public interface DelayLogRepository extends JpaRepository<DelayLog, Long> {
     List<DelayLog> findByProjectIdOrderByFromDateDesc(Long projectId);
 
     List<DelayLog> findByProjectIdAndDelayType(Long projectId, String delayType);
+
+    List<DelayLog> findByProjectId(Long projectId);
 }

@@ -4,6 +4,7 @@ import com.wd.api.dao.model.Leads;
 import com.wd.api.dto.PaginationParams;
 import com.wd.api.dto.PartnershipReferralRequest;
 import com.wd.api.repository.LeadsRepository;
+import com.wd.api.repository.LeadQuotationRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,15 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import com.wd.api.dto.LeadCreateRequest;
+
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class LeadService {
@@ -38,7 +48,16 @@ public class LeadService {
     private com.wd.api.repository.CustomerProjectRepository customerProjectRepository;
 
     @Autowired
+    private com.wd.api.repository.UserRepository userRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private LeadQuotationRepository leadQuotationRepository;
 
     @Transactional
     public Leads createLead(Leads lead) {
@@ -58,6 +77,9 @@ public class LeadService {
             }
         }
 
+        // Calculate Score
+        calculateLeadScore(lead);
+
         Leads savedLead = leadsRepository.save(lead);
         try {
             activityFeedService.logSystemActivity(
@@ -75,16 +97,80 @@ public class LeadService {
                         savedLead.getId(),
                         "LEAD");
             }
+
+            // Send Welcome Email
+            emailService.sendLeadWelcomeEmail(savedLead);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return savedLead;
     }
 
+    /**
+     * Create Lead from DTO
+     * Handles mapping and defaults
+     */
+    public Leads createLead(LeadCreateRequest request) {
+        Leads lead = new Leads();
+        lead.setName(request.getName());
+        lead.setEmail(request.getEmail() != null ? request.getEmail() : "");
+        lead.setPhone(request.getPhone() != null ? request.getPhone() : "");
+        lead.setWhatsappNumber(request.getWhatsappNumber() != null ? request.getWhatsappNumber() : "");
+
+        lead.setCustomerType(request.getCustomerType() != null && !request.getCustomerType().isEmpty()
+                ? request.getCustomerType().trim().toLowerCase()
+                : "other");
+
+        lead.setProjectType(request.getProjectType() != null ? request.getProjectType() : "");
+        lead.setProjectDescription(request.getProjectDescription() != null ? request.getProjectDescription() : "");
+        lead.setRequirements(request.getRequirements() != null ? request.getRequirements() : "");
+        lead.setBudget(request.getBudget());
+        lead.setProjectSqftArea(request.getProjectSqftArea());
+
+        String status = request.getLeadStatus();
+        lead.setLeadStatus(status != null && !status.isEmpty() ? status.trim().toLowerCase().replace(' ', '_')
+                : "new_inquiry");
+
+        String source = request.getLeadSource();
+        lead.setLeadSource(
+                source != null && !source.isEmpty() ? source.trim().toLowerCase().replace(' ', '_') : "website");
+
+        String priority = request.getPriority();
+        lead.setPriority(priority != null && !priority.isEmpty() ? priority.trim().toLowerCase() : "low");
+
+        lead.setAssignedTeam(request.getAssignedTeam() != null ? request.getAssignedTeam() : "");
+        lead.setAssignedToId(request.getAssignedToId());
+        lead.setNotes(request.getNotes() != null ? request.getNotes() : "");
+        lead.setLostReason(request.getLostReason());
+
+        lead.setClientRating(request.getClientRating() != null ? request.getClientRating() : 0);
+        lead.setProbabilityToWin(request.getProbabilityToWin() != null ? request.getProbabilityToWin() : 0);
+        lead.setNextFollowUp(request.getNextFollowUp());
+        lead.setLastContactDate(request.getLastContactDate());
+
+        lead.setState(request.getState());
+        lead.setDistrict(request.getDistrict());
+        lead.setLocation(request.getLocation());
+        lead.setAddress(request.getAddress());
+
+        if (request.getDateOfEnquiry() != null && !request.getDateOfEnquiry().trim().isEmpty()) {
+            try {
+                lead.setDateOfEnquiry(LocalDate.parse(request.getDateOfEnquiry().substring(0, 10)));
+            } catch (Exception e) {
+                lead.setDateOfEnquiry(LocalDate.now());
+            }
+        } else {
+            lead.setDateOfEnquiry(LocalDate.now());
+        }
+
+        return createLead(lead);
+    }
+
     @Transactional
     public Leads updateLead(Long id, Leads leadDetails) {
         return leadsRepository.findById(id).map(lead -> {
             String oldStatus = lead.getLeadStatus();
+            String oldCategory = lead.getScoreCategory(); // Capture old score category
             String oldAssigned = lead.getAssignedTeam();
             Long oldAssignedId = lead.getAssignedTo() != null ? lead.getAssignedTo().getId() : null;
 
@@ -113,7 +199,6 @@ public class LeadService {
             lead.setProbabilityToWin(leadDetails.getProbabilityToWin());
             lead.setLostReason(leadDetails.getLostReason());
             lead.setDateOfEnquiry(leadDetails.getDateOfEnquiry());
-            lead.setUpdatedAt(java.time.LocalDateTime.now());
 
             // Handle Assignment Update
             if (leadDetails.getAssignedToId() != null) {
@@ -122,6 +207,7 @@ public class LeadService {
                             .orElse(null);
                     if (user != null) {
                         lead.setAssignedTo(user);
+                        lead.setAssignedToId(leadDetails.getAssignedToId());
                         lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
                     }
                 }
@@ -132,6 +218,11 @@ public class LeadService {
                 // Let's assume if sent as 0 or explicit null action needed?
                 // For now, if passed ID is distinct (and valid), we update.
             }
+
+            // Recalculate Score on Update
+            calculateLeadScore(lead);
+
+            lead.setUpdatedAt(java.time.LocalDateTime.now());
 
             Leads savedLead = leadsRepository.save(lead);
 
@@ -150,6 +241,14 @@ public class LeadService {
                             "Status changed from " + oldStatus + " to " + savedLead.getLeadStatus(),
                             savedLead.getId(),
                             "LEAD");
+
+                    // Send Status Update Email
+                    emailService.sendLeadStatusUpdateEmail(savedLead, oldStatus, savedLead.getLeadStatus());
+                }
+
+                // Check if Lead became HOT
+                if ("HOT".equals(savedLead.getScoreCategory()) && !"HOT".equals(oldCategory)) {
+                    emailService.sendAdminScoreAlert(savedLead);
                 }
 
                 // Logic updated to check assignedTo relationship change or fallback string
@@ -265,12 +364,11 @@ public class LeadService {
         return leadsRepository.findAll(spec, pageable);
     }
 
-    // AnalyticsNOTE: Converted from JDBC to JPA for better type safety and
-    // maintainability
+    // Analytics - OPTIMIZED (JPA Aggregations)
     public Map<String, Object> getLeadAnalytics() {
         Map<String, Object> analytics = new java.util.HashMap<>();
 
-        // Status distribution using JPA
+        // Status distribution using JPA count
         Map<String, Long> statusDist = new java.util.HashMap<>();
         List<String> statuses = List.of("new", "contacted", "qualified", "proposal_sent", "won", "lost");
         for (String status : statuses) {
@@ -278,24 +376,27 @@ public class LeadService {
         }
         analytics.put("statusDistribution", statusDist);
 
-        // Source distribution - using findAll and grouping (could be optimized with
-        // custom query)
-        List<Leads> allLeads = leadsRepository.findAll();
-        Map<String, Long> sourceDist = allLeads.stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                        lead -> lead.getLeadSource() != null ? lead.getLeadSource() : "unknown",
-                        java.util.stream.Collectors.counting()));
+        // Source distribution - Optimized
+        List<Object[]> sourceCounts = leadsRepository.countLeadsBySource();
+        Map<String, Long> sourceDist = new HashMap<>();
+        for (Object[] row : sourceCounts) {
+            String source = (String) row[0];
+            Long count = (Long) row[1];
+            sourceDist.put(source != null ? source : "unknown", count);
+        }
         analytics.put("sourceDistribution", sourceDist);
 
-        // Priority distribution
-        Map<String, Long> priorityDist = allLeads.stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                        lead -> lead.getPriority() != null ? lead.getPriority() : "unknown",
-                        java.util.stream.Collectors.counting()));
+        // Priority distribution - Optimized
+        List<Object[]> priorityCounts = leadsRepository.countLeadsByPriority();
+        Map<String, Long> priorityDist = new HashMap<>();
+        for (Object[] row : priorityCounts) {
+            String priority = (String) row[0];
+            Long count = (Long) row[1];
+            priorityDist.put(priority != null ? priority : "unknown", count);
+        }
         analytics.put("priorityDistribution", priorityDist);
 
-        // Monthly trends - simplified (would need custom repository query for real-time
-        // production use)
+        // Monthly trends - simplified
         analytics.put("monthlyTrends", "Use custom @Query for monthly trend analysis");
 
         return analytics;
@@ -433,12 +534,24 @@ public class LeadService {
      */
     @Transactional
     public com.wd.api.model.CustomerProject convertLead(Long leadId, com.wd.api.dto.LeadConversionRequest request,
-            com.wd.api.model.User convertedBy) {
+            String username) {
         Leads lead = leadsRepository.findById(leadId)
-                .orElseThrow(() -> new RuntimeException("Lead not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + leadId));
 
-        if ("WON".equalsIgnoreCase(lead.getLeadStatus())) {
-            throw new RuntimeException("Lead is already converted");
+        com.wd.api.model.User convertedBy = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
+
+        // Validate Status
+        if ("WON".equalsIgnoreCase(lead.getLeadStatus()) || "converted".equalsIgnoreCase(lead.getLeadStatus())) {
+            throw new IllegalStateException("Lead is already converted to a project");
+        }
+        if ("LOST".equalsIgnoreCase(lead.getLeadStatus()) || "lost".equalsIgnoreCase(lead.getLeadStatus())) {
+            throw new IllegalArgumentException("Cannot convert a lost lead. Please update lead status first.");
+        }
+
+        // Check for duplicate conversion
+        if (customerProjectRepository.existsByLeadId(leadId)) {
+            throw new IllegalStateException("This lead has already been converted to a project");
         }
 
         // 1. Create or Find Customer User
@@ -457,14 +570,41 @@ public class LeadService {
         project.setSqfeet(lead.getProjectSqftArea());
         project.setProjectType(request.getProjectType());
 
+        // Construction details
+        project.setPlotArea(lead.getPlotArea());
+        project.setFloors(lead.getFloors());
+        project.setProjectDescription(lead.getProjectDescription());
+
         // Assign Project Manager if selected
         if (request.getProjectManagerId() != null) {
             project.setProjectManagerId(request.getProjectManagerId());
         }
         project.setCreatedBy(convertedBy.getUsername());
 
+        // Set Budget from Quote or Lead
+        if (request.getQuotationId() != null) {
+            com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(request.getQuotationId())
+                    .orElseThrow(
+                            () -> new IllegalArgumentException("Quotation not found: " + request.getQuotationId()));
+
+            if (!quote.getLeadId().equals(lead.getId())) {
+                throw new IllegalArgumentException("Quotation does not belong to this lead");
+            }
+
+            project.setBudget(quote.getFinalAmount());
+            project.setDesignPackage(quote.getTitle()); // Or specific field if available
+
+            // Mark Quote as Accepted
+            quote.setStatus("ACCEPTED");
+            quote.setRespondedAt(java.time.LocalDateTime.now());
+            leadQuotationRepository.save(quote);
+        } else {
+            project.setBudget(lead.getBudget());
+        }
+
         // Set conversion tracking metadata
         project.setConvertedById(convertedBy.getId());
+        project.setConvertedFromLeadId(lead.getId());
         // convertedAt is automatically set by database trigger, but we can set it
         // explicitly too
         project.setConvertedAt(java.time.LocalDateTime.now());
@@ -493,10 +633,133 @@ public class LeadService {
     private com.wd.api.model.CustomerUser createCustomerFromLead(Leads lead) {
         com.wd.api.model.CustomerUser customer = new com.wd.api.model.CustomerUser();
         customer.setEmail(lead.getEmail());
-        customer.setFirstName(lead.getName()); // Basic mapping
+
+        // Proper name splitting logic
+        String fullName = lead.getName().trim();
+        int lastSpaceIndex = fullName.lastIndexOf(" ");
+        if (lastSpaceIndex != -1) {
+            customer.setFirstName(fullName.substring(0, lastSpaceIndex));
+            customer.setLastName(fullName.substring(lastSpaceIndex + 1));
+        } else {
+            customer.setFirstName(fullName);
+            customer.setLastName("."); // Placeholder for last name as it isn't optional
+        }
+
+        // Map business fields from Lead to CustomerUser (Phase 1.2 Data Integrity)
+        customer.setPhone(lead.getPhone());
+        customer.setWhatsappNumber(lead.getWhatsappNumber());
+        customer.setAddress(lead.getAddress());
+        customer.setLeadSource(lead.getLeadSource());
+        customer.setNotes(lead.getNotes()); // Transfer notes history
+
         customer.setEnabled(true);
-        // Set temp password or handle via invitation flow
-        customer.setPassword(passwordEncoder.encode("Welcome@123"));
+
+        // Generate secure random password instead of hardcoded one
+        String tempPassword = generateSecurePassword();
+        customer.setPassword(passwordEncoder.encode(tempPassword));
+
+        // Send Welcome Email (Async/Simulated)
+        emailService.sendWelcomeEmail(customer.getEmail(), customer.getFirstName() + " " + customer.getLastName(),
+                tempPassword);
+
         return customerUserRepository.save(customer);
+    }
+
+    private void calculateLeadScore(Leads lead) {
+        int score = 0;
+        Map<String, Integer> factors = new HashMap<>();
+
+        try {
+            // Budget
+            if (lead.getBudget() != null) {
+                if (lead.getBudget().compareTo(new BigDecimal("5000000")) > 0) {
+                    score += 20;
+                    factors.put("High Budget (>5M)", 20);
+                } else if (lead.getBudget().compareTo(new BigDecimal("1000000")) > 0) {
+                    score += 10;
+                    factors.put("Medium Budget (>1M)", 10);
+                }
+            }
+
+            // Source
+            if (lead.getLeadSource() != null) {
+                String source = lead.getLeadSource().toLowerCase();
+                if (source.contains("referral")) {
+                    score += 20;
+                    factors.put("Referral Interest", 20);
+                } else if (source.contains("website") || source.contains("google")) {
+                    score += 10;
+                    factors.put("Organic Interest", 10);
+                } else {
+                    score += 5;
+                    factors.put("Standard Entry", 5);
+                }
+            }
+
+            // Contact Info Integrity
+            if (lead.getEmail() != null && !lead.getEmail().isEmpty() &&
+                    lead.getPhone() != null && !lead.getPhone().isEmpty() &&
+                    lead.getWhatsappNumber() != null && !lead.getWhatsappNumber().isEmpty()) {
+                score += 10;
+                factors.put("Complete Contact Profile", 10);
+            }
+
+            // Project Type Priority
+            if (lead.getProjectType() != null) {
+                String type = lead.getProjectType().toLowerCase();
+                if (type.contains("commercial") || type.contains("industrial")) {
+                    score += 15;
+                    factors.put("Commercial Value", 15);
+                } else if (type.contains("residential")) {
+                    score += 10;
+                    factors.put("Residential Request", 10);
+                }
+            }
+
+            // Status-based Progression Bonus
+            if (lead.getLeadStatus() != null &&
+                    ("qualified_lead".equalsIgnoreCase(lead.getLeadStatus())
+                            || "qualified".equalsIgnoreCase(lead.getLeadStatus()))) {
+                score += 5;
+                factors.put("Qualified Status", 5);
+            }
+
+            // Determine Category
+            String category;
+            if (score > 60)
+                category = "HOT";
+            else if (score >= 30)
+                category = "WARM";
+            else
+                category = "COLD";
+
+            lead.setScore(score);
+            lead.setScoreCategory(category);
+            lead.setLastScoredAt(LocalDateTime.now());
+
+            // Serialize factors
+            try {
+                lead.setScoreFactors(new ObjectMapper().writeValueAsString(factors));
+            } catch (Exception e) {
+                lead.setScoreFactors("{}");
+            }
+        } catch (Exception e) {
+            // Failsafe: Don't block lead creation/update if scoring fails
+            e.printStackTrace();
+            lead.setScore(0);
+            lead.setScoreCategory("COLD");
+        }
+    }
+
+    /**
+     * Generate a secure random password
+     * Format: 12 chars, alphanumeric + special chars
+     */
+    private String generateSecurePassword() {
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[12];
+        random.nextBytes(bytes);
+        // Base64Url ensures alphanumeric. Append special char to satisfy strict policy
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes) + "@1";
     }
 }

@@ -27,15 +27,6 @@ public class LeadController {
     @Autowired
     private LeadService leadService;
 
-    @Autowired
-    private com.wd.api.service.ActivityFeedService activityFeedService;
-
-    @Autowired
-    private com.wd.api.repository.UserRepository userRepository;
-
-    @Autowired
-    private com.wd.api.repository.CustomerProjectRepository customerProjectRepository;
-
     // =====================================================
     // LEAD CRUD OPERATIONS
     // =====================================================
@@ -153,60 +144,8 @@ public class LeadController {
             if (request.getName() == null || request.getName().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(java.util.Map.of("error", "name is required"));
             }
-            // Convert DTO to Leads model
-            Leads lead = new Leads();
-            lead.setName(request.getName());
-            lead.setEmail(request.getEmail() != null ? request.getEmail() : "");
-            lead.setPhone(request.getPhone() != null ? request.getPhone() : "");
-            lead.setWhatsappNumber(request.getWhatsappNumber() != null ? request.getWhatsappNumber() : "");
 
-            lead.setCustomerType(request.getCustomerType() != null && !request.getCustomerType().isEmpty()
-                    ? request.getCustomerType().trim().toLowerCase()
-                    : "other");
-
-            lead.setProjectType(request.getProjectType() != null ? request.getProjectType() : "");
-            lead.setProjectDescription(request.getProjectDescription() != null ? request.getProjectDescription() : "");
-            lead.setRequirements(request.getRequirements() != null ? request.getRequirements() : "");
-            lead.setBudget(request.getBudget());
-            lead.setProjectSqftArea(request.getProjectSqftArea());
-
-            String status = request.getLeadStatus();
-            lead.setLeadStatus(status != null && !status.isEmpty() ? status.trim().toLowerCase().replace(' ', '_')
-                    : "new_inquiry");
-
-            String source = request.getLeadSource();
-            lead.setLeadSource(
-                    source != null && !source.isEmpty() ? source.trim().toLowerCase().replace(' ', '_') : "website");
-
-            String priority = request.getPriority();
-            lead.setPriority(priority != null && !priority.isEmpty() ? priority.trim().toLowerCase() : "low");
-
-            lead.setAssignedTeam(request.getAssignedTeam() != null ? request.getAssignedTeam() : "");
-            lead.setAssignedToId(request.getAssignedToId());
-            lead.setNotes(request.getNotes() != null ? request.getNotes() : "");
-            lead.setLostReason(request.getLostReason());
-
-            lead.setClientRating(request.getClientRating() != null ? request.getClientRating() : 0);
-            lead.setProbabilityToWin(request.getProbabilityToWin() != null ? request.getProbabilityToWin() : 0);
-            lead.setNextFollowUp(request.getNextFollowUp());
-            lead.setLastContactDate(request.getLastContactDate());
-
-            lead.setState(request.getState());
-            lead.setDistrict(request.getDistrict());
-            lead.setLocation(request.getLocation());
-            lead.setAddress(request.getAddress());
-
-            if (request.getDateOfEnquiry() != null && !request.getDateOfEnquiry().trim().isEmpty()) {
-                try {
-                    lead.setDateOfEnquiry(LocalDate.parse(request.getDateOfEnquiry().substring(0, 10)));
-                } catch (Exception e) {
-                    lead.setDateOfEnquiry(LocalDate.now());
-                }
-            } else {
-                lead.setDateOfEnquiry(LocalDate.now());
-            }
-
-            Leads createdLead = leadService.createLead(lead);
+            Leads createdLead = leadService.createLead(request);
             return ResponseEntity.ok(createdLead);
         } catch (Exception e) {
             logger.error("Error creating lead", e);
@@ -444,58 +383,14 @@ public class LeadController {
             org.springframework.security.core.Authentication authentication) {
 
         try {
-            // 1. Validate lead ID format
-            Long id;
-            try {
-                id = Long.parseLong(leadId);
-            } catch (NumberFormatException e) {
-                logger.warn("Invalid lead ID format: {}", leadId);
-                return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "message", "Invalid lead ID format"));
-            }
-
-            // 2. Check if lead exists
-            com.wd.api.dao.model.Leads lead = leadService.getLeadById(id);
-            if (lead == null) {
-                logger.warn("Lead not found for conversion: {}", id);
-                return ResponseEntity.status(404)
-                        .body(Map.of("success", false, "message", "Lead not found"));
-            }
-
-            // 3. Validate lead status - prevent conversion of already converted or lost
-            // leads
-            if ("WON".equalsIgnoreCase(lead.getLeadStatus()) || "converted".equalsIgnoreCase(lead.getLeadStatus())) {
-                logger.warn("Attempt to convert already converted lead: {}", id);
-                return ResponseEntity.status(409)
-                        .body(Map.of("success", false, "message", "Lead is already converted to a project"));
-            }
-
-            if ("LOST".equalsIgnoreCase(lead.getLeadStatus()) || "lost".equalsIgnoreCase(lead.getLeadStatus())) {
-                logger.warn("Attempt to convert lost lead: {}", id);
-                return ResponseEntity.status(400)
-                        .body(Map.of("success", false, "message",
-                                "Cannot convert a lost lead. Please update lead status first."));
-            }
-
-            // 4. Check for duplicate conversion (verify no existing project linked to this
-            // lead)
-            if (customerProjectRepository.existsByLeadId(id)) {
-                logger.warn("Duplicate conversion attempt for lead: {}", id);
-                return ResponseEntity.status(409)
-                        .body(Map.of("success", false, "message", "This lead has already been converted to a project"));
-            }
-
-            // 5. Get authenticated user for audit trail
+            Long id = Long.parseLong(leadId);
             String username = authentication.getName();
-            com.wd.api.model.User convertedBy = userRepository.findByEmail(username)
-                    .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
 
-            // 6. Perform conversion using service layer (transactional)
-            com.wd.api.model.CustomerProject project = leadService.convertLead(id, request, convertedBy);
+            // Perform conversion using service layer (transactional)
+            com.wd.api.model.CustomerProject project = leadService.convertLead(id, request, username);
 
-            // 7. Return success with project details
-            logger.info("Lead {} successfully converted to project {} by user {}",
-                    id, project.getId(), username);
+            // Return success with project details
+            logger.info("Lead {} successfully converted to project {} by user {}", id, project.getId(), username);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -503,16 +398,13 @@ public class LeadController {
                     "projectId", project.getId(),
                     "projectName", project.getName()));
 
-        } catch (IllegalArgumentException e) {
-            logger.error("Validation error during lead conversion: {}", e.getMessage());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "Invalid lead ID format"));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            logger.warn("Validation error during lead conversion: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of("success", false, "message", e.getMessage()));
-
-        } catch (IllegalStateException e) {
-            logger.error("State error during lead conversion: {}", e.getMessage());
-            return ResponseEntity.status(409)
-                    .body(Map.of("success", false, "message", e.getMessage()));
-
         } catch (Exception e) {
             logger.error("Unexpected error converting lead {}", leadId, e);
             return ResponseEntity.internalServerError()

@@ -133,6 +133,13 @@ public class Leads {
     @JsonProperty("score_factors")
     private String scoreFactors;
 
+    @Column(name = "plot_area", columnDefinition = "NUMERIC(10,2)")
+    @JsonProperty("plot_area")
+    private BigDecimal plotArea;
+
+    @Column(name = "floors")
+    private Integer floors;
+
     // Getters and Setters
     public String getName() {
         return name;
@@ -404,5 +411,21 @@ public class Leads {
 
     public void setScoreFactors(String scoreFactors) {
         this.scoreFactors = scoreFactors;
+    }
+
+    public BigDecimal getPlotArea() {
+        return plotArea;
+    }
+
+    public void setPlotArea(BigDecimal plotArea) {
+        this.plotArea = plotArea;
+    }
+
+    public Integer getFloors() {
+        return floors;
+    }
+
+    public void setFloors(Integer floors) {
+        this.floors = floors;
     }
 }

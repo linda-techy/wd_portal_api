@@ -148,6 +148,15 @@ public class TaskController {
     }
 
     /**
+     * Get tasks for a specific lead
+     */
+    @GetMapping("/by-lead/{leadId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<List<Task>> getTasksByLead(@PathVariable Long leadId) {
+        return ResponseEntity.ok(taskService.getTasksByLead(leadId));
+    }
+
+    /**
      * Get assignment history for a task
      */
     @GetMapping("/{id}/assignment-history")

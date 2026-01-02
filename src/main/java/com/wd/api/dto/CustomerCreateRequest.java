@@ -4,24 +4,48 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class CustomerCreateRequest {
     private String email;
-    
+
     @JsonProperty("first_name")
     private String firstName;
-    
+
     @JsonProperty("last_name")
     private String lastName;
-    
+
+    @JsonProperty("phone")
+    private String phone;
+
+    @JsonProperty("whatsapp_number")
+    private String whatsappNumber;
+
+    @JsonProperty("address")
+    private String address;
+
+    @JsonProperty("company_name")
+    private String companyName;
+
+    @JsonProperty("gst_number")
+    private String gstNumber;
+
+    @JsonProperty("lead_source")
+    private String leadSource;
+
+    @JsonProperty("notes")
+    private String notes;
+
     private String password;
     private Boolean enabled = true;
-    
+
     @JsonProperty("role_id")
     private Long roleId;
 
     // Constructors
-    public CustomerCreateRequest() {}
+    public CustomerCreateRequest() {
+    }
 
-    public CustomerCreateRequest(String email, String firstName, String lastName, String password, Boolean enabled, Long roleId) {
+    public CustomerCreateRequest(String email, String firstName, String lastName, String password, Boolean enabled,
+            Long roleId) {
         this.email = email;
+        this.firstName = firstName;
         this.firstName = firstName;
         this.lastName = lastName;
         this.password = password;
@@ -54,6 +78,62 @@ public class CustomerCreateRequest {
         this.lastName = lastName;
     }
 
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getWhatsappNumber() {
+        return whatsappNumber;
+    }
+
+    public void setWhatsappNumber(String whatsappNumber) {
+        this.whatsappNumber = whatsappNumber;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    public String getGstNumber() {
+        return gstNumber;
+    }
+
+    public void setGstNumber(String gstNumber) {
+        this.gstNumber = gstNumber;
+    }
+
+    public String getLeadSource() {
+        return leadSource;
+    }
+
+    public void setLeadSource(String leadSource) {
+        this.leadSource = leadSource;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
     public String getPassword() {
         return password;
     }
@@ -78,4 +158,3 @@ public class CustomerCreateRequest {
         this.roleId = roleId;
     }
 }
-
