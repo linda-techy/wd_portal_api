@@ -317,11 +317,37 @@
 
 - `lead_id` → `leads.lead_id`
 - `customer_id` → `customer_users.id`
+- `project_manager_id` → `portal_users.id` *(V1_35)*
+- `created_by_user_id` → `portal_users.id` *(V1_35)*
+- `updated_by_user_id` → `portal_users.id` *(V1_35)*
+- `deleted_by_user_id` → `portal_users.id` *(V1_35)*
 
 ### Unique Constraints
 
 - `project_uuid`
-- `project_uuid`
+
+### Check Constraints *(V1_35)*
+
+- `chk_project_status` → `project_status` IN ('ACTIVE', 'COMPLETED', 'SUSPENDED', 'CANCELLED', 'ON_HOLD')
+
+### Indexes *(V1_35)*
+
+- `idx_projects_deleted_at` → Partial index on `deleted_at IS NULL` for active projects
+- `idx_projects_active_phase` → Composite index on `(id, project_phase, project_status)` WHERE `deleted_at IS NULL`
+- `idx_projects_manager` → Index on `project_manager_id` WHERE `deleted_at IS NULL`
+- `idx_projects_customer_active` → Index on `customer_id` WHERE `deleted_at IS NULL`
+- `idx_projects_status` → Index on `project_status`
+- `idx_projects_version` → Composite index on `(id, version)` for optimistic locking
+
+### Notes
+
+**Enum Fields**: `project_phase`, `contract_type`, `permit_status`, and `project_status` are stored as VARCHAR but validated as enums in application layer (JPA @Enumerated).
+
+**Audit Trail**: Full audit trail implemented in V1_35 with user references for create/update/delete operations.
+
+**Soft Delete**: Projects use soft delete pattern via `deleted_at` timestamp. Queries should filter WHERE `deleted_at IS NULL` for active records.
+
+**Optimistic Locking**: The `version` column prevents lost updates in concurrent scenarios using JPA @Version annotation.
 
 ---
 

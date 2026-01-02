@@ -29,11 +29,15 @@ public class DelayLogService {
     private PortalUserRepository portalUserRepository;
 
     public List<DelayLog> getDelaysByProject(Long projectId) {
+        if (projectId == null)
+            return java.util.Collections.emptyList();
         return delayLogRepository.findByProjectIdOrderByFromDateDesc(projectId);
     }
 
     @Transactional
     public DelayLog logDelay(DelayLog delay, Long projectId, Long userId) {
+        if (projectId == null)
+            throw new IllegalArgumentException("Project ID cannot be null");
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
 
@@ -49,6 +53,8 @@ public class DelayLogService {
 
     @Transactional
     public DelayLog closeDelay(Long delayId, LocalDate endDate) {
+        if (delayId == null)
+            throw new IllegalArgumentException("Delay ID cannot be null");
         DelayLog existing = delayLogRepository.findById(delayId)
                 .orElseThrow(() -> new IllegalArgumentException("Delay log not found: " + delayId));
 
@@ -62,10 +68,14 @@ public class DelayLogService {
 
     @Transactional
     public void deleteDelay(Long delayId) {
-        delayLogRepository.deleteById(delayId);
+        if (delayId != null) {
+            delayLogRepository.deleteById(delayId);
+        }
     }
 
     public Map<String, Long> getDelayImpactAnalysis(Long projectId) {
+        if (projectId == null)
+            return Map.of();
         List<DelayLog> delays = delayLogRepository.findByProjectId(projectId);
 
         // Group by Delay Type and sum duration

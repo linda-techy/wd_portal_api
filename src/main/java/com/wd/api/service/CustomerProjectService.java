@@ -86,6 +86,8 @@ public class CustomerProjectService {
      */
     @Transactional(readOnly = true)
     public Optional<CustomerProject> getProjectById(Long id) {
+        if (id == null)
+            return Optional.empty();
         return customerProjectRepository.findById(id);
     }
 
@@ -94,6 +96,8 @@ public class CustomerProjectService {
      */
     @Transactional(readOnly = true)
     public List<CustomerProject> getProjectsByLeadId(Long leadId) {
+        if (leadId == null)
+            return List.of();
         return customerProjectRepository.findByLeadId(leadId);
     }
 
@@ -112,10 +116,17 @@ public class CustomerProjectService {
         project.setEndDate(request.getEndDate());
         project.setCreatedBy(createdBy);
 
-        // Set defaults
-        project.setProjectPhase(request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()
-                ? request.getProjectPhase().trim()
-                : "Planning");
+        // Set defaults with enum conversion
+        if (request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()) {
+            try {
+                project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.valueOf(
+                        request.getProjectPhase().trim().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.PLANNING);
+            }
+        } else {
+            project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.PLANNING);
+        }
         project.setProjectType(request.getProjectType() != null && !request.getProjectType().trim().isEmpty()
                 ? request.getProjectType().trim()
                 : "turnkey_project");
@@ -221,9 +232,15 @@ public class CustomerProjectService {
         project.setLocation(request.getLocation().trim());
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
-        project.setProjectPhase(request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()
-                ? request.getProjectPhase().trim()
-                : null);
+        // Update project phase with enum conversion
+        if (request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()) {
+            try {
+                project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.valueOf(
+                        request.getProjectPhase().trim().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                // Keep existing value if invalid enum provided
+            }
+        }
         project.setProjectType(request.getProjectType() != null && !request.getProjectType().trim().isEmpty()
                 ? request.getProjectType().trim()
                 : null);

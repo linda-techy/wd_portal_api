@@ -22,6 +22,8 @@ public class PurchaseOrderService {
 
     @Transactional
     public PurchaseOrder createPurchaseOrder(Long projectId, Long vendorId, PurchaseOrder po) {
+        if (projectId == null || vendorId == null)
+            throw new IllegalArgumentException("Project ID and Vendor ID cannot be null");
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
@@ -82,6 +84,8 @@ public class PurchaseOrderService {
     }
 
     public List<PurchaseOrder> getProjectPurchaseOrders(Long projectId) {
+        if (projectId == null)
+            return List.of();
         return poRepository.findByProjectId(projectId);
     }
 }

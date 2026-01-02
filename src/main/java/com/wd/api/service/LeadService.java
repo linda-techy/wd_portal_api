@@ -79,10 +79,13 @@ public class LeadService {
 
         // Handle Assignment
         if (lead.getAssignedToId() != null) {
-            com.wd.api.model.PortalUser user = portalUserRepository.findById(lead.getAssignedToId()).orElse(null);
-            if (user != null) {
-                lead.setAssignedTo(user);
-                lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
+            Long assignedToId = lead.getAssignedToId();
+            if (assignedToId != null) {
+                com.wd.api.model.PortalUser user = portalUserRepository.findById(assignedToId).orElse(null);
+                if (user != null) {
+                    lead.setAssignedTo(user);
+                    lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
+                }
             }
         }
 
@@ -177,6 +180,8 @@ public class LeadService {
 
     @Transactional
     public Leads updateLead(Long id, Leads leadDetails) {
+        if (id == null)
+            return null;
         return leadsRepository.findById(id).map(lead -> {
             String oldStatus = lead.getLeadStatus();
             String oldCategory = lead.getScoreCategory(); // Capture old score category
@@ -287,7 +292,7 @@ public class LeadService {
 
     @Transactional
     public boolean deleteLead(Long id) {
-        if (leadsRepository.existsById(id)) {
+        if (id != null && leadsRepository.existsById(id)) {
             leadsRepository.deleteById(id);
             return true;
         }
@@ -299,6 +304,8 @@ public class LeadService {
     }
 
     public Leads getLeadById(Long id) {
+        if (id == null)
+            return null;
         return leadsRepository.findById(id).orElse(null);
     }
 
@@ -544,6 +551,8 @@ public class LeadService {
     @Transactional
     public com.wd.api.model.CustomerProject convertLead(Long leadId, com.wd.api.dto.LeadConversionRequest request,
             String username) {
+        if (leadId == null)
+            throw new IllegalArgumentException("Lead ID cannot be null");
         Leads lead = leadsRepository.findById(leadId)
                 .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + leadId));
 
@@ -559,7 +568,7 @@ public class LeadService {
         }
 
         // Check for duplicate conversion
-        if (customerProjectRepository.existsByLeadId(leadId)) {
+        if (leadId != null && customerProjectRepository.existsByLeadId(leadId)) {
             throw new IllegalStateException("This lead has already been converted to a project");
         }
 
@@ -573,7 +582,7 @@ public class LeadService {
         project.setCustomer(customer);
         project.setLeadId(lead.getId()); // Link back to lead
         project.setStartDate(request.getStartDate() != null ? request.getStartDate() : java.time.LocalDate.now());
-        project.setProjectPhase("planning"); // Default phase
+        project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.PLANNING); // Default phase
         project.setState("Active");
         project.setLocation(request.getLocation() != null ? request.getLocation() : lead.getLocation());
         project.setSqfeet(lead.getProjectSqftArea());
@@ -629,47 +638,53 @@ public class LeadService {
 
         // 4. Assign Project Manager
         if (request.getProjectManagerId() != null) {
+            Long pmId = request.getProjectManagerId();
             // Set ID on Project Entity
-            savedProject.setProjectManagerId(request.getProjectManagerId());
+            savedProject.setProjectManagerId(pmId);
             savedProject = customerProjectRepository.save(savedProject);
 
-            com.wd.api.model.PortalUser pmUser = portalUserRepository.findById(request.getProjectManagerId())
-                    .orElse(null);
-            if (pmUser != null) {
-                com.wd.api.model.ProjectMember pmMember = new com.wd.api.model.ProjectMember();
-                pmMember.setProject(savedProject);
-                pmMember.setPortalUser(pmUser);
-                pmMember.setRoleInProject("PROJECT_MANAGER");
-                projectMemberRepository.save(pmMember);
+            if (pmId != null) {
+                com.wd.api.model.PortalUser pmUser = portalUserRepository.findById(pmId)
+                        .orElse(null);
+                if (pmUser != null) {
+                    com.wd.api.model.ProjectMember pmMember = new com.wd.api.model.ProjectMember();
+                    pmMember.setProject(savedProject);
+                    pmMember.setPortalUser(pmUser);
+                    pmMember.setRoleInProject("PROJECT_MANAGER");
+                    projectMemberRepository.save(pmMember);
+                }
             }
         }
 
         // Migrate Quotation Items to BoQ
         if (request.getQuotationId() != null) {
-            com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(request.getQuotationId())
-                    .orElse(null);
-            if (quote != null && !quote.getItems().isEmpty()) {
-                com.wd.api.model.BoqWorkType defaultWorkType = boqWorkTypeRepository.findByName("General Works")
-                        .orElseGet(() -> {
-                            com.wd.api.model.BoqWorkType wt = new com.wd.api.model.BoqWorkType();
-                            wt.setName("General Works");
-                            wt.setDescription("General construction items from quotation");
-                            wt.setDisplayOrder(1);
-                            return boqWorkTypeRepository.save(wt);
-                        });
+            Long quoteId = request.getQuotationId();
+            if (quoteId != null) {
+                com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(quoteId)
+                        .orElse(null);
+                if (quote != null && !quote.getItems().isEmpty()) {
+                    com.wd.api.model.BoqWorkType defaultWorkType = boqWorkTypeRepository.findByName("General Works")
+                            .orElseGet(() -> {
+                                com.wd.api.model.BoqWorkType wt = new com.wd.api.model.BoqWorkType();
+                                wt.setName("General Works");
+                                wt.setDescription("General construction items from quotation");
+                                wt.setDisplayOrder(1);
+                                return boqWorkTypeRepository.save(wt);
+                            });
 
-                for (com.wd.api.model.LeadQuotationItem quoteItem : quote.getItems()) {
-                    com.wd.api.model.BoqItem boqItem = new com.wd.api.model.BoqItem();
-                    boqItem.setProject(savedProject);
-                    boqItem.setWorkType(defaultWorkType);
-                    boqItem.setDescription(quoteItem.getDescription());
-                    boqItem.setQuantity(quoteItem.getQuantity());
-                    boqItem.setUnitRate(quoteItem.getUnitPrice());
-                    boqItem.setTotalAmount(quoteItem.getTotalPrice());
-                    boqItem.setUnit("LS");
-                    boqItem.setNotes("Imported from Quote #" + quote.getQuotationNumber());
+                    for (com.wd.api.model.LeadQuotationItem quoteItem : quote.getItems()) {
+                        com.wd.api.model.BoqItem boqItem = new com.wd.api.model.BoqItem();
+                        boqItem.setProject(savedProject);
+                        boqItem.setWorkType(defaultWorkType);
+                        boqItem.setDescription(quoteItem.getDescription());
+                        boqItem.setQuantity(quoteItem.getQuantity());
+                        boqItem.setUnitRate(quoteItem.getUnitPrice());
+                        boqItem.setTotalAmount(quoteItem.getTotalPrice());
+                        boqItem.setUnit("LS");
+                        boqItem.setNotes("Imported from Quote #" + quote.getQuotationNumber());
 
-                    boqItemRepository.save(boqItem);
+                        boqItemRepository.save(boqItem);
+                    }
                 }
             }
         }

@@ -20,11 +20,15 @@ public class ProjectWarrantyService {
     private CustomerProjectRepository projectRepository;
 
     public List<ProjectWarranty> getWarrantiesByProject(Long projectId) {
+        if (projectId == null)
+            return java.util.Collections.emptyList();
         return warrantyRepository.findByProjectId(projectId);
     }
 
     @Transactional
     public ProjectWarranty createWarranty(ProjectWarranty warranty, Long projectId) {
+        if (projectId == null)
+            throw new IllegalArgumentException("Project ID cannot be null");
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
 
@@ -40,6 +44,8 @@ public class ProjectWarrantyService {
 
     @Transactional
     public ProjectWarranty updateWarranty(Long id, ProjectWarranty details) {
+        if (id == null)
+            throw new IllegalArgumentException("Warranty ID cannot be null");
         ProjectWarranty existing = warrantyRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Warranty not found: " + id));
 
@@ -56,6 +62,8 @@ public class ProjectWarrantyService {
 
     @Transactional
     public void deleteWarranty(Long id) {
-        warrantyRepository.deleteById(id);
+        if (id != null) {
+            warrantyRepository.deleteById(id);
+        }
     }
 }

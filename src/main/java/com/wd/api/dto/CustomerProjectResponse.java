@@ -68,7 +68,7 @@ public class CustomerProjectResponse {
 
         this.createdBy = project.getCreatedBy();
         this.createdBy = project.getCreatedBy();
-        this.projectPhase = project.getProjectPhase();
+        this.projectPhase = project.getProjectPhase() != null ? project.getProjectPhase().name() : null;
         this.projectType = project.getProjectType();
         this.state = project.getState();
         this.district = project.getDistrict();

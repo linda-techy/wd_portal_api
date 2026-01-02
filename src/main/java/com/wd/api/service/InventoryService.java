@@ -92,7 +92,8 @@ public class InventoryService {
 
                         // Other adjustments (Correction, Transfer Out) could affect calc, but sticking
                         // to basics:
-                        BigDecimal totalAdjustments = wastage.add(theft).add(damage).add(consumption);
+                        // BigDecimal totalAdjustments =
+                        // wastage.add(theft).add(damage).add(consumption);
 
                         // Implied Consumption fallback (if explicit consumption not used)
                         // Implied = Purchased - Stock - (Negative Adjustments)
@@ -146,6 +147,8 @@ public class InventoryService {
 
         @Transactional
         public void updateStock(Long projectId, Long materialId, BigDecimal quantityChange) {
+                if (projectId == null || materialId == null)
+                        return;
                 CustomerProject project = projectRepository.findById(projectId)
                                 .orElseThrow(() -> new RuntimeException("Project not found"));
                 Material material = materialRepository.findById(materialId)
@@ -164,6 +167,8 @@ public class InventoryService {
 
         @Transactional
         public void recordConsumption(Long projectId, Long materialId, BigDecimal quantity, Long userId) {
+                if (projectId == null || materialId == null)
+                        return;
                 // 1. Update Stock (Reduce)
                 updateStock(projectId, materialId, quantity.negate());
 
@@ -193,6 +198,8 @@ public class InventoryService {
         }
 
         public List<InventoryStockDTO> getStockByProject(Long projectId) {
+                if (projectId == null)
+                        return List.of();
                 return stockRepository.findByProjectId(projectId).stream()
                                 .map(this::mapToStockDTO)
                                 .collect(Collectors.toList());

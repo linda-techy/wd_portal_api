@@ -3,7 +3,6 @@ package com.wd.api.service;
 import com.wd.api.dto.ActivityFeedDTO;
 import com.wd.api.dto.ProjectSummaryDTO;
 import com.wd.api.model.CustomerProject;
-import com.wd.api.model.ProjectMember;
 import com.wd.api.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +26,8 @@ public class ProjectAggregationService {
 
         @Transactional(readOnly = true)
         public ProjectSummaryDTO getProjectSummary(Long projectId) {
+                if (projectId == null)
+                        throw new IllegalArgumentException("Project ID cannot be null");
                 // 1. Fetch Project
                 CustomerProject project = projectRepository.findById(projectId)
                                 .orElseThrow(() -> new RuntimeException("Project not found: " + projectId));

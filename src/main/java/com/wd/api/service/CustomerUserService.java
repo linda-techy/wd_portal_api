@@ -62,9 +62,10 @@ public class CustomerUserService {
 
         return results.map(result -> {
             CustomerUser customer = (CustomerUser) result[0];
-            Long projectCount = (Long) result[1];
+            Long pc = (Long) result[1];
+            int projectCount = (pc != null) ? pc.intValue() : 0;
             CustomerResponse response = new CustomerResponse(customer);
-            response.setProjectCount(projectCount.intValue());
+            response.setProjectCount(projectCount);
             return response;
         });
     }
@@ -80,9 +81,10 @@ public class CustomerUserService {
         return results.stream()
                 .map(result -> {
                     CustomerUser customer = (CustomerUser) result[0];
-                    Long projectCount = (Long) result[1];
+                    Long pc = (Long) result[1];
+                    int projectCount = (pc != null) ? pc.intValue() : 0;
                     CustomerResponse response = new CustomerResponse(customer);
-                    response.setProjectCount(projectCount.intValue());
+                    response.setProjectCount(projectCount);
                     return response;
                 })
                 .collect(Collectors.toList());
@@ -93,6 +95,8 @@ public class CustomerUserService {
      */
     @Transactional(readOnly = true)
     public Optional<CustomerUser> getCustomerById(Long id) {
+        if (id == null)
+            return Optional.empty();
         return customerUserRepository.findById(id);
     }
 
@@ -101,10 +105,13 @@ public class CustomerUserService {
      */
     @Transactional(readOnly = true)
     public Optional<CustomerResponse> getCustomerResponseById(Long id) {
-        return customerUserRepository.findById(id)
+        if (id == null)
+            return Optional.empty();
+        final Long customerId = id;
+        return customerUserRepository.findById(customerId)
                 .map(customer -> {
                     CustomerResponse response = new CustomerResponse(customer);
-                    response.setProjectCount(customerProjectRepository.countByCustomer_Id(id));
+                    response.setProjectCount(customerProjectRepository.countByCustomer_Id(customerId));
                     return response;
                 });
     }
@@ -141,7 +148,10 @@ public class CustomerUserService {
 
         // Set role by looking up CustomerRole entity
         if (request.getRoleId() != null) {
-            customerRoleRepository.findById(request.getRoleId()).ifPresent(customerUser::setRole);
+            Long roleId = request.getRoleId();
+            if (roleId != null) {
+                customerRoleRepository.findById(roleId).ifPresent(customerUser::setRole);
+            }
         }
 
         return customerUserRepository.save(customerUser);
@@ -152,6 +162,8 @@ public class CustomerUserService {
      */
     public CustomerUser updateCustomer(Long id, CustomerUpdateRequest request) {
         // Find existing customer
+        if (id == null)
+            throw new IllegalArgumentException("Customer ID cannot be null");
         CustomerUser customerUser = customerUserRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + id + " not found"));
 
@@ -206,7 +218,10 @@ public class CustomerUserService {
 
         // Update role if provided
         if (request.getRoleId() != null) {
-            customerRoleRepository.findById(request.getRoleId()).ifPresent(customerUser::setRole);
+            Long roleId = request.getRoleId();
+            if (roleId != null) {
+                customerRoleRepository.findById(roleId).ifPresent(customerUser::setRole);
+            }
         }
 
         return customerUserRepository.save(customerUser);
@@ -217,18 +232,21 @@ public class CustomerUserService {
      * Checks for associated projects before deletion
      */
     public void deleteCustomer(Long id) {
-        CustomerUser customer = customerUserRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + id + " not found"));
+        if (id == null)
+            throw new IllegalArgumentException("Customer ID cannot be null");
+        final Long customerId = id;
+        CustomerUser customer = customerUserRepository.findById(customerId)
+                .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + customerId + " not found"));
 
         // Check for associated projects
-        List<com.wd.api.model.CustomerProject> projects = customerProjectRepository.findByCustomer_Id(id);
+        List<com.wd.api.model.CustomerProject> projects = customerProjectRepository.findByCustomer_Id(customerId);
         if (!projects.isEmpty()) {
             throw new IllegalStateException(
                     "Cannot delete customer with associated projects. Please delete the projects first.");
         }
 
         customerUserRepository.delete(customer);
-        logger.info("Customer deleted successfully - ID: {}", id);
+        logger.info("Customer deleted successfully - ID: {}", customerId);
     }
 
     // ==================== Private Validation Methods ====================
