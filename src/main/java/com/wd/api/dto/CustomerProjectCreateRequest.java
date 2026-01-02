@@ -41,6 +41,9 @@ public class CustomerProjectCreateRequest {
 
     private String code;
 
+    @JsonProperty("project_manager_id")
+    private Long projectManagerId;
+
     // Constructors
     public CustomerProjectCreateRequest() {
     }
@@ -198,6 +201,14 @@ public class CustomerProjectCreateRequest {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public Long getProjectManagerId() {
+        return projectManagerId;
+    }
+
+    public void setProjectManagerId(Long projectManagerId) {
+        this.projectManagerId = projectManagerId;
     }
 
     public java.util.List<TeamMemberSelectionDTO> getTeamMembers() {

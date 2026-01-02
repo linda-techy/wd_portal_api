@@ -2,7 +2,6 @@ package com.wd.api.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import com.wd.api.model.PortalUser;
 
 @Entity
 @Table(name = "activity_feeds")

@@ -59,6 +59,15 @@ public class LeadService {
     @Autowired
     private LeadQuotationRepository leadQuotationRepository;
 
+    @Autowired
+    private com.wd.api.repository.BoqItemRepository boqItemRepository;
+
+    @Autowired
+    private com.wd.api.repository.BoqWorkTypeRepository boqWorkTypeRepository;
+
+    @Autowired
+    private com.wd.api.repository.ProjectMemberRepository projectMemberRepository;
+
     @Transactional
     public Leads createLead(Leads lead) {
         if (lead.getDateOfEnquiry() == null) {
@@ -582,6 +591,7 @@ public class LeadService {
         project.setCreatedBy(convertedBy.getUsername());
 
         // Set Budget from Quote or Lead
+        // Set Budget from Quote or Lead
         if (request.getQuotationId() != null) {
             com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(request.getQuotationId())
                     .orElseThrow(
@@ -592,7 +602,7 @@ public class LeadService {
             }
 
             project.setBudget(quote.getFinalAmount());
-            project.setDesignPackage(quote.getTitle()); // Or specific field if available
+            project.setDesignPackage(quote.getTitle());
 
             // Mark Quote as Accepted
             quote.setStatus("ACCEPTED");
@@ -602,32 +612,85 @@ public class LeadService {
             project.setBudget(lead.getBudget());
         }
 
-        // Set conversion tracking metadata
-        project.setConvertedById(convertedBy.getId());
-        project.setConvertedFromLeadId(lead.getId());
-        // convertedAt is automatically set by database trigger, but we can set it
-        // explicitly too
-        project.setConvertedAt(java.time.LocalDateTime.now());
+        // Save Project First to get ID
+        com.wd.api.model.CustomerProject savedProject = customerProjectRepository.save(project);
 
-        project = customerProjectRepository.save(project);
+        // Generate Enterprise Project Code
+        String projectCode = "PRJ-" + java.time.LocalDate.now().getYear() + "-"
+                + String.format("%04d", savedProject.getId());
+        savedProject.setCode(projectCode);
 
-        // 3. Update Lead
+        // Update Metadata
+        savedProject.setConvertedById(convertedBy.getId());
+        savedProject.setConvertedFromLeadId(lead.getId());
+        savedProject.setConvertedAt(java.time.LocalDateTime.now());
+
+        savedProject = customerProjectRepository.save(savedProject);
+
+        // 4. Assign Project Manager
+        if (request.getProjectManagerId() != null) {
+            // Set ID on Project Entity
+            savedProject.setProjectManagerId(request.getProjectManagerId());
+            savedProject = customerProjectRepository.save(savedProject);
+
+            com.wd.api.model.PortalUser pmUser = portalUserRepository.findById(request.getProjectManagerId())
+                    .orElse(null);
+            if (pmUser != null) {
+                com.wd.api.model.ProjectMember pmMember = new com.wd.api.model.ProjectMember();
+                pmMember.setProject(savedProject);
+                pmMember.setPortalUser(pmUser);
+                pmMember.setRoleInProject("PROJECT_MANAGER");
+                projectMemberRepository.save(pmMember);
+            }
+        }
+
+        // Migrate Quotation Items to BoQ
+        if (request.getQuotationId() != null) {
+            com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(request.getQuotationId())
+                    .orElse(null);
+            if (quote != null && !quote.getItems().isEmpty()) {
+                com.wd.api.model.BoqWorkType defaultWorkType = boqWorkTypeRepository.findByName("General Works")
+                        .orElseGet(() -> {
+                            com.wd.api.model.BoqWorkType wt = new com.wd.api.model.BoqWorkType();
+                            wt.setName("General Works");
+                            wt.setDescription("General construction items from quotation");
+                            wt.setDisplayOrder(1);
+                            return boqWorkTypeRepository.save(wt);
+                        });
+
+                for (com.wd.api.model.LeadQuotationItem quoteItem : quote.getItems()) {
+                    com.wd.api.model.BoqItem boqItem = new com.wd.api.model.BoqItem();
+                    boqItem.setProject(savedProject);
+                    boqItem.setWorkType(defaultWorkType);
+                    boqItem.setDescription(quoteItem.getDescription());
+                    boqItem.setQuantity(quoteItem.getQuantity());
+                    boqItem.setUnitRate(quoteItem.getUnitPrice());
+                    boqItem.setTotalAmount(quoteItem.getTotalPrice());
+                    boqItem.setUnit("LS");
+                    boqItem.setNotes("Imported from Quote #" + quote.getQuotationNumber());
+
+                    boqItemRepository.save(boqItem);
+                }
+            }
+        }
+
+        // Update Lead Status
         lead.setLeadStatus("WON");
         leadsRepository.save(lead);
 
-        // 4. Log Activity
+        // Log Activity
         try {
             activityFeedService.logSystemActivity(
                     "LEAD_CONVERTED",
                     "Lead Converted",
-                    "Lead converted to Project: " + project.getName(),
+                    "Lead converted to Project: " + savedProject.getName(),
                     lead.getId(),
                     "LEAD");
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return project;
+        return savedProject;
     }
 
     private com.wd.api.model.CustomerUser createCustomerFromLead(Leads lead) {

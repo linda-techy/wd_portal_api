@@ -10,4 +10,6 @@ public interface ActivityFeedRepository extends JpaRepository<ActivityFeed, Long
     List<ActivityFeed> findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(Long referenceId, String referenceType);
 
     List<ActivityFeed> findByProjectIdOrderByCreatedAtDesc(Long projectId);
+
+    List<ActivityFeed> findTop10ByProjectIdOrderByCreatedAtDesc(Long projectId);
 }

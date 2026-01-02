@@ -140,7 +140,16 @@ public class Leads {
     @Column(name = "floors")
     private Integer floors;
 
+    @Column(name = "converted_by_id")
+    @JsonProperty("converted_by_id")
+    private Long convertedById;
+
+    @Column(name = "converted_at")
+    @JsonProperty("converted_at")
+    private LocalDateTime convertedAt;
+
     // Getters and Setters
+
     public String getName() {
         return name;
     }
@@ -427,5 +436,21 @@ public class Leads {
 
     public void setFloors(Integer floors) {
         this.floors = floors;
+    }
+
+    public Long getConvertedById() {
+        return convertedById;
+    }
+
+    public void setConvertedById(Long convertedById) {
+        this.convertedById = convertedById;
+    }
+
+    public LocalDateTime getConvertedAt() {
+        return convertedAt;
+    }
+
+    public void setConvertedAt(LocalDateTime convertedAt) {
+        this.convertedAt = convertedAt;
     }
 }

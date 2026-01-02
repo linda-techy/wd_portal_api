@@ -279,4 +279,8 @@ public class PurchaseOrder {
     public void setItems(List<PurchaseOrderItem> items) {
         this.items = items;
     }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 }

@@ -1,68 +1,45 @@
 package com.wd.api.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * Subcontract Work Order Entity
- * Tracks piece-rate and lump-sum subcontractor agreements
- * 
- * Business Context:
- * - In Indian construction, 60-70% of work is subcontracted
- * - Unit-rate: e.g., ₹450/sqft for plastering
- * - Lump-sum: e.g., ₹3.5L for entire electrical work
- */
 @Entity
 @Table(name = "subcontract_work_orders")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class SubcontractWorkOrder {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "work_order_number", unique = true, nullable = false, length = 50)
-    private String workOrderNumber; // WAL/SC/YY/NNN
+    @Column(name = "work_order_number", nullable = false, unique = true)
+    private String workOrderNumber;
 
-    // Relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     private CustomerProject project;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vendor_id", nullable = false)
-    private Vendor vendor; // vendor_type must be 'LABOUR'
+    private Vendor vendor;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "boq_item_id")
-    private BoqItem boqItem;
-
-    // Scope and Terms
     @Column(name = "scope_description", columnDefinition = "TEXT", nullable = false)
     private String scopeDescription;
 
+    @Column(name = "measurement_basis", nullable = false)
     @Enumerated(EnumType.STRING)
-    @Column(name = "measurement_basis", nullable = false, length = 20)
-    private MeasurementBasis measurementBasis;
+    private MeasurementBasis measurementBasis = MeasurementBasis.UNIT_RATE;
 
-    @Column(name = "negotiated_amount", precision = 15, scale = 2, nullable = false)
+    @Column(name = "negotiated_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal negotiatedAmount;
 
-    @Column(name = "unit", length = 50)
-    private String unit; // For unit-rate contracts
+    @Column(name = "unit")
+    private String unit;
 
     @Column(name = "rate", precision = 15, scale = 2)
-    private BigDecimal rate; // For unit-rate contracts
+    private BigDecimal rate;
 
-    // Timeline
     @Column(name = "start_date")
     private LocalDate startDate;
 
@@ -72,92 +49,159 @@ public class SubcontractWorkOrder {
     @Column(name = "actual_completion_date")
     private LocalDate actualCompletionDate;
 
-    // Payment Terms
     @Column(name = "payment_terms", columnDefinition = "TEXT")
-    private String paymentTerms; // Human-readable description
+    private String paymentTerms;
 
-    @Column(name = "advance_percentage", precision = 5, scale = 2)
-    private BigDecimal advancePercentage;
-
-    @Column(name = "advance_paid", precision = 15, scale = 2)
-    private BigDecimal advancePaid;
-
-    // Status
+    @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    private WorkOrderStatus status;
-
-    // Tracking
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_id")
-    private PortalUser createdBy;
+    private WorkOrderStatus status = WorkOrderStatus.DRAFT;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
-    // Notes
-    @Column(name = "notes", columnDefinition = "TEXT")
-    private String notes;
-
-    @Column(name = "termination_reason", columnDefinition = "TEXT")
-    private String terminationReason;
-
-    // Lifecycle hooks
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-        if (status == null) {
-            status = WorkOrderStatus.DRAFT;
-        }
-        if (advancePaid == null) {
-            advancePaid = BigDecimal.ZERO;
-        }
-        if (advancePercentage == null) {
-            advancePercentage = BigDecimal.ZERO;
-        }
-    }
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 
-    // Enums
     public enum MeasurementBasis {
-        LUMPSUM, // Fixed price for entire scope
-        UNIT_RATE // Price per unit of measurement
+        LUMPSUM, UNIT_RATE
     }
 
     public enum WorkOrderStatus {
-        DRAFT, // Being prepared
-        ISSUED, // Sent to subcontractor
-        IN_PROGRESS, // Work started
-        COMPLETED, // Work finished
-        TERMINATED // Contract terminated
+        DRAFT, ISSUED, IN_PROGRESS, COMPLETED, TERMINATED
     }
 
-    // Helper methods
-    public boolean isUnitRateContract() {
-        return measurementBasis == MeasurementBasis.UNIT_RATE;
+    // Getters and Setters
+
+    public Long getId() {
+        return id;
     }
 
-    public boolean isLumpsumContract() {
-        return measurementBasis == MeasurementBasis.LUMPSUM;
+    public void setId(Long id) {
+        this.id = id;
     }
 
-    public boolean isActive() {
-        return status == WorkOrderStatus.ISSUED || status == WorkOrderStatus.IN_PROGRESS;
+    public String getWorkOrderNumber() {
+        return workOrderNumber;
     }
 
-    public boolean canBeIssued() {
-        return status == WorkOrderStatus.DRAFT;
+    public void setWorkOrderNumber(String workOrderNumber) {
+        this.workOrderNumber = workOrderNumber;
     }
 
-    public boolean canRecordPayment() {
-        return status != WorkOrderStatus.DRAFT && status != WorkOrderStatus.TERMINATED;
+    public CustomerProject getProject() {
+        return project;
+    }
+
+    public void setProject(CustomerProject project) {
+        this.project = project;
+    }
+
+    public Vendor getVendor() {
+        return vendor;
+    }
+
+    public void setVendor(Vendor vendor) {
+        this.vendor = vendor;
+    }
+
+    public String getScopeDescription() {
+        return scopeDescription;
+    }
+
+    public void setScopeDescription(String scopeDescription) {
+        this.scopeDescription = scopeDescription;
+    }
+
+    public MeasurementBasis getMeasurementBasis() {
+        return measurementBasis;
+    }
+
+    public void setMeasurementBasis(MeasurementBasis measurementBasis) {
+        this.measurementBasis = measurementBasis;
+    }
+
+    public BigDecimal getNegotiatedAmount() {
+        return negotiatedAmount;
+    }
+
+    public void setNegotiatedAmount(BigDecimal negotiatedAmount) {
+        this.negotiatedAmount = negotiatedAmount;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    public BigDecimal getRate() {
+        return rate;
+    }
+
+    public void setRate(BigDecimal rate) {
+        this.rate = rate;
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDate getTargetCompletionDate() {
+        return targetCompletionDate;
+    }
+
+    public void setTargetCompletionDate(LocalDate targetCompletionDate) {
+        this.targetCompletionDate = targetCompletionDate;
+    }
+
+    public LocalDate getActualCompletionDate() {
+        return actualCompletionDate;
+    }
+
+    public void setActualCompletionDate(LocalDate actualCompletionDate) {
+        this.actualCompletionDate = actualCompletionDate;
+    }
+
+    public String getPaymentTerms() {
+        return paymentTerms;
+    }
+
+    public void setPaymentTerms(String paymentTerms) {
+        this.paymentTerms = paymentTerms;
+    }
+
+    public WorkOrderStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(WorkOrderStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

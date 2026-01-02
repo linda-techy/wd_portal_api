@@ -25,6 +25,11 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
         List<Task> findByLeadId(Long leadId);
 
+        // Aggregation Queries
+        int countByProjectId(Long projectId);
+
+        int countByProjectIdAndStatus(Long projectId, String status);
+
         // ===== Task Deadline Alert Queries (V11 Alert System) =====
         // Note: These queries leverage indexes created in V10 migration
 

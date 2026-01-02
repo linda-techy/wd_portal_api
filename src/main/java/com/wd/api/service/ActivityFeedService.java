@@ -6,7 +6,7 @@ import com.wd.api.model.CustomerUser;
 import com.wd.api.model.PortalUser;
 import com.wd.api.repository.ActivityFeedRepository;
 import com.wd.api.repository.ActivityTypeRepository; // Need this
-import com.wd.api.repository.CustomerUserRepository; // Need this to find user ? Or AuthService?
+// Need this to find user ? Or AuthService?
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,5 +68,9 @@ public class ActivityFeedService {
 
     public java.util.List<ActivityFeed> getActivitiesForLead(Long leadId) {
         return activityFeedRepository.findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(leadId, "LEAD");
+    }
+
+    public java.util.List<ActivityFeed> getRecentProjectActivities(Long projectId) {
+        return activityFeedRepository.findTop10ByProjectIdOrderByCreatedAtDesc(projectId);
     }
 }

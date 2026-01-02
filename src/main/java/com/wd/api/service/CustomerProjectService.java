@@ -10,6 +10,13 @@ import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.CustomerUserRepository;
 import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.ProjectDocumentRepository;
+import com.wd.api.repository.ProjectMemberRepository;
+import com.wd.api.repository.PortalUserRepository;
+import com.wd.api.repository.LeadsRepository;
+import com.wd.api.model.ProjectMember;
+
+import com.wd.api.model.PortalUser;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Service layer for Customer Project business logic
@@ -46,7 +52,17 @@ public class CustomerProjectService {
     @Autowired
     private ProjectDocumentRepository projectDocumentRepository;
 
+    @Autowired
+    private ProjectMemberRepository projectMemberRepository;
+
+    @Autowired
+    private PortalUserRepository portalUserRepository;
+
+    @Autowired
+    private LeadsRepository leadsRepository;
+
     /**
+     * 
      * Get all projects with pagination and search
      */
     @Transactional(readOnly = true)
@@ -88,9 +104,6 @@ public class CustomerProjectService {
         // Validate required fields
         validateProjectRequest(request);
 
-        // Generate unique project code
-        String projectCode = generateUniqueProjectCode();
-
         // Create new project
         CustomerProject project = new CustomerProject();
         project.setName(request.getName().trim());
@@ -115,7 +128,9 @@ public class CustomerProjectService {
 
         project.setSqfeet(request.getSqfeet());
         project.setLeadId(request.getLeadId());
-        project.setCode(projectCode);
+
+        // Initial dummy code, will be updated after save
+        project.setCode("PENDING");
 
         // Set customer if provided
         if (request.getCustomerId() != null) {
@@ -136,10 +151,34 @@ public class CustomerProjectService {
             project.setContractType(com.wd.api.model.enums.ContractType.TURNKEY);
         }
 
-        // Note: Team member assignment removed for simplification
-        // Can be added back with proper DTO/entity method alignment
+        // Save Project to get ID
+        CustomerProject savedProject = customerProjectRepository.save(project);
 
-        return customerProjectRepository.save(project);
+        // Update Lead status if leadId is present
+        if (savedProject.getLeadId() != null) {
+            leadsRepository.findById(savedProject.getLeadId()).ifPresent(lead -> {
+                lead.setLeadStatus("WON");
+                lead.setConvertedAt(java.time.LocalDateTime.now());
+                // Try to find user ID by email/username 'createdBy'
+                portalUserRepository.findByEmail(createdBy).ifPresent(user -> {
+                    lead.setConvertedById(user.getId());
+                });
+                leadsRepository.save(lead);
+            });
+        }
+
+        // Generate Enterprise Project Code: PRJ-{YEAR}-{ID}
+        String projectCode = "PRJ-" + java.time.LocalDate.now().getYear() + "-"
+                + String.format("%04d", savedProject.getId());
+        savedProject.setCode(projectCode);
+
+        // Handle Project Manager
+        if (request.getProjectManagerId() != null) {
+            savedProject.setProjectManagerId(request.getProjectManagerId());
+            syncProjectManagerMember(savedProject, request.getProjectManagerId());
+        }
+
+        return customerProjectRepository.save(savedProject);
     }
 
     /**
@@ -197,9 +236,15 @@ public class CustomerProjectService {
         project.setSqfeet(request.getSqfeet());
         project.setLeadId(request.getLeadId());
 
-        // Update code if provided
+        // Update code if provided (manual override)
         if (request.getCode() != null && !request.getCode().trim().isEmpty()) {
             project.setCode(request.getCode().trim());
+        }
+
+        // Handle Project Manager Update
+        if (request.getProjectManagerId() != null) {
+            project.setProjectManagerId(request.getProjectManagerId());
+            syncProjectManagerMember(project, request.getProjectManagerId());
         }
 
         return customerProjectRepository.save(project);
@@ -265,13 +310,39 @@ public class CustomerProjectService {
         }
     }
 
-    private String generateUniqueProjectCode() {
-        String code;
-        do {
-            String shortUuid = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-            code = "PROJ-" + shortUuid;
-        } while (customerProjectRepository.findByCode(code).isPresent());
+    private void syncProjectManagerMember(CustomerProject project, Long pmId) {
+        PortalUser pmUser = portalUserRepository.findById(pmId).orElse(null);
+        if (pmUser == null)
+            return;
 
-        return code;
+        // Check if PM member exists
+        java.util.Set<ProjectMember> members = project.getProjectMembers();
+        ProjectMember pmMember = null;
+
+        if (members != null) {
+            pmMember = members.stream()
+                    .filter(m -> "PROJECT_MANAGER".equals(m.getRoleInProject()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        if (pmMember != null) {
+            // Update existing
+            pmMember.setPortalUser(pmUser);
+        } else {
+            // Create new
+            pmMember = new ProjectMember();
+            pmMember.setProject(project);
+            pmMember.setPortalUser(pmUser);
+            pmMember.setRoleInProject("PROJECT_MANAGER");
+
+            // Note: Since we are using CascadeType.ALL on project.getProjectMembers,
+            // adding to the set should be enough if we save the project.
+            // But here we are explicit to be safe.
+            // However, the project might not have the collection initialized if fetched
+            // lazily?
+            // Safer to use repository directly if we can, or just save member.
+            projectMemberRepository.save(pmMember);
+        }
     }
 }

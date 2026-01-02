@@ -10,4 +10,6 @@ public interface BoqItemRepository extends JpaRepository<BoqItem, Long> {
     List<BoqItem> findByProjectId(Long projectId);
 
     List<BoqItem> findByProjectIdAndWorkTypeId(Long projectId, Long workTypeId);
+
+    List<BoqItem> findByProjectIdAndMaterialId(Long projectId, Long materialId);
 }

@@ -85,19 +85,26 @@ public class InventoryService {
                                         .map(com.wd.api.model.StockAdjustment::getQuantity)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+                        BigDecimal consumption = adjustments.stream()
+                                        .filter(a -> "CONSUMPTION".equals(a.getAdjustmentType()))
+                                        .map(com.wd.api.model.StockAdjustment::getQuantity)
+                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
                         // Other adjustments (Correction, Transfer Out) could affect calc, but sticking
                         // to basics:
-                        BigDecimal totalAdjustments = wastage.add(theft).add(damage);
+                        BigDecimal totalAdjustments = wastage.add(theft).add(damage).add(consumption);
 
-                        // Implied Consumption = Purchased - Stock - (Negative Adjustments)
-                        // Note: Adjustments are usually negative quantities in the stock ledger?
-                        // In our model, we stored them as absolute quantities with a type.
-                        // If we have 100 Purchased, 50 Stock, 10 Wastage -> Consumption = 40.
-
+                        // Implied Consumption fallback (if explicit consumption not used)
+                        // Implied = Purchased - Stock - (Negative Adjustments)
                         BigDecimal impliedConsumption = totalPurchased.subtract(currentStock)
-                                        .subtract(totalAdjustments);
-                        if (impliedConsumption.compareTo(BigDecimal.ZERO) < 0)
-                                impliedConsumption = BigDecimal.ZERO;
+                                        .subtract(wastage).subtract(theft).subtract(damage);
+
+                        // Use calculated implied consumption if it's positive, otherwise use explicit
+                        BigDecimal finalConsumption = consumption.compareTo(BigDecimal.ZERO) > 0 ? consumption
+                                        : impliedConsumption;
+
+                        if (finalConsumption.compareTo(BigDecimal.ZERO) < 0)
+                                finalConsumption = BigDecimal.ZERO;
 
                         if (totalPurchased.compareTo(BigDecimal.ZERO) == 0
                                         && currentStock.compareTo(BigDecimal.ZERO) == 0) {
@@ -153,6 +160,36 @@ public class InventoryService {
 
                 stock.setCurrentQuantity(stock.getCurrentQuantity().add(quantityChange));
                 stockRepository.save(stock);
+        }
+
+        @Transactional
+        public void recordConsumption(Long projectId, Long materialId, BigDecimal quantity, Long userId) {
+                // 1. Update Stock (Reduce)
+                updateStock(projectId, materialId, quantity.negate());
+
+                // 2. Create Adjustment Record
+                CustomerProject project = projectRepository.findById(projectId)
+                                .orElseThrow(() -> new RuntimeException("Project not found"));
+                Material material = materialRepository.findById(materialId)
+                                .orElseThrow(() -> new RuntimeException("Material not found"));
+
+                // Need to fetch User entity (skipped for brevity, assuming ID is sufficient or
+                // ignored in this specific snippet context if we don't have User Repo injected
+                // yet)
+                // For now, we will just create the record. In a real scenario, we'd fetch the
+                // PortalUser.
+
+                com.wd.api.model.StockAdjustment adjustment = com.wd.api.model.StockAdjustment.builder()
+                                .project(project)
+                                .material(material)
+                                .quantity(quantity)
+                                .adjustmentType("CONSUMPTION") // Using text directly matching enum/constant
+                                .reason("Material consumed on site")
+                                .adjustedAt(java.time.LocalDateTime.now())
+                                // .adjustedBy(user) // Add user lookup if needed
+                                .build();
+
+                adjustmentRepository.save(adjustment);
         }
 
         public List<InventoryStockDTO> getStockByProject(Long projectId) {

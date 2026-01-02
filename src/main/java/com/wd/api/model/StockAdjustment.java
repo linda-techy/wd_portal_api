@@ -21,7 +21,7 @@ public class StockAdjustment {
     private Material material;
 
     @Column(name = "adjustment_type", nullable = false, length = 30)
-    private String adjustmentType; // WASTAGE, THEFT, DAMAGE, CORRECTION, TRANSFER_OUT
+    private String adjustmentType; // WASTAGE, THEFT, DAMAGE, CORRECTION, TRANSFER_OUT, CONSUMPTION
 
     @Column(precision = 15, scale = 2, nullable = false)
     private BigDecimal quantity;

@@ -46,6 +46,9 @@ public class CustomerProjectUpdateRequest {
     @JsonProperty("is_design_agreement_signed")
     private Boolean isDesignAgreementSigned;
 
+    @JsonProperty("project_manager_id")
+    private Long projectManagerId;
+
     // Constructors
     public CustomerProjectUpdateRequest() {
     }
@@ -228,4 +231,13 @@ public class CustomerProjectUpdateRequest {
     public void setIsDesignAgreementSigned(Boolean isDesignAgreementSigned) {
         this.isDesignAgreementSigned = isDesignAgreementSigned;
     }
+
+    public Long getProjectManagerId() {
+        return projectManagerId;
+    }
+
+    public void setProjectManagerId(Long projectManagerId) {
+        this.projectManagerId = projectManagerId;
+    }
+
 }
