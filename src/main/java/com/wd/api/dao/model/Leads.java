@@ -1,5 +1,6 @@
 package com.wd.api.dao.model;
 
+import com.wd.api.model.BaseEntity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -8,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "leads")
-public class Leads {
+public class Leads extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -101,10 +102,6 @@ public class Leads {
     @JsonProperty("date_of_enquiry")
     private LocalDate dateOfEnquiry;
 
-    @Column(name = "created_at")
-    @JsonProperty("created_at")
-    private LocalDateTime createdAt;
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "assigned_to_id")
     private com.wd.api.model.PortalUser assignedTo;
@@ -112,10 +109,6 @@ public class Leads {
     @Transient
     @JsonProperty("assigned_to_id")
     private Long assignedToId;
-
-    @Column(name = "updated_at")
-    @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
 
     // Lead Scoring System fields
     @Column(name = "score")
@@ -348,22 +341,6 @@ public class Leads {
 
     public void setDateOfEnquiry(LocalDate dateOfEnquiry) {
         this.dateOfEnquiry = dateOfEnquiry;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     public Long getId() {

@@ -412,9 +412,9 @@ public class PaymentService {
         invoice.setTaxableValue(taxableValue);
 
         // Determine if interstate or intrastate
-        // Company is registered in Karnataka (state code: 29, name: KARNATAKA)
+        // Company is registered in Kerala (name: KERALA)
         // Compare with place of supply to determine GST type
-        String companyState = "KARNATAKA"; // Company's registered state
+        String companyState = "KERALA"; // Company's registered state
         boolean isInterstate = placeOfSupply != null
                 && !placeOfSupply.trim().isEmpty()
                 && !placeOfSupply.toUpperCase().trim().equals(companyState);

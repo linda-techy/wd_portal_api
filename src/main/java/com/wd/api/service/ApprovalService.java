@@ -70,10 +70,11 @@ public class ApprovalService {
                 if ("PO".equals(request.getTargetType())) {
                         PurchaseOrder po = poRepository.findById(request.getTargetId()).orElse(null);
                         if (po != null) {
-                                po.setStatus(
-                                                "APPROVED".equals(status) ? "ISSUED"
-                                                                : ("REJECTED".equals(status) ? "DRAFT"
-                                                                                : po.getStatus()));
+                                if ("APPROVED".equals(status)) {
+                                        po.setStatus(com.wd.api.model.enums.PurchaseOrderStatus.ISSUED);
+                                } else if ("REJECTED".equals(status)) {
+                                        po.setStatus(com.wd.api.model.enums.PurchaseOrderStatus.DRAFT);
+                                }
                                 poRepository.save(po);
                         }
                 } else if ("INVOICE".equals(request.getTargetType())) {

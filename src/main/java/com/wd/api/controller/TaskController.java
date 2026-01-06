@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.ApiResponse;
 import com.wd.api.model.Task;
 import com.wd.api.model.TaskAssignmentHistory;
 import com.wd.api.model.User;
@@ -62,14 +63,27 @@ public class TaskController {
      */
     @GetMapping("/alerts/stats")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<?> getAlertStats(@RequestParam(defaultValue = "7") int days) {
-        return ResponseEntity.ok(taskAlertService.getAlertStats(days));
+    public ResponseEntity<ApiResponse<com.wd.api.service.TaskAlertService.AlertStats>> getAlertStats(
+            @RequestParam(defaultValue = "7") int days) {
+        try {
+            com.wd.api.service.TaskAlertService.AlertStats stats = taskAlertService.getAlertStats(days);
+            return ResponseEntity.ok(ApiResponse.success("Alert stats retrieved successfully", stats));
+        } catch (Exception e) {
+            logger.error("Error fetching alert stats", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        }
     }
 
     @GetMapping("/alerts/recent")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<com.wd.api.model.TaskAlert>> getRecentAlerts() {
-        return ResponseEntity.ok(taskAlertService.getRecentAlerts());
+    public ResponseEntity<ApiResponse<List<com.wd.api.model.TaskAlert>>> getRecentAlerts() {
+        try {
+            List<com.wd.api.model.TaskAlert> alerts = taskAlertService.getRecentAlerts();
+            return ResponseEntity.ok(ApiResponse.success("Recent alerts retrieved successfully", alerts));
+        } catch (Exception e) {
+            logger.error("Error fetching recent alerts", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        }
     }
 
     /**
@@ -77,19 +91,24 @@ public class TaskController {
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Task>> getAllTasks(Authentication auth) {
-        User user = getCurrentUser(auth);
+    public ResponseEntity<ApiResponse<List<Task>>> getAllTasks(Authentication auth) {
+        try {
+            User user = getCurrentUser(auth);
 
-        List<Task> tasks;
-        if (authService.isAdmin(auth)) {
-            tasks = taskService.getAllTasks();
-            logger.info("Admin {} retrieved all tasks", user.getEmail());
-        } else {
-            tasks = taskService.getTasksForUser(user, auth);
-            logger.info("User {} retrieved their tasks", user.getEmail());
+            List<Task> tasks;
+            if (authService.isAdmin(auth)) {
+                tasks = taskService.getAllTasks();
+                logger.info("Admin {} retrieved all tasks", user.getEmail());
+            } else {
+                tasks = taskService.getTasksForUser(user, auth);
+                logger.info("User {} retrieved their tasks", user.getEmail());
+            }
+
+            return ResponseEntity.ok(ApiResponse.success("Tasks retrieved successfully", tasks));
+        } catch (Exception e) {
+            logger.error("Error fetching tasks", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
-
-        return ResponseEntity.ok(tasks);
     }
 
     /**
@@ -97,21 +116,26 @@ public class TaskController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<Task> getTaskById(@PathVariable Long id, Authentication auth) {
-        User user = getCurrentUser(auth);
+    public ResponseEntity<ApiResponse<Task>> getTaskById(@PathVariable Long id, Authentication auth) {
+        try {
+            User user = getCurrentUser(auth);
 
-        Optional<Task> task = taskService.getTaskById(id);
-        if (task.isEmpty()) {
-            return ResponseEntity.notFound().build();
+            Optional<Task> task = taskService.getTaskById(id);
+            if (task.isEmpty()) {
+                return ResponseEntity.status(404).body(ApiResponse.error("Task not found"));
+            }
+
+            // Check view permission
+            if (!authService.canViewTask(id, auth, user.getId())) {
+                logger.warn("User {} attempted to view task {} without permission", user.getEmail(), id);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Access denied"));
+            }
+
+            return ResponseEntity.ok(ApiResponse.success("Task retrieved successfully", task.get()));
+        } catch (Exception e) {
+            logger.error("Error fetching task", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
-
-        // Check view permission
-        if (!authService.canViewTask(id, auth, user.getId())) {
-            logger.warn("User {} attempted to view task {} without permission", user.getEmail(), id);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        return ResponseEntity.ok(task.get());
     }
 
     /**
@@ -119,9 +143,15 @@ public class TaskController {
      */
     @GetMapping("/my-tasks")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Task>> getMyTasks(Authentication auth) {
-        User user = getCurrentUser(auth);
-        return ResponseEntity.ok(taskService.getMyTasks(user));
+    public ResponseEntity<ApiResponse<List<Task>>> getMyTasks(Authentication auth) {
+        try {
+            User user = getCurrentUser(auth);
+            return ResponseEntity
+                    .ok(ApiResponse.success("My tasks retrieved successfully", taskService.getMyTasks(user)));
+        } catch (Exception e) {
+            logger.error("Error fetching my tasks", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        }
     }
 
     /**
@@ -129,12 +159,16 @@ public class TaskController {
      */
     @GetMapping("/by-status/{status}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Task>> getTasksByStatus(@PathVariable String status) {
+    public ResponseEntity<ApiResponse<List<Task>>> getTasksByStatus(@PathVariable String status) {
         try {
             Task.TaskStatus taskStatus = Task.TaskStatus.valueOf(status.toUpperCase());
-            return ResponseEntity.ok(taskService.getTasksByStatus(taskStatus));
+            return ResponseEntity
+                    .ok(ApiResponse.success("Tasks retrieved successfully", taskService.getTasksByStatus(taskStatus)));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid status"));
+        } catch (Exception e) {
+            logger.error("Error fetching tasks by status", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -143,8 +177,14 @@ public class TaskController {
      */
     @GetMapping("/by-project/{projectId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Task>> getTasksByProject(@PathVariable Long projectId) {
-        return ResponseEntity.ok(taskService.getTasksByProject(projectId));
+    public ResponseEntity<ApiResponse<List<Task>>> getTasksByProject(@PathVariable Long projectId) {
+        try {
+            return ResponseEntity
+                    .ok(ApiResponse.success("Tasks retrieved successfully", taskService.getTasksByProject(projectId)));
+        } catch (Exception e) {
+            logger.error("Error fetching tasks by project", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        }
     }
 
     /**
@@ -152,8 +192,14 @@ public class TaskController {
      */
     @GetMapping("/by-lead/{leadId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Task>> getTasksByLead(@PathVariable Long leadId) {
-        return ResponseEntity.ok(taskService.getTasksByLead(leadId));
+    public ResponseEntity<ApiResponse<List<Task>>> getTasksByLead(@PathVariable Long leadId) {
+        try {
+            return ResponseEntity
+                    .ok(ApiResponse.success("Tasks retrieved successfully", taskService.getTasksByLead(leadId)));
+        } catch (Exception e) {
+            logger.error("Error fetching tasks by lead", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        }
     }
 
     /**
@@ -161,19 +207,24 @@ public class TaskController {
      */
     @GetMapping("/{id}/assignment-history")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<TaskAssignmentHistory>> getAssignmentHistory(
+    public ResponseEntity<ApiResponse<List<TaskAssignmentHistory>>> getAssignmentHistory(
             @PathVariable Long id, Authentication auth) {
-        User user = getCurrentUser(auth);
+        try {
+            User user = getCurrentUser(auth);
 
-        // Check view permission
-        if (!authService.canViewTask(id, auth, user.getId())) {
-            logger.warn("User {} attempted to view history for task {} without permission",
-                    user.getEmail(), id);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            // Check view permission
+            if (!authService.canViewTask(id, auth, user.getId())) {
+                logger.warn("User {} attempted to view history for task {} without permission",
+                        user.getEmail(), id);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Access denied"));
+            }
+
+            List<TaskAssignmentHistory> history = taskService.getAssignmentHistory(id);
+            return ResponseEntity.ok(ApiResponse.success("Assignment history retrieved successfully", history));
+        } catch (Exception e) {
+            logger.error("Error fetching assignment history", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
-
-        List<TaskAssignmentHistory> history = taskService.getAssignmentHistory(id);
-        return ResponseEntity.ok(history);
     }
 
     /**
@@ -186,14 +237,21 @@ public class TaskController {
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // ✅ Changed from ADMIN-only
-    public ResponseEntity<Task> createTask(@jakarta.validation.Valid @RequestBody Task task, Authentication auth) {
-        User createdBy = getCurrentUser(auth);
+    public ResponseEntity<ApiResponse<Task>> createTask(@jakarta.validation.Valid @RequestBody Task task,
+            Authentication auth) {
+        try {
+            User createdBy = getCurrentUser(auth);
 
-        logger.info("User {} creating task: {} (Due: {})",
-                createdBy.getEmail(), task.getTitle(), task.getDueDate());
+            logger.info("User {} creating task: {} (Due: {})",
+                    createdBy.getEmail(), task.getTitle(), task.getDueDate());
 
-        Task createdTask = taskService.createTask(task, createdBy);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdTask);
+            Task createdTask = taskService.createTask(task, createdBy);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Task created successfully", createdTask));
+        } catch (Exception e) {
+            logger.error("Error creating task", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        }
     }
 
     /**
@@ -201,7 +259,7 @@ public class TaskController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<?> updateTask(
+    public ResponseEntity<ApiResponse<Task>> updateTask(
             @PathVariable Long id,
             @RequestBody Task task,
             Authentication auth) {
@@ -212,16 +270,19 @@ public class TaskController {
             Task updatedTask = taskService.updateTask(id, task, auth, user.getId());
 
             logger.info("User {} updated task {}", user.getEmail(), id);
-            return ResponseEntity.ok(updatedTask);
+            return ResponseEntity.ok(ApiResponse.success("Task updated successfully", updatedTask));
 
         } catch (AccessDeniedException e) {
             logger.warn("Access denied for update: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (RuntimeException e) {
             logger.error("Error updating task", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error updating task", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -231,7 +292,7 @@ public class TaskController {
      */
     @PutMapping("/{id}/assign")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // ✅ Changed from ADMIN-only
-    public ResponseEntity<?> assignTask(
+    public ResponseEntity<ApiResponse<Task>> assignTask(
             @PathVariable Long id,
             @RequestBody Map<String, Object> request,
             Authentication auth) {
@@ -251,12 +312,15 @@ public class TaskController {
             logger.info("User {} assigned task {} to user {}",
                     assignedBy.getEmail(), id, userId);
 
-            return ResponseEntity.ok(assignedTask);
+            return ResponseEntity.ok(ApiResponse.success("Task assigned successfully", assignedTask));
 
         } catch (RuntimeException e) {
             logger.error("Error assigning task", e);
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error assigning task", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -265,7 +329,7 @@ public class TaskController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // ✅ Changed from ADMIN-only
-    public ResponseEntity<?> deleteTask(@PathVariable Long id, Authentication auth) {
+    public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id, Authentication auth) {
         try {
             User user = getCurrentUser(auth);
 
@@ -273,16 +337,19 @@ public class TaskController {
             taskService.deleteTask(id, auth, user.getId());
 
             logger.info("User {} deleted task {}", user.getEmail(), id);
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(ApiResponse.success("Task deleted successfully"));
 
         } catch (AccessDeniedException e) {
             logger.warn("Access denied for delete: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (RuntimeException e) {
             logger.error("Error deleting task", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error deleting task", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -292,18 +359,17 @@ public class TaskController {
      */
     @PostMapping("/alerts/trigger")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> triggerTaskAlerts() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> triggerTaskAlerts() {
         logger.info("Manual task alert trigger requested");
 
         try {
             taskAlertScheduler.triggerManualCheck();
-            return ResponseEntity.ok(Map.of(
-                    "message", "Task deadline alert check completed successfully",
-                    "timestamp", java.time.LocalDateTime.now()));
+            return ResponseEntity.ok(ApiResponse.success("Task deadline alert check completed successfully", Map.of(
+                    "timestamp", java.time.LocalDateTime.now())));
         } catch (Exception e) {
             logger.error("Error during manual alert trigger", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(ApiResponse.error(e.getMessage()));
         }
     }
 

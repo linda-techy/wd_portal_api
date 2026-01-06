@@ -1,24 +1,22 @@
 package com.wd.api.model;
 
-import com.wd.api.dao.model.Leads;
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-
 import java.time.LocalDateTime;
 
+/**
+ * Unified Document entity for polymorphic file attachments across the system.
+ * Replaces specialized document entities (LeadDocument, ProjectDocument).
+ * Extends BaseEntity for full enterprise audit trails and optimistic locking.
+ */
 @Entity
-@Table(name = "lead_documents")
-public class LeadDocument {
+@Table(name = "wd_documents")
+public class Document extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lead_id", nullable = false)
-    private Leads lead;
-
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String filename;
 
     @Column(name = "file_path", nullable = false, length = 500)
@@ -33,36 +31,36 @@ public class LeadDocument {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(length = 50)
-    private String category;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "uploaded_by_id")
-    private User uploadedBy;
+    @JoinColumn(name = "category_id")
+    private DocumentCategory category;
 
-    @CreationTimestamp
-    @Column(name = "uploaded_at", nullable = false, updatable = false)
-    private LocalDateTime uploadedAt;
+    /**
+     * Polymorphic reference ID (e.g., Lead ID, Project ID)
+     */
+    @Column(name = "reference_id", nullable = false)
+    private Long referenceId;
+
+    /**
+     * Polymorphic reference type (e.g., LEAD, PROJECT, VENDOR)
+     */
+    @Column(name = "reference_type", nullable = false, length = 50)
+    private String referenceType;
 
     @Column(name = "is_active")
     private Boolean isActive = true;
 
-    // Getters and Setters
+    // Constructors
+    public Document() {
+    }
 
+    // Getters and Setters
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Leads getLead() {
-        return lead;
-    }
-
-    public void setLead(Leads lead) {
-        this.lead = lead;
     }
 
     public String getFilename() {
@@ -105,35 +103,35 @@ public class LeadDocument {
         this.description = description;
     }
 
-    public String getCategory() {
+    public DocumentCategory getCategory() {
         return category;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(DocumentCategory category) {
         this.category = category;
     }
 
-    public User getUploadedBy() {
-        return uploadedBy;
+    public Long getReferenceId() {
+        return referenceId;
     }
 
-    public void setUploadedBy(User uploadedBy) {
-        this.uploadedBy = uploadedBy;
+    public void setReferenceId(Long referenceId) {
+        this.referenceId = referenceId;
     }
 
-    public LocalDateTime getUploadedAt() {
-        return uploadedAt;
+    public String getReferenceType() {
+        return referenceType;
     }
 
-    public void setUploadedAt(LocalDateTime uploadedAt) {
-        this.uploadedAt = uploadedAt;
+    public void setReferenceType(String referenceType) {
+        this.referenceType = referenceType;
     }
 
-    public Boolean getActive() {
+    public Boolean getIsActive() {
         return isActive;
     }
 
-    public void setActive(Boolean active) {
-        isActive = active;
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 }

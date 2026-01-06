@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "customer_projects")
-public class CustomerProject {
+public class CustomerProject extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,15 +34,6 @@ public class CustomerProject {
 
     @Column(name = "end_date")
     private LocalDate endDate;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @Column(name = "created_by")
-    private String createdBy;
 
     /**
      * Current phase of the project lifecycle
@@ -123,10 +114,8 @@ public class CustomerProject {
     private Set<BoqItem> boqItems = new HashSet<>();
 
     /**
-     * Project documents (plans, drawings, contracts etc.)
+     * overall operational status of the project
      */
-    @OneToMany(mappedBy = "project", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
-    private Set<ProjectDocument> documents = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "contract_type", length = 50)
@@ -169,55 +158,35 @@ public class CustomerProject {
     @Column(name = "project_description", columnDefinition = "TEXT")
     private String projectDescription;
 
-    // ==================== Audit Trail Fields ====================
+    // ==================== Audit Relation Overlays (Read-Only) ====================
 
-    /**
-     * User who created this project (entity relationship for audit trail)
-     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_user_id")
+    @JoinColumn(name = "created_by_user_id", insertable = false, updatable = false)
     private PortalUser createdByUser;
 
-    /**
-     * User who last updated this project
-     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "updated_by_user_id")
+    @JoinColumn(name = "updated_by_user_id", insertable = false, updatable = false)
     private PortalUser updatedByUser;
 
-    /**
-     * Soft delete timestamp - when project was deleted
-     */
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
-
-    /**
-     * User who soft-deleted this project
-     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "deleted_by_user_id")
+    @JoinColumn(name = "deleted_by_user_id", insertable = false, updatable = false)
     private PortalUser deletedByUser;
 
-    /**
-     * Version field for optimistic locking
-     * Prevents lost updates in concurrent scenarios
-     */
-    @Version
-    @Column(name = "version")
-    private Long version;
+    // ==================== Lifecycle Hooks ====================
 
+    @Override
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        super.onCreate();
         if (projectUuid == null) {
             projectUuid = UUID.randomUUID();
         }
     }
 
+    @Override
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        super.onUpdate();
     }
 
     // Getters and Setters
@@ -261,28 +230,16 @@ public class CustomerProject {
         this.endDate = endDate;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public PortalUser getCreatedByUser() {
+        return createdByUser;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public PortalUser getUpdatedByUser() {
+        return updatedByUser;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
+    public PortalUser getDeletedByUser() {
+        return deletedByUser;
     }
 
     public ProjectPhase getProjectPhase() {
@@ -547,60 +504,12 @@ public class CustomerProject {
         this.boqItems = boqItems;
     }
 
-    public Set<ProjectDocument> getDocuments() {
-        return documents;
-    }
-
-    public void setDocuments(Set<ProjectDocument> documents) {
-        this.documents = documents;
-    }
-
     public ProjectStatus getProjectStatus() {
         return projectStatus;
     }
 
     public void setProjectStatus(ProjectStatus projectStatus) {
         this.projectStatus = projectStatus;
-    }
-
-    public PortalUser getCreatedByUser() {
-        return createdByUser;
-    }
-
-    public void setCreatedByUser(PortalUser createdByUser) {
-        this.createdByUser = createdByUser;
-    }
-
-    public PortalUser getUpdatedByUser() {
-        return updatedByUser;
-    }
-
-    public void setUpdatedByUser(PortalUser updatedByUser) {
-        this.updatedByUser = updatedByUser;
-    }
-
-    public LocalDateTime getDeletedAt() {
-        return deletedAt;
-    }
-
-    public void setDeletedAt(LocalDateTime deletedAt) {
-        this.deletedAt = deletedAt;
-    }
-
-    public PortalUser getDeletedByUser() {
-        return deletedByUser;
-    }
-
-    public void setDeletedByUser(PortalUser deletedByUser) {
-        this.deletedByUser = deletedByUser;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
-
-    public void setVersion(Long version) {
-        this.version = version;
     }
 
     // ==================== Convenience Methods ====================
@@ -631,13 +540,6 @@ public class CustomerProject {
      */
     public int getBoqItemCount() {
         return boqItems != null ? boqItems.size() : 0;
-    }
-
-    /**
-     * Get count of documents
-     */
-    public int getDocumentCount() {
-        return documents != null ? documents.size() : 0;
     }
 
     /**

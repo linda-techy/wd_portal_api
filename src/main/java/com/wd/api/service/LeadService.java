@@ -60,13 +60,16 @@ public class LeadService {
     private LeadQuotationRepository leadQuotationRepository;
 
     @Autowired
-    private com.wd.api.repository.BoqItemRepository boqItemRepository;
+    private DocumentService documentService;
+
+    @Autowired
+    private com.wd.api.repository.ProjectMemberRepository projectMemberRepository;
 
     @Autowired
     private com.wd.api.repository.BoqWorkTypeRepository boqWorkTypeRepository;
 
     @Autowired
-    private com.wd.api.repository.ProjectMemberRepository projectMemberRepository;
+    private com.wd.api.repository.BoqItemRepository boqItemRepository;
 
     @Transactional
     public Leads createLead(Leads lead) {
@@ -583,7 +586,8 @@ public class LeadService {
         project.setLeadId(lead.getId()); // Link back to lead
         project.setStartDate(request.getStartDate() != null ? request.getStartDate() : java.time.LocalDate.now());
         project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.PLANNING); // Default phase
-        project.setState("Active");
+        project.setState(lead.getState()); // Fix mapping
+        project.setDistrict(lead.getDistrict()); // Ensure district is mapped
         project.setLocation(request.getLocation() != null ? request.getLocation() : lead.getLocation());
         project.setSqfeet(lead.getProjectSqftArea());
         project.setProjectType(request.getProjectType());
@@ -597,7 +601,6 @@ public class LeadService {
         if (request.getProjectManagerId() != null) {
             project.setProjectManagerId(request.getProjectManagerId());
         }
-        project.setCreatedBy(convertedBy.getUsername());
 
         // Set Budget from Quote or Lead
         // Set Budget from Quote or Lead
@@ -688,6 +691,12 @@ public class LeadService {
                 }
             }
         }
+
+        // 5. Migrate Documents
+        documentService.migrateLeadDocumentsToProject(lead.getId(), savedProject.getId());
+
+        // 6. Link Activities
+        activityFeedService.linkLeadActivitiesToProject(lead.getId(), savedProject);
 
         // Update Lead Status
         lead.setLeadStatus("WON");

@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tasks")
-public class Task {
+public class Task extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -60,22 +60,13 @@ public class Task {
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
     // Constructors
     public Task() {
     }
 
     public Task(Long id, String title, String description, TaskStatus status, TaskPriority priority,
             User assignedTo, User createdBy, CustomerProject project, com.wd.api.dao.model.Leads lead,
-            LocalDate dueDate,
-            LocalDateTime createdAt, LocalDateTime updatedAt) {
+            LocalDate dueDate) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -86,8 +77,6 @@ public class Task {
         this.project = project;
         this.lead = lead;
         this.dueDate = dueDate;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
     }
 
     // Getters and Setters
@@ -169,22 +158,6 @@ public class Task {
 
     public void setDueDate(LocalDate dueDate) {
         this.dueDate = dueDate;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     // Enums

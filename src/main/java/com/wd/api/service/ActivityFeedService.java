@@ -2,6 +2,7 @@ package com.wd.api.service;
 
 import com.wd.api.model.ActivityFeed;
 import com.wd.api.model.ActivityType;
+import com.wd.api.model.CustomerProject;
 import com.wd.api.model.CustomerUser;
 import com.wd.api.model.PortalUser;
 import com.wd.api.repository.ActivityFeedRepository;
@@ -70,7 +71,16 @@ public class ActivityFeedService {
         return activityFeedRepository.findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(leadId, "LEAD");
     }
 
-    public java.util.List<ActivityFeed> getRecentProjectActivities(Long projectId) {
-        return activityFeedRepository.findTop10ByProjectIdOrderByCreatedAtDesc(projectId);
+    @Transactional
+    public void linkLeadActivitiesToProject(Long leadId, CustomerProject project) {
+        java.util.List<ActivityFeed> activities = activityFeedRepository
+                .findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(leadId, "LEAD");
+
+        for (ActivityFeed activity : activities) {
+            activity.setProject(project);
+            // Optionally we can keep referenceId/Type as LEAD or update it to PROJECT
+            // Keeping it as LEAD but linking to Project is often best for provenance
+        }
+        activityFeedRepository.saveAll(activities);
     }
 }

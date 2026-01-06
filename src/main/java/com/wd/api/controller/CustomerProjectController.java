@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.CustomerProjectCreateRequest;
 import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
@@ -39,7 +40,7 @@ public class CustomerProjectController {
      * Get all customer projects with support for pagination and search
      */
     @GetMapping
-    public ResponseEntity<?> getAllCustomerProjects(
+    public ResponseEntity<ApiResponse<Page<CustomerProjectResponse>>> getAllCustomerProjects(
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -56,10 +57,10 @@ public class CustomerProjectController {
             Pageable pageable = PageRequest.of(page, size, sortObj);
             Page<CustomerProjectResponse> responses = customerProjectService.getAllProjects(search, pageable);
 
-            return ResponseEntity.ok(responses);
+            return ResponseEntity.ok(ApiResponse.success("Projects retrieved successfully", responses));
         } catch (Exception e) {
             logger.error("Error fetching customer projects", e);
-            return ResponseEntity.internalServerError().body("Error fetching projects: " + e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponse.error("Error fetching projects: " + e.getMessage()));
         }
     }
 
@@ -67,14 +68,15 @@ public class CustomerProjectController {
      * Get customer project by ID
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCustomerProjectById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<CustomerProjectResponse>> getCustomerProjectById(@PathVariable Long id) {
         try {
             return customerProjectService.getProjectById(id)
-                    .map(project -> ResponseEntity.ok(new CustomerProjectResponse(project)))
-                    .orElse(ResponseEntity.notFound().build());
+                    .map(project -> ResponseEntity.ok(ApiResponse.success("Project retrieved successfully",
+                            new CustomerProjectResponse(project))))
+                    .orElse(ResponseEntity.status(404).body(ApiResponse.error("Project not found")));
         } catch (Exception e) {
             logger.error("Error fetching customer project with ID: {}", id, e);
-            return ResponseEntity.internalServerError().body("Error fetching customer project");
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -83,20 +85,22 @@ public class CustomerProjectController {
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<?> createCustomerProject(@RequestBody CustomerProjectCreateRequest request) {
+    public ResponseEntity<ApiResponse<CustomerProjectResponse>> createCustomerProject(
+            @RequestBody CustomerProjectCreateRequest request) {
         try {
             // Get current logged-in user
             String createdBy = getCurrentUsername();
 
             CustomerProject savedProject = customerProjectService.createProject(request, createdBy);
-            return ResponseEntity.status(HttpStatus.CREATED).body(new CustomerProjectResponse(savedProject));
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                    ApiResponse.success("Project created successfully", new CustomerProjectResponse(savedProject)));
 
         } catch (IllegalArgumentException e) {
             logger.warn("Validation error creating customer project: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error creating customer project", e);
-            return ResponseEntity.internalServerError().body("Error creating customer project");
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -105,18 +109,19 @@ public class CustomerProjectController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<?> updateCustomerProject(@PathVariable Long id,
+    public ResponseEntity<ApiResponse<CustomerProjectResponse>> updateCustomerProject(@PathVariable Long id,
             @RequestBody CustomerProjectUpdateRequest request) {
         try {
             CustomerProject updatedProject = customerProjectService.updateProject(id, request);
-            return ResponseEntity.ok(new CustomerProjectResponse(updatedProject));
+            return ResponseEntity.ok(
+                    ApiResponse.success("Project updated successfully", new CustomerProjectResponse(updatedProject)));
 
         } catch (IllegalArgumentException e) {
             logger.warn("Validation error updating project ID {}: {}", id, e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error updating customer project with ID: {}", id, e);
-            return ResponseEntity.internalServerError().body("Error updating customer project");
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -125,18 +130,19 @@ public class CustomerProjectController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteCustomerProject(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteCustomerProject(@PathVariable Long id) {
         try {
             customerProjectService.deleteProject(id);
             logger.info("Customer project deleted successfully - ID: {}", id);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok(ApiResponse.success("Project deleted successfully"));
 
         } catch (IllegalArgumentException e) {
             logger.warn("Project not found for deletion: {}", id);
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body(ApiResponse.error("Project not found"));
         } catch (Exception e) {
             logger.error("Error deleting customer project with ID: {}", id, e);
-            return ResponseEntity.internalServerError().body("Error deleting customer project: " + e.getMessage());
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Error deleting customer project: " + e.getMessage()));
         }
     }
 
@@ -144,16 +150,17 @@ public class CustomerProjectController {
      * Get customer projects by lead ID
      */
     @GetMapping("/by-lead/{leadId}")
-    public ResponseEntity<?> getCustomerProjectsByLeadId(@PathVariable Long leadId) {
+    public ResponseEntity<ApiResponse<List<CustomerProjectResponse>>> getCustomerProjectsByLeadId(
+            @PathVariable Long leadId) {
         try {
             List<CustomerProject> projects = customerProjectService.getProjectsByLeadId(leadId);
             List<CustomerProjectResponse> responses = projects.stream()
                     .map(CustomerProjectResponse::new)
                     .collect(Collectors.toList());
-            return ResponseEntity.ok(responses);
+            return ResponseEntity.ok(ApiResponse.success("Lead projects retrieved successfully", responses));
         } catch (Exception e) {
             logger.error("Error fetching projects for lead ID: {}", leadId, e);
-            return ResponseEntity.internalServerError().body("Error fetching projects");
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 

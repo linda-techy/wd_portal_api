@@ -78,7 +78,11 @@ public class FileDownloadController {
             }
 
             // Check if file exists
-            Resource resource = new UrlResource(filePath.toUri());
+            java.net.URI uri = filePath.toUri();
+            if (uri == null) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+            Resource resource = new UrlResource(uri);
             if (!resource.exists() || !resource.isReadable()) {
                 return ResponseEntity.notFound().build();
             }

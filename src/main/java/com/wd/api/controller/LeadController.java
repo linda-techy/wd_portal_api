@@ -1,6 +1,7 @@
 package com.wd.api.controller;
 
 import com.wd.api.dao.model.Leads;
+import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LeadCreateRequest;
 import com.wd.api.dto.PaginationParams;
 import com.wd.api.service.LeadService;
@@ -33,19 +34,19 @@ public class LeadController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Leads>> getAllLeads() {
+    public ResponseEntity<ApiResponse<List<Leads>>> getAllLeads() {
         try {
             List<Leads> leads = leadService.getAllLeads();
-            return ResponseEntity.ok(leads);
+            return ResponseEntity.ok(ApiResponse.success("Leads retrieved successfully", leads));
         } catch (Exception e) {
             logger.error("Error in getAllLeads controller", e);
-            return ResponseEntity.internalServerError().body(null);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
     @GetMapping("/paginated")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<Page<Leads>> getLeadsPaginated(
+    public ResponseEntity<ApiResponse<Page<Leads>>> getLeadsPaginated(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(required = false) String search,
@@ -66,10 +67,10 @@ public class LeadController {
         try {
             // Input validation: Allow 0 for 0-based indexing as sent by Flutter
             if (page < 0) {
-                return ResponseEntity.badRequest().body(null);
+                return ResponseEntity.badRequest().body(ApiResponse.error("Page cannot be negative"));
             }
             if (limit < 1 || limit > 100) {
-                return ResponseEntity.badRequest().body(null);
+                return ResponseEntity.badRequest().body(ApiResponse.error("Limit must be between 1 and 100"));
             }
 
             PaginationParams params = new PaginationParams();
@@ -97,93 +98,95 @@ public class LeadController {
             params.setSortOrder(sortOrder);
 
             Page<Leads> response = leadService.getLeadsPaginated(params);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.success("Paginated leads retrieved successfully", response));
         } catch (Exception e) {
             logger.error("Error in getLeadsPaginated controller", e);
             e.printStackTrace(); // Print full stack trace to console
-            return ResponseEntity.internalServerError().body(null);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
     @GetMapping("/{leadId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<Leads> getLeadById(@PathVariable String leadId) {
+    public ResponseEntity<ApiResponse<Leads>> getLeadById(@PathVariable String leadId) {
         try {
             // Parse Long from String
             Leads lead = leadService.getLeadById(Long.parseLong(leadId));
             if (lead != null) {
-                return ResponseEntity.ok(lead);
+                return ResponseEntity.ok(ApiResponse.success("Lead retrieved successfully", lead));
             } else {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(404).body(ApiResponse.error("Lead not found"));
             }
         } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid lead ID format"));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
     @GetMapping("/{leadId}/activities")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<com.wd.api.model.ActivityFeed>> getLeadActivities(@PathVariable String leadId) {
+    public ResponseEntity<ApiResponse<List<com.wd.api.model.ActivityFeed>>> getLeadActivities(
+            @PathVariable String leadId) {
         try {
             Long id = Long.parseLong(leadId);
-            return ResponseEntity.ok(leadService.getLeadActivities(id));
+            List<com.wd.api.model.ActivityFeed> activities = leadService.getLeadActivities(id);
+            return ResponseEntity.ok(ApiResponse.success("Lead activities retrieved successfully", activities));
         } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid lead ID format"));
         } catch (Exception e) {
             logger.error("Error fetching lead activities", e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<?> createLead(@RequestBody LeadCreateRequest request) {
+    public ResponseEntity<ApiResponse<Leads>> createLead(@RequestBody LeadCreateRequest request) {
         try {
             if (request.getName() == null || request.getName().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(java.util.Map.of("error", "name is required"));
+                return ResponseEntity.badRequest().body(ApiResponse.error("name is required"));
             }
 
             Leads createdLead = leadService.createLead(request);
-            return ResponseEntity.ok(createdLead);
+            return ResponseEntity.ok(ApiResponse.success("Lead created successfully", createdLead));
         } catch (Exception e) {
             logger.error("Error creating lead", e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
     @PutMapping("/{leadId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<Leads> updateLead(@PathVariable String leadId, @RequestBody Leads lead) {
+    public ResponseEntity<ApiResponse<Leads>> updateLead(@PathVariable String leadId, @RequestBody Leads lead) {
         try {
             Long id = Long.parseLong(leadId);
             Leads updatedLead = leadService.updateLead(id, lead);
             if (updatedLead != null) {
-                return ResponseEntity.ok(updatedLead);
+                return ResponseEntity.ok(ApiResponse.success("Lead updated successfully", updatedLead));
             } else {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(404).body(ApiResponse.error("Lead not found"));
             }
         } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid lead ID format"));
         } catch (Exception e) {
             logger.error("Error updating lead", e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteLead(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<Void>> deleteLead(@PathVariable String id) {
         try {
             boolean deleted = leadService.deleteLead(Long.parseLong(id));
             if (deleted) {
-                return ResponseEntity.ok().build();
+                return ResponseEntity.ok(ApiResponse.success("Lead deleted successfully"));
             } else {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(404).body(ApiResponse.error("Lead not found"));
             }
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -377,7 +380,7 @@ public class LeadController {
      */
     @PostMapping("/{leadId}/convert")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
-    public ResponseEntity<?> convertLead(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> convertLead(
             @PathVariable String leadId,
             @RequestBody com.wd.api.dto.LeadConversionRequest request,
             org.springframework.security.core.Authentication authentication) {
@@ -392,23 +395,23 @@ public class LeadController {
             // Return success with project details
             logger.info("Lead {} successfully converted to project {} by user {}", id, project.getId(), username);
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Lead successfully converted to project",
+            Map<String, Object> data = Map.of(
                     "projectId", project.getId(),
-                    "projectName", project.getName()));
+                    "projectName", project.getName());
+
+            return ResponseEntity.ok(ApiResponse.success("Lead successfully converted to project", data));
 
         } catch (NumberFormatException e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", "Invalid lead ID format"));
+                    .body(ApiResponse.error("Invalid lead ID format"));
         } catch (IllegalArgumentException | IllegalStateException e) {
             logger.warn("Validation error during lead conversion: {}", e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Unexpected error converting lead {}", leadId, e);
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "message", "An unexpected error occurred during conversion"));
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("An unexpected error occurred during conversion"));
         }
     }
 }

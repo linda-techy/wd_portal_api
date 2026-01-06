@@ -172,7 +172,7 @@ public class ProcurementService {
         dto.setVendorId(p.getVendor().getId());
         dto.setVendorName(p.getVendor().getName());
         dto.setPoDate(p.getPoDate());
-        dto.setStatus(p.getStatus());
+        dto.setStatus(p.getStatus().name());
         dto.setTotalAmount(p.getTotalAmount());
         dto.setGstAmount(p.getGstAmount());
         dto.setNetAmount(p.getNetAmount());

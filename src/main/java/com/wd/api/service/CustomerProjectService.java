@@ -5,11 +5,9 @@ import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.Task;
-import com.wd.api.model.ProjectDocument;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.CustomerUserRepository;
 import com.wd.api.repository.TaskRepository;
-import com.wd.api.repository.ProjectDocumentRepository;
 import com.wd.api.repository.ProjectMemberRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.LeadsRepository;
@@ -50,7 +48,7 @@ public class CustomerProjectService {
     private TaskRepository taskRepository;
 
     @Autowired
-    private ProjectDocumentRepository projectDocumentRepository;
+    private com.wd.api.repository.DocumentRepository documentRepository;
 
     @Autowired
     private ProjectMemberRepository projectMemberRepository;
@@ -114,7 +112,6 @@ public class CustomerProjectService {
         project.setLocation(request.getLocation().trim());
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
-        project.setCreatedBy(createdBy);
 
         // Set defaults with enum conversion
         if (request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()) {
@@ -285,10 +282,10 @@ public class CustomerProjectService {
         }
 
         // Delete documents
-        List<ProjectDocument> docs = projectDocumentRepository.findAllByProjectId(id);
+        List<com.wd.api.model.Document> docs = documentRepository.findAllByReferenceIdAndReferenceType(id, "PROJECT");
         if (!docs.isEmpty()) {
             logger.info("Deleting {} documents for project ID: {}", docs.size(), id);
-            projectDocumentRepository.deleteAll(docs);
+            documentRepository.deleteAll(docs);
         }
 
         // Project members are handled by CascadeType.ALL in Entity

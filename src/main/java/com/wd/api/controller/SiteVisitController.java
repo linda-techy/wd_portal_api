@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.CheckInRequest;
 import com.wd.api.dto.CheckOutRequest;
 import com.wd.api.dto.SiteVisitDTO;
@@ -38,13 +39,13 @@ public class SiteVisitController {
      * POST /api/site-visits/check-in
      */
     @PostMapping("/check-in")
-    public ResponseEntity<?> checkIn(@RequestBody CheckInRequest request, Authentication auth) {
+    public ResponseEntity<ApiResponse<SiteVisitDTO>> checkIn(@RequestBody CheckInRequest request, Authentication auth) {
         try {
             Long userId = getCurrentUserId(auth);
             SiteVisitDTO visit = siteVisitService.checkIn(request, userId);
-            return ResponseEntity.ok(visit);
+            return ResponseEntity.ok(ApiResponse.success("Site check-in successful", visit));
         } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -53,16 +54,16 @@ public class SiteVisitController {
      * POST /api/site-visits/{id}/check-out
      */
     @PostMapping("/{id}/check-out")
-    public ResponseEntity<?> checkOut(
+    public ResponseEntity<ApiResponse<SiteVisitDTO>> checkOut(
             @PathVariable Long id,
             @RequestBody CheckOutRequest request,
             Authentication auth) {
         try {
             Long userId = getCurrentUserId(auth);
             SiteVisitDTO visit = siteVisitService.checkOut(id, request, userId);
-            return ResponseEntity.ok(visit);
+            return ResponseEntity.ok(ApiResponse.success("Site check-out successful", visit));
         } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -71,13 +72,13 @@ public class SiteVisitController {
      * GET /api/site-visits/active
      */
     @GetMapping("/active")
-    public ResponseEntity<SiteVisitDTO> getMyActiveVisit(Authentication auth) {
+    public ResponseEntity<ApiResponse<SiteVisitDTO>> getMyActiveVisit(Authentication auth) {
         Long userId = getCurrentUserId(auth);
         SiteVisitDTO visit = siteVisitService.getActiveVisitForUser(userId);
         if (visit == null) {
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(ApiResponse.success("No active visit found"));
         }
-        return ResponseEntity.ok(visit);
+        return ResponseEntity.ok(ApiResponse.success("Active visit retrieved", visit));
     }
 
     /**
@@ -86,8 +87,9 @@ public class SiteVisitController {
      */
     @GetMapping("/all-active")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<SiteVisitDTO>> getAllActiveVisits() {
-        return ResponseEntity.ok(siteVisitService.getAllActiveVisits());
+    public ResponseEntity<ApiResponse<List<SiteVisitDTO>>> getAllActiveVisits() {
+        return ResponseEntity
+                .ok(ApiResponse.success("All active visits retrieved", siteVisitService.getAllActiveVisits()));
     }
 
     /**
@@ -95,8 +97,9 @@ public class SiteVisitController {
      * GET /api/site-visits/project/{projectId}
      */
     @GetMapping("/project/{projectId}")
-    public ResponseEntity<List<SiteVisitDTO>> getVisitsByProject(@PathVariable Long projectId) {
-        return ResponseEntity.ok(siteVisitService.getVisitsByProject(projectId));
+    public ResponseEntity<ApiResponse<List<SiteVisitDTO>>> getVisitsByProject(@PathVariable Long projectId) {
+        return ResponseEntity
+                .ok(ApiResponse.success("Project visits retrieved", siteVisitService.getVisitsByProject(projectId)));
     }
 
     /**
@@ -104,8 +107,9 @@ public class SiteVisitController {
      * GET /api/site-visits/project/{projectId}/today
      */
     @GetMapping("/project/{projectId}/today")
-    public ResponseEntity<List<SiteVisitDTO>> getTodaysVisits(@PathVariable Long projectId) {
-        return ResponseEntity.ok(siteVisitService.getTodaysVisitsForProject(projectId));
+    public ResponseEntity<ApiResponse<List<SiteVisitDTO>>> getTodaysVisits(@PathVariable Long projectId) {
+        return ResponseEntity.ok(ApiResponse.success("Today's project visits retrieved",
+                siteVisitService.getTodaysVisitsForProject(projectId)));
     }
 
     /**
@@ -114,11 +118,12 @@ public class SiteVisitController {
      * /api/site-visits/project/{projectId}/range?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
      */
     @GetMapping("/project/{projectId}/range")
-    public ResponseEntity<List<SiteVisitDTO>> getVisitsByProjectAndDateRange(
+    public ResponseEntity<ApiResponse<List<SiteVisitDTO>>> getVisitsByProjectAndDateRange(
             @PathVariable Long projectId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(siteVisitService.getVisitsByProjectAndDateRange(projectId, startDate, endDate));
+        return ResponseEntity.ok(ApiResponse.success("Visits retrieved for date range",
+                siteVisitService.getVisitsByProjectAndDateRange(projectId, startDate, endDate)));
     }
 
     /**
@@ -126,12 +131,13 @@ public class SiteVisitController {
      * GET /api/site-visits/my-history?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
      */
     @GetMapping("/my-history")
-    public ResponseEntity<List<SiteVisitDTO>> getMyVisitHistory(
+    public ResponseEntity<ApiResponse<List<SiteVisitDTO>>> getMyVisitHistory(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             Authentication auth) {
         Long userId = getCurrentUserId(auth);
-        return ResponseEntity.ok(siteVisitService.getVisitsByUserAndDateRange(userId, startDate, endDate));
+        return ResponseEntity.ok(ApiResponse.success("My visit history retrieved",
+                siteVisitService.getVisitsByUserAndDateRange(userId, startDate, endDate)));
     }
 
     /**
@@ -139,8 +145,9 @@ public class SiteVisitController {
      * GET /api/site-visits/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<SiteVisitDTO> getVisit(@PathVariable Long id) {
-        return ResponseEntity.ok(siteVisitService.getVisitById(id));
+    public ResponseEntity<ApiResponse<SiteVisitDTO>> getVisit(@PathVariable Long id) {
+        return ResponseEntity
+                .ok(ApiResponse.success("Site visit details retrieved", siteVisitService.getVisitById(id)));
     }
 
     /**
@@ -148,13 +155,13 @@ public class SiteVisitController {
      * DELETE /api/site-visits/{id}
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> cancelVisit(@PathVariable Long id, Authentication auth) {
+    public ResponseEntity<ApiResponse<Void>> cancelVisit(@PathVariable Long id, Authentication auth) {
         try {
             Long userId = getCurrentUserId(auth);
             siteVisitService.cancelVisit(id, userId);
-            return ResponseEntity.ok(Map.of("message", "Visit cancelled"));
+            return ResponseEntity.ok(ApiResponse.success("Visit cancelled successfully"));
         } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -163,14 +170,16 @@ public class SiteVisitController {
      * GET /api/site-visits/types
      */
     @GetMapping("/types")
-    public ResponseEntity<?> getVisitTypes() {
-        return ResponseEntity.ok(List.of(
+    public ResponseEntity<ApiResponse<List<Map<String, String>>>> getVisitTypes() {
+        List<Map<String, String>> types = List.of(
                 Map.of("value", "SITE_ENGINEER", "label", "Site Engineer"),
                 Map.of("value", "PROJECT_MANAGER", "label", "Project Manager"),
                 Map.of("value", "SUPERVISOR", "label", "Supervisor"),
                 Map.of("value", "CONTRACTOR", "label", "Contractor"),
                 Map.of("value", "CLIENT", "label", "Client"),
-                Map.of("value", "GENERAL", "label", "General Visit")));
+                Map.of("value", "GENERAL", "label", "General Visit"));
+
+        return ResponseEntity.ok(ApiResponse.success("Visit types retrieved", types));
     }
 
     /**

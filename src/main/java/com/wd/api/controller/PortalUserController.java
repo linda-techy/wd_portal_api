@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.PortalUserCreateRequest;
 import com.wd.api.dto.PortalUserResponse;
 import com.wd.api.dto.PortalUserUpdateRequest;
@@ -42,16 +43,16 @@ public class PortalUserController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     // verifying role names in database
-    public ResponseEntity<?> getAllPortalUsers() {
+    public ResponseEntity<ApiResponse<List<PortalUserResponse>>> getAllPortalUsers() {
         try {
             List<PortalUser> users = portalUserRepository.findAll();
             List<PortalUserResponse> responses = users.stream()
                     .map(PortalUserResponse::new)
                     .collect(Collectors.toList());
-            return ResponseEntity.ok(responses);
+            return ResponseEntity.ok(ApiResponse.success("Portal users retrieved successfully", responses));
         } catch (Exception e) {
             logger.error("Error fetching portal users", e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -60,7 +61,7 @@ public class PortalUserController {
      */
     @GetMapping("/paginated")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<?> getPortalUsersPaginated(
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<PortalUserResponse>>> getPortalUsersPaginated(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sort,
@@ -69,10 +70,10 @@ public class PortalUserController {
         try {
             // Validate parameters
             if (page < 0) {
-                return ResponseEntity.badRequest().body("Page must be >= 0");
+                return ResponseEntity.badRequest().body(ApiResponse.error("Page must be >= 0"));
             }
             if (size < 1 || size > 100) {
-                return ResponseEntity.badRequest().body("Size must be between 1 and 100");
+                return ResponseEntity.badRequest().body(ApiResponse.error("Size must be between 1 and 100"));
             }
 
             // Create pageable
@@ -95,10 +96,11 @@ public class PortalUserController {
             org.springframework.data.domain.Page<PortalUserResponse> responsePage = userPage
                     .map(PortalUserResponse::new);
 
-            return ResponseEntity.ok(responsePage);
+            return ResponseEntity
+                    .ok(ApiResponse.success("Paginated portal users retrieved successfully", responsePage));
         } catch (Exception e) {
             logger.error("Error fetching paginated portal users", e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -106,16 +108,17 @@ public class PortalUserController {
      * Get portal user by ID
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getPortalUserById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<PortalUserResponse>> getPortalUserById(@PathVariable Long id) {
         try {
             Optional<PortalUser> userOpt = portalUserRepository.findById(id);
             if (!userOpt.isPresent()) {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(404).body(ApiResponse.error("User not found"));
             }
-            return ResponseEntity.ok(new PortalUserResponse(userOpt.get()));
+            return ResponseEntity
+                    .ok(ApiResponse.success("User retrieved successfully", new PortalUserResponse(userOpt.get())));
         } catch (Exception e) {
             logger.error("Error fetching portal user with ID: {}", id, e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -125,25 +128,26 @@ public class PortalUserController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     // names in database
-    public ResponseEntity<?> createPortalUser(@Valid @RequestBody PortalUserCreateRequest request) {
+    public ResponseEntity<ApiResponse<PortalUserResponse>> createPortalUser(
+            @Valid @RequestBody PortalUserCreateRequest request) {
         try {
             // Validate required fields
             if (request == null) {
-                return ResponseEntity.badRequest().body("Request body is required");
+                return ResponseEntity.badRequest().body(ApiResponse.error("Request body is required"));
             }
 
             // Check if email already exists
             if (portalUserRepository.findByEmail(request.getEmail().trim()).isPresent()) {
-                return ResponseEntity.badRequest().body("Email already exists");
+                return ResponseEntity.badRequest().body(ApiResponse.error("Email already exists"));
             }
 
             // Validate password
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Password is required");
+                return ResponseEntity.badRequest().body(ApiResponse.error("Password is required"));
             }
 
             if (request.getPassword().trim().length() < 6) {
-                return ResponseEntity.badRequest().body("Password must be at least 6 characters");
+                return ResponseEntity.badRequest().body(ApiResponse.error("Password must be at least 6 characters"));
             }
 
             // Create new user
@@ -161,11 +165,12 @@ public class PortalUserController {
             user.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
 
             PortalUser savedUser = portalUserRepository.save(user);
-            return ResponseEntity.status(HttpStatus.CREATED).body(new PortalUserResponse(savedUser));
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("User created successfully", new PortalUserResponse(savedUser)));
 
         } catch (Exception e) {
             logger.error("Error creating portal user", e);
-            return ResponseEntity.internalServerError().body("Error creating portal user");
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -175,24 +180,24 @@ public class PortalUserController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     // verifying role names in database
-    public ResponseEntity<?> updatePortalUser(@PathVariable Long id,
+    public ResponseEntity<ApiResponse<PortalUserResponse>> updatePortalUser(@PathVariable Long id,
             @Valid @RequestBody PortalUserUpdateRequest request) {
         try {
             // Validate ID
             if (id == null) {
-                return ResponseEntity.badRequest().body("User ID is required");
+                return ResponseEntity.badRequest().body(ApiResponse.error("User ID is required"));
             }
 
             Optional<PortalUser> userOpt = portalUserRepository.findById(id);
             if (!userOpt.isPresent()) {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(404).body(ApiResponse.error("User not found"));
             }
 
             PortalUser user = userOpt.get();
 
             // Validate request
             if (request == null) {
-                return ResponseEntity.badRequest().body("Request body is required");
+                return ResponseEntity.badRequest().body(ApiResponse.error("Request body is required"));
             }
 
             // Update email if provided and check uniqueness
@@ -201,7 +206,7 @@ public class PortalUserController {
                 if (!newEmail.equals(user.getEmail())) {
                     Optional<PortalUser> existingUser = portalUserRepository.findByEmail(newEmail);
                     if (existingUser.isPresent() && !existingUser.get().getId().equals(id)) {
-                        return ResponseEntity.badRequest().body("Email already exists");
+                        return ResponseEntity.badRequest().body(ApiResponse.error("Email already exists"));
                     }
                     user.setEmail(newEmail);
                 }
@@ -210,7 +215,8 @@ public class PortalUserController {
             // Update password if provided
             if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
                 if (request.getPassword().trim().length() < 6) {
-                    return ResponseEntity.badRequest().body("Password must be at least 6 characters");
+                    return ResponseEntity.badRequest()
+                            .body(ApiResponse.error("Password must be at least 6 characters"));
                 }
                 user.setPassword(passwordEncoder.encode(request.getPassword().trim()));
             }
@@ -233,11 +239,12 @@ public class PortalUserController {
             }
 
             PortalUser updatedUser = portalUserRepository.save(user);
-            return ResponseEntity.ok(new PortalUserResponse(updatedUser));
+            return ResponseEntity
+                    .ok(ApiResponse.success("User updated successfully", new PortalUserResponse(updatedUser)));
 
         } catch (Exception e) {
             logger.error("Error updating portal user with ID: {}", id, e);
-            return ResponseEntity.internalServerError().body("Error updating portal user");
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -247,22 +254,22 @@ public class PortalUserController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     // names in database
-    public ResponseEntity<?> deletePortalUser(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deletePortalUser(@PathVariable Long id) {
         try {
             if (id == null) {
-                return ResponseEntity.badRequest().body("User ID is required");
+                return ResponseEntity.badRequest().body(ApiResponse.error("User ID is required"));
             }
 
             if (!portalUserRepository.existsById(id)) {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(404).body(ApiResponse.error("User not found"));
             }
 
             portalUserRepository.deleteById(id);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok(ApiResponse.success("User deleted successfully"));
 
         } catch (Exception e) {
             logger.error("Error deleting portal user with ID: {}", id, e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -270,15 +277,15 @@ public class PortalUserController {
      * Get all portal roles for dropdown
      */
     @GetMapping("/roles")
-    public ResponseEntity<?> getPortalRoles() {
+    public ResponseEntity<ApiResponse<List<PortalRoleDTO>>> getPortalRoles() {
         try {
             List<PortalRoleDTO> roles = portalRoleRepository.findAll().stream()
                     .map(PortalRoleDTO::new)
                     .collect(Collectors.toList());
-            return ResponseEntity.ok(roles);
+            return ResponseEntity.ok(ApiResponse.success("Portal roles retrieved successfully", roles));
         } catch (Exception e) {
             logger.error("Error fetching portal roles", e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -288,39 +295,40 @@ public class PortalUserController {
     @PostMapping("/{id}/change-password")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     // verifying role names
-    public ResponseEntity<?> changePassword(@PathVariable Long id,
+    public ResponseEntity<ApiResponse<String>> changePassword(@PathVariable Long id,
             @Valid @RequestBody com.wd.api.dto.ChangePasswordRequest request) {
         try {
             if (id == null) {
-                return ResponseEntity.badRequest().body("User ID is required");
+                return ResponseEntity.badRequest().body(ApiResponse.error("User ID is required"));
             }
 
             Optional<PortalUser> userOpt = portalUserRepository.findById(id);
             if (!userOpt.isPresent()) {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(404).body(ApiResponse.error("User not found"));
             }
 
             PortalUser user = userOpt.get();
 
             // Validate current password
             if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-                return ResponseEntity.badRequest().body("Incorrect current password");
+                return ResponseEntity.badRequest().body(ApiResponse.error("Incorrect current password"));
             }
 
             // Validate new password
             if (request.getNewPassword() == null || request.getNewPassword().trim().length() < 6) {
-                return ResponseEntity.badRequest().body("New password must be at least 6 characters");
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("New password must be at least 6 characters"));
             }
 
             // Update password
             user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
             portalUserRepository.save(user);
 
-            return ResponseEntity.ok().body("Password changed successfully");
+            return ResponseEntity.ok(ApiResponse.success("Password changed successfully"));
 
         } catch (Exception e) {
             logger.error("Error changing password for user ID: {}", id, e);
-            return ResponseEntity.internalServerError().body("Error changing password");
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 }

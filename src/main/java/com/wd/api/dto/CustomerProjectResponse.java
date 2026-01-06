@@ -69,8 +69,11 @@ public class CustomerProjectResponse {
         this.createdAt = project.getCreatedAt();
         this.updatedAt = project.getUpdatedAt();
 
-        this.createdBy = project.getCreatedBy();
-        this.createdBy = project.getCreatedBy();
+        if (project.getCreatedByUser() != null) {
+            this.createdBy = project.getCreatedByUser().getFirstName() + " " + project.getCreatedByUser().getLastName();
+        } else if (project.getCreatedByUserId() != null) {
+            this.createdBy = "User ID: " + project.getCreatedByUserId();
+        }
         this.projectPhase = project.getProjectPhase() != null ? project.getProjectPhase().name() : null;
         this.projectType = project.getProjectType();
         this.state = project.getState();

@@ -5,7 +5,6 @@ import com.wd.api.model.CustomerProject;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.View360;
 import com.wd.api.repository.CustomerProjectRepository;
-import com.wd.api.service.PortalAuthService;
 import com.wd.api.service.View360Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +21,7 @@ import java.util.Map;
 public class View360Controller {
 
     private final View360Service view360Service;
-    private final PortalAuthService authService;
+    private final com.wd.api.repository.PortalUserRepository portalUserRepository;
     private final CustomerProjectRepository projectRepository;
     private final ObjectMapper objectMapper;
 
@@ -37,7 +36,11 @@ public class View360Controller {
             @RequestPart("file") MultipartFile file) throws Exception {
 
         Map<String, Object> tourData = objectMapper.readValue(tourJson, Map.class);
-        PortalUser currentUser = authService.getCurrentUser();
+
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()
+                .getName();
+        PortalUser currentUser = portalUserRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
         Long projectId = Long.valueOf(tourData.get("projectId").toString());
         CustomerProject project = projectRepository.findById(projectId)
