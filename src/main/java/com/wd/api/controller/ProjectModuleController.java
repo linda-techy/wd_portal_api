@@ -49,6 +49,14 @@ public class ProjectModuleController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Categories retrieved successfully", categories));
     }
 
+    @DeleteMapping("/documents/{documentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteDocument(
+            @PathVariable Long projectId,
+            @PathVariable Long documentId) {
+        documentService.deleteDocument(documentId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Document deleted successfully", null));
+    }
+
     // Helper method to extract user ID from authentication
     private Long getUserIdFromAuth(Authentication auth) {
         if (auth == null || auth.getPrincipal() == null) {

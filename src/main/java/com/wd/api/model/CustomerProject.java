@@ -92,6 +92,15 @@ public class CustomerProject {
     @JoinColumn(name = "project_manager_id")
     private PortalUser projectManager;
 
+    /**
+     * Site location GPS coordinates
+     */
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     // ==================== Collections (OneToMany Relationships)
     // ====================
 
@@ -411,6 +420,29 @@ public class CustomerProject {
             this.projectManager = null;
         }
         // ID setting is handled in service layer via proper entity loading
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    /**
+     * Check if project has GPS coordinates set
+     */
+    public boolean hasLocation() {
+        return latitude != null && longitude != null;
     }
 
     public UUID getProjectUuid() {

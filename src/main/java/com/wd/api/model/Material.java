@@ -1,5 +1,7 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.MaterialCategory;
+import com.wd.api.model.enums.MaterialUnit;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -14,11 +16,21 @@ public class Material {
     @Column(nullable = false, unique = true)
     private String name;
 
+    /**
+     * Unit of measurement for this material.
+     * Stored as VARCHAR for backward compatibility with existing data.
+     */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String unit; // KG, BAGS, CUM, etc.
+    private MaterialUnit unit;
 
+    /**
+     * Category classification for this material.
+     * Stored as VARCHAR for backward compatibility with existing data.
+     */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String category; // CEMENT, STEEL, BRICKS, ELECTRICAL, PLUMBING, etc.
+    private MaterialCategory category;
 
     @Column(name = "is_active")
     private boolean active = true;
@@ -34,7 +46,8 @@ public class Material {
     public Material() {
     }
 
-    public Material(Long id, String name, String unit, String category, boolean active, LocalDateTime createdAt) {
+    public Material(Long id, String name, MaterialUnit unit, MaterialCategory category, boolean active,
+            LocalDateTime createdAt) {
         this.id = id;
         this.name = name;
         this.unit = unit;
@@ -50,8 +63,8 @@ public class Material {
     public static class MaterialBuilder {
         private Long id;
         private String name;
-        private String unit;
-        private String category;
+        private MaterialUnit unit;
+        private MaterialCategory category;
         private boolean active = true;
         private LocalDateTime createdAt;
 
@@ -65,12 +78,12 @@ public class Material {
             return this;
         }
 
-        public MaterialBuilder unit(String unit) {
+        public MaterialBuilder unit(MaterialUnit unit) {
             this.unit = unit;
             return this;
         }
 
-        public MaterialBuilder category(String category) {
+        public MaterialBuilder category(MaterialCategory category) {
             this.category = category;
             return this;
         }
@@ -98,11 +111,11 @@ public class Material {
         return name;
     }
 
-    public String getUnit() {
+    public MaterialUnit getUnit() {
         return unit;
     }
 
-    public String getCategory() {
+    public MaterialCategory getCategory() {
         return category;
     }
 
@@ -122,11 +135,11 @@ public class Material {
         this.name = name;
     }
 
-    public void setUnit(String unit) {
+    public void setUnit(MaterialUnit unit) {
         this.unit = unit;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(MaterialCategory category) {
         this.category = category;
     }
 }

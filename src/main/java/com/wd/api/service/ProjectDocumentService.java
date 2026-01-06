@@ -57,6 +57,7 @@ public class ProjectDocumentService {
         document.setFileType(file.getContentType());
         document.setUploadedBy(user);
         document.setDescription(request.description());
+        document.setIsActive(true);
 
         document = documentRepository.save(document);
 
@@ -66,9 +67,9 @@ public class ProjectDocumentService {
     public List<ProjectDocumentDto> getProjectDocuments(Long projectId, Long categoryId) {
         List<ProjectDocument> documents;
         if (categoryId != null) {
-            documents = documentRepository.findAllByProjectIdAndCategoryId(projectId, categoryId);
+            documents = documentRepository.findByProjectIdAndCategoryIdActiveOrNull(projectId, categoryId);
         } else {
-            documents = documentRepository.findAllByProjectId(projectId);
+            documents = documentRepository.findByProjectIdActiveOrNull(projectId);
         }
         return documents.stream().map(this::toDto).collect(Collectors.toList());
     }
@@ -77,6 +78,15 @@ public class ProjectDocumentService {
         return categoryRepository.findAllByOrderByDisplayOrderAsc().stream()
                 .map(c -> new DocumentCategoryDto(c.getId(), c.getName(), c.getDescription(), c.getDisplayOrder()))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteDocument(Long documentId) {
+        ProjectDocument document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new RuntimeException("Document not found"));
+
+        document.setIsActive(false);
+        documentRepository.save(document);
     }
 
     private ProjectDocumentDto toDto(ProjectDocument doc) {

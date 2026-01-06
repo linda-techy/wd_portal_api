@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,13 +60,13 @@ public class ProjectAggregationService {
                 // 3. Execution Stats
                 int totalTasks = taskRepository.countByProjectId(projectId);
                 int completedTasks = taskRepository.countByProjectIdAndStatus(projectId, "COMPLETED");
-                // Simplified overdue check - ideally DB query with date comparison
+                int overdueTasks = taskRepository.countOverdueByProjectId(projectId, LocalDate.now());
                 int activeDelays = delayLogRepository.findByProjectId(projectId).size();
 
                 ProjectSummaryDTO.ProjectExecutionStats stats = ProjectSummaryDTO.ProjectExecutionStats.builder()
                                 .totalTasks(totalTasks)
                                 .completedTasks(completedTasks)
-                                .overdueTasks(0) // TODO: Implement overdue query
+                                .overdueTasks(overdueTasks)
                                 .activeDelays(activeDelays)
                                 .build();
 

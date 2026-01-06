@@ -53,6 +53,9 @@ public class CustomerProjectResponse {
     @JsonProperty("is_design_agreement_signed")
     private Boolean isDesignAgreementSigned;
 
+    private Double latitude;
+    private Double longitude;
+
     // Constructors
     public CustomerProjectResponse() {
     }
@@ -78,6 +81,8 @@ public class CustomerProjectResponse {
         this.code = project.getCode();
         this.designPackage = project.getDesignPackage();
         this.isDesignAgreementSigned = project.getIsDesignAgreementSigned();
+        this.latitude = project.getLatitude();
+        this.longitude = project.getLongitude();
 
         if (project.getProjectMembers() != null && !project.getProjectMembers().isEmpty()) {
             this.teamMembers = project.getProjectMembers().stream()
@@ -255,6 +260,22 @@ public class CustomerProjectResponse {
 
     public void setIsDesignAgreementSigned(Boolean isDesignAgreementSigned) {
         this.isDesignAgreementSigned = isDesignAgreementSigned;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 
 }

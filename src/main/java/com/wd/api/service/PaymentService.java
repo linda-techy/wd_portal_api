@@ -412,12 +412,16 @@ public class PaymentService {
         invoice.setTaxableValue(taxableValue);
 
         // Determine if interstate or intrastate
-        // For simplicity, assuming intrastate (Karnataka) unless specified
-        // In production, compare company state with place of supply
-        boolean isInterstate = false; // TODO: Implement state comparison logic
+        // Company is registered in Karnataka (state code: 29, name: KARNATAKA)
+        // Compare with place of supply to determine GST type
+        String companyState = "KARNATAKA"; // Company's registered state
+        boolean isInterstate = placeOfSupply != null
+                && !placeOfSupply.trim().isEmpty()
+                && !placeOfSupply.toUpperCase().trim().equals(companyState);
         invoice.setIsInterstate(isInterstate);
 
         BigDecimal gstRate = payment.getGstPercentage();
+
         BigDecimal totalTax;
 
         if (isInterstate) {

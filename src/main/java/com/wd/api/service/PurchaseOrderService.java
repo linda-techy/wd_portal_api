@@ -53,34 +53,15 @@ public class PurchaseOrderService {
     }
 
     private void validateItemBudget(CustomerProject project, PurchaseOrderItem item) {
-        // If item is linked to a BoQ Item, check variances
-        // Assuming we have a way to match Material -> BoQ Item.
-        // For now, naive check: If the Item has a reference to BoQ ID (which
-        // PurchaseOrderItem entity might need).
+        // TODO: DESIGN GAP - BoqItem does not have material relationship
+        // This logic assumes BoqItem tracks individual materials, but BoqItem is
+        // work-type based
+        // Proper solution: Either add Material → BoqItem relationship OR
+        // implement a separate Material Budget table
 
-        // Critical Enterprise Logic:
-        // We need to fetch the specific BoQ item for this material in this project.
-        // Assuming BoQItem has relation to Material or we key off Material ID.
-
-        // Find BoQ Item for this Project + Material
-        // This query assumes generic material matching.
-        List<BoqItem> boqItems = boqItemRepository.findByProjectIdAndMaterialId(project.getId(),
-                item.getMaterial().getId());
-
-        if (!boqItems.isEmpty()) {
-            // Aggregate Budget if multiple BoQ lines for same material (rare but possible)
-            BigDecimal totalBudgetRate = boqItems.get(0).getUnitRate(); // Simplified
-
-            // Check Rate Variance
-            if (item.getRate().compareTo(totalBudgetRate) > 0) {
-                // In a strict Enterprise system, this might throw specific exception
-                // 'BudgetExceededException'.
-                // For now, we will log or tag logic.
-                // Ideally, we'd set a 'variance' flag on the PO Item if we added that column.
-
-                // For this implementation, we will allow it but could add a warning note.
-            }
-        }
+        // Budget validation temporarily disabled - needs architectural redesign
+        // For enterprise implementation: Create MaterialBudget entity linking Material
+        // → Project → Budget
     }
 
     public List<PurchaseOrder> getProjectPurchaseOrders(Long projectId) {

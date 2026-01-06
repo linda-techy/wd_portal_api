@@ -5,6 +5,8 @@ import com.wd.api.dto.InventoryStockDTO;
 import com.wd.api.model.Material;
 import com.wd.api.model.InventoryStock;
 import com.wd.api.model.CustomerProject;
+import com.wd.api.model.enums.MaterialCategory;
+import com.wd.api.model.enums.MaterialUnit;
 import com.wd.api.repository.MaterialRepository;
 import com.wd.api.repository.InventoryStockRepository;
 import com.wd.api.repository.CustomerProjectRepository;
@@ -129,10 +131,14 @@ public class InventoryService {
         }
 
         public MaterialDTO createMaterial(MaterialDTO dto) {
+                // Parse String values from DTO to type-safe enums
+                MaterialUnit unit = MaterialUnit.valueOf(dto.getUnit().toUpperCase());
+                MaterialCategory category = MaterialCategory.valueOf(dto.getCategory().toUpperCase());
+
                 Material material = Material.builder()
                                 .name(dto.getName())
-                                .unit(dto.getUnit())
-                                .category(dto.getCategory())
+                                .unit(unit)
+                                .category(category)
                                 .active(true)
                                 .build();
                 material = materialRepository.save(material);
@@ -206,23 +212,25 @@ public class InventoryService {
         }
 
         private MaterialDTO mapToMaterialDTO(Material m) {
+                // Convert enums to String for DTO (backward API compatibility)
                 return MaterialDTO.builder()
                                 .id(m.getId())
                                 .name(m.getName())
-                                .unit(m.getUnit())
-                                .category(m.getCategory())
+                                .unit(m.getUnit() != null ? m.getUnit().name() : null)
+                                .category(m.getCategory() != null ? m.getCategory().name() : null)
                                 .active(m.isActive())
                                 .build();
         }
 
         private InventoryStockDTO mapToStockDTO(InventoryStock s) {
+                Material mat = s.getMaterial();
                 return InventoryStockDTO.builder()
                                 .id(s.getId())
                                 .projectId(s.getProject().getId())
                                 .projectName(s.getProject().getName())
-                                .materialId(s.getMaterial().getId())
-                                .materialName(s.getMaterial().getName())
-                                .unit(s.getMaterial().getUnit())
+                                .materialId(mat.getId())
+                                .materialName(mat.getName())
+                                .unit(mat.getUnit() != null ? mat.getUnit().name() : null)
                                 .currentQuantity(s.getCurrentQuantity())
                                 .lastUpdated(s.getLastUpdated())
                                 .build();

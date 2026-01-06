@@ -61,4 +61,20 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
         List<Task> findTasksDueBetween(
                         @org.springframework.data.repository.query.Param("start") java.time.LocalDate start,
                         @org.springframework.data.repository.query.Param("end") java.time.LocalDate end);
+
+        /**
+         * Count overdue tasks for a specific project
+         * Uses: idx_tasks_project_due index from V10
+         * 
+         * @param projectId The project to check
+         * @param date      Current date to compare against
+         * @return Count of overdue tasks
+         */
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(t) FROM Task t " +
+                        "WHERE t.project.id = :projectId " +
+                        "AND t.dueDate < :date " +
+                        "AND t.status NOT IN ('COMPLETED', 'CANCELLED')")
+        int countOverdueByProjectId(
+                        @org.springframework.data.repository.query.Param("projectId") Long projectId,
+                        @org.springframework.data.repository.query.Param("date") java.time.LocalDate date);
 }

@@ -148,6 +148,7 @@
 | `created_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_users.id` |
 | `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
 | `work_type_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `boq_work_types.id` |
+| `material_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `materials.id` *(V1_36)* Optional link for cost tracking |
 | `total_amount` | `numeric(10,2)` | ✓ | `-` | - |
 | `unit_rate` | `numeric(10,2)` | ✓ | `-` | - |
 
@@ -160,6 +161,8 @@
 - `created_by_id` → `customer_users.id`
 - `work_type_id` → `boq_work_types.id`
 - `project_id` → `customer_projects.id`
+- `material_id` → `materials.id` *(V1_36)* ON DELETE SET NULL
+
 
 ---
 

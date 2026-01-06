@@ -8,6 +8,7 @@ import com.wd.api.model.Vendor;
 import com.wd.api.model.PurchaseOrder;
 import com.wd.api.model.PurchaseOrderItem;
 import com.wd.api.model.GoodsReceivedNote;
+import com.wd.api.model.enums.PurchaseOrderStatus;
 import com.wd.api.repository.VendorRepository;
 import com.wd.api.repository.PurchaseOrderRepository;
 import com.wd.api.repository.CustomerProjectRepository;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Service
@@ -63,23 +65,22 @@ public class ProcurementService {
         var project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        PurchaseOrder po = PurchaseOrder.builder()
-                .poNumber(generatePONumber())
-                .vendor(vendor)
-                .project(project)
-                .poDate(dto.getPoDate() != null ? dto.getPoDate() : java.time.LocalDate.now())
-                .expectedDeliveryDate(dto.getExpectedDeliveryDate())
-                .totalAmount(dto.getTotalAmount())
-                .gstAmount(dto.getGstAmount())
-                .netAmount(dto.getNetAmount())
-                .status("DRAFT")
-                .notes(dto.getNotes())
-                .createdById(dto.getCreatedById())
-                .build();
+        // Use setters since PurchaseOrder doesn't have Lombok @Builder
+        PurchaseOrder po = new PurchaseOrder();
+        po.setPoNumber(generatePONumber());
+        po.setVendor(vendor);
+        po.setProject(project);
+        po.setPoDate(dto.getPoDate() != null ? dto.getPoDate() : java.time.LocalDate.now());
+        po.setExpectedDeliveryDate(dto.getExpectedDeliveryDate());
+        po.setTotalAmount(dto.getTotalAmount());
+        po.setGstAmount(dto.getGstAmount());
+        po.setNetAmount(dto.getNetAmount());
+        po.setStatus(PurchaseOrderStatus.DRAFT);
+        po.setNotes(dto.getNotes());
 
         if (dto.getItems() != null) {
-            List<com.wd.api.model.PurchaseOrderItem> items = dto.getItems().stream()
-                    .map(itemDto -> com.wd.api.model.PurchaseOrderItem.builder()
+            List<PurchaseOrderItem> items = dto.getItems().stream()
+                    .map(itemDto -> PurchaseOrderItem.builder()
                             .purchaseOrder(null) // Handled by cascading
                             .description(itemDto.getDescription())
                             .quantity(itemDto.getQuantity())
@@ -101,11 +102,11 @@ public class ProcurementService {
     }
 
     @Transactional
-    public com.wd.api.dto.GRNDTO recordGRN(com.wd.api.dto.GRNDTO dto) {
+    public GRNDTO recordGRN(GRNDTO dto) {
         PurchaseOrder po = poRepository.findById(dto.getPoId())
                 .orElseThrow(() -> new RuntimeException("PO not found"));
 
-        com.wd.api.model.GoodsReceivedNote grn = com.wd.api.model.GoodsReceivedNote.builder()
+        GoodsReceivedNote grn = GoodsReceivedNote.builder()
                 .grnNumber(generateGRNNumber())
                 .purchaseOrder(po)
                 .receivedDate(java.time.LocalDateTime.now())
@@ -118,8 +119,8 @@ public class ProcurementService {
 
         grn = grnRepository.save(grn);
 
-        // Update PO status if needed
-        po.setStatus("RECEIVED");
+        // Update PO status using proper enum
+        po.setStatus(PurchaseOrderStatus.RECEIVED);
         poRepository.save(po);
 
         // Update Inventory Stock

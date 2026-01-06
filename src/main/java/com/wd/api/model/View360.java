@@ -21,11 +21,21 @@ public class View360 {
     @Column(name = "panorama_url", length = 500)
     private String panoramaUrl;
 
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
+
     @Column(length = 255)
     private String location;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "capture_date")
+    private LocalDateTime captureDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uploaded_by")
+    private PortalUser uploadedBy;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -82,6 +92,30 @@ public class View360 {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
+    }
+
+    public void setThumbnailUrl(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl;
+    }
+
+    public LocalDateTime getCaptureDate() {
+        return captureDate;
+    }
+
+    public void setCaptureDate(LocalDateTime captureDate) {
+        this.captureDate = captureDate;
+    }
+
+    public PortalUser getUploadedBy() {
+        return uploadedBy;
+    }
+
+    public void setUploadedBy(PortalUser uploadedBy) {
+        this.uploadedBy = uploadedBy;
     }
 
     public LocalDateTime getCreatedAt() {

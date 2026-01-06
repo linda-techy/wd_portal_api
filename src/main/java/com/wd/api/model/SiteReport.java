@@ -1,7 +1,10 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.ReportType;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "site_reports")
@@ -30,6 +33,17 @@ public class SiteReport {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "submitted_by")
     private PortalUser submittedBy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "report_type", length = 50)
+    private ReportType reportType = ReportType.DAILY_PROGRESS;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "site_visit_id")
+    private SiteVisit siteVisit;
+
+    @OneToMany(mappedBy = "siteReport", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SiteReportPhoto> photos = new ArrayList<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -122,5 +136,39 @@ public class SiteReport {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public ReportType getReportType() {
+        return reportType;
+    }
+
+    public void setReportType(ReportType reportType) {
+        this.reportType = reportType;
+    }
+
+    public SiteVisit getSiteVisit() {
+        return siteVisit;
+    }
+
+    public void setSiteVisit(SiteVisit siteVisit) {
+        this.siteVisit = siteVisit;
+    }
+
+    public List<SiteReportPhoto> getPhotos() {
+        return photos;
+    }
+
+    public void setPhotos(List<SiteReportPhoto> photos) {
+        this.photos = photos;
+    }
+
+    public void addPhoto(SiteReportPhoto photo) {
+        photos.add(photo);
+        photo.setSiteReport(this);
+    }
+
+    public void removePhoto(SiteReportPhoto photo) {
+        photos.remove(photo);
+        photo.setSiteReport(null);
     }
 }

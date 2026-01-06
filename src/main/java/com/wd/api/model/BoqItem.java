@@ -20,6 +20,15 @@ public class BoqItem {
     @JoinColumn(name = "work_type_id")
     private BoqWorkType workType;
 
+    /**
+     * Optional link to material master for cost tracking.
+     * Enables: budgeted vs actual material cost analysis.
+     * Nullable as not all BOQ items are material-based (e.g., labor items).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "material_id")
+    private Material material;
+
     @Column(nullable = false, length = 255)
     private String description;
 
@@ -150,5 +159,13 @@ public class BoqItem {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Material getMaterial() {
+        return material;
+    }
+
+    public void setMaterial(Material material) {
+        this.material = material;
     }
 }

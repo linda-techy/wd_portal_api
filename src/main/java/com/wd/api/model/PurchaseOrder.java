@@ -1,5 +1,6 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.PurchaseOrderStatus;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -40,145 +41,107 @@ public class PurchaseOrder {
     @Column(name = "net_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal netAmount;
 
-    @Column(nullable = false, length = 20)
-    private String status = "DRAFT"; // 'DRAFT', 'ISSUED', 'RECEIVED', 'CANCELLED'
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 25)
+    private PurchaseOrderStatus status = PurchaseOrderStatus.DRAFT;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "created_by_id", nullable = false)
-    private Long createdById;
+    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PurchaseOrderItem> items;
+
+    // ==================== Audit Trail Fields ====================
+
+    /**
+     * User who created this purchase order
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_user_id")
+    private PortalUser createdByUser;
+
+    /**
+     * User who last updated this purchase order
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by_user_id")
+    private PortalUser updatedByUser;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PurchaseOrderItem> items;
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    /**
+     * Soft delete timestamp
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    /**
+     * User who soft-deleted this purchase order
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "deleted_by_user_id")
+    private PortalUser deletedByUser;
+
+    /**
+     * Version for optimistic locking
+     */
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
         if (status == null)
-            status = "DRAFT";
+            status = PurchaseOrderStatus.DRAFT;
     }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // ==================== Business Logic ====================
+
+    /**
+     * Check if PO is soft-deleted
+     */
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    /**
+     * Check if PO is active (not cancelled or closed)
+     */
+    public boolean isActive() {
+        return status.isActive();
+    }
+
+    /**
+     * Check if PO can be edited
+     */
+    public boolean isEditable() {
+        return status.isEditable() && !isDeleted();
+    }
+
+    /**
+     * Check if goods can be received for this PO
+     */
+    public boolean canReceiveGoods() {
+        return status.canReceiveGoods() && !isDeleted();
+    }
+
+    // ==================== Constructors ====================
 
     public PurchaseOrder() {
     }
 
-    public PurchaseOrder(Long id, String poNumber, CustomerProject project, Vendor vendor, LocalDate poDate,
-            LocalDate expectedDeliveryDate, BigDecimal totalAmount, BigDecimal gstAmount, BigDecimal netAmount,
-            String status, String notes, Long createdById, LocalDateTime createdAt, List<PurchaseOrderItem> items) {
-        this.id = id;
-        this.poNumber = poNumber;
-        this.project = project;
-        this.vendor = vendor;
-        this.poDate = poDate;
-        this.expectedDeliveryDate = expectedDeliveryDate;
-        this.totalAmount = totalAmount;
-        this.gstAmount = gstAmount;
-        this.netAmount = netAmount;
-        this.status = status;
-        this.notes = notes;
-        this.createdById = createdById;
-        this.createdAt = createdAt;
-        this.items = items;
-    }
-
-    public static PurchaseOrderBuilder builder() {
-        return new PurchaseOrderBuilder();
-    }
-
-    public static class PurchaseOrderBuilder {
-        private Long id;
-        private String poNumber;
-        private CustomerProject project;
-        private Vendor vendor;
-        private LocalDate poDate;
-        private LocalDate expectedDeliveryDate;
-        private BigDecimal totalAmount;
-        private BigDecimal gstAmount;
-        private BigDecimal netAmount;
-        private String status = "DRAFT";
-        private String notes;
-        private Long createdById;
-        private LocalDateTime createdAt;
-        private List<PurchaseOrderItem> items;
-
-        public PurchaseOrderBuilder id(Long id) {
-            this.id = id;
-            return this;
-        }
-
-        public PurchaseOrderBuilder poNumber(String poNumber) {
-            this.poNumber = poNumber;
-            return this;
-        }
-
-        public PurchaseOrderBuilder project(CustomerProject project) {
-            this.project = project;
-            return this;
-        }
-
-        public PurchaseOrderBuilder vendor(Vendor vendor) {
-            this.vendor = vendor;
-            return this;
-        }
-
-        public PurchaseOrderBuilder poDate(LocalDate poDate) {
-            this.poDate = poDate;
-            return this;
-        }
-
-        public PurchaseOrderBuilder expectedDeliveryDate(LocalDate expectedDeliveryDate) {
-            this.expectedDeliveryDate = expectedDeliveryDate;
-            return this;
-        }
-
-        public PurchaseOrderBuilder totalAmount(BigDecimal totalAmount) {
-            this.totalAmount = totalAmount;
-            return this;
-        }
-
-        public PurchaseOrderBuilder gstAmount(BigDecimal gstAmount) {
-            this.gstAmount = gstAmount;
-            return this;
-        }
-
-        public PurchaseOrderBuilder netAmount(BigDecimal netAmount) {
-            this.netAmount = netAmount;
-            return this;
-        }
-
-        public PurchaseOrderBuilder status(String status) {
-            this.status = status;
-            return this;
-        }
-
-        public PurchaseOrderBuilder notes(String notes) {
-            this.notes = notes;
-            return this;
-        }
-
-        public PurchaseOrderBuilder createdById(Long createdById) {
-            this.createdById = createdById;
-            return this;
-        }
-
-        public PurchaseOrderBuilder createdAt(LocalDateTime createdAt) {
-            this.createdAt = createdAt;
-            return this;
-        }
-
-        public PurchaseOrderBuilder items(List<PurchaseOrderItem> items) {
-            this.items = items;
-            return this;
-        }
-
-        public PurchaseOrder build() {
-            return new PurchaseOrder(id, poNumber, project, vendor, poDate, expectedDeliveryDate, totalAmount,
-                    gstAmount, netAmount, status, notes, createdById, createdAt, items);
-        }
-    }
+    // ==================== Getters & Setters ====================
 
     public Long getId() {
         return id;
@@ -188,99 +151,145 @@ public class PurchaseOrder {
         return poNumber;
     }
 
-    public CustomerProject getProject() {
-        return project;
-    }
-
-    public Vendor getVendor() {
-        return vendor;
-    }
-
-    public LocalDate getPoDate() {
-        return poDate;
-    }
-
-    public LocalDate getExpectedDeliveryDate() {
-        return expectedDeliveryDate;
-    }
-
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
-    }
-
-    public BigDecimal getGstAmount() {
-        return gstAmount;
-    }
-
-    public BigDecimal getNetAmount() {
-        return netAmount;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public Long getCreatedById() {
-        return createdById;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public List<PurchaseOrderItem> getItems() {
-        return items;
-    }
-
     public void setPoNumber(String poNumber) {
         this.poNumber = poNumber;
+    }
+
+    public CustomerProject getProject() {
+        return project;
     }
 
     public void setProject(CustomerProject project) {
         this.project = project;
     }
 
+    public Vendor getVendor() {
+        return vendor;
+    }
+
     public void setVendor(Vendor vendor) {
         this.vendor = vendor;
+    }
+
+    public LocalDate getPoDate() {
+        return poDate;
     }
 
     public void setPoDate(LocalDate poDate) {
         this.poDate = poDate;
     }
 
+    public LocalDate getExpectedDeliveryDate() {
+        return expectedDeliveryDate;
+    }
+
     public void setExpectedDeliveryDate(LocalDate expectedDeliveryDate) {
         this.expectedDeliveryDate = expectedDeliveryDate;
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
     }
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
     }
 
+    public BigDecimal getGstAmount() {
+        return gstAmount;
+    }
+
     public void setGstAmount(BigDecimal gstAmount) {
         this.gstAmount = gstAmount;
+    }
+
+    public BigDecimal getNetAmount() {
+        return netAmount;
     }
 
     public void setNetAmount(BigDecimal netAmount) {
         this.netAmount = netAmount;
     }
 
-    public void setStatus(String status) {
+    public PurchaseOrderStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(PurchaseOrderStatus status) {
         this.status = status;
+    }
+
+    public String getNotes() {
+        return notes;
     }
 
     public void setNotes(String notes) {
         this.notes = notes;
     }
 
+    public List<PurchaseOrderItem> getItems() {
+        return items;
+    }
+
     public void setItems(List<PurchaseOrderItem> items) {
         this.items = items;
     }
 
+    // ==================== Audit Trail Getters/Setters ====================
+
+    public PortalUser getCreatedByUser() {
+        return createdByUser;
+    }
+
+    public void setCreatedByUser(PortalUser createdByUser) {
+        this.createdByUser = createdByUser;
+    }
+
+    public PortalUser getUpdatedByUser() {
+        return updatedByUser;
+    }
+
+    public void setUpdatedByUser(PortalUser updatedByUser) {
+        this.updatedByUser = updatedByUser;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public PortalUser getDeletedByUser() {
+        return deletedByUser;
+    }
+
+    public void setDeletedByUser(PortalUser deletedByUser) {
+        this.deletedByUser = deletedByUser;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }
