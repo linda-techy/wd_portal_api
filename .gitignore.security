@@ -1,0 +1,12 @@
+# Environment-specific configuration files
+.env
+.env.local
+.env.production
+.env.development
+*.env
+
+# Sensitive data
+application-local.properties
+application-prod.properties
+*-secret.properties
+secrets/

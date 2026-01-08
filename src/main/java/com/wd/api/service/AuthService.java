@@ -125,6 +125,45 @@ public class AuthService {
                 user.getRole().getCode());
     }
 
+    /**
+     * Get current authenticated user from Security Context
+     * This overloaded method retrieves the email from Spring Security's
+     * Authentication
+     */
+    public com.wd.api.model.PortalUser getCurrentUser() {
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("No authenticated user found");
+        }
+
+        String email = authentication.getName();
+
+        // Try to find portal user by email
+        java.util.Optional<com.wd.api.model.PortalUser> portalUserOpt = portalUserRepository.findByEmail(email);
+
+        if (portalUserOpt.isPresent()) {
+            return portalUserOpt.get();
+        }
+
+        // Fallback: Return a minimal PortalUser based on User entity
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
+
+        com.wd.api.model.PortalUser portalUser = new com.wd.api.model.PortalUser();
+        portalUser.setId(user.getId());
+        portalUser.setEmail(user.getEmail());
+        portalUser.setFirstName(user.getFirstName());
+        portalUser.setLastName(user.getLastName());
+        portalUser.setEnabled(user.getEnabled());
+
+        return portalUser;
+    }
+
+    @Autowired
+    private com.wd.api.repository.PortalUserRepository portalUserRepository;
+
     private void saveRefreshToken(User user, String refreshToken) {
         RefreshToken token = new RefreshToken();
         token.setUser(user);

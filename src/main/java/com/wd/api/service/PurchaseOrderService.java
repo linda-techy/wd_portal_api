@@ -42,7 +42,7 @@ public class PurchaseOrderService {
         po.setVendor(vendor);
         po.setCreatedAt(LocalDateTime.now());
         if (po.getStatus() == null)
-            po.setStatus("DRAFT");
+            po.setStatus(com.wd.api.model.enums.PurchaseOrderStatus.DRAFT);
 
         // Generate PO Number if missing
         if (po.getPoNumber() == null) {

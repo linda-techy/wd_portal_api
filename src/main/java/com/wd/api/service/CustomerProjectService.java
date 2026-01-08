@@ -282,7 +282,7 @@ public class CustomerProjectService {
         }
 
         // Delete documents
-        List<com.wd.api.model.Document> docs = documentRepository.findAllByReferenceIdAndReferenceType(id, "PROJECT");
+        List<com.wd.api.model.Document> docs = documentRepository.findByReferenceIdAndReferenceType(id, "PROJECT");
         if (!docs.isEmpty()) {
             logger.info("Deleting {} documents for project ID: {}", docs.size(), id);
             documentRepository.deleteAll(docs);

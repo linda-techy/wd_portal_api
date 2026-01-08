@@ -71,6 +71,21 @@ public class ActivityFeedService {
         return activityFeedRepository.findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(leadId, "LEAD");
     }
 
+    /**
+     * Get recent activities for a specific project
+     * 
+     * @param projectId The project ID
+     * @return List of activity feeds for the project, ordered by creation date
+     *         descending
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<ActivityFeed> getRecentProjectActivities(Long projectId) {
+        if (projectId == null) {
+            return java.util.List.of();
+        }
+        return activityFeedRepository.findByProjectIdOrderByCreatedAtDesc(projectId);
+    }
+
     @Transactional
     public void linkLeadActivitiesToProject(Long leadId, CustomerProject project) {
         java.util.List<ActivityFeed> activities = activityFeedRepository

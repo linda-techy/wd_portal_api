@@ -31,3 +31,18 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Security - Environment Variables ###
+.env
+.env.local
+.env.production
+.env.development
+*.env
+!.env.template
+!.env.*.example
+
+### Security - Sensitive Configuration ###
+application-local.properties
+application-prod.properties
+*-secret.properties
+secrets/
