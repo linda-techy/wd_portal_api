@@ -22,7 +22,7 @@ public class LeadQuotationController {
     private LeadQuotationService quotationService;
 
     @Autowired
-    private com.wd.api.repository.UserRepository userRepository;
+    private com.wd.api.repository.PortalUserRepository portalUserRepository;
 
     /**
      * Get all quotations for a lead
@@ -62,8 +62,8 @@ public class LeadQuotationController {
             Authentication authentication) {
         try {
             String username = authentication.getName();
-            com.wd.api.model.User user = userRepository.findByEmail(username)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            com.wd.api.model.PortalUser user = portalUserRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("Portal User not found"));
 
             LeadQuotation created = quotationService.createQuotation(quotation, user.getId());
             return ResponseEntity.ok(created);

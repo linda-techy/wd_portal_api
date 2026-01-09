@@ -5,9 +5,11 @@ import com.wd.api.dto.LoginResponse;
 import com.wd.api.dto.RefreshTokenRequest;
 import com.wd.api.dto.RefreshTokenResponse;
 import com.wd.api.model.RefreshToken;
-import com.wd.api.model.User;
+import com.wd.api.model.RefreshToken;
+import com.wd.api.model.PortalUser;
+import com.wd.api.model.PortalRole;
 import com.wd.api.repository.RefreshTokenRepository;
-import com.wd.api.repository.UserRepository;
+import com.wd.api.repository.PortalUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,7 +30,7 @@ public class AuthService {
     private JwtService jwtService;
 
     @Autowired
-    private UserRepository userRepository;
+    private PortalUserRepository portalUserRepository;
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
@@ -43,7 +45,7 @@ public class AuthService {
                         loginRequest.getPassword()));
 
         // Reuse authenticated principal to avoid extra DB hit
-        User user = (User) authentication.getPrincipal();
+        PortalUser user = (PortalUser) authentication.getPrincipal();
 
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
@@ -79,7 +81,7 @@ public class AuthService {
         RefreshToken storedToken = refreshTokenRepository.findByToken(refreshTokenStr)
                 .orElseThrow(() -> new RuntimeException("Refresh token not found"));
 
-        User user = storedToken.getUser();
+        PortalUser user = storedToken.getUser();
 
         // 3. Replay Protection: If token is revoked, it might be a reuse attack
         if (storedToken.getRevoked()) {
@@ -113,7 +115,7 @@ public class AuthService {
     }
 
     public LoginResponse.UserInfo getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
+        PortalUser user = portalUserRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         return new LoginResponse.UserInfo(
@@ -130,7 +132,7 @@ public class AuthService {
      * This overloaded method retrieves the email from Spring Security's
      * Authentication
      */
-    public com.wd.api.model.PortalUser getCurrentUser() {
+    public PortalUser getCurrentUser() {
         org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication();
 
@@ -140,31 +142,11 @@ public class AuthService {
 
         String email = authentication.getName();
 
-        // Try to find portal user by email
-        java.util.Optional<com.wd.api.model.PortalUser> portalUserOpt = portalUserRepository.findByEmail(email);
-
-        if (portalUserOpt.isPresent()) {
-            return portalUserOpt.get();
-        }
-
-        // Fallback: Return a minimal PortalUser based on User entity
-        User user = userRepository.findByEmail(email)
+        return portalUserRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
-
-        com.wd.api.model.PortalUser portalUser = new com.wd.api.model.PortalUser();
-        portalUser.setId(user.getId());
-        portalUser.setEmail(user.getEmail());
-        portalUser.setFirstName(user.getFirstName());
-        portalUser.setLastName(user.getLastName());
-        portalUser.setEnabled(user.getEnabled());
-
-        return portalUser;
     }
 
-    @Autowired
-    private com.wd.api.repository.PortalUserRepository portalUserRepository;
-
-    private void saveRefreshToken(User user, String refreshToken) {
+    private void saveRefreshToken(PortalUser user, String refreshToken) {
         RefreshToken token = new RefreshToken();
         token.setUser(user);
         token.setToken(refreshToken);
@@ -178,31 +160,31 @@ public class AuthService {
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Autowired
-    private com.wd.api.repository.RoleRepository roleRepository;
+    private com.wd.api.repository.PortalRoleRepository portalRoleRepository;
 
     @Transactional
     public void createTestUser() {
-        if (userRepository.findByEmail("admin@test.com").isPresent()) {
+        if (portalUserRepository.findByEmail("admin@test.com").isPresent()) {
             return;
         }
 
-        com.wd.api.model.Role adminRole = roleRepository.findAll().stream()
+        PortalRole adminRole = portalRoleRepository.findAll().stream()
                 .filter(r -> "ADMIN".equalsIgnoreCase(r.getName()) || "ADMIN".equalsIgnoreCase(r.getCode()))
                 .findFirst()
-                .orElse(roleRepository.findById(1L).orElse(roleRepository.findById(5L).orElse(null)));
+                .orElse(portalRoleRepository.findById(1L).orElse(portalRoleRepository.findById(5L).orElse(null)));
 
         if (adminRole == null) {
             // Fallback: This might fail if sequence is out of sync, but we have no choice
             // if table is empty
             try {
-                com.wd.api.model.Role role = new com.wd.api.model.Role();
+                PortalRole role = new PortalRole();
                 role.setName("ADMIN");
                 role.setCode("ADMIN");
                 role.setDescription("Administrator Role");
-                adminRole = roleRepository.save(role);
+                adminRole = portalRoleRepository.save(role);
             } catch (Exception e) {
                 // Ignore if duplicate
-                adminRole = roleRepository.findByName("ADMIN").orElse(null);
+                adminRole = portalRoleRepository.findByName("ADMIN").orElse(null);
             }
         }
 
@@ -210,7 +192,7 @@ public class AuthService {
             throw new RuntimeException("Could not find or create a Role for test user.");
         }
 
-        User user = new User();
+        PortalUser user = new PortalUser();
         user.setEmail("admin@test.com");
         user.setPassword(passwordEncoder.encode("password"));
         user.setFirstName("Test");
@@ -218,6 +200,6 @@ public class AuthService {
         user.setRole(adminRole);
         user.setEnabled(true);
 
-        userRepository.save(user);
+        portalUserRepository.save(user);
     }
 }

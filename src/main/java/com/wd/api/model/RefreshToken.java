@@ -18,7 +18,7 @@ public class RefreshToken {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private PortalUser user;
 
     @Column(name = "expiry_date", nullable = false)
     private LocalDateTime expiryDate;
@@ -47,11 +47,11 @@ public class RefreshToken {
         this.token = token;
     }
 
-    public User getUser() {
+    public PortalUser getUser() {
         return user;
     }
 
-    public void setUser(User user) {
+    public void setUser(PortalUser user) {
         this.user = user;
     }
 

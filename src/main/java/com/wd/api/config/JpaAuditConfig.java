@@ -1,6 +1,5 @@
 package com.wd.api.config;
 
-import com.wd.api.model.User;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.CustomerUser;
 import org.springframework.context.annotation.Bean;
@@ -31,9 +30,7 @@ public class JpaAuditConfig {
             }
 
             Object principal = authentication.getPrincipal();
-            if (principal instanceof User) {
-                return Optional.of(((User) principal).getId());
-            } else if (principal instanceof PortalUser) {
+            if (principal instanceof PortalUser) {
                 return Optional.of(((PortalUser) principal).getId());
             } else if (principal instanceof CustomerUser) {
                 return Optional.of(((CustomerUser) principal).getId());

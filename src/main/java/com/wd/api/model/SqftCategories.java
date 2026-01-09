@@ -1,4 +1,4 @@
-package com.wd.api.dao.model;
+package com.wd.api.model;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -15,6 +15,7 @@ public class SqftCategories {
     public UUID getId() {
         return id;
     }
+
     public void setId(UUID id) {
         this.id = id;
     }
@@ -22,6 +23,7 @@ public class SqftCategories {
     public String getCategory() {
         return category;
     }
+
     public void setCategory(String category) {
         this.category = category;
     }
@@ -29,6 +31,7 @@ public class SqftCategories {
     public Integer getLowestSqft() {
         return lowestSqft;
     }
+
     public void setLowestSqft(Integer lowestSqft) {
         this.lowestSqft = lowestSqft;
     }
@@ -36,6 +39,7 @@ public class SqftCategories {
     public Integer getHighestSqft() {
         return highestSqft;
     }
+
     public void setHighestSqft(Integer highestSqft) {
         this.highestSqft = highestSqft;
     }
@@ -43,6 +47,7 @@ public class SqftCategories {
     public String getModifiedBy() {
         return modifiedBy;
     }
+
     public void setModifiedBy(String modifiedBy) {
         this.modifiedBy = modifiedBy;
     }
@@ -50,6 +55,7 @@ public class SqftCategories {
     public LocalDateTime getUpdateDate() {
         return updateDate;
     }
+
     public void setUpdateDate(LocalDateTime updateDate) {
         this.updateDate = updateDate;
     }

@@ -4,7 +4,7 @@ import com.wd.api.dto.PartnerLoginRequest;
 import com.wd.api.dto.PartnerLoginResponse;
 import com.wd.api.dto.PartnershipApplicationRequest;
 import com.wd.api.dto.PartnershipReferralRequest;
-import com.wd.api.dao.model.Leads;
+import com.wd.api.model.Lead;
 import com.wd.api.service.JwtService;
 import com.wd.api.service.PartnershipService;
 import com.wd.api.service.LeadService;
@@ -196,7 +196,7 @@ public class PartnershipController {
             request.setPartnershipType(partner.getPartnershipType());
 
             // Create lead in leads table
-            Leads createdLead = leadService.createLeadFromPartnershipReferral(request);
+            Lead createdLead = leadService.createLeadFromPartnershipReferral(request);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

@@ -1,11 +1,11 @@
 package com.wd.api.service;
 
 import com.wd.api.model.Permission;
-import com.wd.api.model.Role;
-import com.wd.api.model.User;
+import com.wd.api.model.PortalRole;
+import com.wd.api.model.PortalUser;
 import com.wd.api.repository.PermissionRepository;
-import com.wd.api.repository.RoleRepository;
-import com.wd.api.repository.UserRepository;
+import com.wd.api.repository.PortalRoleRepository;
+import com.wd.api.repository.PortalUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,10 +18,10 @@ import java.util.stream.Collectors;
 public class PermissionService {
 
     @Autowired
-    private UserRepository userRepository;
+    private PortalUserRepository portalUserRepository;
 
     @Autowired
-    private RoleRepository roleRepository;
+    private PortalRoleRepository portalRoleRepository;
 
     @Autowired
     private PermissionRepository permissionRepository;
@@ -33,7 +33,7 @@ public class PermissionService {
      * ADMIN users get ALL available permissions automatically
      */
     public List<String> getUserPermissions(Long userId) {
-        User user = userRepository.findById(userId)
+        PortalUser user = portalUserRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         return getUserPermissions(user);
@@ -43,14 +43,12 @@ public class PermissionService {
      * Get all permission names for a user
      * ADMIN users get ALL available permissions automatically
      */
-    public List<String> getUserPermissions(User user) {
+    public List<String> getUserPermissions(PortalUser user) {
         if (user.getRole() == null) {
             return Collections.emptyList();
         }
 
         // ADMIN bypass: User is admin, so they have implicit access.
-        // We don't need to return a list of permissions because the frontend
-        // handles ADMIN role specifically (isAdmin=true bypassing checks).
         if (isAdmin(user)) {
             return Collections.emptyList();
         }
@@ -71,7 +69,7 @@ public class PermissionService {
      * ADMIN always returns true
      */
     public boolean hasPermission(Long userId, String permission) {
-        User user = userRepository.findById(userId)
+        PortalUser user = portalUserRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         return hasPermission(user, permission);
@@ -81,7 +79,7 @@ public class PermissionService {
      * Check if user has a specific permission
      * ADMIN always returns true
      */
-    public boolean hasPermission(User user, String permission) {
+    public boolean hasPermission(PortalUser user, String permission) {
         // ADMIN bypass
         if (isAdmin(user)) {
             return true;
@@ -95,7 +93,7 @@ public class PermissionService {
      * Check if user has ANY of the specified permissions
      * ADMIN always returns true
      */
-    public boolean hasAnyPermission(User user, List<String> permissions) {
+    public boolean hasAnyPermission(PortalUser user, List<String> permissions) {
         // ADMIN bypass
         if (isAdmin(user)) {
             return true;
@@ -110,7 +108,7 @@ public class PermissionService {
      * Check if user has ALL of the specified permissions
      * ADMIN always returns true
      */
-    public boolean hasAllPermissions(User user, List<String> permissions) {
+    public boolean hasAllPermissions(PortalUser user, List<String> permissions) {
         // ADMIN bypass
         if (isAdmin(user)) {
             return true;
@@ -123,7 +121,7 @@ public class PermissionService {
     /**
      * Check if user is an ADMIN
      */
-    public boolean isAdmin(User user) {
+    public boolean isAdmin(PortalUser user) {
         if (user.getRole() == null) {
             return false;
         }
@@ -145,7 +143,7 @@ public class PermissionService {
      * Get permissions for a specific role
      */
     public List<String> getRolePermissions(Long roleId) {
-        Role role = roleRepository.findById(roleId)
+        PortalRole role = portalRoleRepository.findById(roleId)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
         // ADMIN role gets ALL permissions
@@ -166,28 +164,28 @@ public class PermissionService {
     /**
      * Helper method: Check if user can view a module
      */
-    public boolean canView(User user, String module) {
+    public boolean canView(PortalUser user, String module) {
         return hasPermission(user, module + "_VIEW");
     }
 
     /**
      * Helper method: Check if user can create in a module
      */
-    public boolean canCreate(User user, String module) {
+    public boolean canCreate(PortalUser user, String module) {
         return hasPermission(user, module + "_CREATE");
     }
 
     /**
      * Helper method: Check if user can edit in a module
      */
-    public boolean canEdit(User user, String module) {
+    public boolean canEdit(PortalUser user, String module) {
         return hasPermission(user, module + "_EDIT");
     }
 
     /**
      * Helper method: Check if user can delete in a module
      */
-    public boolean canDelete(User user, String module) {
+    public boolean canDelete(PortalUser user, String module) {
         return hasPermission(user, module + "_DELETE");
     }
 }

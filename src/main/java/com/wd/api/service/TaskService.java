@@ -2,10 +2,10 @@ package com.wd.api.service;
 
 import com.wd.api.model.Task;
 import com.wd.api.model.TaskAssignmentHistory;
-import com.wd.api.model.User;
+import com.wd.api.model.PortalUser;
 import com.wd.api.repository.TaskAssignmentHistoryRepository;
 import com.wd.api.repository.TaskRepository;
-import com.wd.api.repository.UserRepository;
+import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.security.TaskAuthorizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +36,7 @@ public class TaskService {
     private TaskRepository taskRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private PortalUserRepository portalUserRepository;
 
     @Autowired
     private TaskAssignmentHistoryRepository assignmentHistoryRepository;
@@ -64,7 +64,7 @@ public class TaskService {
      * Get tasks assigned to a specific user
      */
     public List<Task> getTasksByAssignedUser(Long userId) {
-        Optional<User> user = userRepository.findById(userId);
+        Optional<PortalUser> user = portalUserRepository.findById(userId);
         return user.map(taskRepository::findByAssignedTo).orElse(List.of());
     }
 
@@ -101,7 +101,7 @@ public class TaskService {
      * Anyone can create tasks (enforced at controller with @PreAuthorize)
      */
     @Transactional
-    public Task createTask(Task task, User createdBy) {
+    public Task createTask(Task task, PortalUser createdBy) {
         logger.info("Creating task '{}' by user {}", task.getTitle(), createdBy.getEmail());
 
         task.setCreatedBy(createdBy);
@@ -145,14 +145,14 @@ public class TaskService {
 
         // Handle assignment change if provided
         if (taskDetails.getAssignedTo() != null) {
-            User previousAssignee = task.getAssignedTo();
-            User newAssignee = taskDetails.getAssignedTo();
+            PortalUser previousAssignee = task.getAssignedTo();
+            PortalUser newAssignee = taskDetails.getAssignedTo();
 
             // Only record if assignment actually changed
             if (previousAssignee == null || !previousAssignee.getId().equals(newAssignee.getId())) {
                 task.setAssignedTo(newAssignee);
 
-                User assignedBy = userRepository.findById(userId)
+                PortalUser assignedBy = portalUserRepository.findById(userId)
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
                 recordAssignment(
@@ -193,15 +193,15 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        User newAssignee = newAssigneeId != null
-                ? userRepository.findById(newAssigneeId)
+        PortalUser newAssignee = newAssigneeId != null
+                ? portalUserRepository.findById(newAssigneeId)
                         .orElseThrow(() -> new RuntimeException("Assignee user not found"))
                 : null;
 
-        User assignedBy = userRepository.findById(assignedById)
+        PortalUser assignedBy = portalUserRepository.findById(assignedById)
                 .orElseThrow(() -> new RuntimeException("Assigning user not found"));
 
-        User previousAssignee = task.getAssignedTo();
+        PortalUser previousAssignee = task.getAssignedTo();
 
         // Update assignment
         task.setAssignedTo(newAssignee);
@@ -246,7 +246,7 @@ public class TaskService {
     /**
      * Get tasks for current user (assigned to them)
      */
-    public List<Task> getMyTasks(User user) {
+    public List<Task> getMyTasks(PortalUser user) {
         return taskRepository.findByAssignedToOrderByDueDateAsc(user);
     }
 
@@ -256,7 +256,7 @@ public class TaskService {
      * - Project Manager: All tasks in their projects
      * - Regular User: Tasks they created or are assigned to
      */
-    public List<Task> getTasksForUser(User user, Authentication auth) {
+    public List<Task> getTasksForUser(PortalUser user, Authentication auth) {
         if (authService.isAdmin(auth)) {
             return taskRepository.findAll();
         }
@@ -272,7 +272,7 @@ public class TaskService {
      * Record assignment change in history table
      * This creates an audit trail for all assignment changes
      */
-    private void recordAssignment(Long taskId, User from, User to, User by, String notes) {
+    private void recordAssignment(Long taskId, PortalUser from, PortalUser to, PortalUser by, String notes) {
         TaskAssignmentHistory history = new TaskAssignmentHistory();
         history.setTaskId(taskId);
         history.setAssignedFrom(from);

@@ -2,10 +2,10 @@ package com.wd.api.service;
 
 import com.wd.api.model.Task;
 import com.wd.api.model.TaskAlert;
-import com.wd.api.model.User;
+import com.wd.api.model.PortalUser;
 import com.wd.api.repository.TaskAlertRepository;
 import com.wd.api.repository.TaskRepository;
-import com.wd.api.repository.UserRepository;
+import com.wd.api.repository.PortalUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +47,7 @@ public class TaskAlertService {
     private TaskAlertRepository alertRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private PortalUserRepository portalUserRepository;
 
     @Autowired
     private EmailService emailService;
@@ -100,7 +100,7 @@ public class TaskAlertService {
         }
 
         // Get all admin users (alerts always go to admins)
-        List<User> admins = userRepository.findByRoleName("ADMIN");
+        List<PortalUser> admins = portalUserRepository.findByRoleName("ADMIN");
 
         if (admins.isEmpty()) {
             logger.warn("No admin users found - cannot send task alerts!");
@@ -118,7 +118,7 @@ public class TaskAlertService {
             }
 
             // Send alert to all admins
-            for (User admin : admins) {
+            for (PortalUser admin : admins) {
                 sendAlertToUser(task, admin, alertType, severity);
                 alertsSent++;
             }
@@ -135,7 +135,7 @@ public class TaskAlertService {
      * @param alertType Type of alert
      * @param severity  Severity level
      */
-    private void sendAlertToUser(Task task, User user,
+    private void sendAlertToUser(Task task, PortalUser user,
             TaskAlert.AlertType alertType,
             TaskAlert.AlertSeverity severity) {
         // Build alert message

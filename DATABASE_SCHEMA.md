@@ -1,5 +1,5 @@
 ﻿# WallDot Builders - Database Schema Documentation
-**Total Tables:** 47
+**Total Tables:** 44
 **Database:** PostgreSQL (wdTestDB)
 
 ## Table of Contents
@@ -8,51 +8,45 @@
 3. [boq_items](#boq-items)
 4. [boq_work_types](#boq-work-types)
 5. [cctv_cameras](#cctv-cameras)
-6. [customer_permissions](#customer-permissions)
-7. [customer_project_members](#customer-project-members)
-8. [customer_project_team_members](#customer-project-team-members)
-9. [customer_projects](#customer-projects)
-10. [customer_refresh_tokens](#customer-refresh-tokens)
-11. [customer_role_permissions](#customer-role-permissions)
-12. [customer_roles](#customer-roles)
-13. [customer_users](#customer-users)
-14. [design_package_payments](#design-package-payments) *(NEW)*
-15. [design_steps](#design-steps)
-16. [document_categories](#document-categories)
-17. [feedback_forms](#feedback-forms)
-18. [feedback_responses](#feedback-responses)
-19. [gallery_images](#gallery-images)
-20. [leads](#leads)
-21. [lead_documents](#lead-documents) *(NEW - V1_20)*
-22. [lead_quotations](#lead-quotations) *(NEW - V1_22)*
-23. [lead_quotation_items](#lead-quotation-items) *(NEW - V1_22)*
-24. [lead_interactions](#lead-interactions) *(NEW - V1_23)*
-25. [observations](#observations)
-26. [partnership_users](#partnership-users)
-27. [payment_schedule](#payment-schedule) *(NEW)*
-28. [payment_transactions](#payment-transactions) *(NEW)*
-29. [portal_permissions](#portal-permissions)
-30. [portal_project_documents](#portal-project-documents)
-31. [portal_refresh_tokens](#portal-refresh-tokens)
-32. [portal_role_permissions](#portal-role-permissions)
-33. [portal_roles](#portal-roles)
-34. [portal_users](#portal-users)
-35. [project_design_steps](#project-design-steps)
-36. [project_documents](#project-documents)
-37. [project_members](#project-members)
-38. [project_queries](#project-queries)
-39. [quality_checks](#quality-checks)
-40. [retention_releases](#retention-releases) *(NEW)*
-41. [site_reports](#site-reports)
-42. [site_visits](#site-visits)
-43. [sqft_categories](#sqft-categories)
-44. [staff_roles](#staff-roles)
-45. [task_assignment_history](#task-assignment-history) *(NEW)*
-46. [tasks](#tasks)
-47. [tax_invoices](#tax-invoices) *(NEW)*
-48. [view_360](#view-360)
-49. [challan_sequences](#challan_sequences) *(NEW)*
-50. [payment_challans](#payment_challans) *(NEW)*
+6. [customer_projects](#customer-projects)
+7. [customer_refresh_tokens](#customer-refresh-tokens)
+8. [customer_roles](#customer-roles)
+9. [customer_users](#customer-users)
+10. [design_package_payments](#design-package-payments) *(NEW)*
+11. [design_steps](#design-steps)
+12. [document_categories](#document-categories)
+13. [feedback_forms](#feedback-forms)
+14. [feedback_responses](#feedback-responses)
+15. [gallery_images](#gallery-images)
+16. [leads](#leads)
+17. [lead_quotations](#lead-quotations) *(NEW - V1_22)*
+18. [lead_quotation_items](#lead-quotation_items) *(NEW - V1_22)*
+19. [lead_interactions](#lead-interactions) *(NEW - V1_23)*
+20. [observations](#observations)
+21. [partnership_users](#partnership-users)
+22. [payment_schedule](#payment-schedule) *(NEW)*
+23. [payment_transactions](#payment-transactions) *(NEW)*
+24. [portal_permissions](#portal-permissions)
+25. [portal_refresh_tokens](#portal-refresh-tokens)
+26. [portal_role_permissions](#portal-role-permissions)
+27. [portal_roles](#portal-roles)
+28. [portal_users](#portal-users)
+29. [project_design_steps](#project-design-steps)
+30. [project_documents](#project-documents)
+31. [project_members](#project-members)
+32. [project_queries](#project-queries)
+33. [quality_checks](#quality-checks)
+34. [retention_releases](#retention-releases) *(NEW)*
+35. [site_reports](#site-reports)
+36. [site_visits](#site-visits)
+37. [sqft_categories](#sqft-categories)
+38. [staff_roles](#staff-roles)
+39. [task_assignment_history](#task-assignment-history) *(NEW)*
+40. [tasks](#tasks)
+41. [tax_invoices](#tax-invoices) *(NEW)*
+42. [view_360](#view-360)
+43. [challan_sequences](#challan_sequences) *(NEW)*
+44. [payment_challans](#payment_challans) *(NEW)*
 
 
 
@@ -221,26 +215,6 @@
 
 ---
 
-## customer_permissions
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
-| `description` | `character varying(255)` | ✓ | `-` | - |
-| `name` | `character varying(255)` | ✗ | `-` | 🔒 UNIQUE |
-
-### Primary Key
-
-- `id`
-
-### Unique Constraints
-
-- `name`
-
----
-
 ## customer_project_members
 
 ### Columns
@@ -354,39 +328,6 @@
 
 ---
 
-## customer_refresh_tokens
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
-| `expiry_date` | `timestamp without time zone` | ✗ | `-` | - |
-| `revoked` | `boolean` | ✗ | `false` | Set to `true` after rotation. If a revoked token is used, all user tokens are invalidated. |
-| `token` | `character varying(255)` | ✗ | `-` | 🔒 UNIQUE |
-| `user_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_users.id` |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `user_id` → `customer_users.id`
-
-### Unique Constraints
-
-- `token`
-
----
-
-## customer_role_permissions
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `role_id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK 🔗 FK → `customer_roles.id` |
 | `permission_id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK 🔗 FK → `customer_permissions.id` |
 
 ### Primary Key
@@ -600,6 +541,9 @@
 
 ## leads
 
+**Construction Lead Management**  
+Standardized on the `Lead` entity within the unified security model. Capture initial customer inquiries and tracks them through the conversion pipeline.
+
 ### Columns
 
 | Column Name | Data Type | Nullable | Default | Notes |
@@ -636,46 +580,16 @@
 | `plot_area` | `numeric(10,2)` | ✓ | `-` | (V1_32) |
 | `floors` | `integer` | ✓ | `-` | (V1_32) |
 
-### Primary Key
-
-- `lead_id`
-
-###Foreign Keys
+### Foreign Keys
 
 - `assigned_to_id` → `portal_users.id`
 
+### Related Tables
+
+- **tasks**: Pre-sales tasks can be linked directly to a lead via `tasks.lead_id`.
+- **customer_projects**: Successfully converted leads are linked to projects via `customer_projects.lead_id`.
+
 ---
-
-## lead_documents
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|----------|
-| `id` | `bigserial` | ✗ | `-` | 🔑 PK |
-| `lead_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `leads.lead_id` |
-| `filename` | `character varying(255)` | ✗ | `-` | - |
-| `file_path` | `character varying(500)` | ✗ | `-` | - |
-| `file_type` | `character varying(50)` | ✓ | `-` | - |
-| `file_size` | `bigint(64,0)` | ✓ | `-` | - |
-| `description` | `text` | ✓ | `-` | - |
-| `category` | `character varying(50)` | ✓ | `-` | Document category e.g., 'REQUIREMENTS', 'SITE_PHOTO', 'PROPOSAL' |
-| `uploaded_by_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `uploaded_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
-| `is_active` | `boolean` | ✓ | `TRUE` | Soft delete flag |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `lead_id` → `leads.lead_id` ON DELETE CASCADE
-- `uploaded_by_id` → `portal_users.id`
-
-### Indexes
-
-- `idx_lead_documents_lead` on `lead_id`
 
 ---
 
@@ -897,35 +811,6 @@
 
 ---
 
-## portal_project_documents
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
-| `description` | `text` | ✓ | `-` | - |
-| `file_path` | `character varying(500)` | ✗ | `-` | - |
-| `file_size` | `bigint(64,0)` | ✓ | `-` | - |
-| `file_type` | `character varying(50)` | ✓ | `-` | - |
-| `filename` | `character varying(255)` | ✗ | `-` | - |
-| `is_active` | `boolean` | ✓ | `-` | - |
-| `upload_date` | `timestamp without time zone` | ✗ | `-` | - |
-| `version` | `integer(32,0)` | ✓ | `-` | - |
-| `category_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `document_categories.id` |
-| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `uploaded_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `portal_users.id` |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `category_id` → `document_categories.id`
-- `project_id` → `customer_projects.id`
-- `uploaded_by_id` → `portal_users.id`
-
 ---
 
 ## portal_refresh_tokens
@@ -1067,22 +952,29 @@
 
 ## project_documents
 
+Unified polymorphic document table for all system attachments.
+
 ### Columns
 
 | Column Name | Data Type | Nullable | Default | Notes |
 |-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
-| `description` | `text` | ✓ | `-` | - |
-| `file_path` | `character varying(500)` | ✗ | `-` | - |
-| `file_size` | `bigint(64,0)` | ✓ | `-` | - |
-| `file_type` | `character varying(50)` | ✓ | `-` | - |
+| `id` | `bigint(64,0)` | ✗ | `nextval` | 🔑 PK |
 | `filename` | `character varying(255)` | ✗ | `-` | - |
-| `is_active` | `boolean` | ✓ | `-` | - |
-| `upload_date` | `timestamp without time zone` | ✗ | `-` | - |
-| `version` | `integer(32,0)` | ✓ | `-` | - |
-| `category_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `document_categories.id` |
-| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `uploaded_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_users.id` |
+| `file_path` | `character varying(500)` | ✗ | `-` | - |
+| `file_type` | `character varying(50)` | ✓ | `-` | - |
+| `file_size` | `bigint(64,0)` | ✓ | `-` | - |
+| `description` | `text` | ✓ | `-` | - |
+| `category_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `document_categories.id` |
+| `reference_id` | `bigint(64,0)` | ✗ | `-` | Polymorphic ID (Lead ID, Project ID, etc.) |
+| `reference_type` | `character varying(50)` | ✗ | `-` | Polymorphic Type ('LEAD', 'PROJECT') |
+| `is_active` | `boolean` | ✗ | `true` | Soft delete flag |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✓ | `-` | - |
+| `created_by_user_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `integer(32,0)` | ✗ | `1` | Optimistic locking |
 
 ### Primary Key
 
@@ -1091,8 +983,16 @@
 ### Foreign Keys
 
 - `category_id` → `document_categories.id`
-- `project_id` → `customer_projects.id`
-- `uploaded_by_id` → `customer_users.id`
+- `created_by_user_id` → `portal_users.id`
+- `updated_by_user_id` → `portal_users.id`
+- `deleted_by_user_id` → `portal_users.id`
+
+### Indexes
+
+- `idx_project_documents_ref` on `(reference_id, reference_type)`
+- `idx_project_documents_category` on `category_id`
+
+---
 
 ---
 
@@ -1269,6 +1169,9 @@
 ---
 
 ## sqft_categories
+
+**Lead Estimation Logic**  
+Used for calculating initial estimates based on square footage. Standardized on the `SqftCategories` entity in the unified model package.
 
 ### Columns
 

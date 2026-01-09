@@ -8,7 +8,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.wd.api.dao.interfaces.IToolsDAO;
-import com.wd.api.dao.model.SqftCategories;
+import com.wd.api.model.SqftCategories;
+import com.wd.api.model.Lead;
 
 @Repository
 public class ToolsDAO implements IToolsDAO {
@@ -27,14 +28,14 @@ public class ToolsDAO implements IToolsDAO {
     }
 
     @Override
-    public int saveLeadEstimate(com.wd.api.dao.model.Leads lead) {
+    public int saveLeadEstimate(Lead lead) {
         String sql = "INSERT INTO leads (" +
-                    "name, email, whatsapp_number, phone, " +
-                    "customer_type, project_type, project_description, requirements, " +
-                    "budget, lead_status, lead_source, priority, assigned_team, notes, " +
-                    "client_rating, probability_to_win, next_follow_up, last_contact_date, " +
-                    "created_at) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
+                "name, email, whatsapp_number, phone, " +
+                "customer_type, project_type, project_description, requirements, " +
+                "budget, lead_status, lead_source, priority, assigned_team, notes, " +
+                "client_rating, probability_to_win, next_follow_up, last_contact_date, " +
+                "created_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
 
         return jdbcTemplate.update(sql,
                 lead.getName(),
@@ -56,7 +57,5 @@ public class ToolsDAO implements IToolsDAO {
                 lead.getNextFollowUp(),
                 lead.getLastContactDate());
     }
-
-
 
 }

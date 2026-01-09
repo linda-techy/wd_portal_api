@@ -1,6 +1,6 @@
 package com.wd.api.service;
 
-import com.wd.api.dao.model.Leads;
+import com.wd.api.model.Lead;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +74,7 @@ public class EmailService {
     }
 
     @Async
-    public void sendLeadWelcomeEmail(Leads lead) {
+    public void sendLeadWelcomeEmail(Lead lead) {
         // Only send if email is valid
         if (lead.getEmail() == null || lead.getEmail().isEmpty())
             return;
@@ -115,7 +115,7 @@ public class EmailService {
     }
 
     @Async
-    public void sendLeadStatusUpdateEmail(Leads lead, String oldStatus, String newStatus) {
+    public void sendLeadStatusUpdateEmail(Lead lead, String oldStatus, String newStatus) {
         if (lead.getEmail() == null || lead.getEmail().isEmpty())
             return;
 
@@ -153,7 +153,7 @@ public class EmailService {
     }
 
     @Async
-    public void sendAdminScoreAlert(Leads lead) {
+    public void sendAdminScoreAlert(Lead lead) {
         // Admin email could be configured, defaulting for simulation
         String adminEmail = "admin@walldot.com";
         String subject = "HOT LEAD ALERT: " + lead.getName();

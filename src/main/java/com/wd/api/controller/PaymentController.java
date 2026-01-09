@@ -161,8 +161,8 @@ public class PaymentController {
         }
 
         try {
-            if (auth.getPrincipal() instanceof com.wd.api.model.User) {
-                return ((com.wd.api.model.User) auth.getPrincipal()).getId();
+            if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser) {
+                return ((com.wd.api.model.PortalUser) auth.getPrincipal()).getId();
             }
             // Fallback to name if it's a number (for legacy or specific auth types)
             return Long.parseLong(auth.getName());

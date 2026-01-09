@@ -1,11 +1,8 @@
 package com.wd.api.model;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tasks")
@@ -31,11 +28,11 @@ public class Task extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to")
-    private User assignedTo;
+    private PortalUser assignedTo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
-    private User createdBy;
+    private PortalUser createdBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
@@ -43,7 +40,7 @@ public class Task extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lead_id")
-    private com.wd.api.dao.model.Leads lead;
+    private Lead lead;
 
     /**
      * MANDATORY: Task completion deadline
@@ -65,7 +62,7 @@ public class Task extends BaseEntity {
     }
 
     public Task(Long id, String title, String description, TaskStatus status, TaskPriority priority,
-            User assignedTo, User createdBy, CustomerProject project, com.wd.api.dao.model.Leads lead,
+            PortalUser assignedTo, PortalUser createdBy, CustomerProject project, Lead lead,
             LocalDate dueDate) {
         this.id = id;
         this.title = title;
@@ -120,19 +117,19 @@ public class Task extends BaseEntity {
         this.priority = priority;
     }
 
-    public User getAssignedTo() {
+    public PortalUser getAssignedTo() {
         return assignedTo;
     }
 
-    public void setAssignedTo(User assignedTo) {
+    public void setAssignedTo(PortalUser assignedTo) {
         this.assignedTo = assignedTo;
     }
 
-    public User getCreatedBy() {
+    public PortalUser getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(User createdBy) {
+    public void setCreatedBy(PortalUser createdBy) {
         this.createdBy = createdBy;
     }
 
@@ -144,11 +141,11 @@ public class Task extends BaseEntity {
         this.project = project;
     }
 
-    public com.wd.api.dao.model.Leads getLead() {
+    public Lead getLead() {
         return lead;
     }
 
-    public void setLead(com.wd.api.dao.model.Leads lead) {
+    public void setLead(Lead lead) {
         this.lead = lead;
     }
 

@@ -1,9 +1,9 @@
 package com.wd.api.service;
 
-import com.wd.api.dao.model.Leads;
+import com.wd.api.model.Lead;
 import com.wd.api.dto.PaginationParams;
 import com.wd.api.dto.PartnershipReferralRequest;
-import com.wd.api.repository.LeadsRepository;
+import com.wd.api.repository.LeadRepository;
 import com.wd.api.repository.LeadQuotationRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class LeadService {
 
     @Autowired
-    private LeadsRepository leadsRepository;
+    private LeadRepository leadRepository;
 
     @Autowired
     private ActivityFeedService activityFeedService;
@@ -46,9 +46,6 @@ public class LeadService {
 
     @Autowired
     private com.wd.api.repository.CustomerProjectRepository customerProjectRepository;
-
-    @Autowired
-    private com.wd.api.repository.UserRepository userRepository;
 
     @Autowired
     private EmailService emailService;
@@ -72,7 +69,7 @@ public class LeadService {
     private com.wd.api.repository.BoqItemRepository boqItemRepository;
 
     @Transactional
-    public Leads createLead(Leads lead) {
+    public Lead createLead(Lead lead) {
         if (lead.getDateOfEnquiry() == null) {
             lead.setDateOfEnquiry(LocalDate.now());
         }
@@ -95,7 +92,7 @@ public class LeadService {
         // Calculate Score
         calculateLeadScore(lead);
 
-        Leads savedLead = leadsRepository.save(lead);
+        Lead savedLead = leadRepository.save(lead);
         try {
             activityFeedService.logSystemActivity(
                     "LEAD_CREATED",
@@ -125,8 +122,8 @@ public class LeadService {
      * Create Lead from DTO
      * Handles mapping and defaults
      */
-    public Leads createLead(LeadCreateRequest request) {
-        Leads lead = new Leads();
+    public Lead createLead(LeadCreateRequest request) {
+        Lead lead = new Lead();
         lead.setName(request.getName());
         lead.setEmail(request.getEmail() != null ? request.getEmail() : "");
         lead.setPhone(request.getPhone() != null ? request.getPhone() : "");
@@ -182,10 +179,10 @@ public class LeadService {
     }
 
     @Transactional
-    public Leads updateLead(Long id, Leads leadDetails) {
+    public Lead updateLead(Long id, Lead leadDetails) {
         if (id == null)
             return null;
-        return leadsRepository.findById(id).map(lead -> {
+        return leadRepository.findById(id).map(lead -> {
             String oldStatus = lead.getLeadStatus();
             String oldCategory = lead.getScoreCategory(); // Capture old score category
             String oldAssigned = lead.getAssignedTeam();
@@ -241,7 +238,7 @@ public class LeadService {
 
             lead.setUpdatedAt(java.time.LocalDateTime.now());
 
-            Leads savedLead = leadsRepository.save(lead);
+            Lead savedLead = leadRepository.save(lead);
 
             try {
                 activityFeedService.logSystemActivity(
@@ -295,8 +292,8 @@ public class LeadService {
 
     @Transactional
     public boolean deleteLead(Long id) {
-        if (id != null && leadsRepository.existsById(id)) {
-            leadsRepository.deleteById(id);
+        if (id != null && leadRepository.existsById(id)) {
+            leadRepository.deleteById(id);
             return true;
         }
         return false;
@@ -306,22 +303,22 @@ public class LeadService {
         return activityFeedService.getActivitiesForLead(leadId);
     }
 
-    public Leads getLeadById(Long id) {
+    public Lead getLeadById(Long id) {
         if (id == null)
             return null;
-        return leadsRepository.findById(id).orElse(null);
+        return leadRepository.findById(id).orElse(null);
     }
 
-    public List<Leads> getAllLeads() {
-        return leadsRepository.findAll();
+    public List<Lead> getAllLeads() {
+        return leadRepository.findAll();
     }
 
-    public Page<Leads> getLeadsPaginated(PaginationParams params) {
+    public Page<Lead> getLeadsPaginated(PaginationParams params) {
         Sort sort = Sort.by(Sort.Direction.fromString(params.getSortOrder()), mapSortField(params.getSortBy()));
         int pageZeroBased = Math.max(0, params.getPage() - 1);
         Pageable pageable = PageRequest.of(pageZeroBased, params.getLimit(), sort);
 
-        Specification<Leads> spec = (root, query, cb) -> {
+        Specification<Lead> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             if (params.getStatus() != null && !params.getStatus().isEmpty()) {
@@ -380,7 +377,7 @@ public class LeadService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        return leadsRepository.findAll(spec, pageable);
+        return leadRepository.findAll(spec, pageable);
     }
 
     // Analytics - OPTIMIZED (JPA Aggregations)
@@ -391,12 +388,12 @@ public class LeadService {
         Map<String, Long> statusDist = new java.util.HashMap<>();
         List<String> statuses = List.of("new", "contacted", "qualified", "proposal_sent", "won", "lost");
         for (String status : statuses) {
-            statusDist.put(status, leadsRepository.countByLeadStatus(status));
+            statusDist.put(status, leadRepository.countByLeadStatus(status));
         }
         analytics.put("statusDistribution", statusDist);
 
         // Source distribution - Optimized
-        List<Object[]> sourceCounts = leadsRepository.countLeadsBySource();
+        List<Object[]> sourceCounts = leadRepository.countLeadsBySource();
         Map<String, Long> sourceDist = new HashMap<>();
         for (Object[] row : sourceCounts) {
             String source = (String) row[0];
@@ -406,7 +403,7 @@ public class LeadService {
         analytics.put("sourceDistribution", sourceDist);
 
         // Priority distribution - Optimized
-        List<Object[]> priorityCounts = leadsRepository.countLeadsByPriority();
+        List<Object[]> priorityCounts = leadRepository.countLeadsByPriority();
         Map<String, Long> priorityDist = new HashMap<>();
         for (Object[] row : priorityCounts) {
             String priority = (String) row[0];
@@ -425,12 +422,12 @@ public class LeadService {
         Map<String, Object> metrics = new java.util.HashMap<>();
 
         // Total leads using JPA repository count
-        long totalLeads = leadsRepository.count();
+        long totalLeads = leadRepository.count();
         metrics.put("totalLeads", totalLeads);
 
-        // Converted/Won leads (changed from 'converted' to 'won' to match actual
+        // Converted/Won leads (converted from 'converted' to 'won' to match actual
         // status)
-        long convertedLeads = leadsRepository.countByLeadStatus("won");
+        long convertedLeads = leadRepository.countByLeadStatus("won");
         metrics.put("convertedLeads", convertedLeads);
 
         // Calculate conversion rate
@@ -444,41 +441,41 @@ public class LeadService {
         return metrics;
     }
 
-    public List<Leads> getOverdueFollowUps() {
+    public List<Lead> getOverdueFollowUps() {
         // Use existing repository method instead of JDBC
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         List<String> excludedStatuses = List.of("won", "lost");
-        return leadsRepository.findByNextFollowUpBeforeAndLeadStatusNotIn(now, excludedStatuses);
+        return leadRepository.findByNextFollowUpBeforeAndLeadStatusNotIn(now, excludedStatuses);
     }
 
-    public List<Leads> getLeadsByStatus(String status) {
-        return leadsRepository.findByLeadStatus(status);
+    public List<Lead> getLeadsByStatus(String status) {
+        return leadRepository.findByLeadStatus(status);
     }
 
-    public List<Leads> getLeadsBySource(String source) {
-        return leadsRepository.findByLeadSource(source);
+    public List<Lead> getLeadsBySource(String source) {
+        return leadRepository.findByLeadSource(source);
     }
 
-    public List<Leads> getLeadsByPriority(String priority) {
-        return leadsRepository.findByPriority(priority);
+    public List<Lead> getLeadsByPriority(String priority) {
+        return leadRepository.findByPriority(priority);
     }
 
-    public List<Leads> getLeadsByAssignedTo(String teamIdLike) {
+    public List<Lead> getLeadsByAssignedTo(String teamIdLike) {
         try {
             Long id = Long.parseLong(teamIdLike);
-            return leadsRepository.findByAssignedTo_Id(id);
+            return leadRepository.findByAssignedTo_Id(id);
         } catch (NumberFormatException e) {
-            return leadsRepository.findByAssignedTeam(teamIdLike);
+            return leadRepository.findByAssignedTeam(teamIdLike);
         }
     }
 
-    public List<Leads> searchLeads(String query) {
-        return leadsRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneContainingIgnoreCase(
+    public List<Lead> searchLeads(String query) {
+        return leadRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneContainingIgnoreCase(
                 query, query, query);
     }
 
-    public Leads createLeadFromPartnershipReferral(PartnershipReferralRequest request) {
-        Leads lead = new Leads();
+    public Lead createLeadFromPartnershipReferral(PartnershipReferralRequest request) {
+        Lead lead = new Lead();
         lead.setName(request.getClientName());
         lead.setEmail(request.getClientEmail());
         lead.setPhone(request.getClientPhone());
@@ -499,7 +496,7 @@ public class LeadService {
                 request.getPartnerId());
         lead.setNotes(partnerNotes + (request.getNotes() != null ? "\n" + request.getNotes() : ""));
 
-        return leadsRepository.save(lead);
+        return leadRepository.save(lead);
     }
 
     private String mapSortField(String dbColumn) {
@@ -556,10 +553,10 @@ public class LeadService {
             String username) {
         if (leadId == null)
             throw new IllegalArgumentException("Lead ID cannot be null");
-        Leads lead = leadsRepository.findById(leadId)
+        Lead lead = leadRepository.findById(leadId)
                 .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + leadId));
 
-        com.wd.api.model.User convertedBy = userRepository.findByEmail(username)
+        com.wd.api.model.PortalUser convertedBy = portalUserRepository.findByEmail(username)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
 
         // Validate Status
@@ -700,7 +697,7 @@ public class LeadService {
 
         // Update Lead Status
         lead.setLeadStatus("WON");
-        leadsRepository.save(lead);
+        leadRepository.save(lead);
 
         // Log Activity
         try {
@@ -717,7 +714,7 @@ public class LeadService {
         return savedProject;
     }
 
-    private com.wd.api.model.CustomerUser createCustomerFromLead(Leads lead) {
+    private com.wd.api.model.CustomerUser createCustomerFromLead(Lead lead) {
         com.wd.api.model.CustomerUser customer = new com.wd.api.model.CustomerUser();
         customer.setEmail(lead.getEmail());
 
@@ -752,7 +749,7 @@ public class LeadService {
         return customerUserRepository.save(customer);
     }
 
-    private void calculateLeadScore(Leads lead) {
+    private void calculateLeadScore(Lead lead) {
         int score = 0;
         Map<String, Integer> factors = new HashMap<>();
 

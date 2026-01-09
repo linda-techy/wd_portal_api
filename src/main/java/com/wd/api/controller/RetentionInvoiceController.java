@@ -120,8 +120,8 @@ public class RetentionInvoiceController {
             return null;
         }
         try {
-            if (auth.getPrincipal() instanceof com.wd.api.model.User) {
-                return ((com.wd.api.model.User) auth.getPrincipal()).getId();
+            if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser) {
+                return ((com.wd.api.model.PortalUser) auth.getPrincipal()).getId();
             }
             return Long.parseLong(auth.getName());
         } catch (Exception e) {

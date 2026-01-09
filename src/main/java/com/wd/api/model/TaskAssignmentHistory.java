@@ -21,15 +21,15 @@ public class TaskAssignmentHistory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_from_id")
-    private User assignedFrom; // Previous assignee (null if task was unassigned)
+    private PortalUser assignedFrom; // Previous assignee (null if task was unassigned)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to_id")
-    private User assignedTo; // New assignee (null if being unassigned)
+    private PortalUser assignedTo; // New assignee (null if being unassigned)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_by_id", nullable = false)
-    private User assignedBy; // Who made this assignment change
+    private PortalUser assignedBy; // Who made this assignment change
 
     @Column(name = "assigned_at", nullable = false)
     private LocalDateTime assignedAt;
@@ -48,7 +48,8 @@ public class TaskAssignmentHistory {
     public TaskAssignmentHistory() {
     }
 
-    public TaskAssignmentHistory(Long taskId, User assignedFrom, User assignedTo, User assignedBy, String notes) {
+    public TaskAssignmentHistory(Long taskId, PortalUser assignedFrom, PortalUser assignedTo, PortalUser assignedBy,
+            String notes) {
         this.taskId = taskId;
         this.assignedFrom = assignedFrom;
         this.assignedTo = assignedTo;
@@ -73,27 +74,27 @@ public class TaskAssignmentHistory {
         this.taskId = taskId;
     }
 
-    public User getAssignedFrom() {
+    public PortalUser getAssignedFrom() {
         return assignedFrom;
     }
 
-    public void setAssignedFrom(User assignedFrom) {
+    public void setAssignedFrom(PortalUser assignedFrom) {
         this.assignedFrom = assignedFrom;
     }
 
-    public User getAssignedTo() {
+    public PortalUser getAssignedTo() {
         return assignedTo;
     }
 
-    public void setAssignedTo(User assignedTo) {
+    public void setAssignedTo(PortalUser assignedTo) {
         this.assignedTo = assignedTo;
     }
 
-    public User getAssignedBy() {
+    public PortalUser getAssignedBy() {
         return assignedBy;
     }
 
-    public void setAssignedBy(User assignedBy) {
+    public void setAssignedBy(PortalUser assignedBy) {
         this.assignedBy = assignedBy;
     }
 

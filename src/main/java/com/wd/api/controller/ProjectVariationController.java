@@ -1,8 +1,8 @@
 package com.wd.api.controller;
 
 import com.wd.api.model.ProjectVariation;
-import com.wd.api.model.User;
-import com.wd.api.repository.UserRepository;
+import com.wd.api.model.PortalUser;
+import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.ProjectVariationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +21,7 @@ public class ProjectVariationController {
     private ProjectVariationService variationService;
 
     @Autowired
-    private UserRepository userRepository;
+    private PortalUserRepository portalUserRepository;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
@@ -88,8 +88,8 @@ public class ProjectVariationController {
     }
 
     private Long getCurrentUserId(Authentication auth) {
-        User user = userRepository.findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        PortalUser user = portalUserRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new RuntimeException("Portal User not found"));
         return user.getId();
     }
 }

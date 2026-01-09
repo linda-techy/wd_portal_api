@@ -3,8 +3,8 @@ package com.wd.api.controller;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.model.Task;
 import com.wd.api.model.TaskAssignmentHistory;
-import com.wd.api.model.User;
-import com.wd.api.repository.UserRepository;
+import com.wd.api.model.PortalUser;
+import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.security.TaskAuthorizationService;
 import com.wd.api.service.TaskService;
 import org.slf4j.Logger;
@@ -43,7 +43,7 @@ public class TaskController {
     private TaskService taskService;
 
     @Autowired
-    private UserRepository userRepository;
+    private PortalUserRepository portalUserRepository;
 
     @Autowired
     private TaskAuthorizationService authService;
@@ -93,7 +93,7 @@ public class TaskController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<ApiResponse<List<Task>>> getAllTasks(Authentication auth) {
         try {
-            User user = getCurrentUser(auth);
+            PortalUser user = getCurrentUser(auth);
 
             List<Task> tasks;
             if (authService.isAdmin(auth)) {
@@ -118,7 +118,7 @@ public class TaskController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<ApiResponse<Task>> getTaskById(@PathVariable Long id, Authentication auth) {
         try {
-            User user = getCurrentUser(auth);
+            PortalUser user = getCurrentUser(auth);
 
             Optional<Task> task = taskService.getTaskById(id);
             if (task.isEmpty()) {
@@ -145,7 +145,7 @@ public class TaskController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<ApiResponse<List<Task>>> getMyTasks(Authentication auth) {
         try {
-            User user = getCurrentUser(auth);
+            PortalUser user = getCurrentUser(auth);
             return ResponseEntity
                     .ok(ApiResponse.success("My tasks retrieved successfully", taskService.getMyTasks(user)));
         } catch (Exception e) {
@@ -210,7 +210,7 @@ public class TaskController {
     public ResponseEntity<ApiResponse<List<TaskAssignmentHistory>>> getAssignmentHistory(
             @PathVariable Long id, Authentication auth) {
         try {
-            User user = getCurrentUser(auth);
+            PortalUser user = getCurrentUser(auth);
 
             // Check view permission
             if (!authService.canViewTask(id, auth, user.getId())) {
@@ -240,7 +240,7 @@ public class TaskController {
     public ResponseEntity<ApiResponse<Task>> createTask(@jakarta.validation.Valid @RequestBody Task task,
             Authentication auth) {
         try {
-            User createdBy = getCurrentUser(auth);
+            PortalUser createdBy = getCurrentUser(auth);
 
             logger.info("User {} creating task: {} (Due: {})",
                     createdBy.getEmail(), task.getTitle(), task.getDueDate());
@@ -264,7 +264,7 @@ public class TaskController {
             @RequestBody Task task,
             Authentication auth) {
         try {
-            User user = getCurrentUser(auth);
+            PortalUser user = getCurrentUser(auth);
 
             // Authorization check happens in service layer
             Task updatedTask = taskService.updateTask(id, task, auth, user.getId());
@@ -297,7 +297,7 @@ public class TaskController {
             @RequestBody Map<String, Object> request,
             Authentication auth) {
         try {
-            User assignedBy = getCurrentUser(auth);
+            PortalUser assignedBy = getCurrentUser(auth);
 
             // Extract parameters
             Long userId = request.get("userId") != null
@@ -331,7 +331,7 @@ public class TaskController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // ✅ Changed from ADMIN-only
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id, Authentication auth) {
         try {
-            User user = getCurrentUser(auth);
+            PortalUser user = getCurrentUser(auth);
 
             // Authorization check happens in service layer
             taskService.deleteTask(id, auth, user.getId());
@@ -375,8 +375,8 @@ public class TaskController {
 
     // ===== Helper Methods =====
 
-    private User getCurrentUser(Authentication auth) {
-        return userRepository.findByEmail(auth.getName())
+    private PortalUser getCurrentUser(Authentication auth) {
+        return portalUserRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

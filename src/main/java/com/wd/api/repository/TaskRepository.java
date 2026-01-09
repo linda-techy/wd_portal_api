@@ -1,7 +1,7 @@
 package com.wd.api.repository;
 
+import com.wd.api.model.PortalUser;
 import com.wd.api.model.Task;
-import com.wd.api.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,18 +10,18 @@ import java.util.List;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-        List<Task> findByAssignedTo(User assignedTo);
+        List<Task> findByAssignedTo(PortalUser assignedTo);
 
         List<Task> findByStatus(Task.TaskStatus status);
 
         List<Task> findByProjectId(Long projectId);
 
-        List<Task> findByAssignedToOrderByDueDateAsc(User assignedTo);
+        List<Task> findByAssignedToOrderByDueDateAsc(PortalUser assignedTo);
 
         // New methods for RBAC
         List<Task> findByCreatedById(Long createdById);
 
-        List<Task> findByCreatedByOrAssignedTo(User createdBy, User assignedTo);
+        List<Task> findByCreatedByOrAssignedTo(PortalUser createdBy, PortalUser assignedTo);
 
         List<Task> findByLeadId(Long leadId);
 

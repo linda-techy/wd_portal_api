@@ -10,7 +10,7 @@ import com.wd.api.repository.CustomerUserRepository;
 import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.ProjectMemberRepository;
 import com.wd.api.repository.PortalUserRepository;
-import com.wd.api.repository.LeadsRepository;
+import com.wd.api.repository.LeadRepository;
 import com.wd.api.model.ProjectMember;
 
 import com.wd.api.model.PortalUser;
@@ -57,7 +57,7 @@ public class CustomerProjectService {
     private PortalUserRepository portalUserRepository;
 
     @Autowired
-    private LeadsRepository leadsRepository;
+    private LeadRepository leadRepository;
 
     /**
      * 
@@ -164,14 +164,14 @@ public class CustomerProjectService {
 
         // Update Lead status if leadId is present
         if (savedProject.getLeadId() != null) {
-            leadsRepository.findById(savedProject.getLeadId()).ifPresent(lead -> {
+            leadRepository.findById(savedProject.getLeadId()).ifPresent(lead -> {
                 lead.setLeadStatus("WON");
                 lead.setConvertedAt(java.time.LocalDateTime.now());
                 // Try to find user ID by email/username 'createdBy'
                 portalUserRepository.findByEmail(createdBy).ifPresent(user -> {
                     lead.setConvertedById(user.getId());
                 });
-                leadsRepository.save(lead);
+                leadRepository.save(lead);
             });
         }
 

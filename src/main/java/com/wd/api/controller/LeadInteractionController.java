@@ -24,7 +24,7 @@ public class LeadInteractionController {
     private LeadInteractionService interactionService;
 
     @Autowired
-    private com.wd.api.repository.UserRepository userRepository;
+    private com.wd.api.repository.PortalUserRepository portalUserRepository;
 
     /**
      * Get all interactions for a lead
@@ -94,8 +94,8 @@ public class LeadInteractionController {
             Authentication authentication) {
         try {
             String username = authentication.getName();
-            com.wd.api.model.User user = userRepository.findByEmail(username)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            com.wd.api.model.PortalUser user = portalUserRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("Portal User not found"));
 
             LeadInteraction created = interactionService.createInteraction(interaction, user.getId());
             return ResponseEntity.ok(created);
@@ -122,8 +122,8 @@ public class LeadInteractionController {
             String notes = (String) body.get("notes");
 
             String username = authentication.getName();
-            com.wd.api.model.User user = userRepository.findByEmail(username)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            com.wd.api.model.PortalUser user = portalUserRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("Portal User not found"));
 
             LeadInteraction created = interactionService.logQuickInteraction(leadId, type, notes, user.getId());
             return ResponseEntity.ok(created);
@@ -147,8 +147,8 @@ public class LeadInteractionController {
             LocalDateTime nextActionDate = LocalDateTime.parse((String) body.get("nextActionDate"));
 
             String username = authentication.getName();
-            com.wd.api.model.User user = userRepository.findByEmail(username)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            com.wd.api.model.PortalUser user = portalUserRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("Portal User not found"));
 
             LeadInteraction created = interactionService.scheduleFollowUp(leadId, nextAction, nextActionDate,
                     user.getId());

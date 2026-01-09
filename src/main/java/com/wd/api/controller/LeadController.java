@@ -1,6 +1,6 @@
 package com.wd.api.controller;
 
-import com.wd.api.dao.model.Leads;
+import com.wd.api.model.Lead;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LeadCreateRequest;
 import com.wd.api.dto.PaginationParams;
@@ -34,9 +34,9 @@ public class LeadController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<ApiResponse<List<Leads>>> getAllLeads() {
+    public ResponseEntity<ApiResponse<List<Lead>>> getAllLeads() {
         try {
-            List<Leads> leads = leadService.getAllLeads();
+            List<Lead> leads = leadService.getAllLeads();
             return ResponseEntity.ok(ApiResponse.success("Leads retrieved successfully", leads));
         } catch (Exception e) {
             logger.error("Error in getAllLeads controller", e);
@@ -46,7 +46,7 @@ public class LeadController {
 
     @GetMapping("/paginated")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<ApiResponse<Page<Leads>>> getLeadsPaginated(
+    public ResponseEntity<ApiResponse<Page<Lead>>> getLeadsPaginated(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(required = false) String search,
@@ -97,7 +97,7 @@ public class LeadController {
             params.setSortBy(sortBy);
             params.setSortOrder(sortOrder);
 
-            Page<Leads> response = leadService.getLeadsPaginated(params);
+            Page<Lead> response = leadService.getLeadsPaginated(params);
             return ResponseEntity.ok(ApiResponse.success("Paginated leads retrieved successfully", response));
         } catch (Exception e) {
             logger.error("Error in getLeadsPaginated controller", e);
@@ -108,10 +108,10 @@ public class LeadController {
 
     @GetMapping("/{leadId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<ApiResponse<Leads>> getLeadById(@PathVariable String leadId) {
+    public ResponseEntity<ApiResponse<Lead>> getLeadById(@PathVariable String leadId) {
         try {
             // Parse Long from String
-            Leads lead = leadService.getLeadById(Long.parseLong(leadId));
+            Lead lead = leadService.getLeadById(Long.parseLong(leadId));
             if (lead != null) {
                 return ResponseEntity.ok(ApiResponse.success("Lead retrieved successfully", lead));
             } else {
@@ -142,13 +142,13 @@ public class LeadController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<ApiResponse<Leads>> createLead(@RequestBody LeadCreateRequest request) {
+    public ResponseEntity<ApiResponse<Lead>> createLead(@RequestBody LeadCreateRequest request) {
         try {
             if (request.getName() == null || request.getName().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("name is required"));
             }
 
-            Leads createdLead = leadService.createLead(request);
+            Lead createdLead = leadService.createLead(request);
             return ResponseEntity.ok(ApiResponse.success("Lead created successfully", createdLead));
         } catch (Exception e) {
             logger.error("Error creating lead", e);
@@ -158,10 +158,10 @@ public class LeadController {
 
     @PutMapping("/{leadId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<ApiResponse<Leads>> updateLead(@PathVariable String leadId, @RequestBody Leads lead) {
+    public ResponseEntity<ApiResponse<Lead>> updateLead(@PathVariable String leadId, @RequestBody Lead lead) {
         try {
             Long id = Long.parseLong(leadId);
-            Leads updatedLead = leadService.updateLead(id, lead);
+            Lead updatedLead = leadService.updateLead(id, lead);
             if (updatedLead != null) {
                 return ResponseEntity.ok(ApiResponse.success("Lead updated successfully", updatedLead));
             } else {
@@ -196,13 +196,13 @@ public class LeadController {
 
     @GetMapping("/status/{status}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Leads>> getLeadsByStatus(@PathVariable String status) {
+    public ResponseEntity<List<Lead>> getLeadsByStatus(@PathVariable String status) {
         return ResponseEntity.ok(leadService.getLeadsByStatus(status));
     }
 
     @GetMapping("/assigned/{teamMemberId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Leads>> getLeadsByAssignedTo(@PathVariable String teamMemberId) {
+    public ResponseEntity<List<Lead>> getLeadsByAssignedTo(@PathVariable String teamMemberId) {
         // Assuming database stores UUID as string in assigned_team or we filter by
         // string
         return ResponseEntity.ok(leadService.getLeadsByAssignedTo(teamMemberId));
@@ -210,19 +210,19 @@ public class LeadController {
 
     @GetMapping("/source/{source}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Leads>> getLeadsBySource(@PathVariable String source) {
+    public ResponseEntity<List<Lead>> getLeadsBySource(@PathVariable String source) {
         return ResponseEntity.ok(leadService.getLeadsBySource(source));
     }
 
     @GetMapping("/priority/{priority}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Leads>> getLeadsByPriority(@PathVariable String priority) {
+    public ResponseEntity<List<Lead>> getLeadsByPriority(@PathVariable String priority) {
         return ResponseEntity.ok(leadService.getLeadsByPriority(priority));
     }
 
     @GetMapping("/date-range")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Leads>> getLeadsByDateRange(
+    public ResponseEntity<List<Lead>> getLeadsByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         // Not implemented in Service yet?
@@ -233,13 +233,13 @@ public class LeadController {
         params.setStartDate(startDate);
         params.setEndDate(endDate);
         params.setLimit(1000); // Hacky get all
-        Page<Leads> page = leadService.getLeadsPaginated(params);
+        Page<Lead> page = leadService.getLeadsPaginated(params);
         return ResponseEntity.ok(page.getContent());
     }
 
     @GetMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Leads>> searchLeads(@RequestParam String query) {
+    public ResponseEntity<List<Lead>> searchLeads(@RequestParam String query) {
         return ResponseEntity.ok(leadService.searchLeads(query));
     }
 
@@ -249,7 +249,7 @@ public class LeadController {
 
     @GetMapping("/overdue-followups")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Leads>> getOverdueFollowUps() {
+    public ResponseEntity<List<Lead>> getOverdueFollowUps() {
         return ResponseEntity.ok(leadService.getOverdueFollowUps());
     }
 
@@ -272,7 +272,7 @@ public class LeadController {
     @PostMapping("/contact")
     public ResponseEntity<?> submitContactFormLead(@RequestBody Map<String, Object> contactData) {
         try {
-            Leads lead = new Leads();
+            Lead lead = new Lead();
             lead.setName((String) contactData.get("name"));
             lead.setEmail((String) contactData.get("email"));
             lead.setPhone((String) contactData.get("phone"));
@@ -314,7 +314,7 @@ public class LeadController {
     @PostMapping("/referral")
     public ResponseEntity<?> submitClientReferralLead(@RequestBody Map<String, Object> referralData) {
         try {
-            Leads lead = new Leads();
+            Lead lead = new Lead();
             lead.setName((String) referralData.get("referralName"));
             lead.setEmail((String) referralData.get("referralEmail"));
             lead.setPhone((String) referralData.get("referralPhone"));
@@ -343,7 +343,7 @@ public class LeadController {
     @PostMapping("/calculator/home-cost")
     public ResponseEntity<?> submitCalculatorLead(@RequestBody Map<String, Object> calculatorData) {
         try {
-            Leads lead = new Leads();
+            Lead lead = new Lead();
             String whatsappNumber = (String) calculatorData.get("whatsappNumber");
             String shortUUID = "CALC-" + UUID.randomUUID().toString().substring(0, 8);
             lead.setName(shortUUID);

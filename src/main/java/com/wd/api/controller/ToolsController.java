@@ -1,6 +1,6 @@
 package com.wd.api.controller;
 
-import com.wd.api.dao.model.SqftCategories;
+import com.wd.api.model.SqftCategories;
 import com.wd.api.dao.interfaces.IToolsDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

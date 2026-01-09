@@ -15,6 +15,9 @@ import java.util.Optional;
 public interface PortalUserRepository extends JpaRepository<PortalUser, Long> {
     Optional<PortalUser> findByEmail(String email);
 
+    @Query("SELECT u FROM PortalUser u WHERE u.role.name = :roleName AND u.enabled = true")
+    List<PortalUser> findByRoleName(@Param("roleName") String roleName);
+
     @Query("SELECT u FROM PortalUser u WHERE u.role.id = :roleId")
     List<PortalUser> findByRoleId(@Param("roleId") Long roleId);
 

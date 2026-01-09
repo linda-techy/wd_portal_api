@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  * Extends BaseEntity for full enterprise audit trails and optimistic locking.
  */
 @Entity
-@Table(name = "wd_documents")
+@Table(name = "project_documents")
 public class Document extends BaseEntity {
 
     @Id

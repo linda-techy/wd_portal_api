@@ -49,7 +49,7 @@ public class TaskAlert {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sent_to_user_id")
-    private User sentToUser;
+    private PortalUser sentToUser;
 
     @Column(name = "sent_to_email", length = 255)
     private String sentToEmail;
@@ -87,7 +87,7 @@ public class TaskAlert {
     }
 
     public TaskAlert(Task task, AlertType alertType, AlertSeverity severity,
-            String alertMessage, User sentToUser, String sentToEmail) {
+            String alertMessage, PortalUser sentToUser, String sentToEmail) {
         this.task = task;
         this.alertType = alertType;
         this.severity = severity;
@@ -147,11 +147,11 @@ public class TaskAlert {
         this.sentAt = sentAt;
     }
 
-    public User getSentToUser() {
+    public PortalUser getSentToUser() {
         return sentToUser;
     }
 
-    public void setSentToUser(User sentToUser) {
+    public void setSentToUser(PortalUser sentToUser) {
         this.sentToUser = sentToUser;
     }
 

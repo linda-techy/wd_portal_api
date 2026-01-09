@@ -1,8 +1,8 @@
 package com.wd.api.controller;
 
 import com.wd.api.model.DelayLog;
-import com.wd.api.model.User;
-import com.wd.api.repository.UserRepository;
+import com.wd.api.model.PortalUser;
+import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.DelayLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,7 +23,7 @@ public class DelayLogController {
     private DelayLogService delayLogService;
 
     @Autowired
-    private UserRepository userRepository;
+    private PortalUserRepository portalUserRepository;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
@@ -66,8 +66,8 @@ public class DelayLogController {
     }
 
     private Long getCurrentUserId(Authentication auth) {
-        User user = userRepository.findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        PortalUser user = portalUserRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new RuntimeException("Portal User not found"));
         return user.getId();
     }
 }
