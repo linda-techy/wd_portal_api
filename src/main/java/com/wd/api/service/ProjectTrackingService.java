@@ -1,6 +1,7 @@
 package com.wd.api.service;
 
 import com.wd.api.model.*;
+import com.wd.api.model.enums.VariationStatus;
 import com.wd.api.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -104,45 +105,52 @@ public class ProjectTrackingService {
     @Transactional
     public ProjectVariation createVariation(Long projectId, String description,
             BigDecimal estimatedAmount, Long createdById) {
-        CustomerProject project = projectRepository.findById(projectId)
+        Long pId = java.util.Objects.requireNonNull(projectId);
+        CustomerProject project = projectRepository.findById(pId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
-
-        PortalUser createdBy = createdById != null ? userRepository.findById(createdById).orElse(null) : null;
 
         ProjectVariation variation = ProjectVariation.builder()
                 .project(project)
                 .description(description)
                 .estimatedAmount(estimatedAmount)
-                .status("DRAFT")
-                .createdBy(createdBy)
+                .status(VariationStatus.DRAFT)
                 .build();
+        if (createdById != null) {
+            variation.setCreatedByUserId(createdById);
+        }
 
-        return variationRepository.save(variation);
+        ProjectVariation savedVariation = variationRepository.save(variation);
+        return java.util.Objects.requireNonNull(savedVariation);
     }
 
     @Transactional
     public ProjectVariation submitForApproval(Long variationId) {
-        ProjectVariation variation = variationRepository.findById(variationId)
+        Long vId = java.util.Objects.requireNonNull(variationId);
+        ProjectVariation variation = variationRepository.findById(vId)
                 .orElseThrow(() -> new RuntimeException("Variation not found"));
 
-        variation.setStatus("PENDING_APPROVAL");
-        return variationRepository.save(variation);
+        variation.setStatus(VariationStatus.PENDING_APPROVAL);
+        ProjectVariation savedVariation = variationRepository.save(variation);
+        return java.util.Objects.requireNonNull(savedVariation);
     }
 
     @Transactional
     public ProjectVariation approveVariation(Long variationId, Long approvedById, boolean approve) {
-        ProjectVariation variation = variationRepository.findById(variationId)
+        Long vId = java.util.Objects.requireNonNull(variationId);
+        ProjectVariation variation = variationRepository.findById(vId)
                 .orElseThrow(() -> new RuntimeException("Variation not found"));
 
-        PortalUser approvedBy = userRepository.findById(approvedById)
+        Long aId = java.util.Objects.requireNonNull(approvedById);
+        PortalUser approvedBy = userRepository.findById(aId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         variation.setApprovedBy(approvedBy);
         variation.setApprovedAt(LocalDateTime.now());
         variation.setClientApproved(approve);
-        variation.setStatus(approve ? "APPROVED" : "REJECTED");
+        variation.setStatus(approve ? VariationStatus.APPROVED : VariationStatus.REJECTED);
 
-        return variationRepository.save(variation);
+        ProjectVariation savedVariation = variationRepository.save(variation);
+        return java.util.Objects.requireNonNull(savedVariation);
     }
 
     // ===== PROJECT HEALTH METRICS =====
@@ -150,7 +158,8 @@ public class ProjectTrackingService {
     public ProjectHealthSummary getProjectHealth(Long projectId) {
         List<ProjectPhase> phases = phaseRepository.findByProjectIdOrderByDisplayOrderAsc(projectId);
         List<DelayLog> delays = delayLogRepository.findByProjectIdOrderByFromDateDesc(projectId);
-        List<ProjectVariation> variations = variationRepository.findByProjectIdAndStatus(projectId, "APPROVED");
+        List<ProjectVariation> variations = variationRepository.findByProjectIdAndStatus(projectId,
+                VariationStatus.APPROVED);
 
         int totalPhases = phases.size();
         int completedPhases = (int) phases.stream().filter(p -> "COMPLETED".equals(p.getStatus())).count();

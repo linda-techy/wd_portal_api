@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -14,7 +15,8 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class GoodsReceivedNote {
+@EqualsAndHashCode(callSuper = true)
+public class GoodsReceivedNote extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,7 +48,9 @@ public class GoodsReceivedNote {
     private String notes;
 
     @PrePersist
+    @Override
     protected void onCreate() {
+        super.onCreate();
         if (receivedDate == null)
             receivedDate = LocalDateTime.now();
     }

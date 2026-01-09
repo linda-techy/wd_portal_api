@@ -3,7 +3,6 @@ package com.wd.api.service;
 import com.wd.api.dto.GRNDTO;
 import com.wd.api.dto.VendorDTO;
 import com.wd.api.dto.PurchaseOrderDTO;
-import com.wd.api.dto.PurchaseOrderItemDTO;
 import com.wd.api.model.Vendor;
 import com.wd.api.model.PurchaseOrder;
 import com.wd.api.model.PurchaseOrderItem;
@@ -15,14 +14,15 @@ import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.GoodsReceivedNoteRepository;
 import com.wd.api.repository.MaterialRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProcurementService {
 
     private final VendorRepository vendorRepository;
@@ -48,8 +48,8 @@ public class ProcurementService {
                 .ifscCode(dto.getIfscCode())
                 .active(true)
                 .build();
-        vendor = vendorRepository.save(vendor);
-        return mapToVendorDTO(vendor);
+        Vendor savedVendor = java.util.Objects.requireNonNull(vendorRepository.save(vendor));
+        return mapToVendorDTO(savedVendor);
     }
 
     public List<VendorDTO> getAllVendors() {
@@ -60,9 +60,14 @@ public class ProcurementService {
 
     @Transactional
     public PurchaseOrderDTO createPurchaseOrder(PurchaseOrderDTO dto) {
-        Vendor vendor = vendorRepository.findById(dto.getVendorId())
+        Long vendorId = dto.getVendorId();
+        Long projectId = dto.getProjectId();
+        if (vendorId == null || projectId == null) {
+            throw new IllegalArgumentException("Vendor ID and Project ID are required");
+        }
+        Vendor vendor = vendorRepository.findById(vendorId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
-        var project = projectRepository.findById(dto.getProjectId())
+        var project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
         // Use setters since PurchaseOrder doesn't have Lombok @Builder
@@ -80,18 +85,20 @@ public class ProcurementService {
 
         if (dto.getItems() != null) {
             List<PurchaseOrderItem> items = dto.getItems().stream()
-                    .map(itemDto -> PurchaseOrderItem.builder()
-                            .purchaseOrder(null) // Handled by cascading
-                            .description(itemDto.getDescription())
-                            .quantity(itemDto.getQuantity())
-                            .unit(itemDto.getUnit())
-                            .rate(itemDto.getRate())
-                            .gstPercentage(itemDto.getGstPercentage())
-                            .amount(itemDto.getAmount())
-                            .material(itemDto.getMaterialId() != null
-                                    ? materialRepository.findById(itemDto.getMaterialId()).orElse(null)
-                                    : null)
-                            .build())
+                    .map(itemDto -> {
+                        PurchaseOrderItem item = new PurchaseOrderItem();
+                        item.setDescription(itemDto.getDescription());
+                        item.setQuantity(itemDto.getQuantity());
+                        item.setUnit(itemDto.getUnit());
+                        item.setRate(itemDto.getRate());
+                        item.setGstPercentage(itemDto.getGstPercentage());
+                        item.setAmount(itemDto.getAmount());
+                        Long matId = itemDto.getMaterialId();
+                        item.setMaterial(matId != null
+                                ? materialRepository.findById(matId).orElse(null)
+                                : null);
+                        return item;
+                    })
                     .collect(Collectors.toList());
             po.setItems(items);
             items.forEach(item -> item.setPurchaseOrder(po));
@@ -103,7 +110,11 @@ public class ProcurementService {
 
     @Transactional
     public GRNDTO recordGRN(GRNDTO dto) {
-        PurchaseOrder po = poRepository.findById(dto.getPoId())
+        Long poId = dto.getPoId();
+        if (poId == null) {
+            throw new IllegalArgumentException("Purchase Order ID is required");
+        }
+        PurchaseOrder po = poRepository.findById(poId)
                 .orElseThrow(() -> new RuntimeException("PO not found"));
 
         GoodsReceivedNote grn = GoodsReceivedNote.builder()
@@ -117,7 +128,7 @@ public class ProcurementService {
                 .notes(dto.getNotes())
                 .build();
 
-        grn = grnRepository.save(grn);
+        grnRepository.save(grn);
 
         // Update PO status using proper enum
         po.setStatus(PurchaseOrderStatus.RECEIVED);

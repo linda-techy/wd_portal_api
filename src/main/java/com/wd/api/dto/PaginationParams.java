@@ -14,6 +14,7 @@ public class PaginationParams {
     private String assignedTeam;
     private String state;
     private String district;
+    private String location;
     private Double minBudget;
     private Double maxBudget;
     private LocalDate startDate;
@@ -21,7 +22,8 @@ public class PaginationParams {
     private String sortBy = "created_at";
     private String sortOrder = "desc";
 
-    public PaginationParams() {}
+    public PaginationParams() {
+    }
 
     // Getters and Setters
     public int getPage() {
@@ -110,6 +112,14 @@ public class PaginationParams {
 
     public void setDistrict(String district) {
         this.district = district;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public Double getMinBudget() {

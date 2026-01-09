@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class InventoryService {
 
         private final CustomerProjectRepository projectRepository;
@@ -28,18 +29,6 @@ public class InventoryService {
         private final InventoryStockRepository stockRepository;
         private final PurchaseOrderItemRepository poItemRepository;
         private final StockAdjustmentRepository adjustmentRepository;
-
-        public InventoryService(CustomerProjectRepository projectRepository,
-                        MaterialRepository materialRepository,
-                        InventoryStockRepository stockRepository,
-                        PurchaseOrderItemRepository poItemRepository,
-                        StockAdjustmentRepository adjustmentRepository) {
-                this.projectRepository = projectRepository;
-                this.materialRepository = materialRepository;
-                this.stockRepository = stockRepository;
-                this.poItemRepository = poItemRepository;
-                this.adjustmentRepository = adjustmentRepository;
-        }
 
         public List<MaterialConsumptionDTO> getConsumptionReport(Long projectId) {
                 // 1. Get all materials associated with this project (via Stock or POs)
@@ -196,7 +185,6 @@ public class InventoryService {
                                 .quantity(quantity)
                                 .adjustmentType("CONSUMPTION") // Using text directly matching enum/constant
                                 .reason("Material consumed on site")
-                                .adjustedAt(java.time.LocalDateTime.now())
                                 // .adjustedBy(user) // Add user lookup if needed
                                 .build();
 
@@ -232,7 +220,7 @@ public class InventoryService {
                                 .materialName(mat.getName())
                                 .unit(mat.getUnit() != null ? mat.getUnit().name() : null)
                                 .currentQuantity(s.getCurrentQuantity())
-                                .lastUpdated(s.getLastUpdated())
+                                .lastUpdated(s.getUpdatedAt())
                                 .build();
         }
 }

@@ -2,11 +2,10 @@ package com.wd.api.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "stock_adjustments")
-public class StockAdjustment {
+public class StockAdjustment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,19 +32,11 @@ public class StockAdjustment {
     @JoinColumn(name = "adjusted_by_id")
     private PortalUser adjustedBy;
 
-    @Column(name = "adjusted_at", nullable = false)
-    private LocalDateTime adjustedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        adjustedAt = LocalDateTime.now();
-    }
-
     public StockAdjustment() {
     }
 
     public StockAdjustment(Long id, CustomerProject project, Material material, String adjustmentType,
-            BigDecimal quantity, String reason, PortalUser adjustedBy, LocalDateTime adjustedAt) {
+            BigDecimal quantity, String reason, PortalUser adjustedBy) {
         this.id = id;
         this.project = project;
         this.material = material;
@@ -53,7 +44,6 @@ public class StockAdjustment {
         this.quantity = quantity;
         this.reason = reason;
         this.adjustedBy = adjustedBy;
-        this.adjustedAt = adjustedAt;
     }
 
     public static StockAdjustmentBuilder builder() {
@@ -68,7 +58,6 @@ public class StockAdjustment {
         private BigDecimal quantity;
         private String reason;
         private PortalUser adjustedBy;
-        private LocalDateTime adjustedAt;
 
         public StockAdjustmentBuilder id(Long id) {
             this.id = id;
@@ -105,13 +94,8 @@ public class StockAdjustment {
             return this;
         }
 
-        public StockAdjustmentBuilder adjustedAt(LocalDateTime adjustedAt) {
-            this.adjustedAt = adjustedAt;
-            return this;
-        }
-
         public StockAdjustment build() {
-            return new StockAdjustment(id, project, material, adjustmentType, quantity, reason, adjustedBy, adjustedAt);
+            return new StockAdjustment(id, project, material, adjustmentType, quantity, reason, adjustedBy);
         }
     }
 
@@ -119,43 +103,55 @@ public class StockAdjustment {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public CustomerProject getProject() {
         return project;
+    }
+
+    public void setProject(CustomerProject project) {
+        this.project = project;
     }
 
     public Material getMaterial() {
         return material;
     }
 
+    public void setMaterial(Material material) {
+        this.material = material;
+    }
+
     public String getAdjustmentType() {
         return adjustmentType;
-    }
-
-    public BigDecimal getQuantity() {
-        return quantity;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public PortalUser getAdjustedBy() {
-        return adjustedBy;
-    }
-
-    public LocalDateTime getAdjustedAt() {
-        return adjustedAt;
     }
 
     public void setAdjustmentType(String adjustmentType) {
         this.adjustmentType = adjustmentType;
     }
 
+    public BigDecimal getQuantity() {
+        return quantity;
+    }
+
     public void setQuantity(BigDecimal quantity) {
         this.quantity = quantity;
     }
 
+    public String getReason() {
+        return reason;
+    }
+
     public void setReason(String reason) {
         this.reason = reason;
+    }
+
+    public PortalUser getAdjustedBy() {
+        return adjustedBy;
+    }
+
+    public void setAdjustedBy(PortalUser adjustedBy) {
+        this.adjustedBy = adjustedBy;
     }
 }

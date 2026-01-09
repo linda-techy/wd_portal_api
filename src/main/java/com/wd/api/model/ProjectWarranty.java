@@ -1,20 +1,18 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.WarrantyStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "project_warranties")
 @Data
+@EqualsAndHashCode(callSuper = true)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProjectWarranty {
+public class ProjectWarranty extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,28 +37,19 @@ public class ProjectWarranty {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Column(name = "status")
-    private String status; // ACTIVE, EXPIRED, VOID
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, nullable = false)
+    private WarrantyStatus status = WarrantyStatus.ACTIVE;
 
-    @Column(columnDefinition = "TEXT")
-    private String coverage_details;
+    @Column(name = "coverage_details", columnDefinition = "TEXT")
+    private String coverageDetails;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
+    @Override
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        super.onCreate();
         if (status == null)
-            status = "ACTIVE";
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+            status = WarrantyStatus.ACTIVE;
     }
 }

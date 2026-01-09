@@ -3,11 +3,10 @@ package com.wd.api.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "subcontract_work_orders")
-public class SubcontractWorkOrder {
+public class SubcontractWorkOrder extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -56,15 +55,10 @@ public class SubcontractWorkOrder {
     @Enumerated(EnumType.STRING)
     private WorkOrderStatus status = WorkOrderStatus.DRAFT;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+    @PrePersist
+    @Override
+    protected void onCreate() {
+        super.onCreate();
     }
 
     public enum MeasurementBasis {
@@ -187,21 +181,5 @@ public class SubcontractWorkOrder {
 
     public void setStatus(WorkOrderStatus status) {
         this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

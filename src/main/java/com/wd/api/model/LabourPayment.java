@@ -1,21 +1,20 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.PaymentMethod;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "labour_payments")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LabourPayment {
+@EqualsAndHashCode(callSuper = true)
+public class LabourPayment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,17 +38,16 @@ public class LabourPayment {
     @Column(name = "payment_date", nullable = false)
     private LocalDate paymentDate;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
-    private String paymentMethod; // CASH, BANK_TRANSFER, UPI
+    private PaymentMethod paymentMethod;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
+    @Override
     @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
+    public void onCreate() {
+        super.onCreate();
     }
 }

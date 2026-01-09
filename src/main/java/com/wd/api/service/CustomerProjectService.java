@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,14 +67,15 @@ public class CustomerProjectService {
     @Transactional(readOnly = true)
     public Page<CustomerProjectResponse> getAllProjects(String search, Pageable pageable) {
         Page<CustomerProject> projectPage;
+        Pageable resolvedPageable = pageable != null ? pageable : PageRequest.of(0, 10);
 
         if (search != null && !search.trim().isEmpty()) {
-            String searchPattern = search.trim();
+            final String searchPattern = search.trim();
             projectPage = customerProjectRepository
                     .findByNameContainingIgnoreCaseOrLocationContainingIgnoreCaseOrStateContainingIgnoreCaseOrProjectPhaseContainingIgnoreCase(
-                            searchPattern, searchPattern, searchPattern, searchPattern, pageable);
+                            searchPattern, searchPattern, searchPattern, searchPattern, resolvedPageable);
         } else {
-            projectPage = customerProjectRepository.findAll(pageable);
+            projectPage = customerProjectRepository.findAll(resolvedPageable);
         }
 
         return projectPage.map(CustomerProjectResponse::new);
@@ -142,7 +144,8 @@ public class CustomerProjectService {
 
         // Set customer if provided
         if (request.getCustomerId() != null) {
-            customerUserRepository.findById(request.getCustomerId())
+            Long customerId = request.getCustomerId();
+            customerUserRepository.findById(customerId)
                     .ifPresent(project::setCustomer);
         }
 
@@ -164,7 +167,8 @@ public class CustomerProjectService {
 
         // Update Lead status if leadId is present
         if (savedProject.getLeadId() != null) {
-            leadRepository.findById(savedProject.getLeadId()).ifPresent(lead -> {
+            Long leadId = savedProject.getLeadId();
+            leadRepository.findById(leadId).ifPresent(lead -> {
                 lead.setLeadStatus("WON");
                 lead.setConvertedAt(java.time.LocalDateTime.now());
                 // Try to find user ID by email/username 'createdBy'
@@ -193,6 +197,9 @@ public class CustomerProjectService {
      * Update existing customer project
      */
     public CustomerProject updateProject(Long id, CustomerProjectUpdateRequest request) {
+        if (id == null) {
+            throw new IllegalArgumentException("Project ID is required");
+        }
         // Find existing project
         CustomerProject project = customerProjectRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Project with ID " + id + " not found"));
@@ -268,6 +275,9 @@ public class CustomerProjectService {
      * Delete customer project with cascade delete of dependent entities
      */
     public void deleteProject(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Project ID is required");
+        }
         CustomerProject project = customerProjectRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Project with ID " + id + " not found"));
 
@@ -325,6 +335,8 @@ public class CustomerProjectService {
     }
 
     private void syncProjectManagerMember(CustomerProject project, Long pmId) {
+        if (pmId == null)
+            return;
         PortalUser pmUser = portalUserRepository.findById(pmId).orElse(null);
         if (pmUser == null)
             return;

@@ -1,12 +1,13 @@
 package com.wd.api.dto;
 
+import com.wd.api.model.enums.MaterialUnit;
 import java.math.BigDecimal;
 
 public class PurchaseOrderItemDTO {
     private Long id;
     private String description;
     private BigDecimal quantity;
-    private String unit;
+    private MaterialUnit unit;
     private BigDecimal rate;
     private BigDecimal gstPercentage;
     private BigDecimal amount;
@@ -15,7 +16,7 @@ public class PurchaseOrderItemDTO {
     public PurchaseOrderItemDTO() {
     }
 
-    public PurchaseOrderItemDTO(Long id, String description, BigDecimal quantity, String unit, BigDecimal rate,
+    public PurchaseOrderItemDTO(Long id, String description, BigDecimal quantity, MaterialUnit unit, BigDecimal rate,
             BigDecimal gstPercentage, BigDecimal amount, Long materialId) {
         this.id = id;
         this.description = description;
@@ -35,7 +36,7 @@ public class PurchaseOrderItemDTO {
         private Long id;
         private String description;
         private BigDecimal quantity;
-        private String unit;
+        private MaterialUnit unit;
         private BigDecimal rate;
         private BigDecimal gstPercentage;
         private BigDecimal amount;
@@ -56,7 +57,7 @@ public class PurchaseOrderItemDTO {
             return this;
         }
 
-        public PurchaseOrderItemDTOBuilder unit(String unit) {
+        public PurchaseOrderItemDTOBuilder unit(MaterialUnit unit) {
             this.unit = unit;
             return this;
         }
@@ -98,7 +99,7 @@ public class PurchaseOrderItemDTO {
         return quantity;
     }
 
-    public String getUnit() {
+    public MaterialUnit getUnit() {
         return unit;
     }
 
@@ -130,7 +131,7 @@ public class PurchaseOrderItemDTO {
         this.quantity = quantity;
     }
 
-    public void setUnit(String unit) {
+    public void setUnit(MaterialUnit unit) {
         this.unit = unit;
     }
 

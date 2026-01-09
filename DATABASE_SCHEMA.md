@@ -1,5 +1,5 @@
 ﻿# WallDot Builders - Database Schema Documentation
-**Total Tables:** 44
+**Total Tables:** 61
 **Database:** PostgreSQL (wdTestDB)
 
 ## Table of Contents
@@ -47,6 +47,23 @@
 42. [view_360](#view-360)
 43. [challan_sequences](#challan_sequences) *(NEW)*
 44. [payment_challans](#payment_challans) *(NEW)*
+45. [vendors](#vendors) *(Standardized)*
+46. [materials](#materials) *(Standardized)*
+47. [purchase_orders](#purchase_orders) *(Standardized)*
+48. [purchase_order_items](#purchase_order-items) *(Standardized)*
+49. [goods_received_notes](#goods-received-notes) *(Standardized)*
+50. [inventory_stock](#inventory-stock) *(Standardized)*
+51. [stock_adjustments](#stock-adjustments) *(Standardized)*
+52. [subcontract_work_orders](#subcontract-work-orders) *(Standardized)*
+53. [vendor_payments](#vendor-payments) *(Standardized)*
+54. [material_budgets](#material-budgets) *(Standardized)*
+55. [project_phases](#project-phases) *(NEW)*
+56. [project_variations](#project-variations) *(Standardized)*
+57. [project_warranties](#project-warranties) *(Standardized)*
+58. [labour](#labour) *(Standardized)*
+59. [labour_attendance](#labour-attendance) *(Standardized)*
+60. [labour_payments](#labour-payments) *(Standardized)*
+61. [measurement_book](#measurement-book) *(Standardized)*
 
 
 
@@ -1512,7 +1529,7 @@ Formal challans generated for financial transactions. Each transaction is eligib
 
 ## vendors
 
-Masters for material suppliers and labor contractors.
+Masters for material suppliers and labor contractors. Standardized with `BaseEntity` audit trail (V1_47).
 
 ### Columns
 
@@ -1525,19 +1542,24 @@ Masters for material suppliers and labor contractors.
 | `email` | `varchar(255)` | ✓ | `-` | 🔒 UNIQUE |
 | `gstin` | `varchar(15)` | ✓ | `-` | 🔒 UNIQUE |
 | `address` | `text` | ✓ | `-` | - |
-| `vendor_type` | `varchar(50)` | ✗ | `-` | 'MATERIAL', 'LABOUR', 'SERVICES' |
+| `vendor_type` | `varchar(50)` | ✗ | `-` | Enum: MATERIAL, LABOUR, BOTH, CONSULTANT, SERVICE_PROVIDER |
 | `bank_name` | `varchar(255)` | ✓ | `-` | - |
 | `account_number` | `varchar(50)` | ✓ | `-` | - |
 | `ifsc_code` | `varchar(20)` | ✓ | `-` | - |
 | `is_active` | `boolean` | ✗ | `true` | - |
 | `created_at` | `timestamp` | ✗ | `now()` | - |
 | `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | Soft delete support |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `0` | Optimistic locking |
 
 ---
 
 ## purchase_orders
 
-Project-specific material or labor purchase orders.
+Project-specific material or labor purchase orders. Standardized with `BaseEntity` audit trail (V1_47).
 
 ### Columns
 
@@ -1552,16 +1574,21 @@ Project-specific material or labor purchase orders.
 | `total_amount` | `numeric(15,2)` | ✗ | `-` | - |
 | `gst_amount` | `numeric(15,2)` | ✗ | `-` | - |
 | `net_amount` | `numeric(15,2)` | ✗ | `-` | - |
-| `status` | `varchar(20)` | ✗ | `'DRAFT'` | 'DRAFT', 'ISSUED', 'RECEIVED', 'CANCELLED' |
+| `status` | `varchar(20)` | ✗ | `'DRAFT'` | Enum: DRAFT, PENDING_APPROVAL, APPROVED, SENT_TO_VENDOR, PARTIALLY_RECEIVED, RECEIVED, CANCELLED, CLOSED |
 | `notes` | `text` | ✓ | `-` | - |
-| `created_by_id` | `bigint` | ✗ | `-` | 🔗 FK → `portal_users.id` |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` (Renamed from created_by_id) |
 | `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `0` | - |
 
 ---
 
 ## purchase_order_items
 
-Line items within a Purchase Order.
+Line items within a Purchase Order. Standardized with `BaseEntity` audit trail (V1_47).
 
 ### Columns
 
@@ -1571,16 +1598,21 @@ Line items within a Purchase Order.
 | `po_id` | `bigint` | ✗ | `-` | 🔗 FK → `purchase_orders.id` ON DELETE CASCADE |
 | `description` | `varchar(255)` | ✗ | `-` | Material/Work name |
 | `quantity` | `numeric(15,2)` | ✗ | `-` | - |
-| `unit` | `varchar(50)` | ✗ | `-` | - |
+| `unit` | `varchar(50)` | ✗ | `-` | Enum: BAG, KG, MT, CFT, SQFT, NOS, CUM, LTR, etc. |
 | `rate` | `numeric(15,2)` | ✗ | `-` | - |
 | `gst_percentage` | `numeric(5,2)` | ✗ | `18.00` | - |
 | `amount` | `numeric(15,2)` | ✗ | `-` | (Qty * Rate) |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `0` | - |
 
 ---
 
 ## goods_received_notes (GRN)
 
-Records of material actually received at site against a PO.
+Records of material actually received at site against a PO. Standardized with `BaseEntity` (V1_47).
 
 ### Columns
 
@@ -1595,6 +1627,13 @@ Records of material actually received at site against a PO.
 | `invoice_date` | `date` | ✓ | `-` | - |
 | `challan_number` | `varchar(100)` | ✓ | `-` | Delivery Challan Reference |
 | `notes` | `text` | ✓ | `-` | - |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `0` | - |
 
 ---
 
@@ -1658,9 +1697,9 @@ Records of project delays with categorized reasons for EOT (Extension of Time) d
 
 ---
 
-## project_variations *(NEW)*
+## project_variations *(Standardized)*
 
-Change orders and additional work requests from clients.
+Change orders and additional work requests from clients. Standardized with `BaseEntity` (V1_48).
 
 ### Columns
 
@@ -1675,9 +1714,13 @@ Change orders and additional work requests from clients.
 | `approved_at` | `timestamp` | ✓ | `-` | - |
 | `status` | `varchar(20)` | ✗ | `'DRAFT'` | 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED' |
 | `notes` | `text` | ✓ | `-` | - |
-| `created_by_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
 | `created_at` | `timestamp` | ✗ | `now()` | - |
 | `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `1` | Optimistic locking |
 
 ### Primary Key
 
@@ -1687,13 +1730,27 @@ Change orders and additional work requests from clients.
 
 - `project_id` → `customer_projects.id`
 - `approved_by_id` → `portal_users.id`
-- `created_by_id` → `portal_users.id`
+- `created_by_user_id` → `portal_users.id`
+- `updated_by_user_id` → `portal_users.id`
+- `deleted_by_user_id` → `portal_users.id`
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `approved_by_id` → `portal_users.id`
+- `created_by_user_id` → `portal_users.id`
+- `updated_by_user_id` → `portal_users.id`
+- `deleted_by_user_id` → `portal_users.id`
 
 ---
 
-## stock_adjustments *(NEW)*
+## stock_adjustments
 
-Records of material wastage, theft, damage, and inventory corrections.
+Records of material wastage, theft, damage, and inventory corrections. Standardized with `BaseEntity` (V1_47).
 
 ### Columns
 
@@ -1705,8 +1762,13 @@ Records of material wastage, theft, damage, and inventory corrections.
 | `adjustment_type` | `varchar(30)` | ✗ | `-` | 'WASTAGE', 'THEFT', 'DAMAGE', 'CORRECTION', 'TRANSFER_OUT' |
 | `quantity` | `numeric(15,2)` | ✗ | `-` | - |
 | `reason` | `text` | ✓ | `-` | - |
-| `adjusted_by_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `adjusted_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` (Renamed from adjusted_by_id) |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `0` | - |
 
 ### Primary Key
 
@@ -1720,46 +1782,142 @@ Records of material wastage, theft, damage, and inventory corrections.
 
 ---
 
- 
- # #   s u b c o n t r a c t _ w o r k _ o r d e r s   * ( N E W ) * 
- 
- T r a c k s   p i e c e - r a t e   a n d   l u m p - s u m   s u b c o n t r a c t o r   a g r e e m e n t s .   E n a b l e s   m a n a g e m e n t   o f   6 0 - 7 0 % %   o f   c o n s t r u c t i o n   w o r k . 
- 
- # # #   C o l u m n s 
- 
- |   C o l u m n   N a m e   |   D a t a   T y p e   |   N u l l a b l e   |   D e f a u l t   |   N o t e s   | 
- | - - - - - - - - - - - - - | - - - - - - - - - - - | - - - - - - - - - - | - - - - - - - - - | - - - - - - - | 
- |   ` i d `   |   ` b i g i n t `   |   '  |   ` n e x t v a l `   |   =��  P K   | 
- |   ` w o r k _ o r d e r _ n u m b e r `   |   ` v a r c h a r ( 5 0 ) `   |   '  |   ` - `   |   =��  U N I Q U E   ( W A L / S C / Y Y / N N N )   | 
- |   ` p r o j e c t _ i d `   |   ` b i g i n t `   |   '  |   ` - `   |   =��  F K   �!  ` c u s t o m e r _ p r o j e c t s . i d `   | 
- |   ` v e n d o r _ i d `   |   ` b i g i n t `   |   '  |   ` - `   |   =��  F K   �!  ` v e n d o r s . i d `   ( v e n d o r _ t y p e = ' L A B O U R ' )   | 
- |   ` s c o p e _ d e s c r i p t i o n `   |   ` t e x t `   |   '  |   ` - `   |   W o r k   s c o p e   | 
- |   ` m e a s u r e m e n t _ b a s i s `   |   ` v a r c h a r ( 2 0 ) `   |   '  |   ` ' U N I T _ R A T E ' `   |   ' L U M P S U M ' ,   ' U N I T _ R A T E '   | 
- |   ` n e g o t i a t e d _ a m o u n t `   |   ` n u m e r i c ( 1 5 , 2 ) `   |   '  |   ` - `   |   T o t a l   c o n t r a c t   v a l u e   | 
- |   ` s t a t u s `   |   ` v a r c h a r ( 2 0 ) `   |   '  |   ` ' D R A F T ' `   |   ' D R A F T ' ,   ' I S S U E D ' ,   ' I N _ P R O G R E S S ' ,   ' C O M P L E T E D ' ,   ' T E R M I N A T E D '   | 
- |   ` c r e a t e d _ a t `   |   ` t i m e s t a m p `   |   '  |   ` n o w ( ) `   |   -   | 
- 
- - - - 
- 
- # #   s u b c o n t r a c t _ m e a s u r e m e n t s   * ( N E W ) * 
- 
- P r o g r e s s   m e a s u r e m e n t s   f o r   u n i t - r a t e   s u b c o n t r a c t s . 
- 
- - - - 
- 
- # #   s u b c o n t r a c t _ p a y m e n t s   * ( N E W ) * 
- 
- P a y m e n t   r e c o r d s   f o r   s u b c o n t r a c t o r s   w i t h   T D S   c a l c u l a t i o n   ( S e c t i o n   1 9 4 C ) . 
- 
- - - - 
- 
- 
+## subcontract_work_orders
+
+Tracks piece-rate and lump-sum subcontractor agreements. Standardized with `BaseEntity` (V1_47).
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `work_order_number` | `varchar(50)` | ✗ | `-` | 🔒 UNIQUE (WAL/SC/YY/NNN) |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `vendor_id` | `bigint` | ✗ | `-` | 🔗 FK → `vendors.id` (vendor_type = 'LABOUR') |
+| `scope_description` | `text` | ✗ | `-` | Work scope |
+| `measurement_basis` | `varchar(20)` | ✗ | `'UNIT_RATE'` | Enum: LUMPSUM, UNIT_RATE |
+| `negotiated_amount` | `numeric(15,2)` | ✗ | `-` | Total contract value |
+| `status` | `varchar(20)` | ✗ | `'DRAFT'` | Enum: DRAFT, ISSUED, IN_PROGRESS, COMPLETED, TERMINATED |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` (Renamed from created_by_id) |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `0` | - |
 
 ---
 
-## project_warranties *(NEW)*
+## materials
 
-Tracks warranties for project components provided by vendors or manufacturers.
+Master record for all construction materials. Standardized with `BaseEntity` (V1_47).
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `name` | `varchar(255)` | ✗ | `-` | 🔒 UNIQUE |
+| `description` | `text` | ✓ | `-` | - |
+| `unit` | `varchar(20)` | ✗ | `-` | Enum: BAG, KG, MT, CFT, SQFT, NOS, CUM, LTR |
+| `category` | `varchar(50)` | ✗ | `-` | Enum: CEMENT, STEEL, AGGREGATE, BRICK, ELECTRICAL, PLUMBING, PAINTING, FINISHING, OTHER |
+| `is_active` | `boolean` | ✗ | `true` | - |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `0` | - |
+
+---
+
+## inventory_stock
+
+Real-time stock levels of materials across different projects/sites. Standardized with `BaseEntity` (V1_47).
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `material_id` | `bigint` | ✗ | `-` | 🔗 FK → `materials.id` |
+| `current_stock` | `numeric(15,2)` | ✗ | `0` | - |
+| `min_stock_level` | `numeric(15,2)` | ✓ | `0` | Reorder trigger level |
+| `updated_at` | `timestamp` | ✗ | `now()` | Renamed from last_updated |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `0` | - |
+
+---
+
+## subcontract_measurements *(NEW)*
+
+Progress measurements for unit-rate subcontracts.
+
+---
+
+## subcontract_payments *(NEW)*
+
+Payment records for subcontractors with TDS calculation (Section 194C).
+
+---
+
+## vendor_payments
+
+Tracks all payments made to vendors against purchase invoices. Standardized with `BaseEntity` (V1_47).
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `invoice_id` | `bigint` | ✗ | `-` | 🔗 FK → `purchase_invoices.id` |
+| `payment_date` | `date` | ✗ | `-` | - |
+| `amount_paid` | `numeric(15,2)` | ✗ | `-` | - |
+| `tds_deducted` | `numeric(15,2)` | ✓ | `0` | - |
+| `other_deductions` | `numeric(15,2)` | ✓ | `0` | - |
+| `net_paid` | `numeric(15,2)` | ✗ | `-` | - |
+| `payment_mode` | `varchar(20)` | ✗ | `-` | CASH, CHEQUE, NEFT, RTGS, UPI |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` (Renamed from paid_by_id) |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `0` | - |
+
+---
+
+## material_budgets
+
+Standardized on the `MaterialBudget` entity. Tracks budgeted vs actual material consumption per project.
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `material_id` | `bigint` | ✗ | `-` | 🔗 FK → `materials.id` |
+| `budgeted_quantity` | `numeric(15,2)` | ✗ | `-` | - |
+| `estimated_rate` | `numeric(15,2)` | ✓ | `-` | - |
+| `total_budget` | `numeric(15,2)` | ✓ | `-` | Auto-calculated |
+| `created_at` | `timestamp` | ✗ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `0` | - |
+
+## project_warranties *(Standardized)*
+
+Tracks warranties for project components provided by vendors or manufacturers. Standardized with `BaseEntity` (V1_48).
 
 ### Columns
 
@@ -1772,10 +1930,15 @@ Tracks warranties for project components provided by vendors or manufacturers.
 | `provider_name` | `varchar(255)` | ✓ | `-` | - |
 | `start_date` | `date` | ✓ | `-` | - |
 | `end_date` | `date` | ✓ | `-` | - |
-| `status` | `varchar(20)` | ✓ | `'ACTIVE'` | 'ACTIVE', 'EXPIRED', 'VOID' |
+| `status` | `varchar(20)` | ✗ | `'ACTIVE'` | 'ACTIVE', 'EXPIRED', 'VOID' |
 | `coverage_details` | `text` | ✓ | `-` | - |
 | `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✓ | `now()` | - |
+| `updated_at` | `timestamp` | ✗ | `now()` | - |
+| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `version` | `bigint` | ✗ | `1` | Optimistic locking |
 
 ### Primary Key
 
@@ -1784,5 +1947,119 @@ Tracks warranties for project components provided by vendors or manufacturers.
 ### Foreign Keys
 
 - `project_id` → `customer_projects.id`
+- `created_by_user_id` → `portal_users.id`
+- `updated_by_user_id` → `portal_users.id`
+- `deleted_by_user_id` → `portal_users.id`
 
 ---
+
+## labour
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `-` | 🔑 PK |
+| `name` | `character varying(255)` | ✗ | `-` | - |
+| `phone` | `character varying(20)` | ✗ | `-` | Unique |
+| `trade_type` | `character varying(50)` | ✗ | `-` | Enum: `LabourTradeType` |
+| `id_proof_type` | `character varying(50)` | ✓ | `-` | Enum: `IdProofType` |
+| `id_proof_number` | `character varying(255)` | ✓ | `-` | - |
+| `daily_wage` | `numeric(15,2)` | ✗ | `-` | - |
+| `emergency_contact` | `character varying(255)` | ✓ | `-` | - |
+| `is_active` | `boolean` | ✗ | `true` | - |
+| `created_at` | `timestamp` | ✗ | `now()` | Audit |
+| `updated_at` | `timestamp` | ✗ | `now()` | Audit |
+| `created_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `deleted_at` | `timestamp` | ✓ | `-` | Audit |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `version` | `bigint` | ✗ | `1` | Lucking |
+
+### Constraints
+
+- `chk_labour_trade_type`: `trade_type` IN ('CARPENTER', 'PLUMBER', 'ELECTRICIAN', 'MASON', 'HELPER', 'PAINTER', 'TILER', 'WELDER', 'OTHER')
+- `chk_labour_id_proof_type`: `id_proof_type` IN ('AADHAAR', 'PAN', 'VOTER_ID', 'DRIVING_LICENSE', 'OTHER')
+
+---
+
+## labour_attendance
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `-` | 🔑 PK |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `labour_id` | `bigint` | ✗ | `-` | 🔗 FK → `labour.id` |
+| `attendance_date` | `date` | ✗ | `-` | - |
+| `status` | `character varying(20)` | ✗ | `-` | Enum: `AttendanceStatus` |
+| `hours_worked` | `double precision` | ✓ | `-` | - |
+| `created_at` | `timestamp` | ✗ | `now()` | Audit |
+| `updated_at` | `timestamp` | ✗ | `now()` | Audit |
+| `created_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `deleted_at` | `timestamp` | ✓ | `-` | Audit |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `version` | `bigint` | ✗ | `1` | Lucking |
+
+### Constraints
+
+- `chk_attendance_status`: `status` IN ('PRESENT', 'ABSENT', 'HALF_DAY', 'LEAVE')
+
+---
+
+## labour_payments
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `-` | 🔑 PK |
+| `labour_id` | `bigint` | ✗ | `-` | 🔗 FK → `labour.id` |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `mb_entry_id` | `bigint` | ✓ | `-` | 🔗 FK → `measurement_book.id` |
+| `amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `payment_date` | `date` | ✗ | `-` | - |
+| `payment_method` | `character varying(50)` | ✓ | `-` | Enum: `PaymentMethod` |
+| `notes` | `text` | ✓ | `-` | - |
+| `created_at` | `timestamp` | ✗ | `now()` | Audit |
+| `updated_at` | `timestamp` | ✗ | `now()` | Audit |
+| `created_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `deleted_at` | `timestamp` | ✓ | `-` | Audit |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `version` | `bigint` | ✗ | `1` | Lucking |
+
+### Constraints
+
+- `chk_labour_payment_method`: `payment_method` IN ('CASH', 'BANK_TRANSFER', 'UPI', 'CHEQUE')
+
+---
+
+## measurement_book
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint` | ✗ | `-` | 🔑 PK |
+| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `labour_id` | `bigint` | ✓ | `-` | 🔗 FK → `labour.id` |
+| `boq_item_id` | `bigint` | ✓ | `-` | 🔗 FK → `boq_items.id` |
+| `description` | `character varying(255)` | ✗ | `-` | - |
+| `measurement_date` | `date` | ✗ | `-` | - |
+| `length` | `numeric(10,2)` | ✓ | `-` | - |
+| `breadth` | `numeric(10,2)` | ✓ | `-` | - |
+| `depth` | `numeric(10,2)` | ✓ | `-` | - |
+| `quantity` | `numeric(10,2)` | ✗ | `-` | - |
+| `unit` | `character varying(50)` | ✗ | `-` | - |
+| `rate` | `numeric(15,2)` | ✓ | `-` | - |
+| `total_amount` | `numeric(15,2)` | ✓ | `-` | - |
+| `created_at` | `timestamp` | ✗ | `now()` | Audit |
+| `updated_at` | `timestamp` | ✗ | `now()` | Audit |
+| `created_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `updated_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `deleted_at` | `timestamp` | ✓ | `-` | Audit |
+| `deleted_by_user_id` | `bigint` | ✓ | `-` | Audit |
+| `version` | `bigint` | ✗ | `1` | Lucking |

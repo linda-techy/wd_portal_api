@@ -1,13 +1,8 @@
 package com.wd.api.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**
  * Vendor Payment Entity
@@ -20,10 +15,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "vendor_payments")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class VendorPayment {
+public class VendorPayment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -75,13 +67,11 @@ public class VendorPayment {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
     // Lifecycle hooks
     @PrePersist
+    @Override
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        super.onCreate();
         if (tdsDeducted == null) {
             tdsDeducted = BigDecimal.ZERO;
         }
@@ -129,5 +119,142 @@ public class VendorPayment {
             total = total.add(otherDeductions);
         }
         return total;
+    }
+
+    // Constructors
+    public VendorPayment() {
+    }
+
+    public VendorPayment(Long id, PurchaseInvoice invoice, LocalDate paymentDate, BigDecimal amountPaid,
+            BigDecimal tdsDeducted, BigDecimal otherDeductions, BigDecimal netPaid, PaymentMode paymentMode,
+            String transactionReference, String chequeNumber, String bankName, PortalUser paidBy, PortalUser approvedBy,
+            String notes) {
+        this.id = id;
+        this.invoice = invoice;
+        this.paymentDate = paymentDate;
+        this.amountPaid = amountPaid;
+        this.tdsDeducted = tdsDeducted;
+        this.otherDeductions = otherDeductions;
+        this.netPaid = netPaid;
+        this.paymentMode = paymentMode;
+        this.transactionReference = transactionReference;
+        this.chequeNumber = chequeNumber;
+        this.bankName = bankName;
+        this.paidBy = paidBy;
+        this.approvedBy = approvedBy;
+        this.notes = notes;
+    }
+
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public PurchaseInvoice getInvoice() {
+        return invoice;
+    }
+
+    public void setInvoice(PurchaseInvoice invoice) {
+        this.invoice = invoice;
+    }
+
+    public LocalDate getPaymentDate() {
+        return paymentDate;
+    }
+
+    public void setPaymentDate(LocalDate paymentDate) {
+        this.paymentDate = paymentDate;
+    }
+
+    public BigDecimal getAmountPaid() {
+        return amountPaid;
+    }
+
+    public void setAmountPaid(BigDecimal amountPaid) {
+        this.amountPaid = amountPaid;
+    }
+
+    public BigDecimal getTdsDeducted() {
+        return tdsDeducted;
+    }
+
+    public void setTdsDeducted(BigDecimal tdsDeducted) {
+        this.tdsDeducted = tdsDeducted;
+    }
+
+    public BigDecimal getOtherDeductions() {
+        return otherDeductions;
+    }
+
+    public void setOtherDeductions(BigDecimal otherDeductions) {
+        this.otherDeductions = otherDeductions;
+    }
+
+    public BigDecimal getNetPaid() {
+        return netPaid;
+    }
+
+    public void setNetPaid(BigDecimal netPaid) {
+        this.netPaid = netPaid;
+    }
+
+    public PaymentMode getPaymentMode() {
+        return paymentMode;
+    }
+
+    public void setPaymentMode(PaymentMode paymentMode) {
+        this.paymentMode = paymentMode;
+    }
+
+    public String getTransactionReference() {
+        return transactionReference;
+    }
+
+    public void setTransactionReference(String transactionReference) {
+        this.transactionReference = transactionReference;
+    }
+
+    public String getChequeNumber() {
+        return chequeNumber;
+    }
+
+    public void setChequeNumber(String chequeNumber) {
+        this.chequeNumber = chequeNumber;
+    }
+
+    public String getBankName() {
+        return bankName;
+    }
+
+    public void setBankName(String bankName) {
+        this.bankName = bankName;
+    }
+
+    public PortalUser getPaidBy() {
+        return paidBy;
+    }
+
+    public void setPaidBy(PortalUser paidBy) {
+        this.paidBy = paidBy;
+    }
+
+    public PortalUser getApprovedBy() {
+        return approvedBy;
+    }
+
+    public void setApprovedBy(PortalUser approvedBy) {
+        this.approvedBy = approvedBy;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

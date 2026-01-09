@@ -1,20 +1,19 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.VariationStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "project_variations")
 @Data
+@EqualsAndHashCode(callSuper = true)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProjectVariation {
+public class ProjectVariation extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,30 +41,19 @@ public class ProjectVariation {
     private LocalDateTime approvedAt;
 
     @Builder.Default
-    @Column(length = 20)
-    private String status = "DRAFT"; // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    private VariationStatus status = VariationStatus.DRAFT;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_id")
-    private PortalUser createdBy;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
+    @Override
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        super.onCreate();
+        if (status == null) {
+            status = VariationStatus.DRAFT;
+        }
     }
 }

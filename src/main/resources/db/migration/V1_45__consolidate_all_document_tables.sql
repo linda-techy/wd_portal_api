@@ -46,16 +46,21 @@ WHERE reference_id IS NULL AND project_id IS NOT NULL;
 -- 2. MIGRATE DATA FROM legacy tables
 -- =====================================================================
 
--- From portal_project_documents
-INSERT INTO project_documents (
-    id, description, file_path, file_size, file_type, filename, is_active, 
-    created_at, version, category_id, reference_id, reference_type, created_by_user_id
-)
-SELECT 
-    id, description, file_path, file_size, file_type, filename, COALESCE(is_active, true), 
-    upload_date, COALESCE(version, 1), category_id, project_id, 'PROJECT', uploaded_by_id
-FROM portal_project_documents
-ON CONFLICT (id) DO NOTHING;
+-- From portal_project_documents (if table exists)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'portal_project_documents') THEN
+        INSERT INTO project_documents (
+            id, description, file_path, file_size, file_type, filename, is_active, 
+            created_at, version, category_id, reference_id, reference_type, created_by_user_id
+        )
+        SELECT 
+            id, description, file_path, file_size, file_type, filename, COALESCE(is_active, true), 
+            upload_date, COALESCE(version, 1), category_id, project_id, 'PROJECT', uploaded_by_id
+        FROM portal_project_documents
+        ON CONFLICT (id) DO NOTHING;
+    END IF;
+END $$;
 
 -- From lead_documents (if table exists)
 DO $$

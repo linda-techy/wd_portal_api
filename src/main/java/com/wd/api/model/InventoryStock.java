@@ -2,11 +2,10 @@ package com.wd.api.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "inventory_stock")
-public class InventoryStock {
+public class InventoryStock extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,25 +22,14 @@ public class InventoryStock {
     @Column(name = "current_quantity", precision = 15, scale = 2, nullable = false)
     private BigDecimal currentQuantity;
 
-    @Column(name = "last_updated", nullable = false)
-    private LocalDateTime lastUpdated;
-
-    @PrePersist
-    @PreUpdate
-    protected void onUpdate() {
-        lastUpdated = LocalDateTime.now();
-    }
-
     public InventoryStock() {
     }
 
-    public InventoryStock(Long id, CustomerProject project, Material material, BigDecimal currentQuantity,
-            LocalDateTime lastUpdated) {
+    public InventoryStock(Long id, CustomerProject project, Material material, BigDecimal currentQuantity) {
         this.id = id;
         this.project = project;
         this.material = material;
         this.currentQuantity = currentQuantity;
-        this.lastUpdated = lastUpdated;
     }
 
     public static InventoryStockBuilder builder() {
@@ -53,7 +41,6 @@ public class InventoryStock {
         private CustomerProject project;
         private Material material;
         private BigDecimal currentQuantity;
-        private LocalDateTime lastUpdated;
 
         public InventoryStockBuilder id(Long id) {
             this.id = id;
@@ -75,13 +62,8 @@ public class InventoryStock {
             return this;
         }
 
-        public InventoryStockBuilder lastUpdated(LocalDateTime lastUpdated) {
-            this.lastUpdated = lastUpdated;
-            return this;
-        }
-
         public InventoryStock build() {
-            return new InventoryStock(id, project, material, currentQuantity, lastUpdated);
+            return new InventoryStock(id, project, material, currentQuantity);
         }
     }
 
@@ -89,20 +71,28 @@ public class InventoryStock {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public CustomerProject getProject() {
         return project;
+    }
+
+    public void setProject(CustomerProject project) {
+        this.project = project;
     }
 
     public Material getMaterial() {
         return material;
     }
 
-    public BigDecimal getCurrentQuantity() {
-        return currentQuantity;
+    public void setMaterial(Material material) {
+        this.material = material;
     }
 
-    public LocalDateTime getLastUpdated() {
-        return lastUpdated;
+    public BigDecimal getCurrentQuantity() {
+        return currentQuantity;
     }
 
     public void setCurrentQuantity(BigDecimal currentQuantity) {

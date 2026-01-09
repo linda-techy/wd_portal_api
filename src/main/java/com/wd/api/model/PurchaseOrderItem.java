@@ -1,11 +1,12 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.MaterialUnit;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "purchase_order_items")
-public class PurchaseOrderItem {
+public class PurchaseOrderItem extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,8 +26,9 @@ public class PurchaseOrderItem {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal quantity;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String unit;
+    private MaterialUnit unit;
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal rate;
@@ -41,7 +43,7 @@ public class PurchaseOrderItem {
     }
 
     public PurchaseOrderItem(Long id, PurchaseOrder purchaseOrder, Material material, String description,
-            BigDecimal quantity, String unit, BigDecimal rate, BigDecimal gstPercentage, BigDecimal amount) {
+            BigDecimal quantity, MaterialUnit unit, BigDecimal rate, BigDecimal gstPercentage, BigDecimal amount) {
         this.id = id;
         this.purchaseOrder = purchaseOrder;
         this.material = material;
@@ -63,7 +65,7 @@ public class PurchaseOrderItem {
         private Material material;
         private String description;
         private BigDecimal quantity;
-        private String unit;
+        private MaterialUnit unit;
         private BigDecimal rate;
         private BigDecimal gstPercentage = new BigDecimal("18.00");
         private BigDecimal amount;
@@ -93,7 +95,7 @@ public class PurchaseOrderItem {
             return this;
         }
 
-        public PurchaseOrderItemBuilder unit(String unit) {
+        public PurchaseOrderItemBuilder unit(MaterialUnit unit) {
             this.unit = unit;
             return this;
         }
@@ -123,6 +125,10 @@ public class PurchaseOrderItem {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public PurchaseOrder getPurchaseOrder() {
         return purchaseOrder;
     }
@@ -139,7 +145,7 @@ public class PurchaseOrderItem {
         return quantity;
     }
 
-    public String getUnit() {
+    public MaterialUnit getUnit() {
         return unit;
     }
 
@@ -171,7 +177,7 @@ public class PurchaseOrderItem {
         this.quantity = quantity;
     }
 
-    public void setUnit(String unit) {
+    public void setUnit(MaterialUnit unit) {
         this.unit = unit;
     }
 

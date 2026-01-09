@@ -3,11 +3,10 @@ package com.wd.api.model;
 import com.wd.api.model.enums.MaterialCategory;
 import com.wd.api.model.enums.MaterialUnit;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "materials")
-public class Material {
+public class Material extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,7 +17,6 @@ public class Material {
 
     /**
      * Unit of measurement for this material.
-     * Stored as VARCHAR for backward compatibility with existing data.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -26,7 +24,6 @@ public class Material {
 
     /**
      * Category classification for this material.
-     * Stored as VARCHAR for backward compatibility with existing data.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -35,25 +32,15 @@ public class Material {
     @Column(name = "is_active")
     private boolean active = true;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
-
     public Material() {
     }
 
-    public Material(Long id, String name, MaterialUnit unit, MaterialCategory category, boolean active,
-            LocalDateTime createdAt) {
+    public Material(Long id, String name, MaterialUnit unit, MaterialCategory category, boolean active) {
         this.id = id;
         this.name = name;
         this.unit = unit;
         this.category = category;
         this.active = active;
-        this.createdAt = createdAt;
     }
 
     public static MaterialBuilder builder() {
@@ -66,7 +53,6 @@ public class Material {
         private MaterialUnit unit;
         private MaterialCategory category;
         private boolean active = true;
-        private LocalDateTime createdAt;
 
         public MaterialBuilder id(Long id) {
             this.id = id;
@@ -93,18 +79,17 @@ public class Material {
             return this;
         }
 
-        public MaterialBuilder createdAt(LocalDateTime createdAt) {
-            this.createdAt = createdAt;
-            return this;
-        }
-
         public Material build() {
-            return new Material(id, name, unit, category, active, createdAt);
+            return new Material(id, name, unit, category, active);
         }
     }
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -121,10 +106,6 @@ public class Material {
 
     public boolean isActive() {
         return active;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
     }
 
     public void setActive(boolean active) {

@@ -1,11 +1,11 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.VendorType;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "vendors")
-public class Vendor {
+public class Vendor extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,8 +29,9 @@ public class Vendor {
     @Column(columnDefinition = "TEXT")
     private String address;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "vendor_type", nullable = false)
-    private String vendorType; // 'MATERIAL', 'LABOUR', 'SERVICES'
+    private VendorType vendorType;
 
     @Column(name = "bank_name")
     private String bankName;
@@ -44,29 +45,11 @@ public class Vendor {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
     public Vendor() {
     }
 
     public Vendor(Long id, String name, String contactPerson, String phone, String email, String gstin, String address,
-            String vendorType, String bankName, String accountNumber, String ifscCode, boolean active,
-            LocalDateTime createdAt, LocalDateTime updatedAt) {
+            VendorType vendorType, String bankName, String accountNumber, String ifscCode, boolean active) {
         this.id = id;
         this.name = name;
         this.contactPerson = contactPerson;
@@ -79,8 +62,6 @@ public class Vendor {
         this.accountNumber = accountNumber;
         this.ifscCode = ifscCode;
         this.active = active;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
     }
 
     public static VendorBuilder builder() {
@@ -95,13 +76,11 @@ public class Vendor {
         private String email;
         private String gstin;
         private String address;
-        private String vendorType;
+        private VendorType vendorType;
         private String bankName;
         private String accountNumber;
         private String ifscCode;
         private boolean active = true;
-        private LocalDateTime createdAt;
-        private LocalDateTime updatedAt;
 
         public VendorBuilder id(Long id) {
             this.id = id;
@@ -138,7 +117,7 @@ public class Vendor {
             return this;
         }
 
-        public VendorBuilder vendorType(String vendorType) {
+        public VendorBuilder vendorType(VendorType vendorType) {
             this.vendorType = vendorType;
             return this;
         }
@@ -163,24 +142,18 @@ public class Vendor {
             return this;
         }
 
-        public VendorBuilder createdAt(LocalDateTime createdAt) {
-            this.createdAt = createdAt;
-            return this;
-        }
-
-        public VendorBuilder updatedAt(LocalDateTime updatedAt) {
-            this.updatedAt = updatedAt;
-            return this;
-        }
-
         public Vendor build() {
             return new Vendor(id, name, contactPerson, phone, email, gstin, address, vendorType, bankName,
-                    accountNumber, ifscCode, active, createdAt, updatedAt);
+                    accountNumber, ifscCode, active);
         }
     }
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -207,7 +180,7 @@ public class Vendor {
         return address;
     }
 
-    public String getVendorType() {
+    public VendorType getVendorType() {
         return vendorType;
     }
 
@@ -225,14 +198,6 @@ public class Vendor {
 
     public boolean isActive() {
         return active;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
     }
 
     public void setName(String name) {
@@ -259,7 +224,7 @@ public class Vendor {
         this.address = address;
     }
 
-    public void setVendorType(String vendorType) {
+    public void setVendorType(VendorType vendorType) {
         this.vendorType = vendorType;
     }
 

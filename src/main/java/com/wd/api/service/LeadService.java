@@ -217,7 +217,8 @@ public class LeadService {
             // Handle Assignment Update
             if (leadDetails.getAssignedToId() != null) {
                 if (!leadDetails.getAssignedToId().equals(oldAssignedId)) {
-                    com.wd.api.model.PortalUser user = portalUserRepository.findById(leadDetails.getAssignedToId())
+                    Long assignedId = java.util.Objects.requireNonNull(leadDetails.getAssignedToId());
+                    com.wd.api.model.PortalUser user = portalUserRepository.findById(assignedId)
                             .orElse(null);
                     if (user != null) {
                         lead.setAssignedTo(user);
@@ -314,7 +315,9 @@ public class LeadService {
     }
 
     public Page<Lead> getLeadsPaginated(PaginationParams params) {
-        Sort sort = Sort.by(Sort.Direction.fromString(params.getSortOrder()), mapSortField(params.getSortBy()));
+        String sortOrder = params.getSortOrder() != null ? params.getSortOrder() : "DESC";
+        String sortBy = params.getSortBy() != null ? params.getSortBy() : "createdAt";
+        Sort sort = Sort.by(Sort.Direction.fromString(sortOrder), mapSortField(sortBy));
         int pageZeroBased = Math.max(0, params.getPage() - 1);
         Pageable pageable = PageRequest.of(pageZeroBased, params.getLimit(), sort);
 
@@ -337,8 +340,9 @@ public class LeadService {
                 predicates.add(cb.equal(root.get("projectType"), params.getProjectType()));
             }
 
-            if (params.getSearch() != null && !params.getSearch().isEmpty()) {
-                String likePattern = "%" + params.getSearch().toLowerCase() + "%";
+            if (params.getSearch() != null && !params.getSearch().trim().isEmpty()) {
+                String searchPattern = params.getSearch().trim();
+                String likePattern = "%" + searchPattern.toLowerCase() + "%";
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.get("name")), likePattern),
                         cb.like(cb.lower(root.get("email")), likePattern),
@@ -359,6 +363,9 @@ public class LeadService {
             }
             if (params.getDistrict() != null && !params.getDistrict().isEmpty()) {
                 predicates.add(cb.equal(root.get("district"), params.getDistrict()));
+            }
+            if (params.getLocation() != null && !params.getLocation().isEmpty()) {
+                predicates.add(cb.equal(root.get("location"), params.getLocation()));
             }
             if (params.getMinBudget() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("budget"), params.getMinBudget()));
@@ -602,9 +609,10 @@ public class LeadService {
         // Set Budget from Quote or Lead
         // Set Budget from Quote or Lead
         if (request.getQuotationId() != null) {
-            com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(request.getQuotationId())
+            Long quoteId = request.getQuotationId();
+            com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(quoteId)
                     .orElseThrow(
-                            () -> new IllegalArgumentException("Quotation not found: " + request.getQuotationId()));
+                            () -> new IllegalArgumentException("Quotation not found: " + quoteId));
 
             if (!quote.getLeadId().equals(lead.getId())) {
                 throw new IllegalArgumentException("Quotation does not belong to this lead");

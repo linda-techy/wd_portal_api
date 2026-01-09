@@ -7,7 +7,7 @@ import java.util.List;
 
 @Repository
 public interface StockAdjustmentRepository extends JpaRepository<StockAdjustment, Long> {
-    List<StockAdjustment> findByProjectIdOrderByAdjustedAtDesc(Long projectId);
+    List<StockAdjustment> findByProjectIdOrderByCreatedAtDesc(Long projectId);
 
     List<StockAdjustment> findByProjectIdAndMaterialId(Long projectId, Long materialId);
 }

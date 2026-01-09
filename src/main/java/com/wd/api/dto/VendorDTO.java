@@ -1,5 +1,6 @@
 package com.wd.api.dto;
 
+import com.wd.api.model.enums.VendorType;
 import java.time.LocalDateTime;
 
 public class VendorDTO {
@@ -10,7 +11,7 @@ public class VendorDTO {
     private String email;
     private String gstin;
     private String address;
-    private String vendorType;
+    private VendorType vendorType;
     private String bankName;
     private String accountNumber;
     private String ifscCode;
@@ -22,7 +23,8 @@ public class VendorDTO {
     }
 
     public VendorDTO(Long id, String name, String contactPerson, String phone, String email, String gstin,
-            String address, String vendorType, String bankName, String accountNumber, String ifscCode, boolean active,
+            String address, VendorType vendorType, String bankName, String accountNumber, String ifscCode,
+            boolean active,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
@@ -52,7 +54,7 @@ public class VendorDTO {
         private String email;
         private String gstin;
         private String address;
-        private String vendorType;
+        private VendorType vendorType;
         private String bankName;
         private String accountNumber;
         private String ifscCode;
@@ -95,7 +97,7 @@ public class VendorDTO {
             return this;
         }
 
-        public VendorDTOBuilder vendorType(String vendorType) {
+        public VendorDTOBuilder vendorType(VendorType vendorType) {
             this.vendorType = vendorType;
             return this;
         }
@@ -164,7 +166,7 @@ public class VendorDTO {
         return address;
     }
 
-    public String getVendorType() {
+    public VendorType getVendorType() {
         return vendorType;
     }
 
@@ -220,7 +222,7 @@ public class VendorDTO {
         this.address = address;
     }
 
-    public void setVendorType(String vendorType) {
+    public void setVendorType(VendorType vendorType) {
         this.vendorType = vendorType;
     }
 

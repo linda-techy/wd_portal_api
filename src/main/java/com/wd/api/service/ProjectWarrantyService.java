@@ -2,6 +2,7 @@ package com.wd.api.service;
 
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.ProjectWarranty;
+import com.wd.api.model.enums.WarrantyStatus;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.ProjectWarrantyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +37,7 @@ public class ProjectWarrantyService {
 
         // Auto-calculate status if null
         if (warranty.getStatus() == null) {
-            warranty.setStatus("ACTIVE");
+            warranty.setStatus(WarrantyStatus.ACTIVE);
         }
 
         return warrantyRepository.save(warranty);
@@ -55,7 +56,7 @@ public class ProjectWarrantyService {
         existing.setStartDate(details.getStartDate());
         existing.setEndDate(details.getEndDate());
         existing.setStatus(details.getStatus());
-        existing.setCoverage_details(details.getCoverage_details());
+        existing.setCoverageDetails(details.getCoverageDetails());
 
         return warrantyRepository.save(existing);
     }
