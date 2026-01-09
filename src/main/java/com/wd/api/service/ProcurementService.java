@@ -15,8 +15,14 @@ import com.wd.api.repository.GoodsReceivedNoteRepository;
 import com.wd.api.repository.MaterialRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.criteria.Predicate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -54,8 +60,70 @@ public class ProcurementService {
 
     public List<VendorDTO> getAllVendors() {
         return vendorRepository.findAll().stream()
+                .filter(vendor -> vendor.isActive()) // Only return active vendors
                 .map(this::mapToVendorDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Update Vendor (construction workflow - update contact/bank info)
+     */
+    @Transactional
+    public VendorDTO updateVendor(Long id, VendorDTO dto) {
+        Vendor vendor = vendorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + id));
+
+        // Update fields
+        if (dto.getName() != null)
+            vendor.setName(dto.getName());
+        if (dto.getContactPerson() != null)
+            vendor.setContactPerson(dto.getContactPerson());
+        if (dto.getPhone() != null)
+            vendor.setPhone(dto.getPhone());
+        if (dto.getEmail() != null)
+            vendor.setEmail(dto.getEmail());
+        if (dto.getGstin() != null)
+            vendor.setGstin(dto.getGstin());
+        if (dto.getAddress() != null)
+            vendor.setAddress(dto.getAddress());
+        if (dto.getVendorType() != null)
+            vendor.setVendorType(dto.getVendorType());
+        if (dto.getBankName() != null)
+            vendor.setBankName(dto.getBankName());
+        if (dto.getAccountNumber() != null)
+            vendor.setAccountNumber(dto.getAccountNumber());
+        if (dto.getIfscCode() != null)
+            vendor.setIfscCode(dto.getIfscCode());
+
+        Vendor saved = vendorRepository.save(vendor);
+        log.info("Updated Vendor ID: {}", id);
+        return mapToVendorDTO(saved);
+    }
+
+    /**
+     * Deactivate Vendor (construction best practice - never hard delete)
+     * Vendors linked to POs cannot be deleted, only deactivated
+     */
+    @Transactional
+    public void deactivateVendor(Long id) {
+        Vendor vendor = vendorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + id));
+
+        // Check for active POs - don't allow deactivation if vendor has active POs
+        List<PurchaseOrder> activePOs = poRepository.findByVendorId(id).stream()
+                .filter(po -> po.getStatus() != PurchaseOrderStatus.CLOSED &&
+                        po.getStatus() != PurchaseOrderStatus.CANCELLED)
+                .collect(Collectors.toList());
+
+        if (!activePOs.isEmpty()) {
+            throw new IllegalStateException(
+                    "Cannot deactivate vendor with " + activePOs.size() + " active Purchase Orders. " +
+                            "Close or cancel all POs first.");
+        }
+
+        vendor.setActive(false);
+        vendorRepository.save(vendor);
+        log.info("Deactivated Vendor ID: {}", id);
     }
 
     @Transactional
@@ -63,12 +131,15 @@ public class ProcurementService {
         Long vendorId = dto.getVendorId();
         Long projectId = dto.getProjectId();
         if (vendorId == null || projectId == null) {
+            log.error("PO Creation Failed: Vendor ID or Project ID missing. Payload: {}", dto);
             throw new IllegalArgumentException("Vendor ID and Project ID are required");
         }
         Vendor vendor = vendorRepository.findById(vendorId)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
         var project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException("Project not found with ID: " + projectId));
+
+        log.info("Creating Purchase Order - Project: {}, Vendor: {}", project.getName(), vendor.getName());
 
         // Use setters since PurchaseOrder doesn't have Lombok @Builder
         PurchaseOrder po = new PurchaseOrder();
@@ -147,8 +218,204 @@ public class ProcurementService {
         return mapToGRNDTO(grn);
     }
 
+    /**
+     * Search Purchase Orders with pagination and filters (Enterprise-grade)
+     * Excludes soft-deleted records automatically
+     */
+    @Transactional(readOnly = true)
+    public Page<PurchaseOrderDTO> searchPurchaseOrders(String searchTerm, String status, Long projectId,
+            Pageable pageable) {
+        Specification<PurchaseOrder> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Always exclude soft-deleted records
+            predicates.add(cb.isNull(root.get("deletedAt")));
+
+            // Search filter (PO Number, Vendor Name, or Project Name)
+            if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+                String searchPattern = "%" + searchTerm.toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("poNumber")), searchPattern),
+                        cb.like(cb.lower(root.get("vendor").get("name")), searchPattern),
+                        cb.like(cb.lower(root.get("project").get("name")), searchPattern)));
+            }
+
+            // Status filter
+            if (status != null && !status.trim().isEmpty() && !"ALL".equalsIgnoreCase(status)) {
+                try {
+                    predicates.add(cb.equal(root.get("status"), PurchaseOrderStatus.valueOf(status)));
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid status filter: {}", status);
+                }
+            }
+
+            // Project filter
+            if (projectId != null) {
+                predicates.add(cb.equal(root.get("project").get("id"), projectId));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return poRepository.findAll(spec, pageable).map(this::mapToPODTO);
+    }
+
+    /**
+     * Soft delete Purchase Order (Enterprise-grade - preserves audit trail)
+     */
+    @Transactional
+    public void softDeletePurchaseOrder(Long id, Long deletedByUserId) {
+        PurchaseOrder po = poRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
+
+        // Validation: Cannot delete if already received
+        if (po.getStatus() == PurchaseOrderStatus.RECEIVED) {
+            throw new IllegalStateException(
+                    "Cannot delete Purchase Order that has already been RECEIVED. Please reverse the GRN first.");
+        }
+
+        // Validation: Cannot delete if already deleted
+        if (po.isDeleted()) {
+            throw new IllegalStateException("Purchase Order is already deleted.");
+        }
+
+        // Soft delete
+        po.setDeletedAt(LocalDateTime.now());
+        po.setDeletedByUserId(deletedByUserId);
+        poRepository.save(po);
+
+        log.info("Soft-deleted Purchase Order ID: {} by User ID: {}", id, deletedByUserId);
+    }
+
+    /**
+     * Cancel Purchase Order (Enterprise-grade - better than delete)
+     */
+    @Transactional
+    public PurchaseOrderDTO cancelPurchaseOrder(Long id, String cancelReason) {
+        PurchaseOrder po = poRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
+
+        // Validation: Can only cancel DRAFT or ISSUED POs
+        if (po.getStatus() != PurchaseOrderStatus.DRAFT && po.getStatus() != PurchaseOrderStatus.ISSUED) {
+            throw new IllegalStateException(
+                    "Can only cancel Purchase Orders in DRAFT or ISSUED status. Current status: " + po.getStatus());
+        }
+
+        // Validate status transition
+        validateStatusTransition(po.getStatus(), PurchaseOrderStatus.CANCELLED);
+
+        po.setStatus(PurchaseOrderStatus.CANCELLED);
+        if (cancelReason != null && !cancelReason.trim().isEmpty()) {
+            String updatedNotes = (po.getNotes() != null ? po.getNotes() + "\n\n" : "")
+                    + "CANCELLED: " + cancelReason;
+            po.setNotes(updatedNotes);
+        }
+
+        PurchaseOrder saved = poRepository.save(po);
+        log.info("Cancelled Purchase Order ID: {}. Reason: {}", id, cancelReason);
+        return mapToPODTO(saved);
+    }
+
+    /**
+     * Close Purchase Order (Construction workflow - after all goods received and
+     * verified)
+     */
+    @Transactional
+    public PurchaseOrderDTO closePurchaseOrder(Long id) {
+        PurchaseOrder po = poRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
+
+        // Validation: Can only close RECEIVED POs
+        if (po.getStatus() != PurchaseOrderStatus.RECEIVED) {
+            throw new IllegalStateException(
+                    "Can only close Purchase Orders in RECEIVED status. Current status: " + po.getStatus());
+        }
+
+        po.setStatus(PurchaseOrderStatus.CLOSED);
+        String updatedNotes = (po.getNotes() != null ? po.getNotes() + "\n\n" : "")
+                + "CLOSED: " + java.time.LocalDateTime.now();
+        po.setNotes(updatedNotes);
+
+        PurchaseOrder saved = poRepository.save(po);
+        log.info("Closed Purchase Order ID: {}", id);
+        return mapToPODTO(saved);
+    }
+
+    /**
+     * Update Purchase Order (Enterprise-grade with validation)
+     */
+    @Transactional
+    public PurchaseOrderDTO updatePurchaseOrder(Long id, PurchaseOrderDTO dto) {
+        PurchaseOrder po = poRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
+
+        // Validation: Cannot edit if already received or cancelled
+        if (!po.isEditable()) {
+            throw new IllegalStateException("Cannot edit Purchase Order with status: " + po.getStatus());
+        }
+
+        // Update fields
+        if (dto.getNotes() != null) {
+            po.setNotes(dto.getNotes());
+        }
+        if (dto.getExpectedDeliveryDate() != null) {
+            po.setExpectedDeliveryDate(dto.getExpectedDeliveryDate());
+        }
+
+        // Status update with validation
+        if (dto.getStatus() != null && !dto.getStatus().equals(po.getStatus().name())) {
+            try {
+                PurchaseOrderStatus newStatus = PurchaseOrderStatus.valueOf(dto.getStatus());
+                validateStatusTransition(po.getStatus(), newStatus);
+                po.setStatus(newStatus);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid status: " + dto.getStatus());
+            }
+        }
+
+        PurchaseOrder saved = poRepository.save(po);
+        log.info("Updated Purchase Order ID: {}", id);
+        return mapToPODTO(saved);
+    }
+
+    /**
+     * Validate Purchase Order status transitions (Enterprise business rules)
+     */
+    private void validateStatusTransition(PurchaseOrderStatus from, PurchaseOrderStatus to) {
+        // Define allowed transitions
+        boolean isValid = false;
+
+        switch (from) {
+            case DRAFT:
+                isValid = (to == PurchaseOrderStatus.ISSUED || to == PurchaseOrderStatus.CANCELLED);
+                break;
+            case ISSUED:
+                isValid = (to == PurchaseOrderStatus.PARTIALLY_RECEIVED ||
+                        to == PurchaseOrderStatus.RECEIVED ||
+                        to == PurchaseOrderStatus.CANCELLED);
+                break;
+            case PARTIALLY_RECEIVED:
+                isValid = (to == PurchaseOrderStatus.RECEIVED);
+                break;
+            case RECEIVED:
+            case CANCELLED:
+            case CLOSED:
+                // Terminal states - no transitions allowed
+                isValid = false;
+                break;
+        }
+
+        if (!isValid) {
+            throw new IllegalStateException(
+                    String.format("Invalid status transition from %s to %s", from, to));
+        }
+    }
+
     private String generatePONumber() {
-        return "WAL/PO/" + java.time.LocalDate.now().getYear() + "/" + System.currentTimeMillis() % 10000;
+        // Format: PO-YYYYMMDD-HHMMSS-RAND3
+        return "PO-"
+                + java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(java.time.LocalDateTime.now())
+                + "-" + (int) (Math.random() * 1000);
     }
 
     private String generateGRNNumber() {
