@@ -139,6 +139,9 @@ public class CustomerProjectController {
         } catch (IllegalArgumentException e) {
             logger.warn("Project not found for deletion: {}", id);
             return ResponseEntity.status(404).body(ApiResponse.error("Project not found"));
+        } catch (IllegalStateException e) {
+            logger.warn("Cannot delete project ID {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error deleting customer project with ID: {}", id, e);
             return ResponseEntity.status(500)

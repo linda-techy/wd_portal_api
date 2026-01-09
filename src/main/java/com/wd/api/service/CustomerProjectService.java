@@ -46,12 +46,6 @@ public class CustomerProjectService {
     private CustomerUserRepository customerUserRepository;
 
     @Autowired
-    private TaskRepository taskRepository;
-
-    @Autowired
-    private com.wd.api.repository.DocumentRepository documentRepository;
-
-    @Autowired
     private ProjectMemberRepository projectMemberRepository;
 
     @Autowired
@@ -274,6 +268,9 @@ public class CustomerProjectService {
     /**
      * Delete customer project with cascade delete of dependent entities
      */
+    /**
+     * Delete customer project with safe hard delete check
+     */
     public void deleteProject(Long id) {
         if (id == null) {
             throw new IllegalArgumentException("Project ID is required");
@@ -281,26 +278,17 @@ public class CustomerProjectService {
         CustomerProject project = customerProjectRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Project with ID " + id + " not found"));
 
-        // Manual cascade delete for dependent entities
-        // Note: This should be replaced with database FK CASCADE in future
-
-        // Delete tasks
-        List<Task> tasks = taskRepository.findByProjectId(id);
-        if (!tasks.isEmpty()) {
-            logger.info("Deleting {} tasks for project ID: {}", tasks.size(), id);
-            taskRepository.deleteAll(tasks);
+        try {
+            // Attempt hard delete
+            // If Foreign Keys exist (Tasks, Documents, Payments), this will fail with
+            // DataIntegrityViolationException
+            customerProjectRepository.delete(project);
+            logger.info("Customer project deleted successfully - ID: {}", id);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            logger.error("Cannot delete project ID {} due to existing related data", id, e);
+            throw new IllegalStateException(
+                    "Cannot delete project because it contains related data (Tasks, Documents, Payments, etc.). Please delete the related data first.");
         }
-
-        // Delete documents
-        List<com.wd.api.model.Document> docs = documentRepository.findByReferenceIdAndReferenceType(id, "PROJECT");
-        if (!docs.isEmpty()) {
-            logger.info("Deleting {} documents for project ID: {}", docs.size(), id);
-            documentRepository.deleteAll(docs);
-        }
-
-        // Project members are handled by CascadeType.ALL in Entity
-        customerProjectRepository.delete(project);
-        logger.info("Customer project deleted successfully - ID: {}", id);
     }
 
     // ==================== Private Helper Methods ====================
