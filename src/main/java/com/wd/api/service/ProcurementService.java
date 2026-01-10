@@ -411,6 +411,39 @@ public class ProcurementService {
         }
     }
 
+    /**
+     * Get all GRNs (Goods Received Notes) for centralized list view
+     * Enterprise feature - shows all receipts across projects
+     */
+    public List<GRNDTO> getAllGRNs() {
+        return grnRepository.findAll().stream()
+                .map(this::mapToGRNDTOWithExtras)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Enhanced GRN mapper with vendor and project info for list view
+     */
+    private GRNDTO mapToGRNDTOWithExtras(GoodsReceivedNote g) {
+        PurchaseOrder po = g.getPurchaseOrder();
+        GRNDTO dto = GRNDTO.builder()
+                .id(g.getId())
+                .grnNumber(g.getGrnNumber())
+                .poId(po.getId())
+                .poNumber(po.getPoNumber())
+                .receivedDate(g.getReceivedDate())
+                .receivedById(g.getReceivedById())
+                .invoiceNumber(g.getInvoiceNumber())
+                .invoiceDate(g.getInvoiceDate())
+                .challanNumber(g.getChallanNumber())
+                .notes(g.getNotes())
+                .build();
+        // Add vendor and project info
+        dto.setVendorName(po.getVendor() != null ? po.getVendor().getName() : null);
+        dto.setProjectName(po.getProject() != null ? po.getProject().getName() : null);
+        return dto;
+    }
+
     private String generatePONumber() {
         // Format: PO-YYYYMMDD-HHMMSS-RAND3
         return "PO-"

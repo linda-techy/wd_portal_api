@@ -35,4 +35,23 @@ public class InventoryController {
             @PathVariable Long projectId) {
         return ResponseEntity.ok(inventoryService.getConsumptionReport(projectId));
     }
+
+    /**
+     * Update Material
+     */
+    @PutMapping("/materials/{id}")
+    public ResponseEntity<MaterialDTO> updateMaterial(
+            @PathVariable Long id,
+            @RequestBody MaterialDTO dto) {
+        return ResponseEntity.ok(inventoryService.updateMaterial(id, dto));
+    }
+
+    /**
+     * Deactivate Material (soft delete - enterprise pattern)
+     */
+    @DeleteMapping("/materials/{id}")
+    public ResponseEntity<Void> deactivateMaterial(@PathVariable Long id) {
+        inventoryService.deactivateMaterial(id);
+        return ResponseEntity.ok().build();
+    }
 }

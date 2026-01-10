@@ -136,8 +136,41 @@ public class InventoryService {
 
         public List<MaterialDTO> getAllMaterials() {
                 return materialRepository.findAll().stream()
+                                .filter(m -> m.isActive()) // Only return active materials
                                 .map(this::mapToMaterialDTO)
                                 .collect(Collectors.toList());
+        }
+
+        /**
+         * Update Material (enterprise feature - update name, unit, category)
+         */
+        @Transactional
+        public MaterialDTO updateMaterial(Long id, MaterialDTO dto) {
+                Material material = materialRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Material not found with ID: " + id));
+
+                if (dto.getName() != null)
+                        material.setName(dto.getName());
+                if (dto.getUnit() != null)
+                        material.setUnit(com.wd.api.model.enums.MaterialUnit.valueOf(dto.getUnit()));
+                if (dto.getCategory() != null)
+                        material.setCategory(com.wd.api.model.enums.MaterialCategory.valueOf(dto.getCategory()));
+
+                material = materialRepository.save(material);
+                return mapToMaterialDTO(material);
+        }
+
+        /**
+         * Deactivate Material (enterprise pattern - soft delete for audit trail)
+         * Materials can be deactivated even with stock history - maintains audit trail
+         */
+        @Transactional
+        public void deactivateMaterial(Long id) {
+                Material material = materialRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Material not found with ID: " + id));
+
+                material.setActive(false);
+                materialRepository.save(material);
         }
 
         @Transactional

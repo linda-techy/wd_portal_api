@@ -15,6 +15,8 @@ public class GRNDTO {
     private LocalDate invoiceDate;
     private String challanNumber;
     private String notes;
+    private String vendorName;
+    private String projectName;
 
     public GRNDTO() {
     }
@@ -198,5 +200,21 @@ public class GRNDTO {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getVendorName() {
+        return vendorName;
+    }
+
+    public void setVendorName(String vendorName) {
+        this.vendorName = vendorName;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
     }
 }

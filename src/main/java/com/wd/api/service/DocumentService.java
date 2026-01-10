@@ -36,6 +36,22 @@ public class DocumentService {
         this.fileStorageService = fileStorageService;
     }
 
+    /**
+     * Get all document categories sorted by display order.
+     * Used for category selection dropdowns in document upload flow.
+     */
+    public List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> getAllCategories() {
+        return categoryRepository.findAll().stream()
+                .sorted((a, b) -> {
+                    int orderA = a.getDisplayOrder() != null ? a.getDisplayOrder() : 100;
+                    int orderB = b.getDisplayOrder() != null ? b.getDisplayOrder() : 100;
+                    return Integer.compare(orderA, orderB);
+                })
+                .map(c -> new com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto(
+                        c.getId(), c.getName(), c.getDescription(), c.getDisplayOrder()))
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public DocumentResponse uploadDocument(Long referenceId, String referenceType, MultipartFile file,
             Long categoryId, String description) {

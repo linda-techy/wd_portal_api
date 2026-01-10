@@ -43,9 +43,8 @@ public class ProjectModuleController {
     @GetMapping("/documents/categories")
     public ResponseEntity<ApiResponse<List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto>>> getDocumentCategories(
             @PathVariable Long projectId) {
-        // Reuse existing categories but map through new service if needed
-        // For now, I'll keep the category service separate or move it
-        return ResponseEntity.ok(ApiResponse.success("Categories retrieved successfully", null));
+        List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService.getAllCategories();
+        return ResponseEntity.ok(ApiResponse.success("Categories retrieved successfully", categories));
     }
 
     @DeleteMapping("/documents/{documentId}")

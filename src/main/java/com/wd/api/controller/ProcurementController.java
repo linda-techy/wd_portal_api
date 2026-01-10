@@ -200,4 +200,18 @@ public class ProcurementController {
             return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    /**
+     * Get all GRNs (Goods Received Notes) - Enterprise centralized list view
+     */
+    @GetMapping("/grns")
+    public ResponseEntity<ApiResponse<List<GRNDTO>>> getAllGRNs() {
+        try {
+            List<GRNDTO> grns = procurementService.getAllGRNs();
+            return ResponseEntity.ok(ApiResponse.success("GRNs retrieved successfully", grns));
+        } catch (Exception e) {
+            logger.error("Error fetching GRNs", e);
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+        }
+    }
 }
