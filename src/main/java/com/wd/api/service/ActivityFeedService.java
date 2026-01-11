@@ -30,23 +30,29 @@ public class ActivityFeedService {
     @Transactional
     public void logActivity(String typeName, String title, String description, Long referenceId, String referenceType,
             CustomerUser user) {
-        saveActivity(typeName, title, description, referenceId, referenceType, user, null);
+        saveActivity(typeName, title, description, referenceId, referenceType, user, null, null);
     }
 
     @Transactional
     public void logActivity(String typeName, String title, String description, Long referenceId, String referenceType,
             PortalUser user) {
-        saveActivity(typeName, title, description, referenceId, referenceType, null, user);
+        saveActivity(typeName, title, description, referenceId, referenceType, null, user, null);
     }
 
     @Transactional
     public void logSystemActivity(String typeName, String title, String description, Long referenceId,
             String referenceType) {
-        saveActivity(typeName, title, description, referenceId, referenceType, null, null);
+        saveActivity(typeName, title, description, referenceId, referenceType, null, null, null);
+    }
+
+    @Transactional
+    public void logProjectActivity(String typeName, String title, String description, CustomerProject project,
+            PortalUser user) {
+        saveActivity(typeName, title, description, project.getId(), "PROJECT", null, user, project);
     }
 
     private void saveActivity(String typeName, String title, String description, Long referenceId, String referenceType,
-            CustomerUser customerUser, PortalUser portalUser) {
+            CustomerUser customerUser, PortalUser portalUser, CustomerProject project) {
         ActivityType type = activityTypeRepository.findByName(typeName)
                 .orElseThrow(() -> new RuntimeException("Activity Type not found: " + typeName));
 
@@ -61,8 +67,11 @@ public class ActivityFeedService {
             feed.setPortalUser(portalUser);
         }
         feed.setCreatedAt(LocalDateTime.now());
+        feed.setProject(project);
 
-        feed.setProject(null);
+        // If it's a lead activity, try to link it (we might need LeadRepository for
+        // this,
+        // but for now let's just ensure if project is set, it passes the constraint)
 
         activityFeedRepository.save(feed);
     }

@@ -1,0 +1,71 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------------< com.wd:api >-----------------------------
+[INFO] Building api 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.5.3:run (default-cli) > test-compile @ api >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ api ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 50 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ api ---
+[INFO] skip non existing resourceDirectory N:\Projects\wd projects git\wd_portal_api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ api ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] <<< spring-boot:3.5.3:run (default-cli) < test-compile @ api <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.5.3:run (default-cli) @ api ---
+[INFO] Attaching agents: []
+2026-01-11T23:43:45.746+05:30  INFO 14636 --- [api] [           main] com.wd.api.ApiApplication                : Starting ApiApplication using Java 21.0.8 with PID 14636 (N:\Projects\wd projects git\wd_portal_api\target\classes started by linda in N:\Projects\wd projects git\wd_portal_api)
+2026-01-11T23:43:45.749+05:30  INFO 14636 --- [api] [           main] com.wd.api.ApiApplication                : No active profile set, falling back to 1 default profile: "default"
+2026-01-11T23:43:46.356+05:30  INFO 14636 --- [api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-01-11T23:43:46.462+05:30  INFO 14636 --- [api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 101 ms. Found 54 JPA repository interfaces.
+2026-01-11T23:43:47.044+05:30  INFO 14636 --- [api] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8081 (http)
+2026-01-11T23:43:47.063+05:30  INFO 14636 --- [api] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-01-11T23:43:47.067+05:30  INFO 14636 --- [api] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-01-11T23:43:47.105+05:30  INFO 14636 --- [api] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-01-11T23:43:47.106+05:30  INFO 14636 --- [api] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1322 ms
+2026-01-11T23:43:47.263+05:30  INFO 14636 --- [api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-01-11T23:43:47.764+05:30  INFO 14636 --- [api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@40fe8fd5
+2026-01-11T23:43:47.765+05:30  INFO 14636 --- [api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-01-11T23:43:47.816+05:30  INFO 14636 --- [api] [           main] o.f.c.i.resource.ResourceNameValidator   : 1 SQL migrations were detected but not run because they did not follow the filename convention.
+2026-01-11T23:43:47.816+05:30  INFO 14636 --- [api] [           main] o.f.c.i.resource.ResourceNameValidator   : Set 'validateMigrationNaming' to true to fail fast and see a list of the invalid file names.
+2026-01-11T23:43:47.820+05:30  INFO 14636 --- [api] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://46.202.164.251:5432/wdTestDB (PostgreSQL 14.20)
+2026-01-11T23:43:49.071+05:30  INFO 14636 --- [api] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 51 migrations (execution time 00:00.462s)
+2026-01-11T23:43:49.963+05:30  INFO 14636 --- [api] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 12
+2026-01-11T23:43:49.964+05:30  WARN 14636 --- [api] [           main] o.f.core.internal.command.DbMigrate      : outOfOrder mode is active. Migration of schema "public" may not be reproducible.
+2026-01-11T23:43:49.996+05:30  INFO 14636 --- [api] [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-01-11T23:43:50.237+05:30  INFO 14636 --- [api] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-01-11T23:43:50.267+05:30  INFO 14636 --- [api] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-01-11T23:43:50.298+05:30  INFO 14636 --- [api] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-01-11T23:43:50.471+05:30  INFO 14636 --- [api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-01-11T23:43:50.479+05:30  WARN 14636 --- [api] [           main] org.hibernate.orm.deprecation            : HHH90000021: Encountered deprecated setting [hibernate.temp.use_jdbc_metadata_defaults], use [hibernate.boot.allow_jdbc_metadata_access] instead
+2026-01-11T23:43:50.491+05:30  WARN 14636 --- [api] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-01-11T23:43:50.499+05:30  INFO 14636 --- [api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [undefined/unknown]
+	Database driver: undefined/unknown
+	Database version: 12.0
+	Autocommit mode: undefined/unknown
+	Isolation level: <unknown>
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-01-11T23:43:51.916+05:30  INFO 14636 --- [api] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-01-11T23:43:51.917+05:30  INFO 14636 --- [api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-01-11T23:43:52.117+05:30  INFO 14636 --- [api] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-01-11T23:43:53.539+05:30  INFO 14636 --- [api] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-01-11T23:43:53.539+05:30  WARN 14636 --- [api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+Initializing File Storage at: N:\Projects\wd projects git\storage
+2026-01-11T23:43:54.663+05:30  WARN 14636 --- [api] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-01-11T23:43:54.854+05:30  WARN 14636 --- [api] [           main] com.wd.api.security.SecurityConfig       : CORS: Using permissive configuration for development. RESTRICT FOR PRODUCTION!
+2026-01-11T23:43:54.855+05:30  WARN 14636 --- [api] [           main] com.wd.api.security.SecurityConfig       : CORS: Using default production origins. Consider setting CORS_ALLOWED_ORIGINS environment variable.
+2026-01-11T23:43:55.080+05:30  INFO 14636 --- [api] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path '/'
+2026-01-11T23:43:55.089+05:30  INFO 14636 --- [api] [           main] com.wd.api.ApiApplication                : Started ApiApplication in 9.651 seconds (process running for 9.888)

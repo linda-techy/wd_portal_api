@@ -22,6 +22,10 @@ public class ActivityFeed {
     private CustomerProject project;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lead_id", nullable = true)
+    private Lead lead;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activity_type_id", nullable = false)
     private ActivityType activityType;
 
@@ -137,5 +141,13 @@ public class ActivityFeed {
 
     public void setMetadata(String metadata) {
         this.metadata = metadata;
+    }
+
+    public Lead getLead() {
+        return lead;
+    }
+
+    public void setLead(Lead lead) {
+        this.lead = lead;
     }
 }

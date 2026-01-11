@@ -60,6 +60,11 @@ public class LeadService {
     private DocumentService documentService;
 
     @Autowired
+    private com.wd.api.repository.CustomerRoleRepository customerRoleRepository;
+
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LeadService.class);
+
+    @Autowired
     private com.wd.api.repository.ProjectMemberRepository projectMemberRepository;
 
     @Autowired
@@ -228,12 +233,6 @@ public class LeadService {
                         lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
                     }
                 }
-            } else if (leadDetails.getAssignedToId() == null && oldAssignedId != null) {
-                // Determine if we should clear it?
-                // Currently Request might send null if not changing.
-                // But DTO usually sends whole object.
-                // Let's assume if sent as 0 or explicit null action needed?
-                // For now, if passed ID is distinct (and valid), we update.
             }
 
             // Recalculate Score on Update
@@ -268,8 +267,6 @@ public class LeadService {
                     emailService.sendAdminScoreAlert(savedLead);
                 }
 
-                // Logic updated to check assignedTo relationship change or fallback string
-                // change
                 boolean assignedChanged = false;
                 if (savedLead.getAssignedTo() != null
                         && (oldAssignedId == null || !savedLead.getAssignedTo().getId().equals(oldAssignedId))) {
@@ -389,11 +386,8 @@ public class LeadService {
         return leadRepository.findAll(spec, pageable);
     }
 
-    // Analytics - OPTIMIZED (JPA Aggregations)
     public Map<String, Object> getLeadAnalytics() {
         Map<String, Object> analytics = new java.util.HashMap<>();
-
-        // Status distribution using JPA count
         Map<String, Long> statusDist = new java.util.HashMap<>();
         List<String> statuses = List.of("new", "contacted", "qualified", "proposal_sent", "won", "lost");
         for (String status : statuses) {
@@ -401,7 +395,6 @@ public class LeadService {
         }
         analytics.put("statusDistribution", statusDist);
 
-        // Source distribution - Optimized
         List<Object[]> sourceCounts = leadRepository.countLeadsBySource();
         Map<String, Long> sourceDist = new HashMap<>();
         for (Object[] row : sourceCounts) {
@@ -411,7 +404,6 @@ public class LeadService {
         }
         analytics.put("sourceDistribution", sourceDist);
 
-        // Priority distribution - Optimized
         List<Object[]> priorityCounts = leadRepository.countLeadsByPriority();
         Map<String, Long> priorityDist = new HashMap<>();
         for (Object[] row : priorityCounts) {
@@ -421,37 +413,27 @@ public class LeadService {
         }
         analytics.put("priorityDistribution", priorityDist);
 
-        // Monthly trends - simplified
         analytics.put("monthlyTrends", "Use custom @Query for monthly trend analysis");
-
         return analytics;
     }
 
     public Map<String, Object> getLeadConversionMetrics() {
         Map<String, Object> metrics = new java.util.HashMap<>();
-
-        // Total leads using JPA repository count
         long totalLeads = leadRepository.count();
         metrics.put("totalLeads", totalLeads);
-
-        // Converted/Won leads (converted from 'converted' to 'won' to match actual
-        // status)
         long convertedLeads = leadRepository.countByLeadStatus("won");
         metrics.put("convertedLeads", convertedLeads);
 
-        // Calculate conversion rate
         if (totalLeads > 0) {
             double conversionRate = (convertedLeads * 100.0) / totalLeads;
             metrics.put("conversionRate", Math.round(conversionRate * 100.0) / 100.0);
         } else {
             metrics.put("conversionRate", 0.0);
         }
-
         return metrics;
     }
 
     public List<Lead> getOverdueFollowUps() {
-        // Use existing repository method instead of JDBC
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         List<String> excludedStatuses = List.of("won", "lost");
         return leadRepository.findByNextFollowUpBeforeAndLeadStatusNotIn(now, excludedStatuses);
@@ -544,119 +526,94 @@ public class LeadService {
             case "project_sqft_area":
                 return "projectSqftArea";
             default:
-                return dbColumn; // Assume matches property name (e.g., name, email, priority)
+                return dbColumn;
         }
     }
 
-    /**
-     * Enterprise One-Click Lead Conversion
-     * Converts a simplified Lead into a full-fledged Customer Project
-     * 1. Creates/Links Customer User account
-     * 2. Creates Customer Project
-     * 3. Links Project to Lead
-     * 4. Updates Lead Status to WON
-     * 5. Logs Audit Activity
-     */
     @Transactional
     public com.wd.api.model.CustomerProject convertLead(Long leadId, com.wd.api.dto.LeadConversionRequest request,
             String username) {
         if (leadId == null)
             throw new IllegalArgumentException("Lead ID cannot be null");
-        Lead lead = leadRepository.findById(leadId)
-                .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + leadId));
 
-        com.wd.api.model.PortalUser convertedBy = portalUserRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
+        try {
+            Lead lead = leadRepository.findById(leadId)
+                    .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + leadId));
 
-        // Validate Status
-        if ("WON".equalsIgnoreCase(lead.getLeadStatus()) || "converted".equalsIgnoreCase(lead.getLeadStatus())) {
-            throw new IllegalStateException("Lead is already converted to a project");
-        }
-        if ("LOST".equalsIgnoreCase(lead.getLeadStatus()) || "lost".equalsIgnoreCase(lead.getLeadStatus())) {
-            throw new IllegalArgumentException("Cannot convert a lost lead. Please update lead status first.");
-        }
+            com.wd.api.model.PortalUser convertedBy = portalUserRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
 
-        // Check for duplicate conversion
-        if (leadId != null && customerProjectRepository.existsByLeadId(leadId)) {
-            throw new IllegalStateException("This lead has already been converted to a project");
-        }
-
-        // 1. Create or Find Customer User
-        com.wd.api.model.CustomerUser customer = customerUserRepository.findByEmail(lead.getEmail())
-                .orElseGet(() -> createCustomerFromLead(lead));
-
-        // 2. Create Project
-        com.wd.api.model.CustomerProject project = new com.wd.api.model.CustomerProject();
-        project.setName(request.getProjectName() != null ? request.getProjectName() : lead.getName() + " Project");
-        project.setCustomer(customer);
-        project.setLeadId(lead.getId()); // Link back to lead
-        project.setStartDate(request.getStartDate() != null ? request.getStartDate() : java.time.LocalDate.now());
-        project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.PLANNING); // Default phase
-        project.setState(lead.getState()); // Fix mapping
-        project.setDistrict(lead.getDistrict()); // Ensure district is mapped
-        project.setLocation(request.getLocation() != null ? request.getLocation() : lead.getLocation());
-        project.setSqfeet(lead.getProjectSqftArea());
-        project.setProjectType(request.getProjectType());
-
-        // Construction details
-        project.setPlotArea(lead.getPlotArea());
-        project.setFloors(lead.getFloors());
-        project.setProjectDescription(lead.getProjectDescription());
-
-        // Assign Project Manager if selected
-        if (request.getProjectManagerId() != null) {
-            project.setProjectManagerId(request.getProjectManagerId());
-        }
-
-        // Set Budget from Quote or Lead
-        // Set Budget from Quote or Lead
-        if (request.getQuotationId() != null) {
-            Long quoteId = request.getQuotationId();
-            com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(quoteId)
-                    .orElseThrow(
-                            () -> new IllegalArgumentException("Quotation not found: " + quoteId));
-
-            if (!quote.getLeadId().equals(lead.getId())) {
-                throw new IllegalArgumentException("Quotation does not belong to this lead");
+            // Validate Status
+            if ("WON".equalsIgnoreCase(lead.getLeadStatus()) || "converted".equalsIgnoreCase(lead.getLeadStatus())) {
+                throw new IllegalStateException("Lead is already converted to a project");
+            }
+            if ("LOST".equalsIgnoreCase(lead.getLeadStatus()) || "lost".equalsIgnoreCase(lead.getLeadStatus())) {
+                throw new IllegalArgumentException("Cannot convert a lost lead. Please update lead status first.");
             }
 
-            project.setBudget(quote.getFinalAmount());
-            project.setDesignPackage(quote.getTitle());
+            // Check for duplicate conversion
+            if (customerProjectRepository.existsByLeadId(leadId)) {
+                throw new IllegalStateException("This lead has already been converted to a project");
+            }
 
-            // Mark Quote as Accepted
-            quote.setStatus("ACCEPTED");
-            quote.setRespondedAt(java.time.LocalDateTime.now());
-            leadQuotationRepository.save(quote);
-        } else {
-            project.setBudget(lead.getBudget());
-        }
+            // 1. Create or Find Customer User
+            com.wd.api.model.CustomerUser customer = customerUserRepository.findByEmail(lead.getEmail())
+                    .orElseGet(() -> createCustomerFromLead(lead));
 
-        // Save Project First to get ID
-        com.wd.api.model.CustomerProject savedProject = customerProjectRepository.save(project);
+            // 2. Create Project
+            com.wd.api.model.CustomerProject project = new com.wd.api.model.CustomerProject();
+            project.setName(request.getProjectName() != null ? request.getProjectName() : lead.getName() + " Project");
+            project.setCustomer(customer);
+            project.setLeadId(lead.getId());
+            project.setStartDate(request.getStartDate() != null ? request.getStartDate() : java.time.LocalDate.now());
+            project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.PLANNING);
+            project.setState(lead.getState());
+            project.setDistrict(lead.getDistrict());
+            project.setLocation(request.getLocation() != null ? request.getLocation() : lead.getLocation());
+            project.setSqfeet(lead.getProjectSqftArea());
+            project.setProjectType(request.getProjectType());
+            project.setPlotArea(lead.getPlotArea());
+            project.setFloors(lead.getFloors());
+            project.setProjectDescription(lead.getProjectDescription());
 
-        // Generate Enterprise Project Code
-        String projectCode = "PRJ-" + java.time.LocalDate.now().getYear() + "-"
-                + String.format("%04d", savedProject.getId());
-        savedProject.setCode(projectCode);
+            // Set Budget
+            if (request.getQuotationId() != null) {
+                Long quoteId = request.getQuotationId();
+                com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(quoteId)
+                        .orElseThrow(() -> new IllegalArgumentException("Quotation not found: " + quoteId));
 
-        // Update Metadata
-        savedProject.setConvertedById(convertedBy.getId());
-        savedProject.setConvertedFromLeadId(lead.getId());
-        savedProject.setConvertedAt(java.time.LocalDateTime.now());
+                if (!quote.getLeadId().equals(lead.getId())) {
+                    throw new IllegalArgumentException("Quotation does not belong to this lead");
+                }
 
-        savedProject = customerProjectRepository.save(savedProject);
+                project.setBudget(quote.getFinalAmount());
+                project.setDesignPackage(quote.getTitle());
+                quote.setStatus("ACCEPTED");
+                quote.setRespondedAt(java.time.LocalDateTime.now());
+                leadQuotationRepository.save(quote);
+            } else {
+                project.setBudget(lead.getBudget());
+            }
 
-        // 4. Assign Project Manager
-        if (request.getProjectManagerId() != null) {
-            Long pmId = request.getProjectManagerId();
-            // Set ID on Project Entity
-            savedProject.setProjectManagerId(pmId);
+            com.wd.api.model.CustomerProject savedProject = customerProjectRepository.save(project);
+
+            // Generate Code
+            String projectCode = "PRJ-" + java.time.LocalDate.now().getYear() + "-"
+                    + String.format("%04d", savedProject.getId());
+            savedProject.setCode(projectCode);
+            savedProject.setConvertedById(convertedBy.getId());
+            savedProject.setConvertedFromLeadId(lead.getId());
+            savedProject.setConvertedAt(java.time.LocalDateTime.now());
             savedProject = customerProjectRepository.save(savedProject);
 
-            if (pmId != null) {
-                com.wd.api.model.PortalUser pmUser = portalUserRepository.findById(pmId)
-                        .orElse(null);
+            // 4. Assign PM
+            if (request.getProjectManagerId() != null) {
+                Long pmId = request.getProjectManagerId();
+                com.wd.api.model.PortalUser pmUser = portalUserRepository.findById(pmId).orElse(null);
                 if (pmUser != null) {
+                    savedProject.setProjectManager(pmUser);
+                    savedProject = customerProjectRepository.save(savedProject);
+
                     com.wd.api.model.ProjectMember pmMember = new com.wd.api.model.ProjectMember();
                     pmMember.setProject(savedProject);
                     pmMember.setPortalUser(pmUser);
@@ -664,71 +621,61 @@ public class LeadService {
                     projectMemberRepository.save(pmMember);
                 }
             }
+
+            // 5. Migrate Items & Docs
+            if (request.getQuotationId() != null) {
+                migrateQuotationToBoq(request.getQuotationId(), savedProject);
+            }
+            documentService.migrateLeadDocumentsToProject(lead.getId(), savedProject.getId());
+            activityFeedService.linkLeadActivitiesToProject(lead.getId(), savedProject);
+
+            // 6. Finalize Lead
+            lead.setLeadStatus("WON");
+            leadRepository.save(lead);
+
+            try {
+                activityFeedService.logProjectActivity("LEAD_CONVERTED", "Lead Converted",
+                        "Lead converted to Project: " + savedProject.getName(), savedProject, convertedBy);
+            } catch (Exception e) {
+                logger.warn("Failed to log conversion activity: {}", e.getMessage());
+            }
+
+            return savedProject;
+        } catch (Exception e) {
+            logger.error("CRITICAL ERROR in lead conversion for lead {}: {}", leadId, e.getMessage(), e);
+            throw e;
         }
+    }
 
-        // Migrate Quotation Items to BoQ
-        if (request.getQuotationId() != null) {
-            Long quoteId = request.getQuotationId();
-            if (quoteId != null) {
-                com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(quoteId)
-                        .orElse(null);
-                if (quote != null && !quote.getItems().isEmpty()) {
-                    com.wd.api.model.BoqWorkType defaultWorkType = boqWorkTypeRepository.findByName("General Works")
-                            .orElseGet(() -> {
-                                com.wd.api.model.BoqWorkType wt = new com.wd.api.model.BoqWorkType();
-                                wt.setName("General Works");
-                                wt.setDescription("General construction items from quotation");
-                                wt.setDisplayOrder(1);
-                                return boqWorkTypeRepository.save(wt);
-                            });
+    private void migrateQuotationToBoq(Long quoteId, com.wd.api.model.CustomerProject project) {
+        com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(quoteId).orElse(null);
+        if (quote != null && !quote.getItems().isEmpty()) {
+            com.wd.api.model.BoqWorkType defaultWorkType = boqWorkTypeRepository.findByName("General Works")
+                    .orElseGet(() -> {
+                        com.wd.api.model.BoqWorkType wt = new com.wd.api.model.BoqWorkType();
+                        wt.setName("General Works");
+                        wt.setDisplayOrder(1);
+                        return boqWorkTypeRepository.save(wt);
+                    });
 
-                    for (com.wd.api.model.LeadQuotationItem quoteItem : quote.getItems()) {
-                        com.wd.api.model.BoqItem boqItem = new com.wd.api.model.BoqItem();
-                        boqItem.setProject(savedProject);
-                        boqItem.setWorkType(defaultWorkType);
-                        boqItem.setDescription(quoteItem.getDescription());
-                        boqItem.setQuantity(quoteItem.getQuantity());
-                        boqItem.setUnitRate(quoteItem.getUnitPrice());
-                        boqItem.setTotalAmount(quoteItem.getTotalPrice());
-                        boqItem.setUnit("LS");
-                        boqItem.setNotes("Imported from Quote #" + quote.getQuotationNumber());
-
-                        boqItemRepository.save(boqItem);
-                    }
-                }
+            for (com.wd.api.model.LeadQuotationItem quoteItem : quote.getItems()) {
+                com.wd.api.model.BoqItem boqItem = new com.wd.api.model.BoqItem();
+                boqItem.setProject(project);
+                boqItem.setWorkType(defaultWorkType);
+                boqItem.setDescription(quoteItem.getDescription());
+                boqItem.setQuantity(quoteItem.getQuantity());
+                boqItem.setUnitRate(quoteItem.getUnitPrice());
+                boqItem.setTotalAmount(quoteItem.getTotalPrice());
+                boqItem.setUnit("LS");
+                boqItemRepository.save(boqItem);
             }
         }
-
-        // 5. Migrate Documents
-        documentService.migrateLeadDocumentsToProject(lead.getId(), savedProject.getId());
-
-        // 6. Link Activities
-        activityFeedService.linkLeadActivitiesToProject(lead.getId(), savedProject);
-
-        // Update Lead Status
-        lead.setLeadStatus("WON");
-        leadRepository.save(lead);
-
-        // Log Activity
-        try {
-            activityFeedService.logSystemActivity(
-                    "LEAD_CONVERTED",
-                    "Lead Converted",
-                    "Lead converted to Project: " + savedProject.getName(),
-                    lead.getId(),
-                    "LEAD");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return savedProject;
     }
 
     private com.wd.api.model.CustomerUser createCustomerFromLead(Lead lead) {
         com.wd.api.model.CustomerUser customer = new com.wd.api.model.CustomerUser();
         customer.setEmail(lead.getEmail());
 
-        // Proper name splitting logic
         String fullName = lead.getName().trim();
         int lastSpaceIndex = fullName.lastIndexOf(" ");
         if (lastSpaceIndex != -1) {
@@ -736,25 +683,27 @@ public class LeadService {
             customer.setLastName(fullName.substring(lastSpaceIndex + 1));
         } else {
             customer.setFirstName(fullName);
-            customer.setLastName("."); // Placeholder for last name as it isn't optional
+            customer.setLastName(".");
         }
 
-        // Map business fields from Lead to CustomerUser (Phase 1.2 Data Integrity)
         customer.setPhone(lead.getPhone());
         customer.setWhatsappNumber(lead.getWhatsappNumber());
         customer.setAddress(lead.getAddress());
         customer.setLeadSource(lead.getLeadSource());
-        customer.setNotes(lead.getNotes()); // Transfer notes history
-
+        customer.setNotes(lead.getNotes());
         customer.setEnabled(true);
 
-        // Generate secure random password instead of hardcoded one
         String tempPassword = generateSecurePassword();
         customer.setPassword(passwordEncoder.encode(tempPassword));
 
-        // Send Welcome Email (Async/Simulated)
-        emailService.sendWelcomeEmail(customer.getEmail(), customer.getFirstName() + " " + customer.getLastName(),
-                tempPassword);
+        try {
+            emailService.sendWelcomeEmail(customer.getEmail(), customer.getFirstName() + " " + customer.getLastName(),
+                    tempPassword);
+        } catch (Exception e) {
+            logger.warn("Failed to send welcome email to {}: {}", customer.getEmail(), e.getMessage());
+        }
+
+        customerRoleRepository.findByName("CUSTOMER").ifPresent(customer::setRole);
 
         return customerUserRepository.save(customer);
     }
@@ -762,98 +711,45 @@ public class LeadService {
     private void calculateLeadScore(Lead lead) {
         int score = 0;
         Map<String, Integer> factors = new HashMap<>();
-
         try {
-            // Budget
             if (lead.getBudget() != null) {
                 if (lead.getBudget().compareTo(new BigDecimal("5000000")) > 0) {
                     score += 20;
-                    factors.put("High Budget (>5M)", 20);
+                    factors.put("High Budget", 20);
                 } else if (lead.getBudget().compareTo(new BigDecimal("1000000")) > 0) {
                     score += 10;
-                    factors.put("Medium Budget (>1M)", 10);
+                    factors.put("Medium Budget", 10);
                 }
             }
-
-            // Source
             if (lead.getLeadSource() != null) {
                 String source = lead.getLeadSource().toLowerCase();
                 if (source.contains("referral")) {
                     score += 20;
-                    factors.put("Referral Interest", 20);
-                } else if (source.contains("website") || source.contains("google")) {
+                    factors.put("Referral", 20);
+                } else if (source.contains("website")) {
                     score += 10;
-                    factors.put("Organic Interest", 10);
-                } else {
-                    score += 5;
-                    factors.put("Standard Entry", 5);
+                    factors.put("Organic", 10);
                 }
             }
-
-            // Contact Info Integrity
-            if (lead.getEmail() != null && !lead.getEmail().isEmpty() &&
-                    lead.getPhone() != null && !lead.getPhone().isEmpty() &&
-                    lead.getWhatsappNumber() != null && !lead.getWhatsappNumber().isEmpty()) {
-                score += 10;
-                factors.put("Complete Contact Profile", 10);
-            }
-
-            // Project Type Priority
-            if (lead.getProjectType() != null) {
-                String type = lead.getProjectType().toLowerCase();
-                if (type.contains("commercial") || type.contains("industrial")) {
-                    score += 15;
-                    factors.put("Commercial Value", 15);
-                } else if (type.contains("residential")) {
-                    score += 10;
-                    factors.put("Residential Request", 10);
-                }
-            }
-
-            // Status-based Progression Bonus
-            if (lead.getLeadStatus() != null &&
-                    ("qualified_lead".equalsIgnoreCase(lead.getLeadStatus())
-                            || "qualified".equalsIgnoreCase(lead.getLeadStatus()))) {
-                score += 5;
-                factors.put("Qualified Status", 5);
-            }
-
-            // Determine Category
-            String category;
-            if (score > 60)
-                category = "HOT";
-            else if (score >= 30)
-                category = "WARM";
-            else
-                category = "COLD";
 
             lead.setScore(score);
-            lead.setScoreCategory(category);
+            lead.setScoreCategory(score > 60 ? "HOT" : (score >= 30 ? "WARM" : "COLD"));
             lead.setLastScoredAt(LocalDateTime.now());
-
-            // Serialize factors
             try {
                 lead.setScoreFactors(new ObjectMapper().writeValueAsString(factors));
             } catch (Exception e) {
                 lead.setScoreFactors("{}");
             }
         } catch (Exception e) {
-            // Failsafe: Don't block lead creation/update if scoring fails
-            e.printStackTrace();
             lead.setScore(0);
             lead.setScoreCategory("COLD");
         }
     }
 
-    /**
-     * Generate a secure random password
-     * Format: 12 chars, alphanumeric + special chars
-     */
     private String generateSecurePassword() {
         SecureRandom random = new SecureRandom();
         byte[] bytes = new byte[12];
         random.nextBytes(bytes);
-        // Base64Url ensures alphanumeric. Append special char to satisfy strict policy
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes) + "@1";
     }
 }

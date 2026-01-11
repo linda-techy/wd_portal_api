@@ -411,8 +411,11 @@ public class LeadController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Unexpected error converting lead {}", leadId, e);
+            java.io.StringWriter sw = new java.io.StringWriter();
+            java.io.PrintWriter pw = new java.io.PrintWriter(sw);
+            e.printStackTrace(pw);
             return ResponseEntity.status(500)
-                    .body(ApiResponse.error("An unexpected error occurred during conversion"));
+                    .body(ApiResponse.error("Conversion failed: " + e.getMessage() + "\nSTACK: " + sw.toString()));
         }
     }
 }
