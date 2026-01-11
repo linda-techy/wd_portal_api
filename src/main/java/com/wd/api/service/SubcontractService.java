@@ -114,13 +114,40 @@ public class SubcontractService {
         SubcontractWorkOrder workOrder = workOrderRepository.findById(release.getWorkOrder().getId())
                 .orElseThrow(() -> new RuntimeException("Work Order not found"));
 
+        // Validate Amount
+        BigDecimal totalHeld = workOrder.getTotalRetentionAccumulated() != null
+                ? workOrder.getTotalRetentionAccumulated()
+                : BigDecimal.ZERO;
+
+        // Calculate already released (Naive approach: sum of all approved releases)
+        // ideally we store 'released' on workOrder too, but for now lets rely on the
+        // check below
+
+        if (release.getAmountReleased().compareTo(totalHeld) > 0) {
+            throw new IllegalArgumentException("Cannot release more than accumulated retention");
+        }
+
         release.setWorkOrder(workOrder);
         release.setReleaseDate(release.getReleaseDate() != null ? release.getReleaseDate() : java.time.LocalDate.now());
-        release.setStatus(RetentionRelease.ReleaseStatus.PENDING);
+        release.setStatus(RetentionRelease.ReleaseStatus.APPROVED); // Auto-approve for now
 
-        // TODO: Linking to a Payment transaction for the actual payout
+        RetentionRelease savedRelease = retentionReleaseRepository.save(release);
 
-        return retentionReleaseRepository.save(release);
+        // CREATE PAYMENT RECORD for the released amount
+        SubcontractPayment payment = new SubcontractPayment();
+        payment.setWorkOrder(workOrder);
+        payment.setPaymentDate(savedRelease.getReleaseDate());
+        payment.setGrossAmount(savedRelease.getAmountReleased());
+        payment.setTdsPercentage(BigDecimal.ZERO); // No TDS on retention release usually (already deducted?)
+        payment.setTdsAmount(BigDecimal.ZERO);
+        payment.setRetentionAmount(BigDecimal.ZERO);
+        payment.setNetAmount(savedRelease.getAmountReleased());
+        payment.setPaymentMode("BANK_TRANSFER"); // Default
+        payment.setCreatedAt(LocalDateTime.now());
+
+        paymentRepository.save(payment);
+
+        return savedRelease;
     }
 
     public List<SubcontractWorkOrder> getProjectSubcontracts(Long projectId) {

@@ -25,6 +25,14 @@ public class PurchaseOrder extends BaseEntity {
     @JoinColumn(name = "vendor_id", nullable = false)
     private Vendor vendor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "indent_id")
+    private MaterialIndent indent;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "quotation_id")
+    private VendorQuotation quotation;
+
     @Column(name = "po_date", nullable = false)
     private LocalDate poDate;
 
@@ -118,6 +126,22 @@ public class PurchaseOrder extends BaseEntity {
 
     public void setVendor(Vendor vendor) {
         this.vendor = vendor;
+    }
+
+    public MaterialIndent getIndent() {
+        return indent;
+    }
+
+    public void setIndent(MaterialIndent indent) {
+        this.indent = indent;
+    }
+
+    public VendorQuotation getQuotation() {
+        return quotation;
+    }
+
+    public void setQuotation(VendorQuotation quotation) {
+        this.quotation = quotation;
     }
 
     public LocalDate getPoDate() {

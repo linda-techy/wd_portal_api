@@ -12,6 +12,8 @@ public class PurchaseOrderDTO {
     private String projectName;
     private Long vendorId;
     private String vendorName;
+    private Long indentId;
+    private Long quotationId;
     private LocalDate poDate;
     private LocalDate expectedDeliveryDate;
     private BigDecimal totalAmount;
@@ -27,7 +29,8 @@ public class PurchaseOrderDTO {
     }
 
     public PurchaseOrderDTO(Long id, String poNumber, Long projectId, String projectName, Long vendorId,
-            String vendorName, LocalDate poDate, LocalDate expectedDeliveryDate, BigDecimal totalAmount,
+            String vendorName, Long indentId, Long quotationId, LocalDate poDate, LocalDate expectedDeliveryDate,
+            BigDecimal totalAmount,
             BigDecimal gstAmount, BigDecimal netAmount, String status, String notes, Long createdById,
             LocalDateTime createdAt, List<PurchaseOrderItemDTO> items) {
         this.id = id;
@@ -36,6 +39,8 @@ public class PurchaseOrderDTO {
         this.projectName = projectName;
         this.vendorId = vendorId;
         this.vendorName = vendorName;
+        this.indentId = indentId;
+        this.quotationId = quotationId;
         this.poDate = poDate;
         this.expectedDeliveryDate = expectedDeliveryDate;
         this.totalAmount = totalAmount;
@@ -59,6 +64,8 @@ public class PurchaseOrderDTO {
         private String projectName;
         private Long vendorId;
         private String vendorName;
+        private Long indentId;
+        private Long quotationId;
         private LocalDate poDate;
         private LocalDate expectedDeliveryDate;
         private BigDecimal totalAmount;
@@ -97,6 +104,16 @@ public class PurchaseOrderDTO {
 
         public PurchaseOrderDTOBuilder vendorName(String vendorName) {
             this.vendorName = vendorName;
+            return this;
+        }
+
+        public PurchaseOrderDTOBuilder indentId(Long indentId) {
+            this.indentId = indentId;
+            return this;
+        }
+
+        public PurchaseOrderDTOBuilder quotationId(Long quotationId) {
+            this.quotationId = quotationId;
             return this;
         }
 
@@ -151,7 +168,8 @@ public class PurchaseOrderDTO {
         }
 
         public PurchaseOrderDTO build() {
-            return new PurchaseOrderDTO(id, poNumber, projectId, projectName, vendorId, vendorName, poDate,
+            return new PurchaseOrderDTO(id, poNumber, projectId, projectName, vendorId, vendorName, indentId,
+                    quotationId, poDate,
                     expectedDeliveryDate, totalAmount, gstAmount, netAmount, status, notes, createdById, createdAt,
                     items);
         }
@@ -243,6 +261,22 @@ public class PurchaseOrderDTO {
 
     public void setVendorName(String vendorName) {
         this.vendorName = vendorName;
+    }
+
+    public Long getIndentId() {
+        return indentId;
+    }
+
+    public void setIndentId(Long indentId) {
+        this.indentId = indentId;
+    }
+
+    public Long getQuotationId() {
+        return quotationId;
+    }
+
+    public void setQuotationId(Long quotationId) {
+        this.quotationId = quotationId;
     }
 
     public void setPoDate(LocalDate poDate) {

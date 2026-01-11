@@ -2,7 +2,7 @@ package com.wd.api.controller;
 
 import com.wd.api.model.MaterialIndent;
 import com.wd.api.service.MaterialIndentService;
-import com.wd.api.util.ApiResponse; // Assuming standard wrapper
+import com.wd.api.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,14 +27,14 @@ public class MaterialIndentController {
         // TODO: Get Current User ID from Security Context
         Long currentUserId = 1L; // Placeholder or extract from Principal
         MaterialIndent created = indentService.createIndent(projectId, indent, currentUserId);
-        return ResponseEntity.ok(new ApiResponse<>("success", "Indent created successfully", created));
+        return ResponseEntity.ok(ApiResponse.success("Indent created successfully", created));
     }
 
     @PutMapping("/{id}/submit")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER')")
     public ResponseEntity<ApiResponse<MaterialIndent>> submitIndent(@PathVariable Long id) {
         MaterialIndent updated = indentService.submitIndent(id);
-        return ResponseEntity.ok(new ApiResponse<>("success", "Indent submitted successfully", updated));
+        return ResponseEntity.ok(ApiResponse.success("Indent submitted successfully", updated));
     }
 
     @PutMapping("/{id}/approve")
@@ -43,13 +43,13 @@ public class MaterialIndentController {
         // TODO: Get Current User ID
         Long currentUserId = 1L;
         MaterialIndent approved = indentService.approveIndent(id, currentUserId);
-        return ResponseEntity.ok(new ApiResponse<>("success", "Indent approved successfully", approved));
+        return ResponseEntity.ok(ApiResponse.success("Indent approved successfully", approved));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'PROCUREMENT_MANAGER')")
     public ResponseEntity<ApiResponse<MaterialIndent>> getIndent(@PathVariable Long id) {
-        return ResponseEntity.ok(new ApiResponse<>("success", "Indent details", indentService.getIndentById(id)));
+        return ResponseEntity.ok(ApiResponse.success("Indent details", indentService.getIndentById(id)));
     }
 
     @GetMapping
@@ -67,6 +67,6 @@ public class MaterialIndentController {
         Page<MaterialIndent> result = indentService.searchIndents(projectId, status, search,
                 PageRequest.of(page, limit, sort));
 
-        return ResponseEntity.ok(new ApiResponse<>("success", "Indents fetched successfully", result));
+        return ResponseEntity.ok(ApiResponse.success("Indents fetched successfully", result));
     }
 }

@@ -7,12 +7,16 @@ import com.wd.api.model.Vendor;
 import com.wd.api.model.PurchaseOrder;
 import com.wd.api.model.PurchaseOrderItem;
 import com.wd.api.model.GoodsReceivedNote;
+import com.wd.api.model.MaterialIndent;
+import com.wd.api.model.VendorQuotation;
 import com.wd.api.model.enums.PurchaseOrderStatus;
 import com.wd.api.repository.VendorRepository;
 import com.wd.api.repository.PurchaseOrderRepository;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.GoodsReceivedNoteRepository;
 import com.wd.api.repository.MaterialRepository;
+import com.wd.api.repository.MaterialIndentRepository;
+import com.wd.api.repository.VendorQuotationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -38,6 +42,8 @@ public class ProcurementService {
     private final GoodsReceivedNoteRepository grnRepository;
     private final InventoryService inventoryService;
     private final MaterialRepository materialRepository;
+    private final MaterialIndentRepository indentRepository;
+    private final VendorQuotationRepository quotationRepository;
 
     @Transactional
     public VendorDTO createVendor(VendorDTO dto) {
@@ -146,6 +152,19 @@ public class ProcurementService {
         po.setPoNumber(generatePONumber());
         po.setVendor(vendor);
         po.setProject(project);
+
+        if (dto.getIndentId() != null) {
+            MaterialIndent indent = indentRepository.findById(dto.getIndentId())
+                    .orElseThrow(() -> new RuntimeException("Indent not found: " + dto.getIndentId()));
+            po.setIndent(indent);
+        }
+
+        if (dto.getQuotationId() != null) {
+            VendorQuotation quotation = quotationRepository.findById(dto.getQuotationId())
+                    .orElseThrow(() -> new RuntimeException("Quotation not found: " + dto.getQuotationId()));
+            po.setQuotation(quotation);
+        }
+
         po.setPoDate(dto.getPoDate() != null ? dto.getPoDate() : java.time.LocalDate.now());
         po.setExpectedDeliveryDate(dto.getExpectedDeliveryDate());
         po.setTotalAmount(dto.getTotalAmount());
@@ -482,6 +501,10 @@ public class ProcurementService {
         dto.setProjectName(p.getProject().getName());
         dto.setVendorId(p.getVendor().getId());
         dto.setVendorName(p.getVendor().getName());
+        if (p.getIndent() != null)
+            dto.setIndentId(p.getIndent().getId());
+        if (p.getQuotation() != null)
+            dto.setQuotationId(p.getQuotation().getId());
         dto.setPoDate(p.getPoDate());
         dto.setStatus(p.getStatus().name());
         dto.setTotalAmount(p.getTotalAmount());

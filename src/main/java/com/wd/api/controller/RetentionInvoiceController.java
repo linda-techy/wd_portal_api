@@ -18,28 +18,36 @@ public class RetentionInvoiceController {
 
     private static final Logger logger = LoggerFactory.getLogger(RetentionInvoiceController.class);
     private final PaymentService paymentService;
+    private final com.wd.api.service.SubcontractService subcontractService;
 
-    public RetentionInvoiceController(PaymentService paymentService) {
+    public RetentionInvoiceController(PaymentService paymentService,
+            com.wd.api.service.SubcontractService subcontractService) {
         this.paymentService = paymentService;
+        this.subcontractService = subcontractService;
     }
 
     /**
      * Release retention money for a payment
-     * POST /api/payments/retention/{paymentId}/release
+     * POST /api/payments/retention/{workOrderId}/release
+     * Note: Path variable changed from paymentId to workOrderId to match logic
      */
-    @PostMapping("/retention/{paymentId}/release")
+    @PostMapping("/retention/{workOrderId}/release")
     public ResponseEntity<?> releaseRetention(
-            @PathVariable Long paymentId,
+            @PathVariable Long workOrderId,
             @RequestBody ReleaseRetentionRequest request,
             Authentication auth) {
         try {
             Long userId = getUserIdFromAuth(auth);
 
-            paymentService.releaseRetention(
-                    paymentId,
-                    request.getReleaseAmount(),
-                    request.getReleaseReason(),
-                    userId);
+            com.wd.api.model.RetentionRelease release = new com.wd.api.model.RetentionRelease();
+            com.wd.api.model.SubcontractWorkOrder wo = new com.wd.api.model.SubcontractWorkOrder();
+            wo.setId(workOrderId);
+            release.setWorkOrder(wo);
+            release.setAmountReleased(request.getReleaseAmount());
+            release.setNotes(request.getReleaseReason()); // Map reason to notes
+            release.setApprovedById(userId);
+
+            subcontractService.releaseRetention(release);
 
             return ResponseEntity.ok(new ApiResponse<>(
                     true,

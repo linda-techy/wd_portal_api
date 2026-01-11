@@ -52,7 +52,7 @@ public class MaterialIndentService {
                     if (item.getItemName() == null)
                         item.setItemName(mat.getName());
                     if (item.getUnit() == null)
-                        item.setUnit(mat.getUnit());
+                        item.setUnit(mat.getUnit().name());
                 }
             });
         }

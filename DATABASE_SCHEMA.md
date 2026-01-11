@@ -1517,3 +1517,36 @@
 ### Foreign Keys
 
 - `labour_id` → `labour.id`
+
+---
+
+## vendor_quotations
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `indent_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `material_indents.id` |
+| `vendor_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `vendors.id` |
+| `quoted_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `items_included` | `character varying(255)` | ✓ | `-` | - |
+| `delivery_charges` | `numeric(15,2)` | ✓ | `-` | - |
+| `tax_amount` | `numeric(15,2)` | ✓ | `-` | - |
+| `expected_delivery_date` | `date` | ✓ | `-` | - |
+| `valid_until` | `date` | ✓ | `-` | - |
+| `document_url` | `character varying(500)` | ✓ | `-` | - |
+| `notes` | `text` | ✓ | `-` | - |
+| `status` | `character varying(50)` | ✗ | `'PENDING'` | - |
+| `selected_at` | `timestamp without time zone` | ✓ | `-` | - |
+| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
+| `updated_at` | `timestamp without time zone` | ✓ | `CURRENT_TIMESTAMP` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `indent_id` → `material_indents.id`
+- `vendor_id` → `vendors.id`

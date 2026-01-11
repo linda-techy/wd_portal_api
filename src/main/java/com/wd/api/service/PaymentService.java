@@ -29,7 +29,8 @@ public class PaymentService {
     private final PaymentScheduleRepository scheduleRepository;
     private final PaymentTransactionRepository transactionRepository;
     private final com.wd.api.repository.CustomerProjectRepository projectRepository;
-    private final com.wd.api.repository.RetentionReleaseRepository retentionReleaseRepository;
+    // private final com.wd.api.repository.RetentionReleaseRepository
+    // retentionReleaseRepository; // Removed
     private final com.wd.api.repository.TaxInvoiceRepository taxInvoiceRepository;
 
     public PaymentService(
@@ -37,13 +38,11 @@ public class PaymentService {
             PaymentScheduleRepository scheduleRepository,
             PaymentTransactionRepository transactionRepository,
             com.wd.api.repository.CustomerProjectRepository projectRepository,
-            com.wd.api.repository.RetentionReleaseRepository retentionReleaseRepository,
             com.wd.api.repository.TaxInvoiceRepository taxInvoiceRepository) {
         this.paymentRepository = paymentRepository;
         this.scheduleRepository = scheduleRepository;
         this.transactionRepository = transactionRepository;
         this.projectRepository = projectRepository;
-        this.retentionReleaseRepository = retentionReleaseRepository;
         this.taxInvoiceRepository = taxInvoiceRepository;
     }
 
@@ -341,49 +340,7 @@ public class PaymentService {
     }
 
     // ===== Phase 2: Retention Money Management =====
-
-    @Transactional
-    public void releaseRetention(Long paymentId, BigDecimal releaseAmount, String releaseReason, Long approvedById) {
-        logger.info("Releasing retention for payment: {}, amount: {}", paymentId, releaseAmount);
-
-        DesignPackagePayment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment not found: " + paymentId));
-
-        // Validate remaining retention
-        BigDecimal remainingRetention = payment.getRetentionAmount()
-                .subtract(payment.getRetentionReleasedAmount());
-
-        if (releaseAmount.compareTo(remainingRetention) > 0) {
-            throw new IllegalArgumentException(
-                    String.format("Release amount (₹%s) exceeds remaining retention (₹%s)",
-                            releaseAmount, remainingRetention));
-        }
-
-        if (releaseAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Release amount must be positive");
-        }
-
-        // Create retention release record
-        com.wd.api.model.RetentionRelease release = new com.wd.api.model.RetentionRelease();
-        release.setPaymentId(paymentId);
-        release.setReleaseAmount(releaseAmount);
-        release.setReleaseReason(releaseReason);
-        release.setApprovedById(approvedById);
-        retentionReleaseRepository.save(release);
-
-        // Update payment retention status
-        BigDecimal newReleasedAmount = payment.getRetentionReleasedAmount().add(releaseAmount);
-        payment.setRetentionReleasedAmount(newReleasedAmount);
-
-        if (newReleasedAmount.compareTo(payment.getRetentionAmount()) >= 0) {
-            payment.setRetentionStatus("RELEASED");
-        } else {
-            payment.setRetentionStatus("PARTIALLY_RELEASED");
-        }
-
-        paymentRepository.save(payment);
-        logger.info("Retention released successfully. New status: {}", payment.getRetentionStatus());
-    }
+    // Moved to SubcontractService.java
 
     // ===== Phase 2: GST Invoice Generation =====
 

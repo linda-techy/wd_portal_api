@@ -29,6 +29,9 @@ public class RetentionRelease extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private ReleaseStatus status = ReleaseStatus.PENDING;
 
+    @Column(name = "approved_by_id")
+    private Long approvedById;
+
     public enum ReleaseStatus {
         PENDING, APPROVED, PAID
     }
@@ -80,5 +83,13 @@ public class RetentionRelease extends BaseEntity {
 
     public void setStatus(ReleaseStatus status) {
         this.status = status;
+    }
+
+    public Long getApprovedById() {
+        return approvedById;
+    }
+
+    public void setApprovedById(Long approvedById) {
+        this.approvedById = approvedById;
     }
 }
