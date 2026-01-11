@@ -42,4 +42,10 @@ public class SubcontractController {
             @RequestBody SubcontractPayment payment) {
         return ResponseEntity.ok(subcontractService.processPayment(workOrderId, payment));
     }
+
+    @PostMapping("/retention/release")
+    public ResponseEntity<com.wd.api.model.RetentionRelease> releaseRetention(
+            @RequestBody com.wd.api.model.RetentionRelease release) {
+        return ResponseEntity.ok(subcontractService.releaseRetention(release));
+    }
 }

@@ -2,43 +2,35 @@ package com.wd.api.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "retention_releases")
-public class RetentionRelease {
+public class RetentionRelease extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "payment_id", nullable = false)
-    private Long paymentId;
-
-    @Column(name = "release_amount", precision = 15, scale = 2, nullable = false)
-    private BigDecimal releaseAmount;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "work_order_id", nullable = false)
+    private SubcontractWorkOrder workOrder;
 
     @Column(name = "release_date", nullable = false)
-    private LocalDateTime releaseDate;
+    private LocalDate releaseDate;
 
-    @Column(name = "release_reason")
-    private String releaseReason;
+    @Column(name = "amount_released", nullable = false, precision = 15, scale = 2)
+    private BigDecimal amountReleased;
 
-    @Column(name = "approved_by_id")
-    private Long approvedById;
-
-    @Column(name = "notes", columnDefinition = "TEXT")
+    @Column(name = "notes")
     private String notes;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private ReleaseStatus status = ReleaseStatus.PENDING;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        if (releaseDate == null) {
-            releaseDate = LocalDateTime.now();
-        }
+    public enum ReleaseStatus {
+        PENDING, APPROVED, PAID
     }
 
     // Getters and Setters
@@ -50,44 +42,28 @@ public class RetentionRelease {
         this.id = id;
     }
 
-    public Long getPaymentId() {
-        return paymentId;
+    public SubcontractWorkOrder getWorkOrder() {
+        return workOrder;
     }
 
-    public void setPaymentId(Long paymentId) {
-        this.paymentId = paymentId;
+    public void setWorkOrder(SubcontractWorkOrder workOrder) {
+        this.workOrder = workOrder;
     }
 
-    public BigDecimal getReleaseAmount() {
-        return releaseAmount;
-    }
-
-    public void setReleaseAmount(BigDecimal releaseAmount) {
-        this.releaseAmount = releaseAmount;
-    }
-
-    public LocalDateTime getReleaseDate() {
+    public LocalDate getReleaseDate() {
         return releaseDate;
     }
 
-    public void setReleaseDate(LocalDateTime releaseDate) {
+    public void setReleaseDate(LocalDate releaseDate) {
         this.releaseDate = releaseDate;
     }
 
-    public String getReleaseReason() {
-        return releaseReason;
+    public BigDecimal getAmountReleased() {
+        return amountReleased;
     }
 
-    public void setReleaseReason(String releaseReason) {
-        this.releaseReason = releaseReason;
-    }
-
-    public Long getApprovedById() {
-        return approvedById;
-    }
-
-    public void setApprovedById(Long approvedById) {
-        this.approvedById = approvedById;
+    public void setAmountReleased(BigDecimal amountReleased) {
+        this.amountReleased = amountReleased;
     }
 
     public String getNotes() {
@@ -98,11 +74,11 @@ public class RetentionRelease {
         this.notes = notes;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public ReleaseStatus getStatus() {
+        return status;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setStatus(ReleaseStatus status) {
+        this.status = status;
     }
 }

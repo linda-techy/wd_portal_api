@@ -16,18 +16,21 @@ public class SubcontractService {
     private final SubcontractMeasurementRepository measurementRepository;
     private final SubcontractPaymentRepository paymentRepository;
     private final CustomerProjectRepository projectRepository;
-    private final VendorRepository vendorRepository; // Assuming this exists
+    private final VendorRepository vendorRepository;
+    private final RetentionReleaseRepository retentionReleaseRepository;
 
     public SubcontractService(SubcontractWorkOrderRepository workOrderRepository,
             SubcontractMeasurementRepository measurementRepository,
             SubcontractPaymentRepository paymentRepository,
             CustomerProjectRepository projectRepository,
-            VendorRepository vendorRepository) {
+            VendorRepository vendorRepository,
+            RetentionReleaseRepository retentionReleaseRepository) {
         this.workOrderRepository = workOrderRepository;
         this.measurementRepository = measurementRepository;
         this.paymentRepository = paymentRepository;
         this.projectRepository = projectRepository;
         this.vendorRepository = vendorRepository;
+        this.retentionReleaseRepository = retentionReleaseRepository;
     }
 
     @Transactional
@@ -79,12 +82,45 @@ public class SubcontractService {
         payment.setWorkOrder(workOrder);
         payment.setCreatedAt(LocalDateTime.now());
 
-        // Calculate Net Amount (Gross - TDS)
+        // Calculate Retention Amount
+        BigDecimal retentionPct = workOrder.getRetentionPercentage() != null ? workOrder.getRetentionPercentage()
+                : BigDecimal.ZERO;
+        BigDecimal retentionAmt = payment.getGrossAmount().multiply(retentionPct.divide(new BigDecimal("100")));
+        payment.setRetentionAmount(retentionAmt);
+
+        // Calculate TDS
         BigDecimal tds = payment.getGrossAmount().multiply(payment.getTdsPercentage().divide(new BigDecimal("100")));
         payment.setTdsAmount(tds);
-        payment.setNetAmount(payment.getGrossAmount().subtract(tds));
+
+        // Net Amount = Gross - Retention - TDS
+        BigDecimal deduction = retentionAmt.add(tds);
+        payment.setNetAmount(payment.getGrossAmount().subtract(deduction));
+
+        // Update Accumulated Retention in Work Order
+        if (workOrder.getTotalRetentionAccumulated() == null) {
+            workOrder.setTotalRetentionAccumulated(BigDecimal.ZERO);
+        }
+        workOrder.setTotalRetentionAccumulated(workOrder.getTotalRetentionAccumulated().add(retentionAmt));
+        workOrderRepository.save(workOrder);
 
         return paymentRepository.save(payment);
+    }
+
+    @Transactional
+    public RetentionRelease releaseRetention(RetentionRelease release) {
+        if (release.getWorkOrder() == null || release.getWorkOrder().getId() == null) {
+            throw new IllegalArgumentException("Work Order ID is required");
+        }
+        SubcontractWorkOrder workOrder = workOrderRepository.findById(release.getWorkOrder().getId())
+                .orElseThrow(() -> new RuntimeException("Work Order not found"));
+
+        release.setWorkOrder(workOrder);
+        release.setReleaseDate(release.getReleaseDate() != null ? release.getReleaseDate() : java.time.LocalDate.now());
+        release.setStatus(RetentionRelease.ReleaseStatus.PENDING);
+
+        // TODO: Linking to a Payment transaction for the actual payout
+
+        return retentionReleaseRepository.save(release);
     }
 
     public List<SubcontractWorkOrder> getProjectSubcontracts(Long projectId) {

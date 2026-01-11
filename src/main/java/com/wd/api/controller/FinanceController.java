@@ -36,4 +36,39 @@ public class FinanceController {
     public ResponseEntity<List<ProjectInvoiceDTO>> getInvoicesByProject(@PathVariable Long projectId) {
         return ResponseEntity.ok(financeService.getInvoicesByProject(projectId));
     }
+
+    // Milestones
+    @PostMapping("/milestone")
+    public ResponseEntity<com.wd.api.model.ProjectMilestone> createMilestone(
+            @RequestBody com.wd.api.model.ProjectMilestone milestone) {
+        return ResponseEntity.ok(financeService.createMilestone(milestone));
+    }
+
+    @PutMapping("/milestone/{id}")
+    public ResponseEntity<com.wd.api.model.ProjectMilestone> updateMilestone(@PathVariable Long id,
+            @RequestBody com.wd.api.model.ProjectMilestone milestone) {
+        return ResponseEntity.ok(financeService.updateMilestone(id, milestone));
+    }
+
+    @PostMapping("/milestone/{id}/generate-invoice")
+    public ResponseEntity<ProjectInvoiceDTO> generateInvoiceForMilestone(@PathVariable Long id) {
+        return ResponseEntity.ok(financeService.generateInvoiceForMilestone(id));
+    }
+
+    @GetMapping("/milestones/project/{projectId}")
+    public ResponseEntity<List<com.wd.api.model.ProjectMilestone>> getMilestonesByProject(
+            @PathVariable Long projectId) {
+        return ResponseEntity.ok(financeService.getMilestonesByProject(projectId));
+    }
+
+    // Receipts
+    @PostMapping("/receipt")
+    public ResponseEntity<com.wd.api.model.Receipt> recordReceipt(@RequestBody com.wd.api.model.Receipt receipt) {
+        return ResponseEntity.ok(financeService.recordReceipt(receipt));
+    }
+
+    @GetMapping("/receipts/project/{projectId}")
+    public ResponseEntity<List<com.wd.api.model.Receipt>> getReceiptsByProject(@PathVariable Long projectId) {
+        return ResponseEntity.ok(financeService.getReceiptsByProject(projectId));
+    }
 }

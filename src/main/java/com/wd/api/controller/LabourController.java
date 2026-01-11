@@ -40,4 +40,21 @@ public class LabourController {
     public ResponseEntity<List<MeasurementBookDTO>> getMBEntries(@PathVariable Long projectId) {
         return ResponseEntity.ok(labourService.getMBEntriesByProject(projectId));
     }
+
+    @PostMapping("/wagesheet/generate")
+    public ResponseEntity<com.wd.api.model.WageSheet> generateWageSheet(
+            @RequestParam Long projectId,
+            @RequestParam String start,
+            @RequestParam String end) {
+        return ResponseEntity.ok(labourService.generateWageSheet(projectId, java.time.LocalDate.parse(start),
+                java.time.LocalDate.parse(end)));
+    }
+
+    @PostMapping("/advance")
+    public ResponseEntity<com.wd.api.model.LabourAdvance> createAdvance(
+            @RequestParam Long labourId,
+            @RequestParam java.math.BigDecimal amount,
+            @RequestParam(required = false) String notes) {
+        return ResponseEntity.ok(labourService.createAdvance(labourId, amount, notes));
+    }
 }

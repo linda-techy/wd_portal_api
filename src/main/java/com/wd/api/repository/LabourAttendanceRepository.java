@@ -9,4 +9,7 @@ import java.util.List;
 @Repository
 public interface LabourAttendanceRepository extends JpaRepository<LabourAttendance, Long> {
     List<LabourAttendance> findByProjectIdAndAttendanceDate(Long projectId, LocalDate date);
+
+    List<LabourAttendance> findByProjectIdAndAttendanceDateBetween(Long projectId, LocalDate startDate,
+            LocalDate endDate);
 }

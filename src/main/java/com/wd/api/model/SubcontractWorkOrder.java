@@ -55,6 +55,28 @@ public class SubcontractWorkOrder extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private WorkOrderStatus status = WorkOrderStatus.DRAFT;
 
+    @Column(name = "retention_percentage", precision = 5, scale = 2)
+    private BigDecimal retentionPercentage = new BigDecimal("5.00"); // Default 5%
+
+    @Column(name = "total_retention_accumulated", precision = 15, scale = 2)
+    private BigDecimal totalRetentionAccumulated = BigDecimal.ZERO;
+
+    public BigDecimal getRetentionPercentage() {
+        return retentionPercentage;
+    }
+
+    public void setRetentionPercentage(BigDecimal retentionPercentage) {
+        this.retentionPercentage = retentionPercentage;
+    }
+
+    public BigDecimal getTotalRetentionAccumulated() {
+        return totalRetentionAccumulated;
+    }
+
+    public void setTotalRetentionAccumulated(BigDecimal totalRetentionAccumulated) {
+        this.totalRetentionAccumulated = totalRetentionAccumulated;
+    }
+
     @PrePersist
     @Override
     protected void onCreate() {

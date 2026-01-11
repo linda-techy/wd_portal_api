@@ -20,6 +20,9 @@ public class ProjectInvoice {
     @Column(name = "invoice_number", nullable = false, unique = true)
     private String invoiceNumber;
 
+    @OneToOne(mappedBy = "invoice", fetch = FetchType.LAZY)
+    private ProjectMilestone milestone;
+
     @Column(name = "invoice_date", nullable = false)
     private LocalDate invoiceDate;
 

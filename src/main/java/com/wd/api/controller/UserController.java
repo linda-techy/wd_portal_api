@@ -1,6 +1,7 @@
 package com.wd.api.controller;
 
 import com.wd.api.dto.TeamMemberDTO;
+import com.wd.api.dto.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +31,7 @@ public class UserController {
      */
     @GetMapping("/team-members")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<TeamMemberDTO>> getTeamMembers() {
+    public ResponseEntity<ApiResponse<List<TeamMemberDTO>>> getTeamMembers() {
         try {
             List<TeamMemberDTO> teamMembers = new java.util.ArrayList<>();
 
@@ -56,10 +57,10 @@ public class UserController {
                             "CUSTOMER"))
                     .collect(Collectors.toList()));
 
-            return ResponseEntity.ok(teamMembers);
+            return ResponseEntity.ok(ApiResponse.success("Team members retrieved successfully", teamMembers));
         } catch (Exception e) {
             logger.error("Error fetching team members", e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Error fetching team members"));
         }
     }
 }

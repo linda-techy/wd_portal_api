@@ -1,5 +1,5 @@
-﻿# WallDot Builders - Database Schema Documentation
-**Total Tables:** 61
+# WallDot Builders - Database Schema Documentation
+**Total Tables:** 37
 **Database:** PostgreSQL (wdTestDB)
 
 ## Table of Contents
@@ -8,64 +8,38 @@
 3. [boq_items](#boq-items)
 4. [boq_work_types](#boq-work-types)
 5. [cctv_cameras](#cctv-cameras)
-6. [customer_projects](#customer-projects)
-7. [customer_refresh_tokens](#customer-refresh-tokens)
-8. [customer_roles](#customer-roles)
-9. [customer_users](#customer-users)
-10. [design_package_payments](#design-package-payments) *(NEW)*
-11. [design_steps](#design-steps)
-12. [document_categories](#document-categories)
-13. [feedback_forms](#feedback-forms)
-14. [feedback_responses](#feedback-responses)
-15. [gallery_images](#gallery-images)
-16. [leads](#leads)
-17. [lead_quotations](#lead-quotations) *(NEW - V1_22)*
-18. [lead_quotation_items](#lead-quotation_items) *(NEW - V1_22)*
-19. [lead_interactions](#lead-interactions) *(NEW - V1_23)*
+6. [customer_permissions](#customer-permissions)
+7. [customer_project_members](#customer-project-members)
+8. [customer_project_team_members](#customer-project-team-members)
+9. [customer_projects](#customer-projects)
+10. [customer_refresh_tokens](#customer-refresh-tokens)
+11. [customer_role_permissions](#customer-role-permissions)
+12. [customer_roles](#customer-roles)
+13. [customer_users](#customer-users)
+14. [design_steps](#design-steps)
+15. [document_categories](#document-categories)
+16. [feedback_forms](#feedback-forms)
+17. [feedback_responses](#feedback-responses)
+18. [gallery_images](#gallery-images)
+19. [leads](#leads)
 20. [observations](#observations)
 21. [partnership_users](#partnership-users)
-22. [payment_schedule](#payment-schedule) *(NEW)*
-23. [payment_transactions](#payment-transactions) *(NEW)*
-24. [portal_permissions](#portal-permissions)
-25. [portal_refresh_tokens](#portal-refresh-tokens)
-26. [portal_role_permissions](#portal-role-permissions)
-27. [portal_roles](#portal-roles)
-28. [portal_users](#portal-users)
-29. [project_design_steps](#project-design-steps)
-30. [project_documents](#project-documents)
-31. [project_members](#project-members)
-32. [project_queries](#project-queries)
-33. [quality_checks](#quality-checks)
-34. [retention_releases](#retention-releases) *(NEW)*
-35. [site_reports](#site-reports)
-36. [site_visits](#site-visits)
-37. [sqft_categories](#sqft-categories)
-38. [staff_roles](#staff-roles)
-39. [task_assignment_history](#task-assignment-history) *(NEW)*
-40. [tasks](#tasks)
-41. [tax_invoices](#tax-invoices) *(NEW)*
-42. [view_360](#view-360)
-43. [challan_sequences](#challan_sequences) *(NEW)*
-44. [payment_challans](#payment_challans) *(NEW)*
-45. [vendors](#vendors) *(Standardized)*
-46. [materials](#materials) *(Standardized)*
-47. [purchase_orders](#purchase_orders) *(Standardized)*
-48. [purchase_order_items](#purchase_order-items) *(Standardized)*
-49. [goods_received_notes](#goods-received-notes) *(Standardized)*
-50. [inventory_stock](#inventory-stock) *(Standardized)*
-51. [stock_adjustments](#stock-adjustments) *(Standardized)*
-52. [subcontract_work_orders](#subcontract-work-orders) *(Standardized)*
-53. [vendor_payments](#vendor-payments) *(Standardized)*
-54. [material_budgets](#material-budgets) *(Standardized)*
-55. [project_phases](#project-phases) *(NEW)*
-56. [project_variations](#project-variations) *(Standardized)*
-57. [project_warranties](#project-warranties) *(Standardized)*
-58. [labour](#labour) *(Standardized)*
-59. [labour_attendance](#labour-attendance) *(Standardized)*
-60. [labour_payments](#labour-payments) *(Standardized)*
-61. [measurement_book](#measurement-book) *(Standardized)*
-
-
+22. [portal_permissions](#portal-permissions)
+23. [portal_refresh_tokens](#portal-refresh-tokens)
+24. [portal_role_permissions](#portal-role-permissions)
+25. [portal_roles](#portal-roles)
+26. [portal_users](#portal-users)
+27. [project_design_steps](#project-design-steps)
+28. [project_documents](#project-documents)
+29. [project_members](#project-members)
+30. [project_queries](#project-queries)
+31. [quality_checks](#quality-checks)
+32. [site_reports](#site-reports)
+33. [site_visits](#site-visits)
+34. [sqft_categories](#sqft-categories)
+35. [staff_roles](#staff-roles)
+36. [tasks](#tasks)
+37. [view_360](#view-360)
 
 ---
 
@@ -102,7 +76,7 @@
 | `title` | `character varying(255)` | ✗ | `-` | - |
 | `activity_type_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `activity_types.id` |
 | `created_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_users.id` |
-| `project_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `customer_projects.id` |
+| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
 
 ### Primary Key
 
@@ -159,7 +133,6 @@
 | `created_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_users.id` |
 | `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
 | `work_type_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `boq_work_types.id` |
-| `material_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `materials.id` *(V1_36)* Optional link for cost tracking |
 | `total_amount` | `numeric(10,2)` | ✓ | `-` | - |
 | `unit_rate` | `numeric(10,2)` | ✓ | `-` | - |
 
@@ -172,8 +145,6 @@
 - `created_by_id` → `customer_users.id`
 - `work_type_id` → `boq_work_types.id`
 - `project_id` → `customer_projects.id`
-- `material_id` → `materials.id` *(V1_36)* ON DELETE SET NULL
-
 
 ---
 
@@ -232,6 +203,26 @@
 
 ---
 
+## customer_permissions
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `description` | `character varying(255)` | ✓ | `-` | - |
+| `name` | `character varying(255)` | ✗ | `-` | 🔒 UNIQUE |
+
+### Primary Key
+
+- `id`
+
+### Unique Constraints
+
+- `name`
+
+---
+
 ## customer_project_members
 
 ### Columns
@@ -285,10 +276,8 @@
 | `end_date` | `date` | ✓ | `-` | - |
 | `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
 | `updated_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
-
 | `created_by` | `character varying(255)` | ✓ | `-` | - |
 | `project_phase` | `character varying(100)` | ✗ | `'design'::character varying` | - |
-| contract_type | character varying(50) | âœ— | 'TURNKEY' | 'TURNKEY', 'LABOR_ONLY', 'ITEM_RATE', 'COST_PLUS' |
 | `state` | `character varying(50)` | ✗ | `-` | - |
 | `district` | `character varying(50)` | ✗ | `-` | - |
 | `sqfeet` | `numeric(10,2)` | ✓ | `-` | - |
@@ -298,10 +287,8 @@
 | `is_design_agreement_signed` | `boolean` | ✗ | `false` | - |
 | `project_uuid` | `uuid` | ✗ | `-` | 🔒 UNIQUE |
 | `sq_feet` | `double precision(53)` | ✓ | `-` | - |
-
 | `customer_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `customer_users.id` |
 | `project_type` | `character varying(255)` | ✓ | `-` | - |
-| `project_manager_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` Project manager with full task edit rights |
 
 ### Primary Key
 
@@ -311,40 +298,47 @@
 
 - `lead_id` → `leads.lead_id`
 - `customer_id` → `customer_users.id`
-- `project_manager_id` → `portal_users.id` *(V1_35)*
-- `created_by_user_id` → `portal_users.id` *(V1_35)*
-- `updated_by_user_id` → `portal_users.id` *(V1_35)*
-- `deleted_by_user_id` → `portal_users.id` *(V1_35)*
 
 ### Unique Constraints
 
 - `project_uuid`
-
-### Check Constraints *(V1_35)*
-
-- `chk_project_status` → `project_status` IN ('ACTIVE', 'COMPLETED', 'SUSPENDED', 'CANCELLED', 'ON_HOLD')
-
-### Indexes *(V1_35)*
-
-- `idx_projects_deleted_at` → Partial index on `deleted_at IS NULL` for active projects
-- `idx_projects_active_phase` → Composite index on `(id, project_phase, project_status)` WHERE `deleted_at IS NULL`
-- `idx_projects_manager` → Index on `project_manager_id` WHERE `deleted_at IS NULL`
-- `idx_projects_customer_active` → Index on `customer_id` WHERE `deleted_at IS NULL`
-- `idx_projects_status` → Index on `project_status`
-- `idx_projects_version` → Composite index on `(id, version)` for optimistic locking
-
-### Notes
-
-**Enum Fields**: `project_phase`, `contract_type`, `permit_status`, and `project_status` are stored as VARCHAR but validated as enums in application layer (JPA @Enumerated).
-
-**Audit Trail**: Full audit trail implemented in V1_35 with user references for create/update/delete operations.
-
-**Soft Delete**: Projects use soft delete pattern via `deleted_at` timestamp. Queries should filter WHERE `deleted_at IS NULL` for active records.
-
-**Optimistic Locking**: The `version` column prevents lost updates in concurrent scenarios using JPA @Version annotation.
+- `project_uuid`
 
 ---
 
+## customer_refresh_tokens
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `expiry_date` | `timestamp without time zone` | ✗ | `-` | - |
+| `revoked` | `boolean` | ✗ | `-` | - |
+| `token` | `character varying(255)` | ✗ | `-` | 🔒 UNIQUE |
+| `user_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_users.id` |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `user_id` → `customer_users.id`
+
+### Unique Constraints
+
+- `token`
+
+---
+
+## customer_role_permissions
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `role_id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK 🔗 FK → `customer_roles.id` |
 | `permission_id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK 🔗 FK → `customer_permissions.id` |
 
 ### Primary Key
@@ -393,13 +387,6 @@
 | `password` | `character varying(255)` | ✗ | `-` | - |
 | `updated_at` | `timestamp without time zone` | ✓ | `-` | - |
 | `role_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `customer_roles.id` |
-| `phone` | `character varying(20)` | ✓ | `-` | - |
-| `whatsapp_number` | `character varying(20)` | ✓ | `-` | - |
-| `address` | `text` | ✓ | `-` | - |
-| `company_name` | `character varying(255)` | ✓ | `-` | - |
-| `gst_number` | `character varying(50)` | ✓ | `-` | - |
-| `lead_source` | `character varying(50)` | ✓ | `-` | - |
-| `notes` | `text` | ✓ | `-` | - |
 
 ### Primary Key
 
@@ -453,16 +440,6 @@
 ### Unique Constraints
 
 - `name`
-
-### Default Categories (V1_13)
-- Floor Plan Layout
-- 3D Elevation
-- Detailed Project Costing
-- Structural Drawings
-- MEP Drawings
-- Collaboration Agreement
-- Site Photos
-- Other
 
 ---
 
@@ -558,9 +535,6 @@
 
 ## leads
 
-**Construction Lead Management**  
-Standardized on the `Lead` entity within the unified security model. Capture initial customer inquiries and tracks them through the conversion pipeline.
-
 ### Columns
 
 | Column Name | Data Type | Nullable | Default | Notes |
@@ -593,83 +567,43 @@ Standardized on the `Lead` entity within the unified security model. Capture ini
 | `district` | `character varying(255)` | ✓ | `-` | - |
 | `location` | `character varying(255)` | ✓ | `-` | - |
 | `project_sqft_area` | `numeric(38,2)` | ✓ | `-` | - |
-| `assigned_to_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` (V1_18) |
-| `plot_area` | `numeric(10,2)` | ✓ | `-` | (V1_32) |
-| `floors` | `integer` | ✓ | `-` | (V1_32) |
-
-### Foreign Keys
-
-- `assigned_to_id` → `portal_users.id`
-
-### Related Tables
-
-- **tasks**: Pre-sales tasks can be linked directly to a lead via `tasks.lead_id`.
-- **customer_projects**: Successfully converted leads are linked to projects via `customer_projects.lead_id`.
-
----
-
----
-
-
----
-
-## lead_interactions
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `nextval` | 🔑 PK |
-| `lead_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `leads.lead_id` |
-| `interaction_type` | `character varying(50)` | ✗ | `-` | 'CALL', 'EMAIL', 'MEETING', etc. |
-| `interaction_date` | `timestamp without time zone` | ✗ | `now()` | - |
-| `duration_minutes` | `integer` | ✓ | `-` | - |
-| `subject` | `character varying(255)` | ✓ | `-` | - |
-| `notes` | `text` | ✓ | `-` | - |
-| `outcome` | `character varying(100)` | ✓ | `-` | - |
-| `next_action` | `character varying(255)` | ✓ | `-` | - |
-| `next_action_date` | `timestamp without time zone` | ✓ | `-` | - |
-| `location` | `character varying(255)` | ✓ | `-` | - |
-| `metadata` | `text` | ✓ | `-` | - |
-| `created_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `portal_users.id` |
-| `created_at` | `timestamp without time zone` | ✗ | `now()` | - |
+| `score` | `integer(32,0)` | ✓ | `0` | - |
+| `score_category` | `character varying(20)` | ✓ | `'COLD'::character varying` | - |
+| `last_scored_at` | `timestamp without time zone` | ✓ | `-` | - |
+| `score_factors` | `jsonb` | ✓ | `-` | - |
+| `plot_area` | `numeric(10,2)` | ✓ | `-` | - |
+| `floors` | `integer(32,0)` | ✓ | `-` | - |
+| `converted_by_id` | `bigint(64,0)` | ✓ | `-` | - |
+| `converted_at` | `timestamp without time zone` | ✓ | `-` | - |
+| `assigned_to_id` | `bigint(64,0)` | ✓ | `-` | - |
 
 ### Primary Key
 
-- `id`
-
-### Foreign Keys
-
-- `lead_id` → `leads.lead_id`
-- `created_by_id` → `portal_users.id`
+- `lead_id`
 
 ---
 
-## lead_quotations
+---
+
+## material_indent_items
 
 ### Columns
 
 | Column Name | Data Type | Nullable | Default | Notes |
 |-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `nextval` | 🔑 PK |
-| `lead_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `leads.lead_id` |
-| `quotation_number` | `character varying(50)` | ✗ | `-` | 🔒 UNIQUE |
-| `version` | `integer` | ✗ | `1` | - |
-| `title` | `character varying(255)` | ✗ | `-` | - |
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `indent_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `material_indents.id` |
+| `material_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `materials.id` |
+| `item_name` | `character varying(255)` | ✗ | `-` | - |
 | `description` | `text` | ✓ | `-` | - |
-| `total_amount` | `numeric(12,2)` | ✗ | `-` | - |
-| `tax_amount` | `numeric(12,2)` | ✓ | `-` | - |
-| `discount_amount` | `numeric(12,2)` | ✓ | `-` | - |
-| `final_amount` | `numeric(12,2)` | ✗ | `-` | - |
-| `validity_days` | `integer` | ✓ | `30` | - |
-| `status` | `character varying(50)` | ✗ | `'DRAFT'` | 'DRAFT', 'SENT', 'ACCEPTED', etc. |
-| `sent_at` | `timestamp without time zone` | ✓ | `-` | - |
-| `viewed_at` | `timestamp without time zone` | ✓ | `-` | - |
-| `responded_at` | `timestamp without time zone` | ✓ | `-` | - |
-| `created_by_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `created_at` | `timestamp without time zone` | ✗ | `now()` | - |
-| `updated_at` | `timestamp without time zone` | ✗ | `now()` | - |
-| `notes` | `text` | ✓ | `-` | - |
+| `unit` | `character varying(50)` | ✗ | `-` | - |
+| `quantity_requested` | `numeric(10,2)` | ✗ | `-` | - |
+| `quantity_approved` | `numeric(10,2)` | ✓ | `-` | - |
+| `po_quantity` | `numeric(10,2)` | ✓ | `0` | - |
+| `estimated_rate` | `numeric(15,2)` | ✓ | `-` | - |
+| `estimated_amount` | `numeric(15,2)` | ✓ | `-` | - |
+| `created_at` | `timestamp without time zone` | ✗ | `-` | - |
+| `updated_at` | `timestamp without time zone` | ✗ | `-` | - |
 
 ### Primary Key
 
@@ -677,37 +611,45 @@ Standardized on the `Lead` entity within the unified security model. Capture ini
 
 ### Foreign Keys
 
-- `lead_id` → `leads.lead_id`
-- `created_by_id` → `portal_users.id`
+- `indent_id` → `material_indents.id`
+- `material_id` → `materials.id`
+
+---
+
+## material_indents
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `indent_number` | `character varying(50)` | ✗ | `-` | 🔒 UNIQUE |
+| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `request_date` | `date` | ✗ | `-` | - |
+| `required_date` | `date` | ✗ | `-` | - |
+| `status` | `character varying(50)` | ✗ | `'DRAFT'` | - |
+| `priority` | `character varying(20)` | ✓ | `'MEDIUM'` | - |
+| `notes` | `text` | ✓ | `-` | - |
+| `requested_by_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `approved_by_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `approved_at` | `timestamp without time zone` | ✓ | `-` | - |
+| `rejection_reason` | `text` | ✓ | `-` | - |
+| `created_at` | `timestamp without time zone` | ✗ | `-` | - |
+| `updated_at` | `timestamp without time zone` | ✗ | `-` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `requested_by_id` → `portal_users.id`
+- `approved_by_id` → `portal_users.id`
 
 ### Unique Constraints
 
-- `quotation_number`
-
----
-
-## lead_quotation_items
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `nextval` | 🔑 PK |
-| `quotation_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `lead_quotations.id` |
-| `item_number` | `integer` | ✗ | `-` | - |
-| `description` | `text` | ✗ | `-` | - |
-| `quantity` | `numeric(10,2)` | ✗ | `1` | - |
-| `unit_price` | `numeric(12,2)` | ✗ | `-` | - |
-| `total_price` | `numeric(12,2)` | ✗ | `-` | - |
-| `notes` | `text` | ✓ | `-` | - |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `quotation_id` → `lead_quotations.id`
+- `indent_number`
 
 ---
 
@@ -828,8 +770,6 @@ Standardized on the `Lead` entity within the unified security model. Capture ini
 
 ---
 
----
-
 ## portal_refresh_tokens
 
 ### Columns
@@ -840,7 +780,7 @@ Standardized on the `Lead` entity within the unified security model. Capture ini
 | `token` | `character varying(4096)` | ✗ | `-` | 🔒 UNIQUE |
 | `user_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `portal_users.id` |
 | `expiry_date` | `timestamp without time zone` | ✗ | `-` | - |
-| `revoked` | `boolean` | ✗ | `false` | Set to `true` after rotation. If a revoked token is used, all user tokens are invalidated. |
+| `revoked` | `boolean` | ✗ | `false` | - |
 
 ### Primary Key
 
@@ -853,6 +793,31 @@ Standardized on the `Lead` entity within the unified security model. Capture ini
 ### Unique Constraints
 
 - `token`
+
+---
+
+---
+
+## labour_advances
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `advance_date` | `date` | ✗ | `-` | - |
+| `amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `labour_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `labour.id` |
+| `notes` | `character varying(255)` | ✓ | `-` | - |
+| `recovered_amount` | `numeric(15,2)` | ✗ | `0` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `labour_id` → `labour.id`
 
 ---
 
@@ -969,8 +934,6 @@ Standardized on the `Lead` entity within the unified security model. Capture ini
 
 ## project_documents
 
-Unified polymorphic document table for all system attachments.
-
 ### Columns
 
 | Column Name | Data Type | Nullable | Default | Notes |
@@ -982,16 +945,16 @@ Unified polymorphic document table for all system attachments.
 | `file_size` | `bigint(64,0)` | ✓ | `-` | - |
 | `description` | `text` | ✓ | `-` | - |
 | `category_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `document_categories.id` |
-| `reference_id` | `bigint(64,0)` | ✗ | `-` | Polymorphic ID (Lead ID, Project ID, etc.) |
-| `reference_type` | `character varying(50)` | ✗ | `-` | Polymorphic Type ('LEAD', 'PROJECT') |
-| `is_active` | `boolean` | ✗ | `true` | Soft delete flag |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✓ | `-` | - |
+| `reference_id` | `bigint(64,0)` | ✗ | `-` | - |
+| `reference_type` | `character varying(50)` | ✗ | `-` | - |
+| `is_active` | `boolean` | ✗ | `true` | - |
+| `created_at` | `timestamp without time zone` | ✗ | `now()` | - |
+| `updated_at` | `timestamp without time zone` | ✓ | `-` | - |
 | `created_by_user_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `updated_by_user_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `integer(32,0)` | ✗ | `1` | Optimistic locking |
+| `updated_by_user_id` | `bigint(64,0)` | ✓ | `-` | - |
+| `deleted_at` | `timestamp without time zone` | ✓ | `-` | - |
+| `deleted_by_user_id` | `bigint(64,0)` | ✓ | `-` | - |
+| `version` | `integer(32,0)` | ✗ | `1` | - |
 
 ### Primary Key
 
@@ -1001,15 +964,6 @@ Unified polymorphic document table for all system attachments.
 
 - `category_id` → `document_categories.id`
 - `created_by_user_id` → `portal_users.id`
-- `updated_by_user_id` → `portal_users.id`
-- `deleted_by_user_id` → `portal_users.id`
-
-### Indexes
-
-- `idx_project_documents_ref` on `(reference_id, reference_type)`
-- `idx_project_documents_category` on `category_id`
-
----
 
 ---
 
@@ -1187,9 +1141,6 @@ Unified polymorphic document table for all system attachments.
 
 ## sqft_categories
 
-**Lead Estimation Logic**  
-Used for calculating initial estimates based on square footage. Standardized on the `SqftCategories` entity in the unified model package.
-
 ### Columns
 
 | Column Name | Data Type | Nullable | Default | Notes |
@@ -1232,21 +1183,18 @@ Used for calculating initial estimates based on square footage. Standardized on 
 
 ---
 
-## task_assignment_history
-
-Audit trail for all task assignments. Tracks who assigned what to whom and when, for full transparency and historical record.
+## retention_releases
 
 ### Columns
 
 | Column Name | Data Type | Nullable | Default | Notes |
 |-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `nextval('task_assignment_history_id_seq')` | 🔑 PK |
-| `task_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `tasks.id` ON DELETE CASCADE |
-| `assigned_from_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` Previous assignee (NULL if unassigned) |
-| `assigned_to_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` New assignee (NULL if being unassigned) |
-| `assigned_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `portal_users.id` User who made the change |
-| `assigned_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | When assignment was made |
-| `notes` | `text` | ✓ | `-` | Optional notes about why assignment changed |
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `amount_released` | `numeric(15,2)` | ✗ | `-` | - |
+| `notes` | `character varying(255)` | ✓ | `-` | - |
+| `release_date` | `date` | ✗ | `-` | - |
+| `status` | `character varying(50)` | ✗ | `'PENDING'` | - |
+| `work_order_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `subcontract_work_orders.id` |
 
 ### Primary Key
 
@@ -1254,23 +1202,110 @@ Audit trail for all task assignments. Tracks who assigned what to whom and when,
 
 ### Foreign Keys
 
-- `task_id` → `tasks.id` (ON DELETE CASCADE)
-- `assigned_from_id` → `portal_users.id`
-- `assigned_to_id` → `portal_users.id`
-- `assigned_by_id` → `portal_users.id`
+- `work_order_id` → `subcontract_work_orders.id`
 
-### Indexes
+---
 
-- `idx_task_assignment_history_task` on `task_id`
-- `idx_task_assignment_history_assigned_at` on `assigned_at DESC`
-- `idx_task_assignment_history_assigned_to` on `assigned_to_id`
+---
+
+---
+
+## subcontract_measurements
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `bill_number` | `character varying(255)` | ✓ | `-` | - |
+| `created_at` | `timestamp without time zone` | ✗ | `-` | - |
+| `description` | `character varying(255)` | ✗ | `-` | - |
+| `measurement_date` | `date` | ✗ | `-` | - |
+| `quantity` | `numeric(15,2)` | ✗ | `-` | - |
+| `rate` | `numeric(15,2)` | ✗ | `-` | - |
+| `status` | `character varying(50)` | ✗ | `'PENDING'` | - |
+| `unit` | `character varying(50)` | ✗ | `-` | - |
+| `work_order_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `subcontract_work_orders.id` |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `work_order_id` → `subcontract_work_orders.id`
+
+---
+
+## subcontract_payments
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `created_at` | `timestamp without time zone` | ✗ | `-` | - |
+| `gross_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `net_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `payment_date` | `date` | ✗ | `-` | - |
+| `payment_mode` | `character varying(255)` | ✗ | `-` | - |
+| `retention_amount` | `numeric(15,2)` | ✗ | `0` | - |
+| `tds_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `tds_percentage` | `numeric(5,2)` | ✗ | `1.00` | - |
+| `work_order_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `subcontract_work_orders.id` |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `work_order_id` → `subcontract_work_orders.id`
+
+---
+
+## subcontract_work_orders
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `created_at` | `timestamp without time zone` | ✓ | `-` | - |
+| `updated_at` | `timestamp without time zone` | ✓ | `-` | - |
+| `actual_completion_date` | `date` | ✓ | `-` | - |
+| `measurement_basis` | `character varying(50)` | ✗ | `'UNIT_RATE'` | - |
+| `negotiated_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `payment_terms` | `text` | ✓ | `-` | - |
+| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `rate` | `numeric(15,2)` | ✓ | `-` | - |
+| `retention_percentage` | `numeric(5,2)` | ✓ | `5.00` | - |
+| `scope_description` | `text` | ✗ | `-` | - |
+| `start_date` | `date` | ✓ | `-` | - |
+| `status` | `character varying(50)` | ✗ | `'DRAFT'` | - |
+| `target_completion_date` | `date` | ✓ | `-` | - |
+| `total_retention_accumulated` | `numeric(15,2)` | ✓ | `0` | - |
+| `unit` | `character varying(50)` | ✓ | `-` | - |
+| `vendor_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `vendors.id` |
+| `work_order_number` | `character varying(255)` | ✗ | `-` | 🔒 UNIQUE |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `vendor_id` → `vendors.id`
+
+### Unique Constraints
+
+- `work_order_number`
 
 ---
 
 ## tasks
-
-**Production-Grade Task Management System**  
-**Business Context:** Construction task tracking with mandatory deadlines for project timeline accountability and proactive alert system.
 
 ### Columns
 
@@ -1279,13 +1314,12 @@ Audit trail for all task assignments. Tracks who assigned what to whom and when,
 | `id` | `bigint(64,0)` | ✗ | `nextval('tasks_id_seq'::reg...` | 🔑 PK |
 | `title` | `character varying(255)` | ✗ | `-` | - |
 | `description` | `text` | ✓ | `-` | - |
-| `status` | `character varying(255)` | ✗ | `'PENDING'::character varying` | Enum: PENDING, IN_PROGRESS, COMPLETED, CANCELLED |
-| `priority` | `character varying(255)` | ✗ | `'MEDIUM'::character varying` | Enum: LOW, MEDIUM, HIGH, URGENT |
+| `status` | `character varying(255)` | ✗ | `'PENDING'::character varying` | - |
+| `priority` | `character varying(255)` | ✗ | `'MEDIUM'::character varying` | - |
 | `assigned_to` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
 | `created_by` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
 | `project_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `customer_projects.id` |
-| `lead_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `leads.lead_id` (V1_19) - For pre-sales tasks |
-| `due_date` | `date` | ✗ | `-` | **⚠️ MANDATORY** - Required for task accountability and timeline tracking. Must be >= created_at date. |
+| `due_date` | `date` | ✓ | `-` | - |
 | `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
 | `updated_at` | `timestamp without time zone` | ✓ | `CURRENT_TIMESTAMP` | - |
 
@@ -1296,29 +1330,8 @@ Audit trail for all task assignments. Tracks who assigned what to whom and when,
 ### Foreign Keys
 
 - `project_id` → `customer_projects.id`
-- `lead_id` → `leads.lead_id`
 - `created_by` → `portal_users.id`
 - `assigned_to` → `portal_users.id`
-
-### Constraints
-
-- **`chk_task_due_date_valid`**: Business rule constraint ensuring `due_date >= created_at::date`  
-  _Rationale:_ Prevents backdating tasks which violates construction timeline integrity
-
-### Indexes
-
-| Index Name | Columns | Filter | Purpose |
-|------------|---------|--------|---------|
-| `idx_tasks_overdue` | `(due_date, status)` | `WHERE status NOT IN ('COMPLETED', 'CANCELLED')` | Overdue task queries for manager dashboards |
-| `idx_tasks_project_due` | `(project_id, due_date, status)` | `WHERE status NOT IN ('COMPLETED', 'CANCELLED')` | Project timeline views, Gantt charts |
-| `idx_tasks_assigned_due` | `(assigned_to, due_date, status)` | `WHERE status NOT IN ('COMPLETED', 'CANCELLED')` | "My Tasks" views, assignee workload |
-| `idx_tasks_priority_due` | `(priority, due_date, status)` | `WHERE status NOT IN ('COMPLETED', 'CANCELLED')` | Priority-based alerts, escalation logic |
-
-**Alert System Foundation:** These indexes enable efficient queries for:
-- Overdue task detection
-- Approaching deadline alerts (due in next 3 days)
-- Manager dashboard performance
-- Project timeline monitoring
 
 ---
 
@@ -1354,859 +1367,153 @@ Audit trail for all task assignments. Tracks who assigned what to whom and when,
 
 ---
 
-## design_package_payments
 
-Master record for a project's design package payment agreement.
+---
+
+## project_milestones
 
 ### Columns
 
 | Column Name | Data Type | Nullable | Default | Notes |
 |-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `nextval('design_package_payments_id_seq')` | 🔑 PK |
-| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` 🔒 UNIQUE |
-| `package_name` | `character varying(50)` | ✗ | `-` | e.g., 'Custom', 'Premium', 'Bespoke' |
-| `rate_per_sqft` | `numeric(10,2)` | ✗ | `-` | - |
-| `total_sqft` | `numeric(10,2)` | ✗ | `-` | - |
-| `base_amount` | `numeric(15,2)` | ✗ | `-` | - |
-| `gst_percentage` | `numeric(5,2)` | ✗ | `18.00` | - |
-| `gst_amount` | `numeric(15,2)` | ✗ | `-` | - |
-| `discount_percentage` | `numeric(5,2)` | ✓ | `0` | Configurable per package |
-| `discount_amount` | `numeric(15,2)` | ✓ | `0` | - |
-| `total_amount` | `numeric(15,2)` | ✗ | `-` | - |
-| `payment_type` | `character varying(20)` | ✗ | `-` | 'FULL' or 'INSTALLMENT' |
-| `status` | `character varying(20)` | ✗ | `'PENDING'` | 'PENDING', 'PARTIAL', 'PAID' |
-| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
-| `updated_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
-| `created_by_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `retention_percentage` | `numeric(5,2)` | ✗ | `10.00` | Percentage held as retention (5-10%) |
-| `retention_amount` | `numeric(15,2)` | ✗ | `0` | Calculated retention amount |
-| `retention_released_amount` | `numeric(15,2)` | ✗ | `0` | Total released so far |
-| `defect_liability_end_date` | `date` | ✓ | `-` | When retention can be released |
-| `retention_status` | `character varying(20)` | ✗ | `'ACTIVE'` | 'ACTIVE', 'PARTIALLY_RELEASED', 'RELEASED' |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `project_id` → `customer_projects.id`
-- `created_by_id` → `portal_users.id`
-
-### Unique Constraints
-
-- `project_id`
-
----
-
-## payment_schedule
-
-Individual installment records for a design package payment.
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `nextval('payment_schedule_id_seq')` | 🔑 PK |
-| `design_payment_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `design_package_payments.id` |
-| `installment_number` | `integer(32,0)` | ✗ | `-` | 1, 2, 3, etc. |
-| `description` | `character varying(100)` | ✗ | `-` | e.g., 'Advance', 'Design Phase', 'Post-Design' |
-| `amount` | `numeric(15,2)` | ✗ | `-` | - |
-| `due_date` | `date` | ✓ | `-` | Milestone-based, optional |
-| `status` | `character varying(20)` | ✗ | `'PENDING'` | 'PENDING', 'PAID', 'OVERDUE' |
-| `paid_amount` | `numeric(15,2)` | ✓ | `0` | - |
-| `paid_date` | `timestamp without time zone` | ✓ | `-` | - |
-| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `design_payment_id` → `design_package_payments.id`
-
----
-
-## payment_transactions
-
-Actual payment records when money is received.
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64,0)` | ✗ | `nextval('payment_transactions_id_seq')` | 🔑 PK |
-| `schedule_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `payment_schedule.id` |
-| `amount` | `numeric(15,2)` | ✗ | `-` | - |
-| `payment_method` | `character varying(50)` | ✓ | `-` | 'BANK_TRANSFER', 'UPI', 'CHEQUE', 'CASH' |
-| `reference_number` | `character varying(100)` | ✓ | `-` | Transaction/cheque number |
-| `payment_date` | `timestamp without time zone` | ✗ | `-` | - |
-| `notes` | `text` | ✓ | `-` | - |
-| `recorded_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `portal_users.id` |
-| `receipt_number` | `character varying(50)` | ✓ | `-` | 🔒 UNIQUE (Format: WAL/PAY/YYYY/NNN) |
-| `status` | `character varying(20)` | ✗ | `'COMPLETED'` | 'COMPLETED', 'FAILED', 'CANCELLED' |
-| `tds_percentage` | `numeric(5,2)` | ✗ | `0` | TDS rate (0-100). Common: 2% for Section 194C |
-| `tds_amount` | `numeric(15,2)` | ✗ | `0` | Calculated TDS deduction |
-| `net_amount` | `numeric(15,2)` | ✗ | `-` | Amount received after TDS (amount - tds_amount) |
-| `tds_deducted_by` | `character varying(50)` | ✗ | `'CUSTOMER'` | 'CUSTOMER', 'SELF', 'NONE' |
-| `payment_category` | `character varying(50)` | ✗ | `'PROGRESS'` | 'ADVANCE', 'PROGRESS', 'FINAL', 'RETENTION_RELEASE' |
-| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `schedule_id` → `payment_schedule.id`
-- `recorded_by_id` → `portal_users.id`
-
----
-
-## challan_sequences
-
-Tracks the last used sequence number for each financial year to ensure gapless, sequential numbering.
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `fy` | `varchar(10)` | ✗ | `-` | 🔒 UNIQUE (e.g., '2024-25') |
-| `last_sequence` | `integer` | ✗ | `0` | Last number issued in this FY |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-
-### Primary Key
-
-- `id`
-
-### Unique Constraints
-
-- `fy`
-
----
-
-## payment_challans
-
-Formal challans generated for financial transactions. Each transaction is eligible for exactly one challan.
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `transaction_id` | `bigint` | ✗ | `-` | 🔒 UNIQUE 🔗 FK → `payment_transactions.id` |
-| `challan_number` | `varchar(50)` | ✗ | `-` | 🔒 UNIQUE (Format: WAL/CH/FY/NNN) |
-| `fy` | `varchar(10)` | ✗ | `-` | Financial Year of issuance |
-| `sequence_number` | `integer` | ✗ | `-` | Sequential number within the FY |
-| `transaction_date` | `timestamp` | ✗ | `-` | Denormalized for efficient range queries |
-| `generated_at` | `timestamp` | ✗ | `now()` | - |
-| `generated_by_id` | `bigint` | ✗ | `-` | 🔗 FK → `portal_users.id` |
-| `status` | `varchar(20)` | ✗ | `'ISSUED'` | 'ISSUED', 'CANCELLED' |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `transaction_id` → `payment_transactions.id`
-- `generated_by_id` → `portal_users.id`
-
-### Unique Constraints
-
-- `transaction_id`
-- `challan_number`
-
-### Indexes
-
-- `idx_payment_challans_fy` on `fy`
-- `idx_payment_challans_date` on `transaction_date`
-
----
-
-## vendors
-
-Masters for material suppliers and labor contractors. Standardized with `BaseEntity` audit trail (V1_47).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `name` | `varchar(255)` | ✗ | `-` | - |
-| `contact_person` | `varchar(255)` | ✓ | `-` | - |
-| `phone` | `varchar(20)` | ✗ | `-` | 🔒 UNIQUE |
-| `email` | `varchar(255)` | ✓ | `-` | 🔒 UNIQUE |
-| `gstin` | `varchar(15)` | ✓ | `-` | 🔒 UNIQUE |
-| `address` | `text` | ✓ | `-` | - |
-| `vendor_type` | `varchar(50)` | ✗ | `-` | Enum: MATERIAL, LABOUR, BOTH, CONSULTANT, SERVICE_PROVIDER |
-| `bank_name` | `varchar(255)` | ✓ | `-` | - |
-| `account_number` | `varchar(50)` | ✓ | `-` | - |
-| `ifsc_code` | `varchar(20)` | ✓ | `-` | - |
-| `is_active` | `boolean` | ✗ | `true` | - |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | Soft delete support |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `0` | Optimistic locking |
-
----
-
-## purchase_orders
-
-Project-specific material or labor purchase orders. Standardized with `BaseEntity` audit trail (V1_47).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `po_number` | `varchar(50)` | ✗ | `-` | 🔒 UNIQUE (WAL/PO/YY/NNN) |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `vendor_id` | `bigint` | ✗ | `-` | 🔗 FK → `vendors.id` |
-| `po_date` | `date` | ✗ | `-` | - |
-| `expected_delivery_date` | `date` | ✓ | `-` | - |
-| `total_amount` | `numeric(15,2)` | ✗ | `-` | - |
-| `gst_amount` | `numeric(15,2)` | ✗ | `-` | - |
-| `net_amount` | `numeric(15,2)` | ✗ | `-` | - |
-| `status` | `varchar(20)` | ✗ | `'DRAFT'` | Enum: DRAFT, PENDING_APPROVAL, APPROVED, SENT_TO_VENDOR, PARTIALLY_RECEIVED, RECEIVED, CANCELLED, CLOSED |
-| `notes` | `text` | ✓ | `-` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` (Renamed from created_by_id) |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `0` | - |
-
----
-
-## purchase_order_items
-
-Line items within a Purchase Order. Standardized with `BaseEntity` audit trail (V1_47).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `po_id` | `bigint` | ✗ | `-` | 🔗 FK → `purchase_orders.id` ON DELETE CASCADE |
-| `description` | `varchar(255)` | ✗ | `-` | Material/Work name |
-| `quantity` | `numeric(15,2)` | ✗ | `-` | - |
-| `unit` | `varchar(50)` | ✗ | `-` | Enum: BAG, KG, MT, CFT, SQFT, NOS, CUM, LTR, etc. |
-| `rate` | `numeric(15,2)` | ✗ | `-` | - |
-| `gst_percentage` | `numeric(5,2)` | ✗ | `18.00` | - |
-| `amount` | `numeric(15,2)` | ✗ | `-` | (Qty * Rate) |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `0` | - |
-
----
-
-## goods_received_notes (GRN)
-
-Records of material actually received at site against a PO. Standardized with `BaseEntity` (V1_47).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `grn_number` | `varchar(50)` | ✗ | `-` | 🔒 UNIQUE (WAL/GRN/YY/NNN) |
-| `po_id` | `bigint` | ✗ | `-` | 🔗 FK → `purchase_orders.id` |
-| `received_date` | `timestamp` | ✗ | `now()` | - |
-| `received_by_id` | `bigint` | ✗ | `-` | 🔗 FK → `portal_users.id` |
-| `invoice_number` | `varchar(100)` | ✓ | `-` | Vendor's Invoice Refernece |
-| `invoice_date` | `date` | ✓ | `-` | - |
-| `challan_number` | `varchar(100)` | ✓ | `-` | Delivery Challan Reference |
-| `notes` | `text` | ✓ | `-` | - |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `0` | - |
-
----
-
-## project_phases *(NEW)*
-
-Formal tracking of construction phases with planned vs actual timelines.
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `phase_name` | `varchar(100)` | ✗ | `-` | e.g., 'Foundation', 'Shuttering', 'Plaster' |
-| `planned_start` | `date` | ✓ | `-` | - |
-| `planned_end` | `date` | ✓ | `-` | - |
-| `actual_start` | `date` | ✓ | `-` | - |
-| `actual_end` | `date` | ✓ | `-` | - |
-| `status` | `varchar(20)` | ✗ | `'NOT_STARTED'` | 'NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'DELAYED' |
-| `display_order` | `integer` | ✓ | `-` | - |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `project_id` → `customer_projects.id`
-
----
-
-## delay_logs *(NEW)*
-
-Records of project delays with categorized reasons for EOT (Extension of Time) documentation.
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `phase_id` | `bigint` | ✓ | `-` | 🔗 FK → `project_phases.id` |
-| `delay_type` | `varchar(50)` | ✗ | `-` | 'WEATHER', 'LABOUR_STRIKE', 'MATERIAL_DELAY', 'CLIENT_APPROVAL', 'OTHER' |
-| `from_date` | `date` | ✗ | `-` | - |
-| `to_date` | `date` | ✓ | `-` | - |
-| `reason_text` | `text` | ✓ | `-` | - |
-| `logged_by_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `project_id` → `customer_projects.id`
-- `phase_id` → `project_phases.id`
-- `logged_by_id` → `portal_users.id`
-
----
-
-## project_variations *(Standardized)*
-
-Change orders and additional work requests from clients. Standardized with `BaseEntity` (V1_48).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `description` | `text` | ✗ | `-` | - |
-| `estimated_amount` | `numeric(15,2)` | ✗ | `-` | - |
-| `client_approved` | `boolean` | ✓ | `false` | - |
-| `approved_by_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `approved_at` | `timestamp` | ✓ | `-` | - |
-| `status` | `varchar(20)` | ✗ | `'DRAFT'` | 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED' |
-| `notes` | `text` | ✓ | `-` | - |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `1` | Optimistic locking |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `project_id` → `customer_projects.id`
-- `approved_by_id` → `portal_users.id`
-- `created_by_user_id` → `portal_users.id`
-- `updated_by_user_id` → `portal_users.id`
-- `deleted_by_user_id` → `portal_users.id`
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `project_id` → `customer_projects.id`
-- `approved_by_id` → `portal_users.id`
-- `created_by_user_id` → `portal_users.id`
-- `updated_by_user_id` → `portal_users.id`
-- `deleted_by_user_id` → `portal_users.id`
-
----
-
-## stock_adjustments
-
-Records of material wastage, theft, damage, and inventory corrections. Standardized with `BaseEntity` (V1_47).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `material_id` | `bigint` | ✗ | `-` | 🔗 FK → `materials.id` |
-| `adjustment_type` | `varchar(30)` | ✗ | `-` | 'WASTAGE', 'THEFT', 'DAMAGE', 'CORRECTION', 'TRANSFER_OUT' |
-| `quantity` | `numeric(15,2)` | ✗ | `-` | - |
-| `reason` | `text` | ✓ | `-` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` (Renamed from adjusted_by_id) |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `0` | - |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `project_id` → `customer_projects.id`
-- `material_id` → `materials.id`
-- `adjusted_by_id` → `portal_users.id`
-
----
-
-## subcontract_work_orders
-
-Tracks piece-rate and lump-sum subcontractor agreements. Standardized with `BaseEntity` (V1_47).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `work_order_number` | `varchar(50)` | ✗ | `-` | 🔒 UNIQUE (WAL/SC/YY/NNN) |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `vendor_id` | `bigint` | ✗ | `-` | 🔗 FK → `vendors.id` (vendor_type = 'LABOUR') |
-| `scope_description` | `text` | ✗ | `-` | Work scope |
-| `measurement_basis` | `varchar(20)` | ✗ | `'UNIT_RATE'` | Enum: LUMPSUM, UNIT_RATE |
-| `negotiated_amount` | `numeric(15,2)` | ✗ | `-` | Total contract value |
-| `status` | `varchar(20)` | ✗ | `'DRAFT'` | Enum: DRAFT, ISSUED, IN_PROGRESS, COMPLETED, TERMINATED |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` (Renamed from created_by_id) |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `0` | - |
-
----
-
-## materials
-
-Master record for all construction materials. Standardized with `BaseEntity` (V1_47).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `name` | `varchar(255)` | ✗ | `-` | 🔒 UNIQUE |
-| `description` | `text` | ✓ | `-` | - |
-| `unit` | `varchar(20)` | ✗ | `-` | Enum: BAG, KG, MT, CFT, SQFT, NOS, CUM, LTR |
-| `category` | `varchar(50)` | ✗ | `-` | Enum: CEMENT, STEEL, AGGREGATE, BRICK, ELECTRICAL, PLUMBING, PAINTING, FINISHING, OTHER |
-| `is_active` | `boolean` | ✗ | `true` | - |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `0` | - |
-
----
-
-## inventory_stock
-
-Real-time stock levels of materials across different projects/sites. Standardized with `BaseEntity` (V1_47).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `material_id` | `bigint` | ✗ | `-` | 🔗 FK → `materials.id` |
-| `current_stock` | `numeric(15,2)` | ✗ | `0` | - |
-| `min_stock_level` | `numeric(15,2)` | ✓ | `0` | Reorder trigger level |
-| `updated_at` | `timestamp` | ✗ | `now()` | Renamed from last_updated |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `0` | - |
-
----
-
-## subcontract_measurements *(NEW)*
-
-Progress measurements for unit-rate subcontracts.
-
----
-
-## subcontract_payments *(NEW)*
-
-Payment records for subcontractors with TDS calculation (Section 194C).
-
----
-
-## vendor_payments
-
-Tracks all payments made to vendors against purchase invoices. Standardized with `BaseEntity` (V1_47).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `invoice_id` | `bigint` | ✗ | `-` | 🔗 FK → `purchase_invoices.id` |
-| `payment_date` | `date` | ✗ | `-` | - |
-| `amount_paid` | `numeric(15,2)` | ✗ | `-` | - |
-| `tds_deducted` | `numeric(15,2)` | ✓ | `0` | - |
-| `other_deductions` | `numeric(15,2)` | ✓ | `0` | - |
-| `net_paid` | `numeric(15,2)` | ✗ | `-` | - |
-| `payment_mode` | `varchar(20)` | ✗ | `-` | CASH, CHEQUE, NEFT, RTGS, UPI |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` (Renamed from paid_by_id) |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `0` | - |
-
----
-
-## material_budgets
-
-Standardized on the `MaterialBudget` entity. Tracks budgeted vs actual material consumption per project.
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `material_id` | `bigint` | ✗ | `-` | 🔗 FK → `materials.id` |
-| `budgeted_quantity` | `numeric(15,2)` | ✗ | `-` | - |
-| `estimated_rate` | `numeric(15,2)` | ✓ | `-` | - |
-| `total_budget` | `numeric(15,2)` | ✓ | `-` | Auto-calculated |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `0` | - |
-
-## project_warranties *(Standardized)*
-
-Tracks warranties for project components provided by vendors or manufacturers. Standardized with `BaseEntity` (V1_48).
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `nextval` | 🔑 PK |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `component_name` | `varchar(255)` | ✗ | `-` | e.g., 'Waterproofing', 'Structure' |
-| `description` | `text` | ✓ | `-` | - |
-| `provider_name` | `varchar(255)` | ✓ | `-` | - |
-| `start_date` | `date` | ✓ | `-` | - |
-| `end_date` | `date` | ✓ | `-` | - |
-| `status` | `varchar(20)` | ✗ | `'ACTIVE'` | 'ACTIVE', 'EXPIRED', 'VOID' |
-| `coverage_details` | `text` | ✓ | `-` | - |
-| `created_at` | `timestamp` | ✗ | `now()` | - |
-| `updated_at` | `timestamp` | ✗ | `now()` | - |
-| `created_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `deleted_at` | `timestamp` | ✓ | `-` | - |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | 🔗 FK → `portal_users.id` |
-| `version` | `bigint` | ✗ | `1` | Optimistic locking |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `project_id` → `customer_projects.id`
-- `created_by_user_id` → `portal_users.id`
-- `updated_by_user_id` → `portal_users.id`
-- `deleted_by_user_id` → `portal_users.id`
-
----
-
-## labour
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `-` | 🔑 PK |
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
 | `name` | `character varying(255)` | ✗ | `-` | - |
-| `phone` | `character varying(20)` | ✗ | `-` | Unique |
-| `trade_type` | `character varying(50)` | ✗ | `-` | Enum: `LabourTradeType` |
-| `id_proof_type` | `character varying(50)` | ✓ | `-` | Enum: `IdProofType` |
-| `id_proof_number` | `character varying(255)` | ✓ | `-` | - |
-| `daily_wage` | `numeric(15,2)` | ✗ | `-` | - |
-| `emergency_contact` | `character varying(255)` | ✓ | `-` | - |
-| `is_active` | `boolean` | ✗ | `true` | - |
-| `created_at` | `timestamp` | ✗ | `now()` | Audit |
-| `updated_at` | `timestamp` | ✗ | `now()` | Audit |
-| `created_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `deleted_at` | `timestamp` | ✓ | `-` | Audit |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `version` | `bigint` | ✗ | `1` | Lucking |
+| `description` | `text` | ✓ | `-` | - |
+| `milestone_percentage` | `numeric(5,2)` | ✓ | `-` | - |
+| `amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `status` | `character varying(50)` | ✗ | `'PENDING'` | - |
+| `due_date` | `date` | ✓ | `-` | - |
+| `completed_date` | `date` | ✓ | `-` | - |
+| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `invoice_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `project_invoices.id` |
+| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
+| `updated_at` | `timestamp without time zone` | ✓ | `CURRENT_TIMESTAMP` | - |
 
-### Constraints
+### Primary Key
 
-- `chk_labour_trade_type`: `trade_type` IN ('CARPENTER', 'PLUMBER', 'ELECTRICIAN', 'MASON', 'HELPER', 'PAINTER', 'TILER', 'WELDER', 'OTHER')
-- `chk_labour_id_proof_type`: `id_proof_type` IN ('AADHAAR', 'PAN', 'VOTER_ID', 'DRIVING_LICENSE', 'OTHER')
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `invoice_id` → `project_invoices.id`
 
 ---
 
-## labour_attendance
+## receipts
 
 ### Columns
 
 | Column Name | Data Type | Nullable | Default | Notes |
 |-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `-` | 🔑 PK |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `labour_id` | `bigint` | ✗ | `-` | 🔗 FK → `labour.id` |
-| `attendance_date` | `date` | ✗ | `-` | - |
-| `status` | `character varying(20)` | ✗ | `-` | Enum: `AttendanceStatus` |
-| `hours_worked` | `double precision` | ✓ | `-` | - |
-| `created_at` | `timestamp` | ✗ | `now()` | Audit |
-| `updated_at` | `timestamp` | ✗ | `now()` | Audit |
-| `created_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `deleted_at` | `timestamp` | ✓ | `-` | Audit |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `version` | `bigint` | ✗ | `1` | Lucking |
-
-### Constraints
-
-- `chk_attendance_status`: `status` IN ('PRESENT', 'ABSENT', 'HALF_DAY', 'LEAVE')
-
----
-
-## labour_payments
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `-` | 🔑 PK |
-| `labour_id` | `bigint` | ✗ | `-` | 🔗 FK → `labour.id` |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `mb_entry_id` | `bigint` | ✓ | `-` | 🔗 FK → `measurement_book.id` |
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `receipt_number` | `character varying(50)` | ✗ | `-` | 🔒 UNIQUE |
 | `amount` | `numeric(15,2)` | ✗ | `-` | - |
 | `payment_date` | `date` | ✗ | `-` | - |
-| `payment_method` | `character varying(50)` | ✓ | `-` | Enum: `PaymentMethod` |
+| `payment_method` | `character varying(50)` | ✓ | `-` | - |
+| `transaction_reference` | `character varying(100)` | ✓ | `-` | - |
 | `notes` | `text` | ✓ | `-` | - |
-| `created_at` | `timestamp` | ✗ | `now()` | Audit |
-| `updated_at` | `timestamp` | ✗ | `now()` | Audit |
-| `created_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `deleted_at` | `timestamp` | ✓ | `-` | Audit |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `version` | `bigint` | ✗ | `1` | Lucking |
+| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `invoice_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `project_invoices.id` |
+| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
 
-### Constraints
+### Primary Key
 
-- `chk_labour_payment_method`: `payment_method` IN ('CASH', 'BANK_TRANSFER', 'UPI', 'CHEQUE')
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `invoice_id` → `project_invoices.id`
+
+### Unique Constraints
+
+- `receipt_number`
 
 ---
 
-## measurement_book
+## wage_sheets
 
 ### Columns
 
 | Column Name | Data Type | Nullable | Default | Notes |
 |-------------|-----------|----------|---------|-------|
-| `id` | `bigint` | ✗ | `-` | 🔑 PK |
-| `project_id` | `bigint` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
-| `labour_id` | `bigint` | ✓ | `-` | 🔗 FK → `labour.id` |
-| `boq_item_id` | `bigint` | ✓ | `-` | 🔗 FK → `boq_items.id` |
-| `description` | `character varying(255)` | ✗ | `-` | - |
-| `measurement_date` | `date` | ✗ | `-` | - |
-| `length` | `numeric(10,2)` | ✓ | `-` | - |
-| `breadth` | `numeric(10,2)` | ✓ | `-` | - |
-| `depth` | `numeric(10,2)` | ✓ | `-` | - |
-| `quantity` | `numeric(10,2)` | ✗ | `-` | - |
-| `unit` | `character varying(50)` | ✗ | `-` | - |
-| `rate` | `numeric(15,2)` | ✓ | `-` | - |
-| `total_amount` | `numeric(15,2)` | ✓ | `-` | - |
-| `created_at` | `timestamp` | ✗ | `now()` | Audit |
-| `updated_at` | `timestamp` | ✗ | `now()` | Audit |
-| `created_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `updated_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `deleted_at` | `timestamp` | ✓ | `-` | Audit |
-| `deleted_by_user_id` | `bigint` | ✓ | `-` | Audit |
-| `version` | `bigint` | ✗ | `1` | Lucking |
-- - -  
-  
- # #   p u r c h a s e _ o r d e r s  
-  
- P u r c h a s e   O r d e r s   a r e   l e g a l / f i n a n c i a l   d o c u m e n t s   u s e d   t o   f o r m a l l y   r e q u e s t   g o o d s   f r o m   v e n d o r s   f o r   s p e c i f i c   c o n s t r u c t i o n   p r o j e c t s .   E a c h   P O   h a s   l i n e   i t e m s ,   s t a t u s   w o r k f l o w ,   a n d   f u l l   a u d i t   t r a i l .  
-  
- # # #   C o l u m n s  
-  
- |   C o l u m n   N a m e   |   D a t a   T y p e   |   N u l l a b l e   |   D e f a u l t   |   N o t e s   |  
- | - - - - - - - - - - - - - | - - - - - - - - - - - | - - - - - - - - - - | - - - - - - - - - | - - - - - - - |  
- |   ` i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   � x    P K   |  
- |   ` p o _ n u m b e r `   |   ` c h a r a c t e r   v a r y i n g ( 5 0 ) `   |   � S   |   ` - `   |   � x    U N I Q U E ,   A u t o - g e n e r a t e d   |  
- |   ` p r o j e c t _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   � x    F K   �      ` c u s t o m e r _ p r o j e c t s . i d `   |  
- |   ` v e n d o r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   � x    F K   �      ` v e n d o r s . i d `   |  
- |   ` p o _ d a t e `   |   ` d a t e `   |   � S   |   ` - `   |   -   |  
- |   ` e x p e c t e d _ d e l i v e r y _ d a t e `   |   ` d a t e `   |   � S   |   ` - `   |   -   |  
- |   ` t o t a l _ a m o u n t `   |   ` n u m e r i c ( 1 5 , 2 ) `   |   � S   |   ` - `   |   S u m   o f   a l l   i t e m   a m o u n t s   |  
- |   ` g s t _ a m o u n t `   |   ` n u m e r i c ( 1 5 , 2 ) `   |   � S   |   ` - `   |   T o t a l   G S T   |  
- |   ` n e t _ a m o u n t `   |   ` n u m e r i c ( 1 5 , 2 ) `   |   � S   |   ` - `   |   t o t a l _ a m o u n t   +   g s t _ a m o u n t   |  
- |   ` s t a t u s `   |   ` c h a r a c t e r   v a r y i n g ( 2 5 ) `   |   � S   |   ` ' D R A F T ' `   |   E n u m :   ` P u r c h a s e O r d e r S t a t u s `   |  
- |   ` n o t e s `   |   ` t e x t `   |   � S   |   ` - `   |   -   |  
- |   ` c r e a t e d _ a t `   |   ` t i m e s t a m p `   |   � S   |   ` n o w ( ) `   |   A u d i t   |  
- |   ` u p d a t e d _ a t `   |   ` t i m e s t a m p `   |   � S   |   ` n o w ( ) `   |   A u d i t   |  
- |   ` c r e a t e d _ b y _ u s e r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   A u d i t   |  
- |   ` u p d a t e d _ b y _ u s e r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   A u d i t   |  
- |   ` d e l e t e d _ a t `   |   ` t i m e s t a m p `   |   � S   |   ` - `   |   S o f t   D e l e t e   |  
- |   ` d e l e t e d _ b y _ u s e r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   S o f t   D e l e t e   |  
- |   ` v e r s i o n `   |   ` b i g i n t `   |   � S   |   ` 1 `   |   O p t i m i s t i c   L o c k i n g   |  
-  
- # # # C o n s t r a i n t s  
-  
- -   ` u k _ p o _ n u m b e r ` :   U N I Q U E   c o n s t r a i n t   o n   ` p o _ n u m b e r `  
- -   ` c h k _ p o _ s t a t u s ` :   ` s t a t u s `   I N   ( ' D R A F T ' ,   ' I S S U E D ' ,   ' P A R T I A L L Y _ R E C E I V E D ' ,   ' R E C E I V E D ' ,   ' C A N C E L L E D ' ,   ' C L O S E D ' )  
- -   ` f k _ p o _ p r o j e c t ` :   F O R E I G N   K E Y   ( ` p r o j e c t _ i d ` )   R E F E R E N C E S   ` c u s t o m e r _ p r o j e c t s ` ( ` i d ` )  
- -   ` f k _ p o _ v e n d o r ` :   F O R E I G N   K E Y   ( ` v e n d o r _ i d ` )   R E F E R E N C E S   ` v e n d o r s ` ( ` i d ` )  
-  
- # # #   I n d e x e s  
-  
- -   ` i d x _ p o _ p r o j e c t _ i d ` :   I n d e x   o n   ` p r o j e c t _ i d `   f o r   p r o j e c t - w i s e   f i l t e r i n g  
- -   ` i d x _ p o _ v e n d o r _ i d ` :   I n d e x   o n   ` v e n d o r _ i d `   f o r   v e n d o r - w i s e   f i l t e r i n g  
- -   ` i d x _ p o _ s t a t u s ` :   I n d e x   o n   ` s t a t u s `   f o r   s t a t u s - b a s e d   q u e r i e s  
- -   ` i d x _ p o _ d e l e t e d _ a t ` :   I n d e x   o n   ` d e l e t e d _ a t `   f o r   s o f t   d e l e t e   f i l t e r i n g  
-  
- # # #   B u s i n e s s   R u l e s  
-  
- 1 .   * * S t a t u s   W o r k f l o w * * :  
-       -   D R A F T   �      I S S U E D   �      P A R T I A L L Y _ R E C E I V E D   �      R E C E I V E D  
-       -   D R A F T / I S S U E D   c a n   b e   C A N C E L L E D  
-       -   C a n n o t   e d i t   o n c e   s t a t u s   i s   R E C E I V E D   o r   C A N C E L L E D  
-  
- 2 .   * * S o f t   D e l e t e * * :  
-       -   N e v e r   h a r d   d e l e t e   P O s   ( f i n a n c i a l   a u d i t   r e q u i r e m e n t )  
-       -   S e t   ` d e l e t e d _ a t `   a n d   ` d e l e t e d _ b y _ u s e r _ i d `   w h e n   " d e l e t i n g "  
-       -   E x c l u d e   d e l e t e d   r e c o r d s   i n   q u e r i e s   ( ` W H E R E   d e l e t e d _ a t   I S   N U L L ` )  
-  
- 3 .   * * V a l i d a t i o n * * :  
-       -   C a n n o t   d e l e t e   P O   i f   s t a t u s   i s   R E C E I V E D   ( G R N   e x i s t s )  
-       -   n e t _ a m o u n t   m u s t   e q u a l   t o t a l _ a m o u n t   +   g s t _ a m o u n t  
-  
- - - -  
-  
- # #   p u r c h a s e _ o r d e r _ i t e m s  
-  
- I n d i v i d u a l   l i n e   i t e m s   f o r   e a c h   P u r c h a s e   O r d e r ,   l i n k i n g   t o   m a t e r i a l s   c a t a l o g   w h e n   a p p l i c a b l e .  
-  
- # # #   C o l u m n s  
-  
- |   C o l u m n   N a m e   |   D a t a   T y p e   |   N u l l a b l e   |   D e f a u l t   |   N o t e s   |  
- | - - - - - - - - - - - - - | - - - - - - - - - - - | - - - - - - - - - - | - - - - - - - - - | - - - - - - - |  
- |   ` i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   � x    P K   |  
- |   ` p o _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   � x    F K   �      ` p u r c h a s e _ o r d e r s . i d `   |  
- |   ` m a t e r i a l _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   � x    F K   �      ` m a t e r i a l s . i d `   |  
- |   ` d e s c r i p t i o n `   |   ` c h a r a c t e r   v a r y i n g ( 2 5 5 ) `   |   � S   |   ` - `   |   -   |  
- |   ` q u a n t i t y `   |   ` n u m e r i c ( 1 5 , 2 ) `   |   � S   |   ` - `   |   -   |  
- |   ` u n i t `   |   ` c h a r a c t e r   v a r y i n g ( 5 0 ) `   |   � S   |   ` - `   |   E n u m :   ` M a t e r i a l U n i t `   |  
- |   ` r a t e `   |   ` n u m e r i c ( 1 5 , 2 ) `   |   � S   |   ` - `   |   -   |  
- |   ` g s t _ p e r c e n t a g e `   |   ` n u m e r i c ( 5 , 2 ) `   |   � S   |   ` 1 8 . 0 0 `   |   -   |  
- |   ` a m o u n t `   |   ` n u m e r i c ( 1 5 , 2 ) `   |   � S   |   ` - `   |   q u a n t i t y   *   r a t e   |  
- |   ` c r e a t e d _ a t `   |   ` t i m e s t a m p `   |   � S   |   ` n o w ( ) `   |   A u d i t   |  
- |   ` u p d a t e d _ a t `   |   ` t i m e s t a m p `   |   � S   |   ` n o w ( ) `   |   A u d i t   |  
- |   ` c r e a t e d _ b y _ u s e r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   A u d i t   |  
- |   ` u p d a t e d _ b y _ u s e r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   A u d i t   |  
- |   ` d e l e t e d _ a t `   |   ` t i m e s t a m p `   |   � S   |   ` - `   |   S o f t   D e l e t e   |  
- |   ` d e l e t e d _ b y _ u s e r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   S o f t   D e l e t e   |  
- |   ` v e r s i o n `   |   ` b i g i n t `   |   � S   |   ` 1 `   |   O p t i m i s t i c   L o c k i n g   |  
-  
- # # #   C o n s t r a i n t s  
-  
- -   ` f k _ p o i _ p o ` :   F O R E I G N   K E Y   ( ` p o _ i d ` )   R E F E R E N C E S   ` p u r c h a s e _ o r d e r s ` ( ` i d ` )   O N   D E L E T E   C A S C A D E  
- -   ` f k _ p o i _ m a t e r i a l ` :   F O R E I G N   K E Y   ( ` m a t e r i a l _ i d ` )   R E F E R E N C E S   ` m a t e r i a l s ` ( ` i d ` )  
- -   ` c h k _ p o i _ u n i t ` :   ` u n i t `   I N   ( ' N O S ' ,   ' K G ' ,   ' M E T E R ' ,   ' S Q _ M E T E R ' ,   ' C U _ M E T E R ' ,   ' L I T E R ' ,   ' B A G ' ,   ' B O X ' ,   ' B U N D L E ' ,   ' T O N ' )  
-  
- # # #   I n d e x e s  
-  
- -   ` i d x _ p o i _ p o _ i d ` :   I n d e x   o n   ` p o _ i d `  
- -   ` i d x _ p o i _ m a t e r i a l _ i d ` :   I n d e x   o n   ` m a t e r i a l _ i d `  
-  
- - - -  
-  
- # #   g o o d s _ r e c e i v e d _ n o t e s  
-  
- R e c o r d s   r e c e i p t   o f   g o o d s   a g a i n s t   P u r c h a s e   O r d e r s ,   t r i g g e r i n g   i n v e n t o r y   s t o c k   u p d a t e s .  
-  
- # # #   C o l u m n s  
-  
- |   C o l u m n   N a m e   |   D a t a   T y p e   |   N u l l a b l e   |   D e f a u l t   |   N o t e s   |  
- | - - - - - - - - - - - - - | - - - - - - - - - - - | - - - - - - - - - - | - - - - - - - - - | - - - - - - - |  
- |   ` i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   � x    P K   |  
- |   ` g r n _ n u m b e r `   |   ` c h a r a c t e r   v a r y i n g ( 5 0 ) `   |   � S   |   ` - `   |   � x    U N I Q U E   |  
- |   ` p o _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   � x    F K   �      ` p u r c h a s e _ o r d e r s . i d `   |  
- |   ` r e c e i v e d _ d a t e `   |   ` t i m e s t a m p `   |   � S   |   ` n o w ( ) `   |   -   |  
- |   ` r e c e i v e d _ b y _ u s e r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   � x    F K   �      ` p o r t a l _ u s e r s . i d `   |  
- |   ` i n v o i c e _ n u m b e r `   |   ` c h a r a c t e r   v a r y i n g ( 1 0 0 ) `   |   � S   |   ` - `   |   V e n d o r   i n v o i c e   |  
- |   ` i n v o i c e _ d a t e `   |   ` d a t e `   |   � S   |   ` - `   |   -   |  
- |   ` c h a l l a n _ n u m b e r `   |   ` c h a r a c t e r   v a r y i n g ( 1 0 0 ) `   |   � S   |   ` - `   |   D e l i v e r y   c h a l l a n   |  
- |   ` n o t e s `   |   ` t e x t `   |   � S   |   ` - `   |   -   |  
- |   ` c r e a t e d _ a t `   |   ` t i m e s t a m p `   |   � S   |   ` n o w ( ) `   |   A u d i t   |  
- |   ` u p d a t e d _ a t `   |   ` t i m e s t a m p `   |   � S   |   ` n o w ( ) `   |   A u d i t   |  
- |   ` c r e a t e d _ b y _ u s e r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   A u d i t   |  
- |   ` u p d a t e d _ b y _ u s e r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   A u d i t   |  
- |   ` d e l e t e d _ a t `   |   ` t i m e s t a m p `   |   � S   |   ` - `   |   S o f t   D e l e t e   |  
- |   ` d e l e t e d _ b y _ u s e r _ i d `   |   ` b i g i n t `   |   � S   |   ` - `   |   A u d i t   |  
- |   ` v e r s i o n `   |   ` b i g i n t `   |   � S   |   ` 1 `   |   O p t i m i s t i c   L o c k i n g   |  
-  
- # # #   C o n s t r a i n t s  
-  
- -   ` u k _ g r n _ n u m b e r ` :   U N I Q U E   c o n s t r a i n t   o n   ` g r n _ n u m b e r `  
- -   ` f k _ g r n _ p o ` :   F O R E I G N   K E Y   ( ` p o _ i d ` )   R E F E R E N C E S   ` p u r c h a s e _ o r d e r s ` ( ` i d ` )  
- -   ` f k _ g r n _ r e c e i v e d _ b y ` :   F O R E I G N   K E Y   ( ` r e c e i v e d _ b y _ u s e r _ i d ` )   R E F E R E N C E S   ` p o r t a l _ u s e r s ` ( ` i d ` )  
-  
- # # #   I n d e x e s  
-  
- -   ` i d x _ g r n _ p o _ i d ` :   I n d e x   o n   ` p o _ i d `  
- -   ` i d x _ g r n _ r e c e i v e d _ d a t e ` :   I n d e x   o n   ` r e c e i v e d _ d a t e `  
-  
- # # #   B u s i n e s s   R u l e s  
-  
- 1 .   * * T r i g g e r s * * :  
-       -   O n   G R N   c r e a t i o n ,   u p d a t e   P O   s t a t u s   t o   ' R E C E I V E D '  
-       -   U p d a t e   i n v e n t o r y   s t o c k   f o r   e a c h   P O   i t e m   w i t h   l i n k e d   m a t e r i a l  
-  
- 2 .   * * V a l i d a t i o n * * :  
-       -   C a n   o n l y   c r e a t e   G R N   f o r   P O   w i t h   s t a t u s   ' I S S U E D '   o r   ' P A R T I A L L Y _ R E C E I V E D '  
-       -   C a n n o t   d e l e t e   G R N   i f   i n v e n t o r y   a d j u s t m e n t s   h a v e   b e e n   m a d e  
-  
- - - -  
- 
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `sheet_number` | `character varying(50)` | ✗ | `-` | 🔒 UNIQUE |
+| `start_date` | `date` | ✗ | `-` | - |
+| `end_date` | `date` | ✗ | `-` | - |
+| `total_amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `status` | `character varying(50)` | ✗ | `'DRAFT'` | - |
+| `project_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `customer_projects.id` |
+| `generated_by_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `portal_users.id` |
+| `approved_by_id` | `bigint(64,0)` | ✓ | `-` | 🔗 FK → `portal_users.id` |
+| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
+| `updated_at` | `timestamp without time zone` | ✓ | `CURRENT_TIMESTAMP` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `generated_by_id` → `portal_users.id`
+- `approved_by_id` → `portal_users.id`
+
+### Unique Constraints
+
+- `sheet_number`
+
+---
+
+## wage_sheet_entries
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `wage_sheet_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `wage_sheets.id` |
+| `labour_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `labour.id` |
+| `days_worked` | `numeric(5,2)` | ✗ | `-` | - |
+| `daily_wage` | `numeric(10,2)` | ✗ | `-` | - |
+| `overtime_hours` | `numeric(5,2)` | ✓ | `0` | - |
+| `overtime_amount` | `numeric(10,2)` | ✓ | `0` | - |
+| `additions` | `numeric(10,2)` | ✓ | `0` | - |
+| `deductions` | `numeric(10,2)` | ✓ | `0` | - |
+| `advances_deducted` | `numeric(10,2)` | ✓ | `0` | - |
+| `net_payable` | `numeric(15,2)` | ✗ | `-` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `wage_sheet_id` → `wage_sheets.id`
+- `labour_id` → `labour.id`
+
+---
+
+## labour_advances
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64,0)` | ✗ | `-` | 🔑 PK |
+| `labour_id` | `bigint(64,0)` | ✗ | `-` | 🔗 FK → `labour.id` |
+| `amount` | `numeric(15,2)` | ✗ | `-` | - |
+| `advance_date` | `date` | ✗ | `-` | - |
+| `reason` | `character varying(255)` | ✓ | `-` | - |
+| `is_recovered` | `boolean` | ✗ | `false` | - |
+| `recovered_amount` | `numeric(15,2)` | ✓ | `0` | - |
+| `created_at` | `timestamp without time zone` | ✗ | `CURRENT_TIMESTAMP` | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `labour_id` → `labour.id`

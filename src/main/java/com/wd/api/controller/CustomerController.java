@@ -4,6 +4,7 @@ import com.wd.api.dto.CustomerCreateRequest;
 import com.wd.api.dto.CustomerResponse;
 import com.wd.api.dto.CustomerUpdateRequest;
 import com.wd.api.dto.CustomerRoleDTO;
+import com.wd.api.dto.ApiResponse;
 import com.wd.api.model.CustomerUser;
 import com.wd.api.service.CustomerUserService;
 import com.wd.api.repository.CustomerRoleRepository;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -155,15 +157,15 @@ public class CustomerController {
      * Get all customer roles
      */
     @GetMapping("/roles")
-    public ResponseEntity<List<CustomerRoleDTO>> getCustomerRoles() {
+    public ResponseEntity<ApiResponse<List<CustomerRoleDTO>>> getCustomerRoles() {
         try {
             List<CustomerRoleDTO> roles = customerRoleRepository.findAll().stream()
                     .map(CustomerRoleDTO::new)
                     .collect(Collectors.toList());
-            return ResponseEntity.ok(roles);
+            return ResponseEntity.ok(ApiResponse.success("Customer roles retrieved successfully", roles));
         } catch (Exception e) {
             logger.error("Error fetching customer roles", e);
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Error fetching customer roles"));
         }
     }
 }

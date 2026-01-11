@@ -27,6 +27,8 @@ public class FinanceService {
         private final MeasurementBookRepository mbRepository;
         private final PurchaseOrderRepository poRepository;
         private final GoodsReceivedNoteRepository grnRepository;
+        private final ProjectMilestoneRepository milestoneRepository;
+        private final ReceiptRepository receiptRepository;
 
         @Transactional
         public ProjectInvoiceDTO createProjectInvoice(ProjectInvoiceDTO dto) {
@@ -179,5 +181,97 @@ public class FinanceService {
                                 .paymentMethod(p.getPaymentMethod())
                                 .notes(p.getNotes())
                                 .build();
+        }
+
+        @Transactional
+        public ProjectMilestone createMilestone(ProjectMilestone milestone) {
+                return milestoneRepository.save(milestone);
+        }
+
+        @Transactional
+        public ProjectMilestone updateMilestone(Long id, ProjectMilestone details) {
+                ProjectMilestone milestone = milestoneRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Milestone not found"));
+
+                milestone.setName(details.getName());
+                milestone.setDescription(details.getDescription());
+                milestone.setMilestonePercentage(details.getMilestonePercentage());
+                milestone.setAmount(details.getAmount());
+                milestone.setDueDate(details.getDueDate());
+
+                if (details.getStatus() != null) {
+                        milestone.setStatus(details.getStatus());
+                        if ("COMPLETED".equals(details.getStatus()) && milestone.getCompletedDate() == null) {
+                                milestone.setCompletedDate(java.time.LocalDate.now());
+                        }
+                }
+
+                return milestoneRepository.save(milestone);
+        }
+
+        @Transactional
+        public ProjectInvoiceDTO generateInvoiceForMilestone(Long milestoneId) {
+                ProjectMilestone milestone = milestoneRepository.findById(milestoneId)
+                                .orElseThrow(() -> new RuntimeException("Milestone not found"));
+
+                if (milestone.getInvoice() != null) {
+                        throw new RuntimeException("Invoice already exists for this milestone");
+                }
+
+                CustomerProject project = milestone.getProject();
+                BigDecimal amount = milestone.getAmount();
+                BigDecimal gstRate = new BigDecimal("18.00");
+                BigDecimal gstAmount = amount.multiply(gstRate).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                BigDecimal totalAmount = amount.add(gstAmount);
+
+                ProjectInvoice invoice = ProjectInvoice.builder()
+                                .project(project)
+                                .invoiceNumber(generateInvoiceNumber())
+                                .invoiceDate(java.time.LocalDate.now())
+                                .dueDate(java.time.LocalDate.now().plusDays(15))
+                                .subTotal(amount)
+                                .gstPercentage(gstRate)
+                                .gstAmount(gstAmount)
+                                .totalAmount(totalAmount)
+                                .status("ISSUED")
+                                .notes("Invoice for milestone: " + milestone.getName())
+                                .build();
+
+                ProjectInvoice savedInvoice = projectInvoiceRepository.save(invoice);
+
+                // Link invoice to milestone and update status
+                milestone.setInvoice(savedInvoice);
+                milestone.setStatus("INVOICED");
+                milestoneRepository.save(milestone);
+
+                return mapToProjectInvoiceDTO(savedInvoice);
+        }
+
+        @Transactional
+        public Receipt recordReceipt(Receipt receipt) {
+                if (receipt.getProject() == null && receipt.getInvoice() != null) {
+                        receipt.setProject(receipt.getInvoice().getProject());
+                }
+
+                // Validate project
+                if (receipt.getProject() == null) {
+                        throw new RuntimeException("Project is required for receipt");
+                }
+
+                // If linked to invoice, update invoice status if fully paid?
+                // Logic can be added here. For now just save.
+                if (receipt.getInvoice() != null) {
+                        // Check total paid against invoice amount could be done here
+                }
+
+                return receiptRepository.save(receipt);
+        }
+
+        public List<ProjectMilestone> getMilestonesByProject(Long projectId) {
+                return milestoneRepository.findByProjectId(projectId);
+        }
+
+        public List<Receipt> getReceiptsByProject(Long projectId) {
+                return receiptRepository.findByProjectId(projectId);
         }
 }

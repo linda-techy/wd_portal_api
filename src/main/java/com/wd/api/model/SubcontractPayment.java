@@ -29,8 +29,19 @@ public class SubcontractPayment {
     @Column(name = "tds_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal tdsAmount;
 
+    @Column(name = "retention_amount", nullable = false, precision = 15, scale = 2)
+    private BigDecimal retentionAmount = BigDecimal.ZERO;
+
     @Column(name = "net_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal netAmount;
+
+    public BigDecimal getRetentionAmount() {
+        return retentionAmount;
+    }
+
+    public void setRetentionAmount(BigDecimal retentionAmount) {
+        this.retentionAmount = retentionAmount;
+    }
 
     @Column(name = "payment_mode", nullable = false)
     private String paymentMode;
