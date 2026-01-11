@@ -5,6 +5,7 @@ import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LeadCreateRequest;
 import com.wd.api.dto.PaginationParams;
 import com.wd.api.service.LeadService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

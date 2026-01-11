@@ -15,7 +15,8 @@ public enum MaterialCategory {
     WOOD_TIMBER("Wood & Timber", "Timber, plywood, doors, windows"),
     HARDWARE("Hardware", "Nails, screws, hinges, locks"),
     WATERPROOFING("Waterproofing", "Waterproofing chemicals, membranes"),
-    MISCELLANEOUS("Miscellaneous", "Other materials");
+    MISCELLANEOUS("Miscellaneous", "Other materials"),
+    OTHERS("Others", "Other/miscellaneous materials (legacy)");
 
     private final String displayName;
     private final String description;

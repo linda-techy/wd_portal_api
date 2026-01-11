@@ -1,19 +1,29 @@
 package com.wd.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class LeadCreateRequest {
 
+    @NotBlank(message = "Name is required")
+    @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
     private String name;
+
+    @Email(message = "Invalid email format")
     private String email;
+
+    @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^[0-9]{10,15}$", message = "Phone number must be 10-15 digits")
     private String phone;
 
     @JsonProperty("whatsapp_number")
+    @Pattern(regexp = "^[0-9]{10,15}$", message = "WhatsApp number must be 10-15 digits")
     private String whatsappNumber;
 
     @JsonProperty("customer_type")
+    @NotBlank(message = "Customer type is required")
     private String customerType;
 
     @JsonProperty("project_type")
@@ -29,17 +39,23 @@ public class LeadCreateRequest {
     private BigDecimal projectSqftArea;
 
     @JsonProperty("lead_status")
+    @NotBlank(message = "Lead status is required")
     private String leadStatus;
 
     @JsonProperty("lead_source")
+    @NotBlank(message = "Lead source is required")
     private String leadSource;
 
+    @NotBlank(message = "Priority is required")
     private String priority;
 
     @JsonProperty("assigned_team")
     private String assignedTeam;
 
+    @NotBlank(message = "State is required")
     private String state;
+
+    @NotBlank(message = "District is required")
     private String district;
     private String location;
 
