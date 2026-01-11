@@ -285,6 +285,11 @@ public class LeadCreateRequest {
     @JsonProperty("assigned_to_id")
     private Long assignedToId;
 
+    @JsonProperty("plot_area")
+    private BigDecimal plotArea;
+
+    private Integer floors;
+
     // Getters and Setters
     public Long getAssignedToId() {
         return assignedToId;
@@ -292,5 +297,21 @@ public class LeadCreateRequest {
 
     public void setAssignedToId(Long assignedToId) {
         this.assignedToId = assignedToId;
+    }
+
+    public BigDecimal getPlotArea() {
+        return plotArea;
+    }
+
+    public void setPlotArea(BigDecimal plotArea) {
+        this.plotArea = plotArea;
+    }
+
+    public Integer getFloors() {
+        return floors;
+    }
+
+    public void setFloors(Integer floors) {
+        this.floors = floors;
     }
 }

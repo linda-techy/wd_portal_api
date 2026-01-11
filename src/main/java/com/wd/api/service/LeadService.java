@@ -164,6 +164,8 @@ public class LeadService {
         lead.setDistrict(request.getDistrict());
         lead.setLocation(request.getLocation());
         lead.setAddress(request.getAddress());
+        lead.setPlotArea(request.getPlotArea());
+        lead.setFloors(request.getFloors());
 
         if (request.getDateOfEnquiry() != null && !request.getDateOfEnquiry().trim().isEmpty()) {
             try {

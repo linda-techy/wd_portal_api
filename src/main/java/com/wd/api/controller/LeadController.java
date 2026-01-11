@@ -143,7 +143,7 @@ public class LeadController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<ApiResponse<Lead>> createLead(@RequestBody LeadCreateRequest request) {
+    public ResponseEntity<ApiResponse<Lead>> createLead(@Valid @RequestBody LeadCreateRequest request) {
         try {
             if (request.getName() == null || request.getName().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("name is required"));

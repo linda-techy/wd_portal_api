@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * Lead Entity - Standardized for unified security model
@@ -122,6 +124,7 @@ public class Lead extends BaseEntity {
     private LocalDateTime lastScoredAt;
 
     @Column(name = "score_factors", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     @JsonProperty("score_factors")
     private String scoreFactors;
 
