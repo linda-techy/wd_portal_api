@@ -2,6 +2,8 @@ package com.wd.api.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "activity_feeds")
@@ -47,6 +49,7 @@ public class ActivityFeed {
     private String referenceType;
 
     @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String metadata;
 
     @PrePersist

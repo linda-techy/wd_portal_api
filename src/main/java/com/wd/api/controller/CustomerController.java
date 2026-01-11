@@ -62,10 +62,10 @@ public class CustomerController {
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<CustomerResponse>> getAllCustomers() {
+    public ResponseEntity<ApiResponse<List<CustomerResponse>>> getAllCustomers() {
         try {
             List<CustomerResponse> customers = customerUserService.getAllCustomers();
-            return ResponseEntity.ok(customers);
+            return ResponseEntity.ok(ApiResponse.success("Customers retrieved successfully", customers));
         } catch (Exception e) {
             logger.error("Error fetching customers", e);
             return ResponseEntity.internalServerError().build();
