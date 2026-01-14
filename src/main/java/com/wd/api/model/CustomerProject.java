@@ -92,6 +92,67 @@ public class CustomerProject extends BaseEntity {
     @Column(name = "longitude")
     private Double longitude;
 
+    // ==================== Progress Tracking Fields ====================
+    
+    /**
+     * Overall project completion percentage (0-100)
+     * Calculated using hybrid method combining milestones, tasks, and budget
+     */
+    @Column(name = "overall_progress", precision = 5, scale = 2)
+    private BigDecimal overallProgress = BigDecimal.ZERO;
+
+    /**
+     * Progress based on milestone completion (0-100)
+     */
+    @Column(name = "milestone_progress", precision = 5, scale = 2)
+    private BigDecimal milestoneProgress = BigDecimal.ZERO;
+
+    /**
+     * Progress based on task completion (0-100)
+     */
+    @Column(name = "task_progress", precision = 5, scale = 2)
+    private BigDecimal taskProgress = BigDecimal.ZERO;
+
+    /**
+     * Progress based on budget utilization (0-100)
+     */
+    @Column(name = "budget_progress", precision = 5, scale = 2)
+    private BigDecimal budgetProgress = BigDecimal.ZERO;
+
+    /**
+     * Timestamp of last progress update
+     */
+    @Column(name = "last_progress_update")
+    private LocalDateTime lastProgressUpdate;
+
+    /**
+     * Method used to calculate overall progress
+     * Options: HYBRID, MILESTONE_ONLY, TASK_ONLY, BUDGET_ONLY
+     */
+    @Column(name = "progress_calculation_method", length = 50)
+    private String progressCalculationMethod = "HYBRID";
+
+    /**
+     * Weight of milestone completion in overall progress (0.0 to 1.0)
+     * Default: 0.40 (40%)
+     */
+    @Column(name = "milestone_weight", precision = 3, scale = 2)
+    private BigDecimal milestoneWeight = new BigDecimal("0.40");
+
+    /**
+     * Weight of task completion in overall progress (0.0 to 1.0)
+     * Default: 0.30 (30%)
+     */
+    @Column(name = "task_weight", precision = 3, scale = 2)
+    private BigDecimal taskWeight = new BigDecimal("0.30");
+
+    /**
+     * Weight of budget utilization in overall progress (0.0 to 1.0)
+     * Default: 0.30 (30%)
+     */
+    @Column(name = "budget_weight", precision = 3, scale = 2)
+    private BigDecimal budgetWeight = new BigDecimal("0.30");
+
     // ==================== Collections (OneToMany Relationships)
     // ====================
 
@@ -510,6 +571,80 @@ public class CustomerProject extends BaseEntity {
 
     public void setProjectStatus(ProjectStatus projectStatus) {
         this.projectStatus = projectStatus;
+    }
+
+    // ==================== Progress Tracking Getters/Setters ====================
+
+    public BigDecimal getOverallProgress() {
+        return overallProgress;
+    }
+
+    public void setOverallProgress(BigDecimal overallProgress) {
+        this.overallProgress = overallProgress;
+    }
+
+    public BigDecimal getMilestoneProgress() {
+        return milestoneProgress;
+    }
+
+    public void setMilestoneProgress(BigDecimal milestoneProgress) {
+        this.milestoneProgress = milestoneProgress;
+    }
+
+    public BigDecimal getTaskProgress() {
+        return taskProgress;
+    }
+
+    public void setTaskProgress(BigDecimal taskProgress) {
+        this.taskProgress = taskProgress;
+    }
+
+    public BigDecimal getBudgetProgress() {
+        return budgetProgress;
+    }
+
+    public void setBudgetProgress(BigDecimal budgetProgress) {
+        this.budgetProgress = budgetProgress;
+    }
+
+    public LocalDateTime getLastProgressUpdate() {
+        return lastProgressUpdate;
+    }
+
+    public void setLastProgressUpdate(LocalDateTime lastProgressUpdate) {
+        this.lastProgressUpdate = lastProgressUpdate;
+    }
+
+    public String getProgressCalculationMethod() {
+        return progressCalculationMethod;
+    }
+
+    public void setProgressCalculationMethod(String progressCalculationMethod) {
+        this.progressCalculationMethod = progressCalculationMethod;
+    }
+
+    public BigDecimal getMilestoneWeight() {
+        return milestoneWeight;
+    }
+
+    public void setMilestoneWeight(BigDecimal milestoneWeight) {
+        this.milestoneWeight = milestoneWeight;
+    }
+
+    public BigDecimal getTaskWeight() {
+        return taskWeight;
+    }
+
+    public void setTaskWeight(BigDecimal taskWeight) {
+        this.taskWeight = taskWeight;
+    }
+
+    public BigDecimal getBudgetWeight() {
+        return budgetWeight;
+    }
+
+    public void setBudgetWeight(BigDecimal budgetWeight) {
+        this.budgetWeight = budgetWeight;
     }
 
     // ==================== Convenience Methods ====================

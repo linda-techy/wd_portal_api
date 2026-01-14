@@ -51,6 +51,24 @@ public class ProjectMilestone {
     @JoinColumn(name = "invoice_id")
     private ProjectInvoice invoice;
 
+    // Progress tracking fields
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "template_id")
+    private MilestoneTemplate template;
+
+    @Column(name = "completion_percentage", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal completionPercentage = BigDecimal.ZERO;
+
+    @Column(name = "weight_percentage", precision = 5, scale = 2)
+    private BigDecimal weightPercentage;
+
+    @Column(name = "actual_start_date")
+    private LocalDate actualStartDate;
+
+    @Column(name = "actual_end_date")
+    private LocalDate actualEndDate;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
