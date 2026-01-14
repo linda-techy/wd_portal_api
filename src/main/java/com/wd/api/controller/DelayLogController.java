@@ -1,10 +1,12 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.DelayLogSearchFilter;
 import com.wd.api.model.DelayLog;
 import com.wd.api.model.PortalUser;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.DelayLogService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,8 +27,15 @@ public class DelayLogController {
     @Autowired
     private PortalUserRepository portalUserRepository;
 
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<Page<DelayLog>> searchDelayLogs(@ModelAttribute DelayLogSearchFilter filter) {
+        return ResponseEntity.ok(delayLogService.searchDelayLogs(filter));
+    }
+
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @Deprecated
     public ResponseEntity<List<DelayLog>> getDelays(@PathVariable Long projectId) {
         return ResponseEntity.ok(delayLogService.getDelaysByProject(projectId));
     }

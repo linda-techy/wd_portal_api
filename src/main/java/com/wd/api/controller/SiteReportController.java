@@ -2,6 +2,7 @@ package com.wd.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wd.api.dto.ApiResponse;
+import com.wd.api.dto.SiteReportSearchFilter;
 import com.wd.api.model.SiteReport;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.CustomerProject;
@@ -13,6 +14,7 @@ import com.wd.api.service.SiteReportService;
 import com.wd.api.service.AuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,7 +44,19 @@ public class SiteReportController {
         this.objectMapper = objectMapper;
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<Page<SiteReport>> searchSiteReports(@ModelAttribute SiteReportSearchFilter filter) {
+        try {
+            Page<SiteReport> reports = siteReportService.searchSiteReports(filter);
+            return ResponseEntity.ok(reports);
+        } catch (Exception e) {
+            logger.error("Error searching site reports", e);
+            return ResponseEntity.status(500).build();
+        }
+    }
+
     @GetMapping("/project/{projectId}")
+    @Deprecated
     public ResponseEntity<ApiResponse<List<SiteReport>>> getReportsByProject(@PathVariable Long projectId) {
         try {
             List<SiteReport> reports = siteReportService.getReportsByProject(projectId);

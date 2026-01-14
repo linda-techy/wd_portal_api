@@ -2,6 +2,8 @@ package com.wd.api.service;
 
 import com.wd.api.model.*;
 import com.wd.api.repository.*;
+import com.wd.api.dto.MaterialIndentSearchFilter;
+import com.wd.api.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -96,6 +98,93 @@ public class MaterialIndentService {
         return indentRepository.save(indent);
     }
 
+    /**
+     * NEW: Standardized search method using MaterialIndentSearchFilter
+     */
+    @Transactional(readOnly = true)
+    public Page<MaterialIndent> search(MaterialIndentSearchFilter filter) {
+        Specification<MaterialIndent> spec = buildSearchSpecification(filter);
+        return indentRepository.findAll(spec, filter.toPageable());
+    }
+    
+    /**
+     * Build JPA Specification from MaterialIndentSearchFilter
+     */
+    private Specification<MaterialIndent> buildSearchSpecification(MaterialIndentSearchFilter filter) {
+        SpecificationBuilder<MaterialIndent> builder = new SpecificationBuilder<>();
+        
+        // Search across multiple fields
+        Specification<MaterialIndent> searchSpec = builder.buildSearch(
+            filter.getSearchQuery(),
+            "indentNumber", "description", "notes"
+        );
+        
+        // Apply filters
+        Specification<MaterialIndent> statusSpec = null;
+        if (filter.getStatus() != null && !filter.getStatus().trim().isEmpty()) {
+            statusSpec = (root, query, cb) -> 
+                cb.equal(root.get("status"), 
+                    MaterialIndent.IndentStatus.valueOf(filter.getStatus().toUpperCase()));
+        }
+        
+        // Project filter
+        Specification<MaterialIndent> projectSpec = null;
+        if (filter.getProjectId() != null) {
+            projectSpec = (root, query, cb) -> 
+                cb.equal(root.get("project").get("id"), filter.getProjectId());
+        }
+        
+        // Requester filter
+        Specification<MaterialIndent> requesterSpec = builder.buildEquals("requestedById", filter.getRequestedBy());
+        
+        // Approver filter
+        Specification<MaterialIndent> approverSpec = builder.buildEquals("approvedById", filter.getApprovedBy());
+        
+        // Indent number filter (partial match)
+        Specification<MaterialIndent> indentNumberSpec = builder.buildLike("indentNumber", filter.getIndentNumber());
+        
+        // Date range (on createdAt)
+        Specification<MaterialIndent> dateRangeSpec = null;
+        if (filter.getStartDate() != null || filter.getEndDate() != null) {
+            dateRangeSpec = (root, query, cb) -> {
+                List<Predicate> predicates = new ArrayList<>();
+                if (filter.getStartDate() != null) {
+                    predicates.add(cb.greaterThanOrEqualTo(
+                        root.get("createdAt"),
+                        filter.getStartDate().atStartOfDay()
+                    ));
+                }
+                if (filter.getEndDate() != null) {
+                    predicates.add(cb.lessThanOrEqualTo(
+                        root.get("createdAt"),
+                        filter.getEndDate().plusDays(1).atStartOfDay()
+                    ));
+                }
+                return cb.and(predicates.toArray(new Predicate[0]));
+            };
+        }
+        
+        // Exclude soft deleted
+        Specification<MaterialIndent> notDeletedSpec = (root, query, cb) -> 
+            cb.isNull(root.get("deletedAt"));
+        
+        // Combine all specifications
+        return builder.and(
+            searchSpec,
+            statusSpec,
+            projectSpec,
+            requesterSpec,
+            approverSpec,
+            indentNumberSpec,
+            dateRangeSpec,
+            notDeletedSpec
+        );
+    }
+
+    /**
+     * DEPRECATED: Use search() instead
+     */
+    @Deprecated
     @Transactional(readOnly = true)
     public Page<MaterialIndent> searchIndents(Long projectId, String status, String searchTerm, Pageable pageable) {
         Specification<MaterialIndent> spec = (root, query, cb) -> {

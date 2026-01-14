@@ -2,9 +2,12 @@ package com.wd.api.controller;
 
 import com.wd.api.dto.LabourDTO;
 import com.wd.api.dto.LabourAttendanceDTO;
+import com.wd.api.dto.LabourSearchFilter;
 import com.wd.api.dto.MeasurementBookDTO;
+import com.wd.api.model.Labour;
 import com.wd.api.service.LabourService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -16,12 +19,18 @@ public class LabourController {
 
     private final LabourService labourService;
 
+    @GetMapping("/search")
+    public ResponseEntity<Page<Labour>> searchLabour(@ModelAttribute LabourSearchFilter filter) {
+        return ResponseEntity.ok(labourService.searchLabour(filter));
+    }
+
     @PostMapping
     public ResponseEntity<LabourDTO> createLabour(@RequestBody LabourDTO dto) {
         return ResponseEntity.ok(labourService.createLabour(dto));
     }
 
     @GetMapping
+    @Deprecated
     public ResponseEntity<List<LabourDTO>> getAllLabour() {
         return ResponseEntity.ok(labourService.getAllLabour());
     }

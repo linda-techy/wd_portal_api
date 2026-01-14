@@ -2,10 +2,13 @@ package com.wd.api.controller;
 
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.ApprovalRequestDTO;
+import com.wd.api.dto.ApprovalSearchFilter;
+import com.wd.api.model.ApprovalRequest;
 import com.wd.api.service.ApprovalService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +21,17 @@ public class ApprovalController {
 
     private static final Logger logger = LoggerFactory.getLogger(ApprovalController.class);
     private final ApprovalService approvalService;
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<ApprovalRequest>> searchApprovals(@ModelAttribute ApprovalSearchFilter filter) {
+        try {
+            Page<ApprovalRequest> approvals = approvalService.searchApprovals(filter);
+            return ResponseEntity.ok(approvals);
+        } catch (Exception e) {
+            logger.error("Error searching approvals", e);
+            return ResponseEntity.status(500).build();
+        }
+    }
 
     @PostMapping("/request")
     public ResponseEntity<ApiResponse<ApprovalRequestDTO>> createRequest(@RequestBody ApprovalRequestDTO dto) {

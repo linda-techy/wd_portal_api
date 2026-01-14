@@ -1,8 +1,10 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.LeadQuotationSearchFilter;
 import com.wd.api.model.LeadQuotation;
 import com.wd.api.service.LeadQuotationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -23,6 +25,11 @@ public class LeadQuotationController {
 
     @Autowired
     private com.wd.api.repository.PortalUserRepository portalUserRepository;
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<LeadQuotation>> searchLeadQuotations(@ModelAttribute LeadQuotationSearchFilter filter) {
+        return ResponseEntity.ok(quotationService.searchLeadQuotations(filter));
+    }
 
     /**
      * Get all quotations for a lead

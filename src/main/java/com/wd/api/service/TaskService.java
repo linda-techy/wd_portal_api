@@ -3,17 +3,23 @@ package com.wd.api.service;
 import com.wd.api.model.Task;
 import com.wd.api.model.TaskAssignmentHistory;
 import com.wd.api.model.PortalUser;
+import com.wd.api.dto.TaskSearchFilter;
 import com.wd.api.repository.TaskAssignmentHistoryRepository;
 import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.security.TaskAuthorizationService;
+import com.wd.api.util.SpecificationBuilder;
+import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,9 +51,95 @@ public class TaskService {
     private TaskAuthorizationService authService;
 
     /**
-     * Get all tasks (admin only) or user's tasks (non-admin)
-     * Filtering is done at controller level based on role
+     * NEW: Standardized search method using TaskSearchFilter
      */
+    @Transactional(readOnly = true)
+    public Page<Task> search(TaskSearchFilter filter) {
+        Specification<Task> spec = buildSearchSpecification(filter);
+        return taskRepository.findAll(spec, filter.toPageable());
+    }
+    
+    /**
+     * Build JPA Specification from TaskSearchFilter
+     */
+    private Specification<Task> buildSearchSpecification(TaskSearchFilter filter) {
+        SpecificationBuilder<Task> builder = new SpecificationBuilder<>();
+        
+        // Search across task fields
+        Specification<Task> searchSpec = builder.buildSearch(
+            filter.getSearchQuery(),
+            "title", "description"
+        );
+        
+        // Status filter
+        Specification<Task> statusSpec = null;
+        if (filter.getStatus() != null && !filter.getStatus().trim().isEmpty()) {
+            statusSpec = (root, query, cb) -> 
+                cb.equal(root.get("status"), 
+                    Task.TaskStatus.valueOf(filter.getStatus().toUpperCase()));
+        }
+        
+        // Priority filter
+        Specification<Task> prioritySpec = null;
+        if (filter.getPriority() != null && !filter.getPriority().trim().isEmpty()) {
+            prioritySpec = (root, query, cb) -> 
+                cb.equal(root.get("priority"), 
+                    Task.TaskPriority.valueOf(filter.getPriority().toUpperCase()));
+        }
+        
+        // Assigned user filter
+        Specification<Task> assignedSpec = null;
+        if (filter.getAssignedTo() != null) {
+            assignedSpec = (root, query, cb) -> 
+                cb.equal(root.get("assignedTo").get("id"), filter.getAssignedTo());
+        }
+        
+        // Project filter
+        Specification<Task> projectSpec = null;
+        if (filter.getProjectId() != null) {
+            projectSpec = (root, query, cb) -> 
+                cb.equal(root.get("projectId"), filter.getProjectId());
+        }
+        
+        // Lead filter
+        Specification<Task> leadSpec = null;
+        if (filter.getLeadId() != null) {
+            leadSpec = (root, query, cb) -> 
+                cb.equal(root.get("leadId"), filter.getLeadId());
+        }
+        
+        // Created by filter
+        Specification<Task> createdBySpec = null;
+        if (filter.getCreatedBy() != null) {
+            createdBySpec = (root, query, cb) -> 
+                cb.equal(root.get("createdBy").get("id"), filter.getCreatedBy());
+        }
+        
+        // Due date range
+        Specification<Task> dueDateSpec = builder.buildDateRange(
+            "dueDate",
+            filter.getDueDateStart(),
+            filter.getDueDateEnd()
+        );
+        
+        // Combine all specifications
+        return builder.and(
+            searchSpec,
+            statusSpec,
+            prioritySpec,
+            assignedSpec,
+            projectSpec,
+            leadSpec,
+            createdBySpec,
+            dueDateSpec
+        );
+    }
+
+    /**
+     * DEPRECATED: Get all tasks (admin only) or user's tasks (non-admin)
+     * Use search() instead
+     */
+    @Deprecated
     public List<Task> getAllTasks() {
         return taskRepository.findAll();
     }

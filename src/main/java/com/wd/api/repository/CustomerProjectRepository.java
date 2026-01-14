@@ -4,6 +4,7 @@ import com.wd.api.model.CustomerProject;
 import com.wd.api.model.enums.ProjectPhase;
 import com.wd.api.model.enums.ProjectStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface CustomerProjectRepository extends JpaRepository<CustomerProject, Long> {
+public interface CustomerProjectRepository extends JpaRepository<CustomerProject, Long>, JpaSpecificationExecutor<CustomerProject> {
 
         // ==================== Legacy Methods (Maintained for Compatibility)
         // ====================

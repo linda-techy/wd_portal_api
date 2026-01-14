@@ -2,6 +2,7 @@ package com.wd.api.controller;
 
 import com.wd.api.dto.CustomerCreateRequest;
 import com.wd.api.dto.CustomerResponse;
+import com.wd.api.dto.CustomerSearchFilter;
 import com.wd.api.dto.CustomerUpdateRequest;
 import com.wd.api.dto.CustomerRoleDTO;
 import com.wd.api.dto.ApiResponse;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -40,9 +40,24 @@ public class CustomerController {
     private CustomerRoleRepository customerRoleRepository;
 
     /**
+     * Search customers with filters
+     */
+    @GetMapping("/search")
+    public ResponseEntity<Page<CustomerUser>> searchCustomers(@ModelAttribute CustomerSearchFilter filter) {
+        try {
+            Page<CustomerUser> customers = customerUserService.searchCustomers(filter);
+            return ResponseEntity.ok(customers);
+        } catch (Exception e) {
+            logger.error("Error searching customers", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
      * Get all customers (paginated)
      */
     @GetMapping("/paginated")
+    @Deprecated
     public ResponseEntity<Page<CustomerResponse>> getCustomersPaginated(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

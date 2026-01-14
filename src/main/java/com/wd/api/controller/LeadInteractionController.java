@@ -1,8 +1,10 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.LeadInteractionSearchFilter;
 import com.wd.api.model.LeadInteraction;
 import com.wd.api.service.LeadInteractionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +27,11 @@ public class LeadInteractionController {
 
     @Autowired
     private com.wd.api.repository.PortalUserRepository portalUserRepository;
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<LeadInteraction>> searchLeadInteractions(@ModelAttribute LeadInteractionSearchFilter filter) {
+        return ResponseEntity.ok(interactionService.searchLeadInteractions(filter));
+    }
 
     /**
      * Get all interactions for a lead

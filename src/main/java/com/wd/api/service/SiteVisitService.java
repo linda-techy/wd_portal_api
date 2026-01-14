@@ -3,6 +3,7 @@ package com.wd.api.service;
 import com.wd.api.dto.CheckInRequest;
 import com.wd.api.dto.CheckOutRequest;
 import com.wd.api.dto.SiteVisitDTO;
+import com.wd.api.dto.SiteVisitSearchFilter;
 import com.wd.api.exception.ResourceNotFoundException;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.PortalUser;
@@ -12,12 +13,16 @@ import com.wd.api.model.enums.VisitType;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.SiteVisitRepository;
 import com.wd.api.repository.PortalUserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,6 +42,84 @@ public class SiteVisitService {
         this.siteVisitRepository = siteVisitRepository;
         this.projectRepository = projectRepository;
         this.portalUserRepository = portalUserRepository;
+    }
+
+    /**
+     * Search site visits with filters and pagination
+     */
+    @Transactional(readOnly = true)
+    public Page<SiteVisit> searchSiteVisits(SiteVisitSearchFilter filter) {
+        Specification<SiteVisit> spec = buildSpecification(filter);
+        return siteVisitRepository.findAll(spec, filter.toPageable());
+    }
+
+    private Specification<SiteVisit> buildSpecification(SiteVisitSearchFilter filter) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Search across project name, visitor name, notes
+            if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.join("project").get("name")), searchPattern),
+                    cb.like(cb.lower(root.join("visitedBy").get("firstName")), searchPattern),
+                    cb.like(cb.lower(root.join("visitedBy").get("lastName")), searchPattern),
+                    cb.like(cb.lower(root.get("notes")), searchPattern)
+                ));
+            }
+
+            // Filter by projectId
+            if (filter.getProjectId() != null) {
+                predicates.add(cb.equal(root.get("project").get("id"), filter.getProjectId()));
+            }
+
+            // Filter by visitedById
+            if (filter.getVisitedById() != null) {
+                predicates.add(cb.equal(root.get("visitedBy").get("id"), filter.getVisitedById()));
+            }
+
+            // Filter by visitType
+            if (filter.getVisitType() != null && !filter.getVisitType().isEmpty()) {
+                try {
+                    VisitType visitType = VisitType.valueOf(filter.getVisitType().toUpperCase());
+                    predicates.add(cb.equal(root.get("visitType"), visitType));
+                } catch (IllegalArgumentException e) {
+                    // Invalid visit type, skip filter
+                }
+            }
+
+            // Filter by visitStatus or active only
+            if (filter.isActiveOnly()) {
+                predicates.add(cb.equal(root.get("visitStatus"), VisitStatus.CHECKED_IN));
+            } else if (filter.getVisitStatus() != null && !filter.getVisitStatus().isEmpty()) {
+                try {
+                    VisitStatus visitStatus = VisitStatus.valueOf(filter.getVisitStatus().toUpperCase());
+                    predicates.add(cb.equal(root.get("visitStatus"), visitStatus));
+                } catch (IllegalArgumentException e) {
+                    // Invalid visit status, skip filter
+                }
+            }
+
+            // Filter by status (from base class)
+            if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                try {
+                    VisitStatus visitStatus = VisitStatus.valueOf(filter.getStatus().toUpperCase());
+                    predicates.add(cb.equal(root.get("visitStatus"), visitStatus));
+                } catch (IllegalArgumentException e) {
+                    // Invalid status, skip filter
+                }
+            }
+
+            // Date range filter
+            if (filter.getStartDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("visitDate"), filter.getStartDate().atStartOfDay()));
+            }
+            if (filter.getEndDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("visitDate"), filter.getEndDate().atTime(23, 59, 59)));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     /**

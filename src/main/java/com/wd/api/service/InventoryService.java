@@ -2,6 +2,7 @@ package com.wd.api.service;
 
 import com.wd.api.dto.MaterialDTO;
 import com.wd.api.dto.InventoryStockDTO;
+import com.wd.api.dto.InventorySearchFilter;
 import com.wd.api.model.Material;
 import com.wd.api.model.InventoryStock;
 import com.wd.api.model.CustomerProject;
@@ -13,11 +14,16 @@ import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.dto.MaterialConsumptionDTO;
 import com.wd.api.repository.PurchaseOrderItemRepository;
 import com.wd.api.repository.StockAdjustmentRepository;
+import com.wd.api.util.SpecificationBuilder;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Service
@@ -134,6 +140,87 @@ public class InventoryService {
                 return mapToMaterialDTO(material);
         }
 
+        /**
+         * NEW: Standardized search method for materials with pagination
+         */
+        @Transactional(readOnly = true)
+        public Page<Material> searchMaterials(InventorySearchFilter filter) {
+                Specification<Material> spec = buildMaterialSearchSpecification(filter);
+                return materialRepository.findAll(spec, filter.toPageable());
+        }
+        
+        /**
+         * Build JPA Specification for Material search
+         */
+        private Specification<Material> buildMaterialSearchSpecification(InventorySearchFilter filter) {
+                SpecificationBuilder<Material> builder = new SpecificationBuilder<>();
+                
+                // Search across material fields
+                Specification<Material> searchSpec = builder.buildSearch(
+                        filter.getSearchQuery(),
+                        "name", "code", "description"
+                );
+                
+                // Material type/category filter
+                Specification<Material> categorySpec = null;
+                if (filter.getMaterialType() != null && !filter.getMaterialType().trim().isEmpty()) {
+                        categorySpec = (root, query, cb) -> 
+                                cb.equal(root.get("category"), 
+                                        MaterialCategory.valueOf(filter.getMaterialType().toUpperCase()));
+                }
+                
+                // Material code filter
+                Specification<Material> codeSpec = builder.buildLike("code", filter.getMaterialCode());
+                
+                // Active filter
+                Specification<Material> activeSpec = builder.buildBoolean("active", filter.getActive());
+                
+                return builder.and(searchSpec, categorySpec, codeSpec, activeSpec);
+        }
+        
+        /**
+         * NEW: Standardized search method for stock with pagination
+         */
+        @Transactional(readOnly = true)
+        public Page<InventoryStock> searchStock(InventorySearchFilter filter) {
+                Specification<InventoryStock> spec = buildStockSearchSpecification(filter);
+                return stockRepository.findAll(spec, filter.toPageable());
+        }
+        
+        /**
+         * Build JPA Specification for Stock search
+         */
+        private Specification<InventoryStock> buildStockSearchSpecification(InventorySearchFilter filter) {
+                SpecificationBuilder<InventoryStock> builder = new SpecificationBuilder<>();
+                
+                // Project filter
+                Specification<InventoryStock> projectSpec = null;
+                if (filter.getProjectId() != null) {
+                        projectSpec = (root, query, cb) -> 
+                                cb.equal(root.get("project").get("id"), filter.getProjectId());
+                }
+                
+                // Low stock filter
+                Specification<InventoryStock> lowStockSpec = null;
+                if (filter.getLowStock() != null && filter.getLowStock()) {
+                        lowStockSpec = (root, query, cb) -> 
+                                cb.lessThan(root.get("currentQuantity"), new BigDecimal("10"));
+                }
+                
+                // Quantity range
+                Specification<InventoryStock> quantitySpec = builder.buildNumericRange(
+                        "currentQuantity",
+                        filter.getMinQuantity() != null ? BigDecimal.valueOf(filter.getMinQuantity()) : null,
+                        filter.getMaxQuantity() != null ? BigDecimal.valueOf(filter.getMaxQuantity()) : null
+                );
+                
+                return builder.and(projectSpec, lowStockSpec, quantitySpec);
+        }
+
+        /**
+         * DEPRECATED: Use searchMaterials() instead
+         */
+        @Deprecated
         public List<MaterialDTO> getAllMaterials() {
                 return materialRepository.findAll().stream()
                                 .filter(m -> m.isActive()) // Only return active materials

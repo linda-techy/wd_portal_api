@@ -3,8 +3,10 @@ package com.wd.api.service;
 import com.wd.api.model.Lead;
 import com.wd.api.dto.PaginationParams;
 import com.wd.api.dto.PartnershipReferralRequest;
+import com.wd.api.dto.LeadSearchFilter;
 import com.wd.api.repository.LeadRepository;
 import com.wd.api.repository.LeadQuotationRepository;
+import com.wd.api.util.SpecificationBuilder;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -313,6 +315,98 @@ public class LeadService {
         return leadRepository.findAll();
     }
 
+    /**
+     * NEW: Standardized search method using LeadSearchFilter
+     * Enterprise-grade implementation with SpecificationBuilder
+     */
+    public Page<Lead> search(LeadSearchFilter filter) {
+        Specification<Lead> spec = buildSearchSpecification(filter);
+        return leadRepository.findAll(spec, filter.toPageable());
+    }
+    
+    /**
+     * Build JPA Specification from LeadSearchFilter
+     * Uses SpecificationBuilder for clean, reusable logic
+     */
+    private Specification<Lead> buildSearchSpecification(LeadSearchFilter filter) {
+        SpecificationBuilder<Lead> builder = new SpecificationBuilder<>();
+        
+        // Search across multiple fields
+        Specification<Lead> searchSpec = builder.buildSearch(
+            filter.getSearchQuery(),
+            "name", "email", "phone", "whatsappNumber", "projectDescription"
+        );
+        
+        // Apply filters
+        Specification<Lead> statusSpec = builder.buildEquals("leadStatus", filter.getStatus());
+        Specification<Lead> sourceSpec = builder.buildEquals("leadSource", filter.getSource());
+        Specification<Lead> prioritySpec = builder.buildEquals("priority", filter.getPriority());
+        Specification<Lead> customerTypeSpec = builder.buildEquals("customerType", filter.getCustomerType());
+        Specification<Lead> projectTypeSpec = builder.buildEquals("projectType", filter.getProjectType());
+        Specification<Lead> stateSpec = builder.buildEquals("state", filter.getState());
+        Specification<Lead> districtSpec = builder.buildEquals("district", filter.getDistrict());
+        
+        // Assigned team filter (handles both ID and name)
+        Specification<Lead> assignedSpec = null;
+        if (filter.getAssignedTeam() != null && !filter.getAssignedTeam().trim().isEmpty()) {
+            try {
+                Long assignedId = Long.parseLong(filter.getAssignedTeam());
+                assignedSpec = (root, query, cb) -> 
+                    cb.equal(root.get("assignedTo").get("id"), assignedId);
+            } catch (NumberFormatException e) {
+                assignedSpec = builder.buildEquals("assignedTeam", filter.getAssignedTeam());
+            }
+        }
+        
+        // Budget range
+        Specification<Lead> budgetSpec = builder.buildNumericRange(
+            "budget", 
+            filter.getMinBudget(), 
+            filter.getMaxBudget()
+        );
+        
+        // Date range (on createdAt)
+        Specification<Lead> dateRangeSpec = null;
+        if (filter.getStartDate() != null || filter.getEndDate() != null) {
+            dateRangeSpec = (root, query, cb) -> {
+                List<Predicate> predicates = new ArrayList<>();
+                if (filter.getStartDate() != null) {
+                    predicates.add(cb.greaterThanOrEqualTo(
+                        root.get("createdAt"), 
+                        filter.getStartDate().atStartOfDay()
+                    ));
+                }
+                if (filter.getEndDate() != null) {
+                    predicates.add(cb.lessThanOrEqualTo(
+                        root.get("createdAt"), 
+                        filter.getEndDate().plusDays(1).atStartOfDay()
+                    ));
+                }
+                return cb.and(predicates.toArray(new Predicate[0]));
+            };
+        }
+        
+        // Combine all specifications with AND logic
+        return builder.and(
+            searchSpec,
+            statusSpec,
+            sourceSpec,
+            prioritySpec,
+            customerTypeSpec,
+            projectTypeSpec,
+            assignedSpec,
+            stateSpec,
+            districtSpec,
+            budgetSpec,
+            dateRangeSpec
+        );
+    }
+
+    /**
+     * DEPRECATED: Old pagination method - kept for backward compatibility
+     * Use search(LeadSearchFilter) instead
+     */
+    @Deprecated
     public Page<Lead> getLeadsPaginated(PaginationParams params) {
         String sortOrder = params.getSortOrder() != null ? params.getSortOrder() : "DESC";
         String sortBy = params.getSortBy() != null ? params.getSortBy() : "createdAt";

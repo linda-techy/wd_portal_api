@@ -4,6 +4,7 @@ import com.wd.api.model.SiteVisit;
 import com.wd.api.model.enums.VisitStatus;
 import com.wd.api.model.enums.VisitType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface SiteVisitRepository extends JpaRepository<SiteVisit, Long> {
+public interface SiteVisitRepository extends JpaRepository<SiteVisit, Long>, JpaSpecificationExecutor<SiteVisit> {
 
     /**
      * Find all visits for a project ordered by date

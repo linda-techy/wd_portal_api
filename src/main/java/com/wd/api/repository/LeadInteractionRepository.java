@@ -2,6 +2,7 @@ package com.wd.api.repository;
 
 import com.wd.api.model.LeadInteraction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -9,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface LeadInteractionRepository extends JpaRepository<LeadInteraction, Long> {
+public interface LeadInteractionRepository extends JpaRepository<LeadInteraction, Long>, JpaSpecificationExecutor<LeadInteraction> {
 
     List<LeadInteraction> findByLeadIdOrderByInteractionDateDesc(Long leadId);
 

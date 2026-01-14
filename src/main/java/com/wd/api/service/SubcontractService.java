@@ -1,12 +1,17 @@
 package com.wd.api.service;
 
+import com.wd.api.dto.SubcontractSearchFilter;
 import com.wd.api.model.*;
 import com.wd.api.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -31,6 +36,58 @@ public class SubcontractService {
         this.projectRepository = projectRepository;
         this.vendorRepository = vendorRepository;
         this.retentionReleaseRepository = retentionReleaseRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SubcontractWorkOrder> searchSubcontracts(SubcontractSearchFilter filter) {
+        Specification<SubcontractWorkOrder> spec = buildSpecification(filter);
+        return workOrderRepository.findAll(spec, filter.toPageable());
+    }
+
+    private Specification<SubcontractWorkOrder> buildSpecification(SubcontractSearchFilter filter) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Search across workOrderNumber, workDescription, vendor name
+            if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("workOrderNumber")), searchPattern),
+                    cb.like(cb.lower(root.get("workDescription")), searchPattern),
+                    cb.like(cb.lower(root.join("vendor").get("name")), searchPattern)
+                ));
+            }
+
+            // Filter by projectId
+            if (filter.getProjectId() != null) {
+                predicates.add(cb.equal(root.get("project").get("id"), filter.getProjectId()));
+            }
+
+            // Filter by contractorId (vendor)
+            if (filter.getContractorId() != null) {
+                predicates.add(cb.equal(root.get("vendor").get("id"), filter.getContractorId()));
+            }
+
+            // Filter by workOrderNumber
+            if (filter.getWorkOrderNumber() != null && !filter.getWorkOrderNumber().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("workOrderNumber")), "%" + filter.getWorkOrderNumber().toLowerCase() + "%"));
+            }
+
+            // Filter by status
+            if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                predicates.add(cb.equal(root.get("status"), SubcontractWorkOrder.WorkOrderStatus.valueOf(filter.getStatus())));
+            }
+
+            // Date range filter
+            if (filter.getStartDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), filter.getStartDate().atStartOfDay()));
+            }
+            if (filter.getEndDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), filter.getEndDate().atTime(23, 59, 59)));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     @Transactional

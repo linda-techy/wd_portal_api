@@ -1,12 +1,17 @@
 package com.wd.api.service;
 
+import com.wd.api.dto.LeadInteractionSearchFilter;
 import com.wd.api.model.LeadInteraction;
 import com.wd.api.repository.LeadInteractionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -17,6 +22,67 @@ public class LeadInteractionService {
 
     @Autowired
     private LeadInteractionRepository interactionRepository;
+
+    @Transactional(readOnly = true)
+    public Page<LeadInteraction> searchLeadInteractions(LeadInteractionSearchFilter filter) {
+        Specification<LeadInteraction> spec = buildSpecification(filter);
+        return interactionRepository.findAll(spec, filter.toPageable());
+    }
+
+    private Specification<LeadInteraction> buildSpecification(LeadInteractionSearchFilter filter) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Search across notes, summary, interaction type
+            if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("notes")), searchPattern),
+                    cb.like(cb.lower(root.get("summary")), searchPattern),
+                    cb.like(cb.lower(root.get("interactionType")), searchPattern)
+                ));
+            }
+
+            // Filter by leadId
+            if (filter.getLeadId() != null) {
+                predicates.add(cb.equal(root.get("lead").get("id"), filter.getLeadId()));
+            }
+
+            // Filter by interactionType
+            if (filter.getInteractionType() != null && !filter.getInteractionType().isEmpty()) {
+                predicates.add(cb.equal(root.get("interactionType"), filter.getInteractionType()));
+            }
+
+            // Filter by userId (createdBy)
+            if (filter.getUserId() != null) {
+                predicates.add(cb.equal(root.get("createdBy").get("id"), filter.getUserId()));
+            }
+
+            // Filter by outcome
+            if (filter.getOutcome() != null && !filter.getOutcome().isEmpty()) {
+                predicates.add(cb.equal(root.get("outcome"), filter.getOutcome()));
+            }
+
+            // Filter by followUpRequired
+            if (filter.getFollowUpRequired() != null) {
+                if (filter.getFollowUpRequired()) {
+                    predicates.add(cb.isNotNull(root.get("nextActionDate")));
+                } else {
+                    predicates.add(cb.isNull(root.get("nextActionDate")));
+                }
+            }
+
+            // Date range filter
+            if (filter.getStartDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("interactionDate"), filter.getStartDate().atStartOfDay()));
+            }
+            if (filter.getEndDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("interactionDate"), filter.getEndDate().atTime(23, 59, 59)));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
 
     /**
      * Get all interactions for a specific lead

@@ -3,6 +3,7 @@ package com.wd.api.controller;
 import com.wd.api.model.MaterialIndent;
 import com.wd.api.service.MaterialIndentService;
 import com.wd.api.dto.ApiResponse;
+import com.wd.api.dto.MaterialIndentSearchFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -52,9 +53,22 @@ public class MaterialIndentController {
         return ResponseEntity.ok(ApiResponse.success("Indent details", indentService.getIndentById(id)));
     }
 
+    /**
+     * NEW: Standardized search endpoint using MaterialIndentSearchFilter
+     */
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'PROCUREMENT_MANAGER')")
+    public ResponseEntity<Page<MaterialIndent>> searchIndents(@ModelAttribute MaterialIndentSearchFilter filter) {
+        return ResponseEntity.ok(indentService.search(filter));
+    }
+
+    /**
+     * DEPRECATED: Use /search endpoint instead
+     */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'PROCUREMENT_MANAGER')")
-    public ResponseEntity<ApiResponse<Page<MaterialIndent>>> searchIndents(
+    @Deprecated
+    public ResponseEntity<ApiResponse<Page<MaterialIndent>>> searchIndentsOld(
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,

@@ -1,15 +1,20 @@
 package com.wd.api.service;
 
+import com.wd.api.dto.LeadQuotationSearchFilter;
 import com.wd.api.model.LeadQuotation;
 import com.wd.api.model.LeadQuotationItem;
 import com.wd.api.repository.LeadQuotationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,6 +25,71 @@ public class LeadQuotationService {
 
     @Autowired
     private LeadQuotationRepository quotationRepository;
+
+    @Transactional(readOnly = true)
+    public Page<LeadQuotation> searchLeadQuotations(LeadQuotationSearchFilter filter) {
+        Specification<LeadQuotation> spec = buildSpecification(filter);
+        return quotationRepository.findAll(spec, filter.toPageable());
+    }
+
+    private Specification<LeadQuotation> buildSpecification(LeadQuotationSearchFilter filter) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Search across quotationNumber, notes, status
+            if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("quotationNumber")), searchPattern),
+                    cb.like(cb.lower(root.get("notes")), searchPattern),
+                    cb.like(cb.lower(root.get("status")), searchPattern)
+                ));
+            }
+
+            // Filter by leadId
+            if (filter.getLeadId() != null) {
+                predicates.add(cb.equal(root.get("lead").get("id"), filter.getLeadId()));
+            }
+
+            // Filter by quotationNumber
+            if (filter.getQuotationNumber() != null && !filter.getQuotationNumber().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("quotationNumber")), "%" + filter.getQuotationNumber().toLowerCase() + "%"));
+            }
+
+            // Filter by preparedById (createdBy)
+            if (filter.getPreparedById() != null) {
+                predicates.add(cb.equal(root.get("createdBy").get("id"), filter.getPreparedById()));
+            }
+
+            // Filter by validityStatus (status)
+            if (filter.getValidityStatus() != null && !filter.getValidityStatus().isEmpty()) {
+                predicates.add(cb.equal(root.get("status"), filter.getValidityStatus()));
+            }
+
+            // Filter by status (from base class)
+            if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                predicates.add(cb.equal(root.get("status"), filter.getStatus()));
+            }
+
+            // Amount range filter
+            if (filter.getMinAmount() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("totalAmount"), filter.getMinAmount()));
+            }
+            if (filter.getMaxAmount() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("totalAmount"), filter.getMaxAmount()));
+            }
+
+            // Date range filter
+            if (filter.getStartDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("quotationDate"), filter.getStartDate().atStartOfDay()));
+            }
+            if (filter.getEndDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("quotationDate"), filter.getEndDate().atTime(23, 59, 59)));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
 
     /**
      * Get all quotations for a specific lead

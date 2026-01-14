@@ -1,10 +1,12 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.ProjectVariationSearchFilter;
 import com.wd.api.model.ProjectVariation;
 import com.wd.api.model.PortalUser;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.ProjectVariationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -23,8 +25,15 @@ public class ProjectVariationController {
     @Autowired
     private PortalUserRepository portalUserRepository;
 
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<Page<ProjectVariation>> searchProjectVariations(@ModelAttribute ProjectVariationSearchFilter filter) {
+        return ResponseEntity.ok(variationService.searchProjectVariations(filter));
+    }
+
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @Deprecated
     public ResponseEntity<List<ProjectVariation>> getVariations(@PathVariable Long projectId) {
         return ResponseEntity.ok(variationService.getVariationsByProject(projectId));
     }

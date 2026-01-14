@@ -1,8 +1,10 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.ProjectWarrantySearchFilter;
 import com.wd.api.model.ProjectWarranty;
 import com.wd.api.service.ProjectWarrantyService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +17,13 @@ public class ProjectWarrantyController {
     @Autowired
     private ProjectWarrantyService warrantyService;
 
+    @GetMapping("/search")
+    public ResponseEntity<Page<ProjectWarranty>> searchProjectWarranties(@ModelAttribute ProjectWarrantySearchFilter filter) {
+        return ResponseEntity.ok(warrantyService.searchProjectWarranties(filter));
+    }
+
     @GetMapping
+    @Deprecated
     public ResponseEntity<List<ProjectWarranty>> getWarranties(@PathVariable Long projectId) {
         return ResponseEntity.ok(warrantyService.getWarrantiesByProject(projectId));
     }

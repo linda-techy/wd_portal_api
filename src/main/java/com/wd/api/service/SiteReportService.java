@@ -1,12 +1,18 @@
 package com.wd.api.service;
 
+import com.wd.api.dto.SiteReportSearchFilter;
 import com.wd.api.model.SiteReport;
 import com.wd.api.model.SiteReportPhoto;
 import com.wd.api.repository.SiteReportRepository;
 import com.wd.api.repository.SiteReportPhotoRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +29,63 @@ public class SiteReportService {
         this.siteReportRepository = siteReportRepository;
         this.siteReportPhotoRepository = siteReportPhotoRepository;
         this.fileStorageService = fileStorageService;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SiteReport> searchSiteReports(SiteReportSearchFilter filter) {
+        Specification<SiteReport> spec = buildSpecification(filter);
+        return siteReportRepository.findAll(spec, filter.toPageable());
+    }
+
+    private Specification<SiteReport> buildSpecification(SiteReportSearchFilter filter) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Search across title, description, submitter name
+            if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("title")), searchPattern),
+                    cb.like(cb.lower(root.get("description")), searchPattern),
+                    cb.like(cb.lower(root.join("submittedBy").get("name")), searchPattern)
+                ));
+            }
+
+            // Filter by projectId
+            if (filter.getProjectId() != null) {
+                predicates.add(cb.equal(root.get("project").get("id"), filter.getProjectId()));
+            }
+
+            // Filter by reportType
+            if (filter.getReportType() != null && !filter.getReportType().isEmpty()) {
+                predicates.add(cb.equal(root.get("reportType"), filter.getReportType()));
+            }
+
+            // Filter by reportedById (submittedBy)
+            if (filter.getReportedById() != null) {
+                predicates.add(cb.equal(root.get("submittedBy").get("id"), filter.getReportedById()));
+            }
+
+            // Filter by title
+            if (filter.getTitle() != null && !filter.getTitle().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("title")), "%" + filter.getTitle().toLowerCase() + "%"));
+            }
+
+            // Filter by status
+            if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                predicates.add(cb.equal(root.get("status"), filter.getStatus()));
+            }
+
+            // Date range filter
+            if (filter.getStartDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("reportDate"), filter.getStartDate().atStartOfDay()));
+            }
+            if (filter.getEndDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("reportDate"), filter.getEndDate().atTime(23, 59, 59)));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     @Transactional(readOnly = true)

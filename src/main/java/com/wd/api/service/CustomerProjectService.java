@@ -3,6 +3,7 @@ package com.wd.api.service;
 import com.wd.api.dto.CustomerProjectCreateRequest;
 import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
+import com.wd.api.dto.ProjectSearchFilter;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.Task;
 import com.wd.api.repository.CustomerProjectRepository;
@@ -12,19 +13,23 @@ import com.wd.api.repository.ProjectMemberRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.LeadRepository;
 import com.wd.api.model.ProjectMember;
+import com.wd.api.util.SpecificationBuilder;
 
 import com.wd.api.model.PortalUser;
 
+import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
@@ -57,9 +62,106 @@ public class CustomerProjectService {
     private LeadRepository leadRepository;
 
     /**
-     * 
-     * Get all projects with pagination and search
+     * NEW: Standardized search method using ProjectSearchFilter
+     * Enterprise-grade implementation with comprehensive filtering
      */
+    @Transactional(readOnly = true)
+    public Page<CustomerProject> search(ProjectSearchFilter filter) {
+        Specification<CustomerProject> spec = buildSearchSpecification(filter);
+        return customerProjectRepository.findAll(spec, filter.toPageable());
+    }
+    
+    /**
+     * Build JPA Specification from ProjectSearchFilter
+     */
+    private Specification<CustomerProject> buildSearchSpecification(ProjectSearchFilter filter) {
+        SpecificationBuilder<CustomerProject> builder = new SpecificationBuilder<>();
+        
+        // Search across multiple fields
+        Specification<CustomerProject> searchSpec = builder.buildSearch(
+            filter.getSearchQuery(),
+            "name", "location", "code", "state", "city", "district"
+        );
+        
+        // Apply filters
+        Specification<CustomerProject> phaseSpec = null;
+        if (filter.getPhase() != null && !filter.getPhase().trim().isEmpty()) {
+            phaseSpec = (root, query, cb) -> 
+                cb.equal(root.get("projectPhase"), 
+                    com.wd.api.model.enums.ProjectPhase.valueOf(filter.getPhase().toUpperCase()));
+        }
+        
+        Specification<CustomerProject> typeSpec = builder.buildEquals("projectType", filter.getType());
+        Specification<CustomerProject> contractTypeSpec = null;
+        if (filter.getContractType() != null && !filter.getContractType().trim().isEmpty()) {
+            contractTypeSpec = (root, query, cb) -> 
+                cb.equal(root.get("contractType"), 
+                    com.wd.api.model.enums.ContractType.valueOf(filter.getContractType().toUpperCase()));
+        }
+        
+        Specification<CustomerProject> statusSpec = builder.buildEquals("status", filter.getStatus());
+        Specification<CustomerProject> locationSpec = builder.buildLike("location", filter.getLocation());
+        Specification<CustomerProject> citySpec = builder.buildLike("city", filter.getCity());
+        Specification<CustomerProject> stateSpec = builder.buildEquals("state", filter.getState());
+        
+        // Manager filter
+        Specification<CustomerProject> managerSpec = null;
+        if (filter.getManagerId() != null) {
+            managerSpec = (root, query, cb) -> 
+                cb.equal(root.get("projectManager").get("id"), filter.getManagerId());
+        }
+        
+        // Customer filter
+        Specification<CustomerProject> customerSpec = null;
+        if (filter.getCustomerId() != null) {
+            customerSpec = (root, query, cb) -> 
+                cb.equal(root.get("customer").get("id"), filter.getCustomerId());
+        }
+        
+        // Budget range
+        Specification<CustomerProject> budgetSpec = builder.buildNumericRange(
+            "estimatedBudget", 
+            filter.getMinBudget(), 
+            filter.getMaxBudget()
+        );
+        
+        // Progress range
+        Specification<CustomerProject> progressSpec = builder.buildNumericRange(
+            "overallProgress", 
+            filter.getMinProgress(), 
+            filter.getMaxProgress()
+        );
+        
+        // Date range (on start date)
+        Specification<CustomerProject> dateRangeSpec = builder.buildDateRange(
+            "startDate",
+            filter.getStartDate(),
+            filter.getEndDate()
+        );
+        
+        // Combine all specifications
+        return builder.and(
+            searchSpec,
+            phaseSpec,
+            typeSpec,
+            contractTypeSpec,
+            statusSpec,
+            managerSpec,
+            customerSpec,
+            locationSpec,
+            citySpec,
+            stateSpec,
+            budgetSpec,
+            progressSpec,
+            dateRangeSpec
+        );
+    }
+
+    /**
+     * DEPRECATED: Old method - kept for backward compatibility
+     * Use search(ProjectSearchFilter) instead
+     */
+    @Deprecated
     @Transactional(readOnly = true)
     public Page<CustomerProjectResponse> getAllProjects(String search, Pageable pageable) {
         Page<CustomerProject> projectPage;

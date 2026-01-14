@@ -1,6 +1,7 @@
 package com.wd.api.service;
 
 import com.wd.api.dto.ApprovalRequestDTO;
+import com.wd.api.dto.ApprovalSearchFilter;
 import com.wd.api.model.ApprovalRequest;
 import com.wd.api.model.PortalUser;
 import com.wd.api.repository.ApprovalRequestRepository;
@@ -12,10 +13,14 @@ import com.wd.api.model.ProjectInvoice;
 import com.wd.api.model.PaymentChallan;
 import com.wd.api.repository.PaymentChallanRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +33,60 @@ public class ApprovalService {
         private final PurchaseOrderRepository poRepository;
         private final ProjectInvoiceRepository invoiceRepository;
         private final PaymentChallanRepository challanRepository;
+
+        @Transactional(readOnly = true)
+        public Page<ApprovalRequest> searchApprovals(ApprovalSearchFilter filter) {
+                Specification<ApprovalRequest> spec = buildSpecification(filter);
+                return approvalRepository.findAll(spec, filter.toPageable());
+        }
+
+        private Specification<ApprovalRequest> buildSpecification(ApprovalSearchFilter filter) {
+                return (root, query, cb) -> {
+                        List<Predicate> predicates = new ArrayList<>();
+
+                        // Search across requester name, approver name
+                        if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                                String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+                                predicates.add(cb.or(
+                                        cb.like(cb.lower(root.join("requestedBy").get("firstName")), searchPattern),
+                                        cb.like(cb.lower(root.join("requestedBy").get("lastName")), searchPattern),
+                                        cb.like(cb.lower(root.join("approver").get("firstName")), searchPattern),
+                                        cb.like(cb.lower(root.join("approver").get("lastName")), searchPattern),
+                                        cb.like(cb.lower(root.get("targetType")), searchPattern)
+                                ));
+                        }
+
+                        // Filter by moduleType (targetType)
+                        if (filter.getModuleType() != null && !filter.getModuleType().isEmpty()) {
+                                predicates.add(cb.equal(root.get("targetType"), filter.getModuleType()));
+                        }
+
+                        // Filter by referenceId (targetId)
+                        if (filter.getReferenceId() != null) {
+                                predicates.add(cb.equal(root.get("targetId"), filter.getReferenceId()));
+                        }
+
+                        // Filter by approverId
+                        if (filter.getApproverId() != null) {
+                                predicates.add(cb.equal(root.get("approver").get("id"), filter.getApproverId()));
+                        }
+
+                        // Filter by status
+                        if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                                predicates.add(cb.equal(root.get("status"), filter.getStatus()));
+                        }
+
+                        // Date range filter
+                        if (filter.getStartDate() != null) {
+                                predicates.add(cb.greaterThanOrEqualTo(root.get("requestedAt"), filter.getStartDate().atStartOfDay()));
+                        }
+                        if (filter.getEndDate() != null) {
+                                predicates.add(cb.lessThanOrEqualTo(root.get("requestedAt"), filter.getEndDate().atTime(23, 59, 59)));
+                        }
+
+                        return cb.and(predicates.toArray(new Predicate[0]));
+                };
+        }
 
         @Transactional
         public ApprovalRequestDTO createRequest(ApprovalRequestDTO dto) {

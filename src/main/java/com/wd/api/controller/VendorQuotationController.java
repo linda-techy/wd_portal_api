@@ -1,10 +1,12 @@
 package com.wd.api.controller;
 
 import com.wd.api.dto.ApiResponse;
+import com.wd.api.dto.VendorQuotationSearchFilter;
 import com.wd.api.model.VendorQuotation;
 import com.wd.api.service.VendorQuotationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +19,17 @@ import java.util.List;
 public class VendorQuotationController {
 
     private final VendorQuotationService quotationService;
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<VendorQuotation>> searchVendorQuotations(@ModelAttribute VendorQuotationSearchFilter filter) {
+        try {
+            Page<VendorQuotation> quotations = quotationService.searchVendorQuotations(filter);
+            return ResponseEntity.ok(quotations);
+        } catch (Exception e) {
+            log.error("Error searching vendor quotations", e);
+            return ResponseEntity.status(500).build();
+        }
+    }
 
     @PostMapping("/indent/{indentId}/vendor/{vendorId}")
     public ResponseEntity<ApiResponse<VendorQuotation>> createQuotation(

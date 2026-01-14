@@ -2,6 +2,7 @@ package com.wd.api.service;
 
 import com.wd.api.dto.CustomerCreateRequest;
 import com.wd.api.dto.CustomerResponse;
+import com.wd.api.dto.CustomerSearchFilter;
 import com.wd.api.dto.CustomerUpdateRequest;
 import com.wd.api.model.CustomerUser;
 import com.wd.api.repository.CustomerUserRepository;
@@ -12,10 +13,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -50,6 +54,59 @@ public class CustomerUserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    /**
+     * Search customers with filters
+     */
+    @Transactional(readOnly = true)
+    public Page<CustomerUser> searchCustomers(CustomerSearchFilter filter) {
+        Specification<CustomerUser> spec = buildSpecification(filter);
+        return customerUserRepository.findAll(spec, filter.toPageable());
+    }
+
+    private Specification<CustomerUser> buildSpecification(CustomerSearchFilter filter) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Search across name, email, phone, company
+            if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("name")), searchPattern),
+                    cb.like(cb.lower(root.get("email")), searchPattern),
+                    cb.like(cb.lower(root.get("phone")), searchPattern),
+                    cb.like(cb.lower(root.get("companyName")), searchPattern)
+                ));
+            }
+
+            // Filter by customerType
+            if (filter.getCustomerType() != null && !filter.getCustomerType().isEmpty()) {
+                predicates.add(cb.equal(root.get("customerType"), filter.getCustomerType()));
+            }
+
+            // Filter by location
+            if (filter.getLocation() != null && !filter.getLocation().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("location")), "%" + filter.getLocation().toLowerCase() + "%"));
+            }
+
+            // Filter by email
+            if (filter.getEmail() != null && !filter.getEmail().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("email")), "%" + filter.getEmail().toLowerCase() + "%"));
+            }
+
+            // Filter by phone
+            if (filter.getPhone() != null && !filter.getPhone().isEmpty()) {
+                predicates.add(cb.like(root.get("phone"), "%" + filter.getPhone() + "%"));
+            }
+
+            // Filter by status (active/inactive)
+            if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                predicates.add(cb.equal(root.get("isActive"), "active".equalsIgnoreCase(filter.getStatus())));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
 
     /**
      * Get all customers with pagination

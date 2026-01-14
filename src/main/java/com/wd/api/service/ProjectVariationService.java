@@ -1,5 +1,6 @@
 package com.wd.api.service;
 
+import com.wd.api.dto.ProjectVariationSearchFilter;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.ProjectVariation;
@@ -8,10 +9,14 @@ import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.ProjectVariationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -26,6 +31,86 @@ public class ProjectVariationService {
 
     @Autowired
     private PortalUserRepository portalUserRepository;
+
+    @Transactional(readOnly = true)
+    public Page<ProjectVariation> searchProjectVariations(ProjectVariationSearchFilter filter) {
+        Specification<ProjectVariation> spec = buildSpecification(filter);
+        return variationRepository.findAll(spec, filter.toPageable());
+    }
+
+    private Specification<ProjectVariation> buildSpecification(ProjectVariationSearchFilter filter) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Search across title, description, variation type
+            if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("title")), searchPattern),
+                    cb.like(cb.lower(root.get("description")), searchPattern),
+                    cb.like(cb.lower(root.get("variationType")), searchPattern)
+                ));
+            }
+
+            // Filter by projectId
+            if (filter.getProjectId() != null) {
+                predicates.add(cb.equal(root.get("project").get("id"), filter.getProjectId()));
+            }
+
+            // Filter by variationType
+            if (filter.getVariationType() != null && !filter.getVariationType().isEmpty()) {
+                predicates.add(cb.equal(root.get("variationType"), filter.getVariationType()));
+            }
+
+            // Filter by approvalStatus
+            if (filter.getApprovalStatus() != null && !filter.getApprovalStatus().isEmpty()) {
+                try {
+                    VariationStatus status = VariationStatus.valueOf(filter.getApprovalStatus().toUpperCase());
+                    predicates.add(cb.equal(root.get("status"), status));
+                } catch (IllegalArgumentException e) {
+                    // Invalid status, skip
+                }
+            }
+
+            // Filter by requestedById
+            if (filter.getRequestedById() != null) {
+                predicates.add(cb.equal(root.get("createdByUserId"), filter.getRequestedById()));
+            }
+
+            // Filter by approvedById
+            if (filter.getApprovedById() != null) {
+                predicates.add(cb.equal(root.get("approvedByUserId"), filter.getApprovedById()));
+            }
+
+            // Filter by status (from base class)
+            if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                try {
+                    VariationStatus status = VariationStatus.valueOf(filter.getStatus().toUpperCase());
+                    predicates.add(cb.equal(root.get("status"), status));
+                } catch (IllegalArgumentException e) {
+                    // Invalid status, skip
+                }
+            }
+
+            // Amount range filter
+            if (filter.getMinAmount() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("estimatedCost"), filter.getMinAmount()));
+            }
+            if (filter.getMaxAmount() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("estimatedCost"), filter.getMaxAmount()));
+            }
+
+            // Date range filter
+            if (filter.getStartDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), filter.getStartDate().atStartOfDay()));
+            }
+            if (filter.getEndDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), filter.getEndDate().atTime(23, 59, 59)));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
 
     public List<ProjectVariation> getVariationsByProject(Long projectId) {
         return variationRepository.findByProjectId(projectId);

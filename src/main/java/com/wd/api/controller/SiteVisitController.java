@@ -4,9 +4,12 @@ import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.CheckInRequest;
 import com.wd.api.dto.CheckOutRequest;
 import com.wd.api.dto.SiteVisitDTO;
+import com.wd.api.dto.SiteVisitSearchFilter;
 import com.wd.api.model.PortalUser;
+import com.wd.api.model.SiteVisit;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.SiteVisitService;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +35,15 @@ public class SiteVisitController {
     public SiteVisitController(SiteVisitService siteVisitService, PortalUserRepository portalUserRepository) {
         this.siteVisitService = siteVisitService;
         this.portalUserRepository = portalUserRepository;
+    }
+
+    /**
+     * Search site visits with filters and pagination
+     * GET /api/site-visits/search
+     */
+    @GetMapping("/search")
+    public ResponseEntity<Page<SiteVisit>> searchSiteVisits(@ModelAttribute SiteVisitSearchFilter filter) {
+        return ResponseEntity.ok(siteVisitService.searchSiteVisits(filter));
     }
 
     /**

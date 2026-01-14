@@ -1,6 +1,7 @@
 package com.wd.api.controller;
 
 import com.wd.api.dto.ApiResponse;
+import com.wd.api.dto.TaskSearchFilter;
 import com.wd.api.model.Task;
 import com.wd.api.model.TaskAssignmentHistory;
 import com.wd.api.model.PortalUser;
@@ -10,6 +11,7 @@ import com.wd.api.service.TaskService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -87,10 +89,33 @@ public class TaskController {
     }
 
     /**
-     * Get all tasks - admins see all, users see only theirs
+     * NEW: Standardized search endpoint with pagination
+     */
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<Page<Task>> searchTasks(@ModelAttribute TaskSearchFilter filter, Authentication auth) {
+        try {
+            PortalUser user = getCurrentUser(auth);
+            
+            // Non-admins can only see their tasks unless explicitly filtering
+            if (!authService.isAdmin(auth) && filter.getAssignedTo() == null && filter.getCreatedBy() == null) {
+                filter.setAssignedTo(user.getId());
+            }
+            
+            Page<Task> tasks = taskService.search(filter);
+            return ResponseEntity.ok(tasks);
+        } catch (Exception e) {
+            logger.error("Error searching tasks", e);
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    /**
+     * DEPRECATED: Get all tasks - use /search instead
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @Deprecated
     public ResponseEntity<ApiResponse<List<Task>>> getAllTasks(Authentication auth) {
         try {
             PortalUser user = getCurrentUser(auth);

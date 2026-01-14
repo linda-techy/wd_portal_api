@@ -1,13 +1,18 @@
 package com.wd.api.service;
 
+import com.wd.api.dto.VendorQuotationSearchFilter;
 import com.wd.api.model.*;
 import com.wd.api.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -19,6 +24,65 @@ public class VendorQuotationService {
         private final MaterialIndentRepository indentRepository;
         private final VendorRepository vendorRepository;
         private final ProcurementService procurementService;
+
+        @Transactional(readOnly = true)
+        public Page<VendorQuotation> searchVendorQuotations(VendorQuotationSearchFilter filter) {
+                Specification<VendorQuotation> spec = buildSpecification(filter);
+                return quotationRepository.findAll(spec, filter.toPageable());
+        }
+
+        private Specification<VendorQuotation> buildSpecification(VendorQuotationSearchFilter filter) {
+                return (root, query, cb) -> {
+                        List<Predicate> predicates = new ArrayList<>();
+
+                        // Search across quotationNumber, vendor name
+                        if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                                String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+                                predicates.add(cb.or(
+                                        cb.like(cb.lower(root.get("quotationNumber")), searchPattern),
+                                        cb.like(cb.lower(root.join("vendor").get("name")), searchPattern)
+                                ));
+                        }
+
+                        // Filter by vendorId
+                        if (filter.getVendorId() != null) {
+                                predicates.add(cb.equal(root.get("vendor").get("id"), filter.getVendorId()));
+                        }
+
+                        // Filter by projectId (through indent)
+                        if (filter.getProjectId() != null) {
+                                predicates.add(cb.equal(root.join("indent").join("project").get("id"), filter.getProjectId()));
+                        }
+
+                        // Filter by quotationNumber
+                        if (filter.getQuotationNumber() != null && !filter.getQuotationNumber().isEmpty()) {
+                                predicates.add(cb.like(cb.lower(root.get("quotationNumber")), "%" + filter.getQuotationNumber().toLowerCase() + "%"));
+                        }
+
+                        // Filter by status
+                        if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                                predicates.add(cb.equal(root.get("status"), VendorQuotation.QuotationStatus.valueOf(filter.getStatus())));
+                        }
+
+                        // Amount range filter
+                        if (filter.getMinAmount() != null) {
+                                predicates.add(cb.greaterThanOrEqualTo(root.get("quotedAmount"), filter.getMinAmount()));
+                        }
+                        if (filter.getMaxAmount() != null) {
+                                predicates.add(cb.lessThanOrEqualTo(root.get("quotedAmount"), filter.getMaxAmount()));
+                        }
+
+                        // Date range filter
+                        if (filter.getStartDate() != null) {
+                                predicates.add(cb.greaterThanOrEqualTo(root.get("quotationDate"), filter.getStartDate().atStartOfDay()));
+                        }
+                        if (filter.getEndDate() != null) {
+                                predicates.add(cb.lessThanOrEqualTo(root.get("quotationDate"), filter.getEndDate().atTime(23, 59, 59)));
+                        }
+
+                        return cb.and(predicates.toArray(new Predicate[0]));
+                };
+        }
 
         @Transactional
         public VendorQuotation createQuotation(Long indentId, Long vendorId, VendorQuotation quotation) {

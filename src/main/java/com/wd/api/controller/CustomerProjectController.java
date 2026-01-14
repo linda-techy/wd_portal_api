@@ -6,6 +6,7 @@ import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
 import com.wd.api.dto.ProjectProgressDTO;
 import com.wd.api.dto.ProjectTypeTemplateDTO;
+import com.wd.api.dto.ProjectSearchFilter;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.ProjectProgressLog;
 import com.wd.api.service.CustomerProjectService;
@@ -44,9 +45,26 @@ public class CustomerProjectController {
     private ProjectProgressService progressService;
 
     /**
-     * Get all customer projects with support for pagination and search
+     * NEW: Standardized search endpoint using ProjectSearchFilter
+     * Enterprise-grade pattern with comprehensive filtering
+     */
+    @GetMapping("/search")
+    public ResponseEntity<Page<CustomerProject>> searchProjects(@ModelAttribute ProjectSearchFilter filter) {
+        try {
+            Page<CustomerProject> projects = customerProjectService.search(filter);
+            return ResponseEntity.ok(projects);
+        } catch (Exception e) {
+            logger.error("Error in searchProjects controller", e);
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    /**
+     * DEPRECATED: Get all customer projects with support for pagination and search
+     * Use /search endpoint instead
      */
     @GetMapping
+    @Deprecated
     public ResponseEntity<ApiResponse<Page<CustomerProjectResponse>>> getAllCustomerProjects(
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,

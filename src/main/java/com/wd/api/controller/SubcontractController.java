@@ -1,9 +1,11 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.SubcontractSearchFilter;
 import com.wd.api.model.SubcontractMeasurement;
 import com.wd.api.model.SubcontractPayment;
 import com.wd.api.model.SubcontractWorkOrder;
 import com.wd.api.service.SubcontractService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +19,11 @@ public class SubcontractController {
 
     public SubcontractController(SubcontractService subcontractService) {
         this.subcontractService = subcontractService;
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<SubcontractWorkOrder>> searchSubcontracts(@ModelAttribute SubcontractSearchFilter filter) {
+        return ResponseEntity.ok(subcontractService.searchSubcontracts(filter));
     }
 
     @PostMapping("/project/{projectId}")

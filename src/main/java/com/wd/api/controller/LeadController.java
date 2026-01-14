@@ -4,6 +4,7 @@ import com.wd.api.model.Lead;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LeadCreateRequest;
 import com.wd.api.dto.PaginationParams;
+import com.wd.api.dto.LeadSearchFilter;
 import com.wd.api.service.LeadService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -33,8 +34,48 @@ public class LeadController {
     // LEAD CRUD OPERATIONS
     // =====================================================
 
+    /**
+     * NEW: Standardized search endpoint using LeadSearchFilter
+     * Enterprise-grade pattern with consistent parameters across all modules
+     * 
+     * Query Parameters:
+     * - page (int, default 0): Page number (0-based)
+     * - size (int, default 20): Page size
+     * - sortBy (string, default "id"): Field to sort by
+     * - sortDirection (string, default "desc"): Sort direction (asc/desc)
+     * - search (string, optional): Search query across multiple fields
+     * - status (string, optional): Filter by lead status
+     * - source (string, optional): Filter by lead source
+     * - priority (string, optional): Filter by priority
+     * - customerType (string, optional): Filter by customer type
+     * - projectType (string, optional): Filter by project type
+     * - assignedTeam (string, optional): Filter by assigned team/user
+     * - state (string, optional): Filter by state
+     * - district (string, optional): Filter by district
+     * - minBudget (double, optional): Minimum budget filter
+     * - maxBudget (double, optional): Maximum budget filter
+     * - startDate (date, optional): Start date for created_at filter
+     * - endDate (date, optional): End date for created_at filter
+     */
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<Page<Lead>> searchLeads(@ModelAttribute LeadSearchFilter filter) {
+        try {
+            Page<Lead> leads = leadService.search(filter);
+            return ResponseEntity.ok(leads);
+        } catch (Exception e) {
+            logger.error("Error in searchLeads controller", e);
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    /**
+     * Get all leads (non-paginated)
+     * DEPRECATED: Use /search endpoint with pagination instead
+     */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @Deprecated
     public ResponseEntity<ApiResponse<List<Lead>>> getAllLeads() {
         try {
             List<Lead> leads = leadService.getAllLeads();

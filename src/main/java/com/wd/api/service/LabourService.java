@@ -2,6 +2,7 @@ package com.wd.api.service;
 
 import com.wd.api.dto.LabourDTO;
 import com.wd.api.dto.LabourAttendanceDTO;
+import com.wd.api.dto.LabourSearchFilter;
 import com.wd.api.dto.MeasurementBookDTO;
 import com.wd.api.model.Labour;
 import com.wd.api.model.LabourAttendance;
@@ -15,8 +16,13 @@ import com.wd.api.repository.BoqItemRepository;
 import com.wd.api.repository.WageSheetRepository;
 import com.wd.api.repository.LabourAdvanceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,6 +37,45 @@ public class LabourService {
         private final BoqItemRepository boqItemRepository;
         private final WageSheetRepository wageSheetRepository;
         private final LabourAdvanceRepository labourAdvanceRepository;
+
+        @Transactional(readOnly = true)
+        public Page<Labour> searchLabour(LabourSearchFilter filter) {
+                Specification<Labour> spec = buildSpecification(filter);
+                return labourRepository.findAll(spec, filter.toPageable());
+        }
+
+        private Specification<Labour> buildSpecification(LabourSearchFilter filter) {
+                return (root, query, cb) -> {
+                        List<Predicate> predicates = new ArrayList<>();
+
+                        // Search across name, phone, tradeType
+                        if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                                String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
+                                predicates.add(cb.or(
+                                        cb.like(cb.lower(root.get("name")), searchPattern),
+                                        cb.like(cb.lower(root.get("phone")), searchPattern),
+                                        cb.like(cb.lower(root.get("tradeType")), searchPattern)
+                                ));
+                        }
+
+                        // Filter by workerName
+                        if (filter.getWorkerName() != null && !filter.getWorkerName().isEmpty()) {
+                                predicates.add(cb.like(cb.lower(root.get("name")), "%" + filter.getWorkerName().toLowerCase() + "%"));
+                        }
+
+                        // Filter by workerRole (tradeType)
+                        if (filter.getWorkerRole() != null && !filter.getWorkerRole().isEmpty()) {
+                                predicates.add(cb.equal(root.get("tradeType"), filter.getWorkerRole()));
+                        }
+
+                        // Filter by active status
+                        if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                                predicates.add(cb.equal(root.get("active"), "active".equalsIgnoreCase(filter.getStatus())));
+                        }
+
+                        return cb.and(predicates.toArray(new Predicate[0]));
+                };
+        }
 
         @Transactional
         public LabourDTO createLabour(LabourDTO dto) {

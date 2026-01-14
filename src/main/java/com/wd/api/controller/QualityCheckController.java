@@ -1,11 +1,13 @@
 package com.wd.api.controller;
 
 import com.wd.api.dto.ApiResponse;
+import com.wd.api.dto.QualityCheckSearchFilter;
 import com.wd.api.model.QualityCheck;
 import com.wd.api.model.PortalUser;
 import com.wd.api.service.QualityCheckService;
 import com.wd.api.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -21,7 +23,18 @@ public class QualityCheckController {
     @Autowired
     private AuthService authService;
 
+    @GetMapping("/search")
+    public ResponseEntity<Page<QualityCheck>> searchQualityChecks(@ModelAttribute QualityCheckSearchFilter filter) {
+        try {
+            Page<QualityCheck> checks = qualityCheckService.searchQualityChecks(filter);
+            return ResponseEntity.ok(checks);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
     @GetMapping("/project/{projectId}")
+    @Deprecated
     public ResponseEntity<ApiResponse<List<QualityCheck>>> getProjectChecks(@PathVariable Long projectId) {
         try {
             List<QualityCheck> checks = qualityCheckService.getProjectChecks(projectId);
