@@ -25,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 
 /**
@@ -358,5 +360,59 @@ public class CustomerProjectService {
             // Safer to use repository directly if we can, or just save member.
             projectMemberRepository.save(pmMember);
         }
+    }
+
+    /**
+     * Get project statistics
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getProjectStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Total projects count
+        long totalProjects = customerProjectRepository.count();
+        stats.put("total_projects", totalProjects);
+
+        // Projects by phase
+        List<Object[]> projectsByPhase = customerProjectRepository.getProjectCountByPhase();
+        Map<String, Long> phaseMap = new HashMap<>();
+        for (Object[] row : projectsByPhase) {
+            if (row[0] != null) {
+                phaseMap.put(row[0].toString(), (Long) row[1]);
+            }
+        }
+        stats.put("projects_by_phase", phaseMap);
+
+        // Projects by status
+        List<Object[]> projectsByStatus = customerProjectRepository.getProjectCountByStatus();
+        Map<String, Long> statusMap = new HashMap<>();
+        long activeCount = 0;
+        long completedCount = 0;
+        for (Object[] row : projectsByStatus) {
+            if (row[0] != null) {
+                String status = row[0].toString();
+                Long count = (Long) row[1];
+                statusMap.put(status, count);
+                if ("COMPLETED".equals(status)) {
+                    completedCount = count;
+                } else if ("IN_PROGRESS".equals(status) || "ON_TRACK".equals(status)) {
+                    activeCount += count;
+                }
+            }
+        }
+        stats.put("projects_by_status", statusMap);
+        stats.put("active_projects", activeCount);
+        stats.put("completed_projects", completedCount);
+
+        // Calculate completion rate
+        double completionRate = totalProjects > 0 ? (completedCount * 100.0 / totalProjects) : 0.0;
+        stats.put("completion_rate", Math.round(completionRate * 10.0) / 10.0);
+
+        // Get overdue projects
+        List<CustomerProject> overdueProjects = customerProjectRepository.findOverdueProjects();
+        stats.put("delayed_count", (long) overdueProjects.size());
+        stats.put("on_track_count", activeCount - overdueProjects.size());
+
+        return stats;
     }
 }

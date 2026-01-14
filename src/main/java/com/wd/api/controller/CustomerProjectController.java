@@ -167,6 +167,21 @@ public class CustomerProjectController {
         }
     }
 
+    /**
+     * Get project statistics
+     * Returns counts by phase, status, completion rates, etc.
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getProjectStats() {
+        try {
+            java.util.Map<String, Object> stats = customerProjectService.getProjectStats();
+            return ResponseEntity.ok(ApiResponse.success("Project statistics retrieved successfully", stats));
+        } catch (Exception e) {
+            logger.error("Error fetching project statistics", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to fetch project statistics"));
+        }
+    }
+
     // ==================== Private Helper Methods ====================
 
     /**
