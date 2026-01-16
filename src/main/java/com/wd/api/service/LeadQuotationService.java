@@ -48,7 +48,7 @@ public class LeadQuotationService {
 
             // Filter by leadId
             if (filter.getLeadId() != null) {
-                predicates.add(cb.equal(root.get("lead").get("id"), filter.getLeadId()));
+                predicates.add(cb.equal(root.get("leadId"), filter.getLeadId()));
             }
 
             // Filter by quotationNumber
@@ -56,9 +56,9 @@ public class LeadQuotationService {
                 predicates.add(cb.like(cb.lower(root.get("quotationNumber")), "%" + filter.getQuotationNumber().toLowerCase() + "%"));
             }
 
-            // Filter by preparedById (createdBy)
+            // Filter by preparedById (createdById)
             if (filter.getPreparedById() != null) {
-                predicates.add(cb.equal(root.get("createdBy").get("id"), filter.getPreparedById()));
+                predicates.add(cb.equal(root.get("createdById"), filter.getPreparedById()));
             }
 
             // Filter by validityStatus (status)
@@ -79,12 +79,12 @@ public class LeadQuotationService {
                 predicates.add(cb.lessThanOrEqualTo(root.get("totalAmount"), filter.getMaxAmount()));
             }
 
-            // Date range filter
+            // Date range filter (on createdAt)
             if (filter.getStartDate() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("quotationDate"), filter.getStartDate().atStartOfDay()));
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), filter.getStartDate().atStartOfDay()));
             }
             if (filter.getEndDate() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("quotationDate"), filter.getEndDate().atTime(23, 59, 59)));
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), filter.getEndDate().atTime(23, 59, 59)));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

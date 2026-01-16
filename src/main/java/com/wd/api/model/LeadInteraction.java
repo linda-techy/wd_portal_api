@@ -43,12 +43,6 @@ public class LeadInteraction {
     @Column(name = "next_action_date")
     private LocalDateTime nextActionDate;
 
-    @Column(length = 255)
-    private String location;
-
-    @Column(columnDefinition = "TEXT")
-    private String metadata; // JSON or key-value pairs for extra details
-
     @Column(name = "created_by_id", nullable = false)
     private Long createdById;
 
@@ -147,22 +141,6 @@ public class LeadInteraction {
 
     public void setNextActionDate(LocalDateTime nextActionDate) {
         this.nextActionDate = nextActionDate;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
-    public String getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(String metadata) {
-        this.metadata = metadata;
     }
 
     public Long getCreatedById() {

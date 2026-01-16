@@ -33,19 +33,19 @@ public class LeadInteractionService {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Search across notes, summary, interaction type
+            // Search across notes, subject, interaction type
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
                     cb.like(cb.lower(root.get("notes")), searchPattern),
-                    cb.like(cb.lower(root.get("summary")), searchPattern),
+                    cb.like(cb.lower(root.get("subject")), searchPattern),
                     cb.like(cb.lower(root.get("interactionType")), searchPattern)
                 ));
             }
 
             // Filter by leadId
             if (filter.getLeadId() != null) {
-                predicates.add(cb.equal(root.get("lead").get("id"), filter.getLeadId()));
+                predicates.add(cb.equal(root.get("leadId"), filter.getLeadId()));
             }
 
             // Filter by interactionType
@@ -53,9 +53,9 @@ public class LeadInteractionService {
                 predicates.add(cb.equal(root.get("interactionType"), filter.getInteractionType()));
             }
 
-            // Filter by userId (createdBy)
+            // Filter by userId (createdById)
             if (filter.getUserId() != null) {
-                predicates.add(cb.equal(root.get("createdBy").get("id"), filter.getUserId()));
+                predicates.add(cb.equal(root.get("createdById"), filter.getUserId()));
             }
 
             // Filter by outcome

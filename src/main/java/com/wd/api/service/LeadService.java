@@ -725,6 +725,8 @@ public class LeadService {
 
             // 6. Finalize Lead
             lead.setLeadStatus("WON");
+            lead.setConvertedById(convertedBy.getId());
+            lead.setConvertedAt(java.time.LocalDateTime.now());
             leadRepository.save(lead);
 
             try {
@@ -802,27 +804,105 @@ public class LeadService {
         return customerUserRepository.save(customer);
     }
 
+    /**
+     * Calculate lead score based on multiple factors
+     * Scoring factors:
+     * - Budget: High (>50L) = 25, Medium (>10L) = 15, Low = 5
+     * - Lead Source: Referral = 20, Website/Organic = 10, Others = 5
+     * - Priority: High = 15, Medium = 10, Low = 5
+     * - Probability to Win: >70% = 15, 40-70% = 10, <40% = 5
+     * - Client Rating: 4-5 stars = 10, 3 stars = 5, <3 = 0
+     * - Project Area: >3000 sqft = 10, 1500-3000 = 5, <1500 = 0
+     * 
+     * Score Categories:
+     * - HOT: >60 points
+     * - WARM: 30-60 points
+     * - COLD: <30 points
+     */
     private void calculateLeadScore(Lead lead) {
         int score = 0;
         Map<String, Integer> factors = new HashMap<>();
         try {
+            // Budget scoring
             if (lead.getBudget() != null) {
                 if (lead.getBudget().compareTo(new BigDecimal("5000000")) > 0) {
-                    score += 20;
-                    factors.put("High Budget", 20);
+                    score += 25;
+                    factors.put("High Budget (>50L)", 25);
                 } else if (lead.getBudget().compareTo(new BigDecimal("1000000")) > 0) {
-                    score += 10;
-                    factors.put("Medium Budget", 10);
+                    score += 15;
+                    factors.put("Medium Budget (10L-50L)", 15);
+                } else {
+                    score += 5;
+                    factors.put("Low Budget (<10L)", 5);
                 }
             }
+
+            // Lead Source scoring
             if (lead.getLeadSource() != null) {
                 String source = lead.getLeadSource().toLowerCase();
                 if (source.contains("referral")) {
                     score += 20;
-                    factors.put("Referral", 20);
-                } else if (source.contains("website")) {
+                    factors.put("Referral Source", 20);
+                } else if (source.contains("website") || source.contains("organic")) {
                     score += 10;
-                    factors.put("Organic", 10);
+                    factors.put("Organic Source", 10);
+                } else {
+                    score += 5;
+                    factors.put("Other Source", 5);
+                }
+            }
+
+            // Priority scoring
+            if (lead.getPriority() != null) {
+                String priority = lead.getPriority().toLowerCase();
+                if ("high".equals(priority)) {
+                    score += 15;
+                    factors.put("High Priority", 15);
+                } else if ("medium".equals(priority)) {
+                    score += 10;
+                    factors.put("Medium Priority", 10);
+                } else {
+                    score += 5;
+                    factors.put("Low Priority", 5);
+                }
+            }
+
+            // Probability to Win scoring
+            if (lead.getProbabilityToWin() != null) {
+                int prob = lead.getProbabilityToWin();
+                if (prob > 70) {
+                    score += 15;
+                    factors.put("High Probability (>70%)", 15);
+                } else if (prob >= 40) {
+                    score += 10;
+                    factors.put("Medium Probability (40-70%)", 10);
+                } else {
+                    score += 5;
+                    factors.put("Low Probability (<40%)", 5);
+                }
+            }
+
+            // Client Rating scoring
+            if (lead.getClientRating() != null) {
+                int rating = lead.getClientRating();
+                if (rating >= 4) {
+                    score += 10;
+                    factors.put("High Rating (4-5 stars)", 10);
+                } else if (rating == 3) {
+                    score += 5;
+                    factors.put("Medium Rating (3 stars)", 5);
+                }
+            }
+
+            // Project Area scoring
+            if (lead.getProjectSqftArea() != null) {
+                BigDecimal area = lead.getProjectSqftArea();
+                if (area.compareTo(new BigDecimal("3000")) > 0) {
+                    score += 10;
+                    factors.put("Large Project (>3000 sqft)", 10);
+                } else if (area.compareTo(new BigDecimal("1500")) > 0) {
+                    score += 5;
+                    factors.put("Medium Project (1500-3000 sqft)", 5);
                 }
             }
 
@@ -835,8 +915,10 @@ public class LeadService {
                 lead.setScoreFactors("{}");
             }
         } catch (Exception e) {
+            logger.warn("Error calculating lead score: {}", e.getMessage());
             lead.setScore(0);
             lead.setScoreCategory("COLD");
+            lead.setScoreFactors("{}");
         }
     }
 

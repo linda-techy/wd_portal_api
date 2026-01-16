@@ -59,13 +59,13 @@ public class LeadController {
      */
     @GetMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<Page<Lead>> searchLeads(@ModelAttribute LeadSearchFilter filter) {
+    public ResponseEntity<ApiResponse<Page<Lead>>> searchLeads(@ModelAttribute LeadSearchFilter filter) {
         try {
             Page<Lead> leads = leadService.search(filter);
-            return ResponseEntity.ok(leads);
+            return ResponseEntity.ok(ApiResponse.success("Leads retrieved successfully", leads));
         } catch (Exception e) {
             logger.error("Error in searchLeads controller", e);
-            return ResponseEntity.status(500).build();
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
         }
     }
 
@@ -238,51 +238,55 @@ public class LeadController {
 
     @GetMapping("/status/{status}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Lead>> getLeadsByStatus(@PathVariable String status) {
-        return ResponseEntity.ok(leadService.getLeadsByStatus(status));
+    @Deprecated
+    public ResponseEntity<ApiResponse<List<Lead>>> getLeadsByStatus(@PathVariable String status) {
+        return ResponseEntity.ok(ApiResponse.success("Leads retrieved successfully", leadService.getLeadsByStatus(status)));
     }
 
     @GetMapping("/assigned/{teamMemberId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Lead>> getLeadsByAssignedTo(@PathVariable String teamMemberId) {
-        // Assuming database stores UUID as string in assigned_team or we filter by
-        // string
-        return ResponseEntity.ok(leadService.getLeadsByAssignedTo(teamMemberId));
+    @Deprecated
+    public ResponseEntity<ApiResponse<List<Lead>>> getLeadsByAssignedTo(@PathVariable String teamMemberId) {
+        return ResponseEntity.ok(ApiResponse.success("Leads retrieved successfully", leadService.getLeadsByAssignedTo(teamMemberId)));
     }
 
     @GetMapping("/source/{source}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Lead>> getLeadsBySource(@PathVariable String source) {
-        return ResponseEntity.ok(leadService.getLeadsBySource(source));
+    @Deprecated
+    public ResponseEntity<ApiResponse<List<Lead>>> getLeadsBySource(@PathVariable String source) {
+        return ResponseEntity.ok(ApiResponse.success("Leads retrieved successfully", leadService.getLeadsBySource(source)));
     }
 
     @GetMapping("/priority/{priority}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Lead>> getLeadsByPriority(@PathVariable String priority) {
-        return ResponseEntity.ok(leadService.getLeadsByPriority(priority));
+    @Deprecated
+    public ResponseEntity<ApiResponse<List<Lead>>> getLeadsByPriority(@PathVariable String priority) {
+        return ResponseEntity.ok(ApiResponse.success("Leads retrieved successfully", leadService.getLeadsByPriority(priority)));
     }
 
     @GetMapping("/date-range")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Lead>> getLeadsByDateRange(
+    @Deprecated
+    public ResponseEntity<ApiResponse<List<Lead>>> getLeadsByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        // Not implemented in Service yet?
-        // Using Paginated endpoint with start/end date logic is preferred.
-        // Or adding simple method to service.
-        // For now returning empty list to avoid error, or implement specific method.
+        // DEPRECATED: Use /search endpoint with startDate and endDate parameters instead
         PaginationParams params = new PaginationParams();
         params.setStartDate(startDate);
         params.setEndDate(endDate);
         params.setLimit(1000); // Hacky get all
         Page<Lead> page = leadService.getLeadsPaginated(params);
-        return ResponseEntity.ok(page.getContent());
+        return ResponseEntity.ok(ApiResponse.success("Leads retrieved successfully", page.getContent()));
     }
 
-    @GetMapping("/search")
+    /**
+     * DEPRECATED: Simple search endpoint - use /search with LeadSearchFilter for better functionality
+     */
+    @GetMapping("/search-simple")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Lead>> searchLeads(@RequestParam String query) {
-        return ResponseEntity.ok(leadService.searchLeads(query));
+    @Deprecated
+    public ResponseEntity<ApiResponse<List<Lead>>> searchLeadsSimple(@RequestParam String query) {
+        return ResponseEntity.ok(ApiResponse.success("Leads retrieved successfully", leadService.searchLeads(query)));
     }
 
     // =====================================================
@@ -291,20 +295,20 @@ public class LeadController {
 
     @GetMapping("/overdue-followups")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<List<Lead>> getOverdueFollowUps() {
-        return ResponseEntity.ok(leadService.getOverdueFollowUps());
+    public ResponseEntity<ApiResponse<List<Lead>>> getOverdueFollowUps() {
+        return ResponseEntity.ok(ApiResponse.success("Overdue follow-ups retrieved successfully", leadService.getOverdueFollowUps()));
     }
 
     @GetMapping("/analytics")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<Map<String, Object>> getLeadAnalytics() {
-        return ResponseEntity.ok(leadService.getLeadAnalytics());
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getLeadAnalytics() {
+        return ResponseEntity.ok(ApiResponse.success("Analytics retrieved successfully", leadService.getLeadAnalytics()));
     }
 
     @GetMapping("/conversion-metrics")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<Map<String, Object>> getLeadConversionMetrics() {
-        return ResponseEntity.ok(leadService.getLeadConversionMetrics());
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getLeadConversionMetrics() {
+        return ResponseEntity.ok(ApiResponse.success("Conversion metrics retrieved successfully", leadService.getLeadConversionMetrics()));
     }
 
     // =====================================================
