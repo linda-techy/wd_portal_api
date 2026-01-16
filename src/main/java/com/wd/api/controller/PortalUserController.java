@@ -290,6 +290,35 @@ public class PortalUserController {
     }
 
     /**
+     * Get portal users filtered by role codes (for lead assignment)
+     */
+    @GetMapping("/by-role-codes")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<ApiResponse<List<PortalUserResponse>>> getPortalUsersByRoleCodes(
+            @RequestParam List<String> roleCodes) {
+        try {
+            // Get role IDs for the specified role codes
+            List<Long> roleIds = portalRoleRepository.findAll().stream()
+                    .filter(role -> role.getCode() != null && roleCodes.contains(role.getCode()))
+                    .map(com.wd.api.model.PortalRole::getId)
+                    .collect(Collectors.toList());
+
+            // Get users with those role IDs
+            List<PortalUser> users = portalUserRepository.findAll().stream()
+                    .filter(user -> user.getRole() != null && roleIds.contains(user.getRole().getId()))
+                    .collect(Collectors.toList());
+
+            List<PortalUserResponse> responses = users.stream()
+                    .map(PortalUserResponse::new)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(ApiResponse.success("Portal users retrieved successfully", responses));
+        } catch (Exception e) {
+            logger.error("Error fetching portal users by role codes", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        }
+    }
+
+    /**
      * Change password
      */
     @PostMapping("/{id}/change-password")
