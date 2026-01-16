@@ -337,8 +337,45 @@ public class LeadService {
             "name", "email", "phone", "whatsappNumber", "projectDescription"
         );
         
-        // Apply filters
-        Specification<Lead> statusSpec = builder.buildEquals("leadStatus", filter.getStatus());
+        // Apply filters with status normalization
+        Specification<Lead> statusSpec = null;
+        if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+            final String normalizedStatus = normalizeStatusForComparison(filter.getStatus());
+            statusSpec = (root, query, cb) -> {
+                // Normalize database column value (remove spaces/underscores, lowercase)
+                jakarta.persistence.criteria.Expression<String> dbStatusLower = cb.lower(root.get("leadStatus"));
+                jakarta.persistence.criteria.Expression<String> dbStatusNoSpaces = cb.function(
+                    "REPLACE", String.class, dbStatusLower, cb.literal(" "), cb.literal("")
+                );
+                jakarta.persistence.criteria.Expression<String> dbStatusCleaned = cb.function(
+                    "REPLACE", String.class, dbStatusNoSpaces, cb.literal("_"), cb.literal("")
+                );
+                
+                // Match all variations that normalize to the same value
+                // For "new": match "newinquiry", "new"
+                // For "qualified": match "qualifiedlead", "qualified"
+                // etc.
+                List<Predicate> statusPredicates = new ArrayList<>();
+                if ("new".equals(normalizedStatus)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "newinquiry"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "new"));
+                } else if ("qualified".equals(normalizedStatus)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "qualifiedlead"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "qualified"));
+                } else if ("proposal_sent".equals(normalizedStatus)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "proposalsent"));
+                } else if ("won".equals(normalizedStatus)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "projectwon"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "won"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "converted"));
+                } else {
+                    // For other statuses, match the normalized value directly
+                    statusPredicates.add(cb.equal(dbStatusCleaned, normalizedStatus));
+                }
+                
+                return cb.or(statusPredicates.toArray(new Predicate[0]));
+            };
+        }
         Specification<Lead> sourceSpec = builder.buildEquals("leadSource", filter.getSource());
         Specification<Lead> prioritySpec = builder.buildEquals("priority", filter.getPriority());
         Specification<Lead> customerTypeSpec = builder.buildEquals("customerType", filter.getCustomerType());
@@ -418,7 +455,42 @@ public class LeadService {
             List<Predicate> predicates = new ArrayList<>();
 
             if (params.getStatus() != null && !params.getStatus().isEmpty()) {
-                predicates.add(cb.equal(root.get("leadStatus"), params.getStatus()));
+                // Normalize input status for comparison
+                String normalizedInput = normalizeStatusForComparison(params.getStatus());
+                
+                // Normalize database column value using SQL functions (remove spaces/underscores, lowercase)
+                // This handles "New Inquiry", "new_inquiry", "new" all matching correctly
+                jakarta.persistence.criteria.Expression<String> dbStatusLower = cb.lower(root.get("leadStatus"));
+                jakarta.persistence.criteria.Expression<String> dbStatusNoSpaces = cb.function(
+                    "REPLACE", String.class, dbStatusLower, cb.literal(" "), cb.literal("")
+                );
+                jakarta.persistence.criteria.Expression<String> dbStatusCleaned = cb.function(
+                    "REPLACE", String.class, dbStatusNoSpaces, cb.literal("_"), cb.literal("")
+                );
+                
+                // Match all variations that normalize to the same value
+                // For "new": match "newinquiry", "new"
+                // For "qualified": match "qualifiedlead", "qualified"
+                // etc.
+                List<Predicate> statusPredicates = new ArrayList<>();
+                if ("new".equals(normalizedInput)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "newinquiry"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "new"));
+                } else if ("qualified".equals(normalizedInput)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "qualifiedlead"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "qualified"));
+                } else if ("proposal_sent".equals(normalizedInput)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "proposalsent"));
+                } else if ("won".equals(normalizedInput)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "projectwon"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "won"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, "converted"));
+                } else {
+                    // For other statuses, match the normalized value directly
+                    statusPredicates.add(cb.equal(dbStatusCleaned, normalizedInput));
+                }
+                
+                predicates.add(cb.or(statusPredicates.toArray(new Predicate[0])));
             }
             if (params.getSource() != null && !params.getSource().isEmpty()) {
                 predicates.add(cb.equal(root.get("leadSource"), params.getSource()));
@@ -582,6 +654,73 @@ public class LeadService {
         lead.setNotes(partnerNotes + (request.getNotes() != null ? "\n" + request.getNotes() : ""));
 
         return leadRepository.save(lead);
+    }
+
+    /**
+     * Normalize lead status values from frontend format to backend format
+     * Frontend uses: new_inquiry, qualified_lead, project_won, etc.
+     * Database might have: "New Inquiry", "new", "new_inquiry", etc.
+     * This method normalizes all variations to a standard format for comparison
+     */
+    private String normalizeLeadStatus(String status) {
+        if (status == null || status.isEmpty()) {
+            return status;
+        }
+        // Normalize to lowercase and replace spaces/underscores for consistent comparison
+        String normalized = status.toLowerCase().trim();
+        
+        // Map all variations to standard backend values
+        if (normalized.equals("new_inquiry") || normalized.equals("new inquiry") || normalized.equals("new")) {
+            return "new";
+        } else if (normalized.equals("contacted")) {
+            return "contacted";
+        } else if (normalized.equals("qualified_lead") || normalized.equals("qualified lead") || normalized.equals("qualified")) {
+            return "qualified";
+        } else if (normalized.equals("proposal_sent") || normalized.equals("proposal sent")) {
+            return "proposal_sent";
+        } else if (normalized.equals("negotiation")) {
+            return "negotiation";
+        } else if (normalized.equals("project_won") || normalized.equals("project won") || normalized.equals("won") || normalized.equals("converted")) {
+            return "won";
+        } else if (normalized.equals("lost")) {
+            return "lost";
+        } else {
+            // If it doesn't match any known mapping, return lowercase version for case-insensitive comparison
+            return normalized;
+        }
+    }
+
+    /**
+     * Normalize status for comparison by removing spaces/underscores and mapping to standard values
+     * This ensures "New Inquiry", "new_inquiry", and "new" all normalize to "new"
+     * Used for comparing database values with input values
+     */
+    private String normalizeStatusForComparison(String status) {
+        if (status == null || status.isEmpty()) {
+            return status;
+        }
+        // Remove spaces and underscores, convert to lowercase
+        String cleaned = status.toLowerCase().trim().replaceAll("[\\s_]", "");
+        
+        // Map to standard values
+        if (cleaned.equals("newinquiry") || cleaned.equals("new")) {
+            return "new";
+        } else if (cleaned.equals("contacted")) {
+            return "contacted";
+        } else if (cleaned.equals("qualifiedlead") || cleaned.equals("qualified")) {
+            return "qualified";
+        } else if (cleaned.equals("proposalsent")) {
+            return "proposal_sent";
+        } else if (cleaned.equals("negotiation")) {
+            return "negotiation";
+        } else if (cleaned.equals("projectwon") || cleaned.equals("won") || cleaned.equals("converted")) {
+            return "won";
+        } else if (cleaned.equals("lost")) {
+            return "lost";
+        } else {
+            // Return cleaned version if no mapping found
+            return cleaned;
+        }
     }
 
     private String mapSortField(String dbColumn) {
