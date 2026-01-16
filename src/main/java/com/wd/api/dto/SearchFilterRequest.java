@@ -52,10 +52,16 @@ public class SearchFilterRequest {
         int validPage = Math.max(0, page);
         int validSize = Math.max(1, Math.min(size, 100)); // Max 100 items per page
         
-        // Create sort
-        Sort sort = sortDirection != null && sortDirection.equalsIgnoreCase("asc") 
-            ? Sort.by(sortBy).ascending() 
-            : Sort.by(sortBy).descending();
+        // Validate and set default sortBy if null or empty
+        String validSortBy = (sortBy != null && !sortBy.trim().isEmpty()) ? sortBy.trim() : "id";
+        
+        // Create sort with null safety
+        Sort sort;
+        if (sortDirection != null && sortDirection.equalsIgnoreCase("asc")) {
+            sort = Sort.by(validSortBy).ascending();
+        } else {
+            sort = Sort.by(validSortBy).descending();
+        }
         
         return PageRequest.of(validPage, validSize, sort);
     }

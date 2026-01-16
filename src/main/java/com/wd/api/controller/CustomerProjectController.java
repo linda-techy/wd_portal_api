@@ -47,12 +47,18 @@ public class CustomerProjectController {
     /**
      * NEW: Standardized search endpoint using ProjectSearchFilter
      * Enterprise-grade pattern with comprehensive filtering
+     * Returns DTOs to avoid Hibernate lazy-loading proxy serialization issues
      */
     @GetMapping("/search")
-    public ResponseEntity<Page<CustomerProject>> searchProjects(@ModelAttribute ProjectSearchFilter filter) {
+    public ResponseEntity<Page<CustomerProjectResponse>> searchProjects(@ModelAttribute ProjectSearchFilter filter) {
         try {
-            Page<CustomerProject> projects = customerProjectService.search(filter);
+            logger.debug("Search request received - page: {}, size: {}, sortBy: {}, sortDirection: {}", 
+                filter.getPage(), filter.getSize(), filter.getSortBy(), filter.getSortDirection());
+            Page<CustomerProjectResponse> projects = customerProjectService.search(filter);
             return ResponseEntity.ok(projects);
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid search parameters: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             logger.error("Error in searchProjects controller", e);
             return ResponseEntity.status(500).build();

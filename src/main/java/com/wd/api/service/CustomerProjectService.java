@@ -64,11 +64,24 @@ public class CustomerProjectService {
     /**
      * NEW: Standardized search method using ProjectSearchFilter
      * Enterprise-grade implementation with comprehensive filtering
+     * Returns DTOs to avoid Hibernate lazy-loading proxy serialization issues
      */
     @Transactional(readOnly = true)
-    public Page<CustomerProject> search(ProjectSearchFilter filter) {
-        Specification<CustomerProject> spec = buildSearchSpecification(filter);
-        return customerProjectRepository.findAll(spec, filter.toPageable());
+    public Page<CustomerProjectResponse> search(ProjectSearchFilter filter) {
+        try {
+            Specification<CustomerProject> spec = buildSearchSpecification(filter);
+            Pageable pageable = filter.toPageable();
+            Page<CustomerProject> projectPage = customerProjectRepository.findAll(spec, pageable);
+            
+            // Map entities to DTOs to avoid Hibernate proxy serialization issues
+            return projectPage.map(CustomerProjectResponse::new);
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid filter parameter in search: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Invalid search filter: " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error searching customer projects", e);
+            throw new RuntimeException("Error searching projects: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -83,20 +96,32 @@ public class CustomerProjectService {
             "name", "location", "code", "state", "city", "district"
         );
         
-        // Apply filters
+        // Apply filters with safe enum conversion
         Specification<CustomerProject> phaseSpec = null;
         if (filter.getPhase() != null && !filter.getPhase().trim().isEmpty()) {
-            phaseSpec = (root, query, cb) -> 
-                cb.equal(root.get("projectPhase"), 
-                    com.wd.api.model.enums.ProjectPhase.valueOf(filter.getPhase().toUpperCase()));
+            try {
+                final String phaseValue = filter.getPhase().toUpperCase();
+                phaseSpec = (root, query, cb) -> 
+                    cb.equal(root.get("projectPhase"), 
+                        com.wd.api.model.enums.ProjectPhase.valueOf(phaseValue));
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid project phase value: {}", filter.getPhase());
+                // Skip invalid phase filter instead of failing
+            }
         }
         
         Specification<CustomerProject> typeSpec = builder.buildEquals("projectType", filter.getType());
         Specification<CustomerProject> contractTypeSpec = null;
         if (filter.getContractType() != null && !filter.getContractType().trim().isEmpty()) {
-            contractTypeSpec = (root, query, cb) -> 
-                cb.equal(root.get("contractType"), 
-                    com.wd.api.model.enums.ContractType.valueOf(filter.getContractType().toUpperCase()));
+            try {
+                final String contractTypeValue = filter.getContractType().toUpperCase();
+                contractTypeSpec = (root, query, cb) -> 
+                    cb.equal(root.get("contractType"), 
+                        com.wd.api.model.enums.ContractType.valueOf(contractTypeValue));
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid contract type value: {}", filter.getContractType());
+                // Skip invalid contract type filter instead of failing
+            }
         }
         
         Specification<CustomerProject> statusSpec = builder.buildEquals("status", filter.getStatus());
