@@ -428,7 +428,7 @@ public class LeadController {
     @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> convertLead(
             @PathVariable String leadId,
-            @RequestBody com.wd.api.dto.LeadConversionRequest request,
+            @Valid @RequestBody com.wd.api.dto.LeadConversionRequest request,
             org.springframework.security.core.Authentication authentication) {
 
         try {

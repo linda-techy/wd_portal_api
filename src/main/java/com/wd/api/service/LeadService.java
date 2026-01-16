@@ -651,6 +651,11 @@ public class LeadService {
             }
 
             // 1. Create or Find Customer User
+            // CustomerUser requires email (NOT NULL and UNIQUE), so validate lead has email
+            if (lead.getEmail() == null || lead.getEmail().trim().isEmpty()) {
+                throw new IllegalArgumentException("Cannot convert lead without email address. Please update lead with a valid email first.");
+            }
+            
             com.wd.api.model.CustomerUser customer = customerUserRepository.findByEmail(lead.getEmail())
                     .orElseGet(() -> createCustomerFromLead(lead));
 
