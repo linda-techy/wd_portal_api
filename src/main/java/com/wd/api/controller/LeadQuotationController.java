@@ -5,6 +5,10 @@ import com.wd.api.model.LeadQuotation;
 import com.wd.api.service.LeadQuotationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -184,6 +188,35 @@ public class LeadQuotationController {
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * Download quotation PDF for client presentation
+     */
+    @GetMapping("/{id}/pdf")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    public ResponseEntity<?> downloadQuotationPdf(@PathVariable Long id) {
+        try {
+            byte[] pdf = quotationService.generateQuotationPdf(id);
+            
+            // Get quotation for filename
+            LeadQuotation quotation = quotationService.getQuotationById(id);
+            String filename = "Quotation_" + (quotation.getQuotationNumber() != null ? 
+                quotation.getQuotationNumber().replace("/", "_") : "ID_" + id) + ".pdf";
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+            headers.setContentLength(pdf.length);
+            
+            return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404)
+                    .body(Map.of("success", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("success", false, "message", "Error generating PDF: " + e.getMessage()));
         }
     }
 }

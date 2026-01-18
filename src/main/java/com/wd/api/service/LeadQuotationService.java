@@ -1,21 +1,30 @@
 package com.wd.api.service;
 
+import com.wd.api.config.CompanyInfoConfig;
 import com.wd.api.dto.LeadQuotationSearchFilter;
+import com.wd.api.model.Lead;
 import com.wd.api.model.LeadQuotation;
 import com.wd.api.model.LeadQuotationItem;
 import com.wd.api.repository.LeadQuotationRepository;
+import com.wd.api.repository.LeadRepository;
+import com.wd.api.util.NumberToWords;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 import jakarta.persistence.criteria.Predicate;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Service for managing lead quotations and proposals
@@ -25,6 +34,15 @@ public class LeadQuotationService {
 
     @Autowired
     private LeadQuotationRepository quotationRepository;
+
+    @Autowired
+    private LeadRepository leadRepository;
+
+    @Autowired
+    private TemplateEngine templateEngine;
+
+    @Autowired
+    private CompanyInfoConfig companyInfoConfig;
 
     @Transactional(readOnly = true)
     public Page<LeadQuotation> searchLeadQuotations(LeadQuotationSearchFilter filter) {
@@ -279,5 +297,52 @@ public class LeadQuotationService {
         }
 
         quotationRepository.delete(quotation);
+    }
+
+    /**
+     * Generate quotation PDF for client presentation
+     * Enterprise-grade PDF generation with company branding and professional formatting
+     */
+    public byte[] generateQuotationPdf(Long quotationId) {
+        LeadQuotation quotation = getQuotationById(quotationId);
+        
+        // Load lead information for client details
+        Optional<Lead> leadOpt = leadRepository.findById(quotation.getLeadId());
+        Lead lead = leadOpt.orElse(null);
+
+        // Prepare template context
+        Context context = new Context();
+        context.setVariable("quotation", quotation);
+        context.setVariable("lead", lead);
+        context.setVariable("items", quotation.getItems());
+        
+        // Company information from configuration
+        context.setVariable("companyName", companyInfoConfig.getName());
+        context.setVariable("companyAddress", companyInfoConfig.getAddress());
+        context.setVariable("companyPhone", companyInfoConfig.getPhone());
+        context.setVariable("companyEmail", companyInfoConfig.getEmail());
+        context.setVariable("companyWebsite", companyInfoConfig.getWebsite());
+        context.setVariable("companyGst", companyInfoConfig.getGst());
+        
+        // Calculate amount in words
+        BigDecimal finalAmount = quotation.getFinalAmount() != null ? quotation.getFinalAmount() : 
+                                 (quotation.getTotalAmount() != null ? quotation.getTotalAmount() : BigDecimal.ZERO);
+        String amountInWords = NumberToWords.convert(finalAmount);
+        context.setVariable("amountInWords", amountInWords);
+
+        // Process Thymeleaf template
+        String html = templateEngine.process("quotation-template", context);
+
+        // Generate PDF using openhtmltopdf
+        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+            PdfRendererBuilder builder = new PdfRendererBuilder();
+            builder.useFastMode();
+            builder.withHtmlContent(html, "/");
+            builder.toStream(os);
+            builder.run();
+            return os.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating quotation PDF", e);
+        }
     }
 }

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #ed1c24; /* Walldot Red */
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .company-logo {
+            max-width: 150px;
+            max-height: 80px;
+            margin-bottom: 10px;
+        }
+        .company-name {
+            font-size: 26pt;
+            font-weight: bold;
+            color: #ed1c24;
+            margin: 5px 0;
+        }
+        .company-tagline {
+            font-size: 10pt;
+            color: #666;
+            margin-top: 5px;
+        }
+        .company-info {
+            font-size: 9pt;
+            color: #555;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        .document-title {
+            font-size: 20pt;
+            font-weight: bold;
+            margin-top: 15px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #333;
+        }
+        .info-section {
+            display: table;
+            width: 100%;
+            margin-bottom: 25px;
+        }
+        .info-column {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            padding: 0 10px;
+        }
+        .info-column.left {
+            border-right: 1px solid #e0e0e0;
+            padding-right: 20px;
+        }
+        .info-column.right {
+            padding-left: 20px;
+        }
+        .section-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #ed1c24;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .label {
+            font-weight: bold;
+            color: #666;
+            font-size: 9pt;
+            margin-top: 8px;
+        }
+        .value {
+            font-size: 10pt;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 10pt;
+        }
+        .items-table th {
+            background-color: #ed1c24;
+            color: white;
+            text-align: left;
+            padding: 12px 8px;
+            border: 1px solid #cc1620;
+            font-weight: bold;
+        }
+        .items-table th:first-child {
+            width: 40px;
+            text-align: center;
+        }
+        .items-table th:nth-child(3) {
+            width: 80px;
+            text-align: center;
+        }
+        .items-table th:nth-child(4),
+        .items-table th:nth-child(5) {
+            width: 100px;
+            text-align: right;
+        }
+        .items-table td {
+            padding: 10px 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        .items-table td:first-child {
+            text-align: center;
+        }
+        .items-table td:nth-child(3) {
+            text-align: center;
+        }
+        .items-table td:nth-child(4),
+        .items-table td:nth-child(5) {
+            text-align: right;
+        }
+        .items-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .items-table tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+        .financial-summary {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .summary-row {
+            display: table;
+            width: 100%;
+            margin: 8px 0;
+        }
+        .summary-label {
+            display: table-cell;
+            text-align: right;
+            padding-right: 20px;
+            font-size: 10pt;
+            color: #666;
+            width: 70%;
+        }
+        .summary-value {
+            display: table-cell;
+            text-align: right;
+            font-size: 11pt;
+            font-weight: 500;
+            width: 30%;
+        }
+        .summary-row.total {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #333;
+        }
+        .summary-row.total .summary-label,
+        .summary-row.total .summary-value {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #ed1c24;
+        }
+        .amount-words {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #fff3cd;
+            border-left: 4px solid #ed1c24;
+            font-size: 10pt;
+            font-style: italic;
+            color: #856404;
+        }
+        .terms-section {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        .terms-title {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #ed1c24;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        .terms-content {
+            font-size: 9pt;
+            color: #555;
+            line-height: 1.8;
+        }
+        .terms-content ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        .terms-content li {
+            margin: 5px 0;
+        }
+        .signature-section {
+            margin-top: 40px;
+            display: table;
+            width: 100%;
+        }
+        .signature-box {
+            display: table-cell;
+            width: 50%;
+            text-align: center;
+            vertical-align: bottom;
+        }
+        .signature-box.left {
+            padding-right: 40px;
+        }
+        .signature-box.right {
+            padding-left: 40px;
+        }
+        .signature-line {
+            width: 250px;
+            border-top: 2px solid #333;
+            margin: 40px auto 10px auto;
+        }
+        .signature-label {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #333;
+            margin-top: 5px;
+        }
+        .signature-company {
+            font-size: 9pt;
+            color: #ed1c24;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 8pt;
+            color: #999;
+            text-align: center;
+        }
+        .validity-info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            font-size: 9pt;
+            color: #856404;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header: Company Logo and Info -->
+    <div class="header">
+        <h1 class="company-name">Walldot Builders LLP</h1>
+        <div class="company-tagline">Building Dreams, Building Excellence</div>
+        <div class="company-info">
+            <div th:if="${companyAddress != null}" th:text="${companyAddress}">123 Construction Avenue, Building City, State - 123456</div>
+            <div th:if="${companyPhone != null}">Phone: <span th:text="${companyPhone}">+91 1234567890</span></div>
+            <div th:if="${companyEmail != null}">Email: <span th:text="${companyEmail}">info@walldotbuilders.com</span></div>
+            <div th:if="${companyWebsite != null}">Website: <span th:text="${companyWebsite}">www.walldotbuilders.com</span></div>
+            <div th:if="${companyGst != null}">GST: <span th:text="${companyGst}">GST123456789</span></div>
+        </div>
+        <div class="document-title">Quotation</div>
+    </div>
+
+    <!-- Quotation Details: Company & Client Info -->
+    <div class="info-section">
+        <div class="info-column left">
+            <div class="section-title">Quotation Details</div>
+            <div class="label">Quotation Number</div>
+            <div class="value" th:text="${quotation.quotationNumber}">QUO-20250118-0001</div>
+
+            <div class="label">Date</div>
+            <div class="value" th:text="${quotation.createdAt != null ? #temporals.format(quotation.createdAt, 'dd MMM yyyy') : 'N/A'}">18 Jan 2025</div>
+
+            <div class="label">Validity</div>
+            <div class="value" th:text="${quotation.validityDays != null ? quotation.validityDays + ' days from date of quotation' : '30 days'}">30 days</div>
+
+            <div class="label">Status</div>
+            <div class="value" th:text="${quotation.status}">DRAFT</div>
+        </div>
+        <div class="info-column right">
+            <div class="section-title">Client Information</div>
+            <div class="label">Client Name</div>
+            <div class="value" th:text="${lead != null ? lead.name : 'N/A'}">John Doe</div>
+
+            <div class="label">Contact Phone</div>
+            <div class="value" th:text="${lead != null ? lead.phone : 'N/A'}">+91 9876543210</div>
+
+            <div class="label">Email</div>
+            <div class="value" th:text="${lead != null ? lead.email : 'N/A'}">john.doe@example.com</div>
+
+            <div class="label">Project Type</div>
+            <div class="value" th:text="${lead != null && lead.projectType != null ? lead.projectType : 'N/A'}">Residential</div>
+
+            <div class="label">Location</div>
+            <div class="value">
+                <span th:if="${lead != null && lead.state != null}" th:text="${lead.state}">State</span><span th:if="${lead != null && lead.district != null}">, <span th:text="${lead.district}">District</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Description -->
+    <div th:if="${quotation.description != null && !quotation.description.isEmpty()}">
+        <div class="label">Project Description</div>
+        <div class="value" style="margin-bottom: 15px;" th:text="${quotation.description}">Project description goes here...</div>
+    </div>
+
+    <!-- Line Items Table -->
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Unit Price (₹)</th>
+                <th>Total (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="item, iterStat : ${quotation.items}">
+                <td th:text="${item.itemNumber}">1</td>
+                <td>
+                    <div th:text="${item.description}">Work Package Description</div>
+                    <div th:if="${item.notes != null && !item.notes.isEmpty()}" style="font-size: 8pt; color: #888; margin-top: 4px; font-style: italic;" th:text="${'Note: ' + item.notes}">Additional notes</div>
+                </td>
+                <td th:text="${#numbers.formatDecimal(item.quantity, 1, 'COMMA', 2, 'POINT')}">1.00</td>
+                <td th:text="${'₹ ' + #numbers.formatDecimal(item.unitPrice, 1, 'COMMA', 2, 'POINT')}">₹ 10,000.00</td>
+                <td th:text="${'₹ ' + #numbers.formatDecimal(item.totalPrice, 1, 'COMMA', 2, 'POINT')}">₹ 10,000.00</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Financial Summary -->
+    <div class="financial-summary">
+        <div class="summary-row">
+            <div class="summary-label">Subtotal:</div>
+            <div class="summary-value" th:text="${'₹ ' + #numbers.formatDecimal(quotation.totalAmount, 1, 'COMMA', 2, 'POINT')}">₹ 1,00,000.00</div>
+        </div>
+        <div class="summary-row" th:if="${quotation.taxAmount != null && quotation.taxAmount > 0}">
+            <div class="summary-label">Tax/GST:</div>
+            <div class="summary-value" th:text="${'+ ₹ ' + #numbers.formatDecimal(quotation.taxAmount, 1, 'COMMA', 2, 'POINT')}">+ ₹ 18,000.00</div>
+        </div>
+        <div class="summary-row" th:if="${quotation.discountAmount != null && quotation.discountAmount > 0}">
+            <div class="summary-label">Discount:</div>
+            <div class="summary-value" th:text="${'- ₹ ' + #numbers.formatDecimal(quotation.discountAmount, 1, 'COMMA', 2, 'POINT')}">- ₹ 5,000.00</div>
+        </div>
+        <div class="summary-row total">
+            <div class="summary-label">Final Amount:</div>
+            <div class="summary-value" th:text="${'₹ ' + #numbers.formatDecimal(quotation.finalAmount, 1, 'COMMA', 2, 'POINT')}">₹ 1,13,000.00</div>
+        </div>
+    </div>
+
+    <!-- Amount in Words -->
+    <div class="amount-words" th:if="${amountInWords != null}">
+        <strong>Amount in Words:</strong> <span th:text="${amountInWords}">Rupees One Lakh Thirteen Thousand Only</span>
+    </div>
+
+    <!-- Validity Information -->
+    <div class="validity-info" th:if="${quotation.validityDays != null && quotation.createdAt != null}">
+        <strong>Note:</strong> This quotation is valid for <span th:text="${quotation.validityDays}">30</span> days from the date of issue 
+        (<span th:text="${#temporals.format(quotation.createdAt, 'dd MMM yyyy')}">18 Jan 2025</span>).
+        Valid until: <span th:text="${#temporals.format(#temporals.createDateTime(quotation.createdAt.toLocalDate().plusDays(quotation.validityDays), #temporals.createLocalTime(0,0)), 'dd MMM yyyy')}">17 Feb 2025</span>
+    </div>
+
+    <!-- Terms and Conditions -->
+    <div class="terms-section">
+        <div class="terms-title">Terms and Conditions</div>
+        <div class="terms-content">
+            <ul>
+                <li><strong>Validity:</strong> This quotation is valid for the period specified above. Prices are subject to revision after the validity period.</li>
+                <li><strong>Payment Terms:</strong> 30% advance payment upon acceptance, 40% at foundation completion, 25% at structure completion, and 5% on final handover.</li>
+                <li><strong>Project Timeline:</strong> Project commencement within 15 days of advance payment. Timeline will be finalized based on project scope and approvals.</li>
+                <li><strong>Scope of Work:</strong> Work includes all items mentioned in this quotation. Any additional work will be charged separately.</li>
+                <li><strong>Materials:</strong> All materials will be as per specifications and quality standards. Material substitution requires client approval.</li>
+                <li><strong>Warranty:</strong> We provide 1 year warranty on all workmanship and materials from the date of project completion.</li>
+                <li><strong>Exclusions:</strong> External approvals, permits, and licenses are client's responsibility unless otherwise agreed.</li>
+                <li><strong>GST:</strong> All prices are exclusive of applicable taxes. GST will be charged as per government regulations.</li>
+            </ul>
+            <div th:if="${quotation.notes != null && !quotation.notes.isEmpty()}" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd;">
+                <strong>Additional Notes:</strong>
+                <div style="margin-top: 5px;" th:text="${quotation.notes}">Additional notes from quotation...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signature Section -->
+    <div class="signature-section">
+        <div class="signature-box left">
+            <div class="signature-line"></div>
+            <div class="signature-label">Client's Signature</div>
+            <div class="value" style="margin-top: 5px;" th:text="${lead != null ? lead.name : 'Client Name'}">Client Name</div>
+            <div class="value" style="font-size: 8pt; color: #888;" th:if="${lead != null && lead.email != null}" th:text="${lead.email}">client@example.com</div>
+        </div>
+        <div class="signature-box right">
+            <div class="signature-line"></div>
+            <div class="signature-label">Authorized Signatory</div>
+            <div class="signature-company">Walldot Builders LLP</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div>Thank you for considering Walldot Builders LLP for your construction needs.</div>
+        <div style="margin-top: 5px;" th:if="${companyPhone != null || companyEmail != null}">
+            <span th:if="${companyPhone != null}">Phone: <span th:text="${companyPhone}">+91 1234567890</span></span>
+            <span th:if="${companyPhone != null && companyEmail != null}"> | </span>
+            <span th:if="${companyEmail != null}">Email: <span th:text="${companyEmail}">info@walldotbuilders.com</span></span>
+        </div>
+        <div style="margin-top: 8px; font-size: 7pt;">Generated on: <span th:text="${quotation.createdAt != null ? #temporals.format(quotation.createdAt, 'dd/MM/yyyy HH:mm:ss') : 'N/A'}">18/01/2025 10:30:00</span></div>
+    </div>
+</body>
+</html>
