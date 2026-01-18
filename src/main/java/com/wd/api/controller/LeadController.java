@@ -6,17 +6,24 @@ import com.wd.api.dto.LeadCreateRequest;
 import com.wd.api.dto.PaginationParams;
 import com.wd.api.dto.LeadSearchFilter;
 import com.wd.api.service.LeadService;
+import com.wd.api.service.LeadExportService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,6 +36,9 @@ public class LeadController {
 
     @Autowired
     private LeadService leadService;
+
+    @Autowired
+    private LeadExportService leadExportService;
 
     // =====================================================
     // LEAD CRUD OPERATIONS
@@ -66,6 +76,40 @@ public class LeadController {
         } catch (Exception e) {
             logger.error("Error in searchLeads controller", e);
             return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        }
+    }
+
+    /**
+     * Export leads to Excel based on search filters
+     * Exports ALL matching leads (not paginated) with essential fields
+     * 
+     * Query Parameters: Same as /search endpoint (LeadSearchFilter)
+     * 
+     * @param filter Search and filter criteria
+     * @return Excel file as byte array
+     */
+    @GetMapping("/export")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<?> exportLeads(@ModelAttribute LeadSearchFilter filter) {
+        try {
+            byte[] excelBytes = leadExportService.generateLeadsExcel(filter);
+            String filename = "Leads_Export_" + LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+            headers.setContentLength(excelBytes.length);
+            
+            logger.info("Excel export generated: {} bytes, {} leads", excelBytes.length, 
+                leadService.search(filter).getTotalElements());
+            
+            return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error exporting leads to Excel", e);
+            return ResponseEntity.internalServerError()
+                .body(Map.of("success", false, "message", "Error generating Excel: " + e.getMessage()));
         }
     }
 
