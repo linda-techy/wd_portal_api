@@ -32,6 +32,24 @@ public class LeadQuotationController {
     }
 
     /**
+     * Get quotation by ID with items
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    public ResponseEntity<?> getQuotationById(@PathVariable Long id) {
+        try {
+            LeadQuotation quotation = quotationService.getQuotationById(id);
+            return ResponseEntity.ok(quotation);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404)
+                    .body(Map.of("success", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("success", false, "message", "Internal server error"));
+        }
+    }
+
+    /**
      * Get all quotations for a lead
      */
     @GetMapping("/lead/{leadId}")

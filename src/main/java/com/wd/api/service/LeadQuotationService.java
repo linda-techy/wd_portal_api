@@ -92,6 +92,20 @@ public class LeadQuotationService {
     }
 
     /**
+     * Get quotation by ID with items eagerly loaded
+     */
+    @Transactional(readOnly = true)
+    public LeadQuotation getQuotationById(Long id) {
+        LeadQuotation quotation = quotationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Quotation not found with id: " + id));
+        
+        // Force eager loading of items by accessing the collection
+        quotation.getItems().size(); // This triggers lazy loading
+        
+        return quotation;
+    }
+
+    /**
      * Get all quotations for a specific lead
      */
     public List<LeadQuotation> getQuotationsByLeadId(Long leadId) {
