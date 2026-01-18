@@ -18,8 +18,10 @@ public class FileStorageService {
     private final Path fileStorageLocation;
 
     public FileStorageService(FileUploadConfig fileUploadConfig,
-            @org.springframework.beans.factory.annotation.Value("${storageBasePath}") String storageBasePath) {
-        String uploadDir = storageBasePath.trim();
+            @org.springframework.beans.factory.annotation.Value("${storageBasePath:N:\\Projects\\wd projects git\\storage}") String storageBasePath) {
+        String uploadDir = storageBasePath != null && !storageBasePath.trim().isEmpty() 
+            ? storageBasePath.trim() 
+            : "N:\\Projects\\wd projects git\\storage";
 
         System.out.println("Initializing File Storage at: " + uploadDir);
 
@@ -28,6 +30,12 @@ public class FileStorageService {
 
         try {
             Files.createDirectories(this.fileStorageLocation);
+            // Create standard subdirectories
+            Files.createDirectories(this.fileStorageLocation.resolve("documents"));
+            Files.createDirectories(this.fileStorageLocation.resolve("quotations/pdfs"));
+            Files.createDirectories(this.fileStorageLocation.resolve("leads/documents"));
+            Files.createDirectories(this.fileStorageLocation.resolve("projects/documents"));
+            Files.createDirectories(this.fileStorageLocation.resolve("uploads"));
         } catch (Exception ex) {
             throw new RuntimeException("Could not create the directory where the uploaded files will be stored.", ex);
         }

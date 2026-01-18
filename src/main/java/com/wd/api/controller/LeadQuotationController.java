@@ -3,6 +3,8 @@ package com.wd.api.controller;
 import com.wd.api.dto.LeadQuotationSearchFilter;
 import com.wd.api.model.LeadQuotation;
 import com.wd.api.service.LeadQuotationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
@@ -23,6 +25,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/leads/quotations")
 public class LeadQuotationController {
+
+    private static final Logger logger = LoggerFactory.getLogger(LeadQuotationController.class);
 
     @Autowired
     private LeadQuotationService quotationService;
@@ -198,10 +202,13 @@ public class LeadQuotationController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
     public ResponseEntity<?> downloadQuotationPdf(@PathVariable Long id) {
         try {
+            // First verify quotation exists
+            LeadQuotation quotation = quotationService.getQuotationById(id);
+            
+            // Generate PDF
             byte[] pdf = quotationService.generateQuotationPdf(id);
             
-            // Get quotation for filename
-            LeadQuotation quotation = quotationService.getQuotationById(id);
+            // Generate filename
             String filename = "Quotation_" + (quotation.getQuotationNumber() != null ? 
                 quotation.getQuotationNumber().replace("/", "_") : "ID_" + id) + ".pdf";
             
@@ -212,9 +219,15 @@ public class LeadQuotationController {
             
             return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
         } catch (RuntimeException e) {
+            logger.error("Error generating PDF for quotation {}: {}", id, e.getMessage());
+            if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                return ResponseEntity.status(404)
+                        .body(Map.of("success", false, "message", "Quotation not found with id: " + id));
+            }
             return ResponseEntity.status(404)
                     .body(Map.of("success", false, "message", e.getMessage()));
         } catch (Exception e) {
+            logger.error("Unexpected error generating PDF for quotation {}: {}", id, e.getMessage(), e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("success", false, "message", "Error generating PDF: " + e.getMessage()));
         }
