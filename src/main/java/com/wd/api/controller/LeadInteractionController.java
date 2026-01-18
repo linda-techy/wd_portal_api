@@ -29,6 +29,7 @@ public class LeadInteractionController {
     private com.wd.api.repository.PortalUserRepository portalUserRepository;
 
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
     public ResponseEntity<Page<LeadInteraction>> searchLeadInteractions(@ModelAttribute LeadInteractionSearchFilter filter) {
         return ResponseEntity.ok(interactionService.searchLeadInteractions(filter));
     }

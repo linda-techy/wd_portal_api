@@ -67,6 +67,9 @@ public class LeadService {
     @Autowired
     private com.wd.api.repository.CustomerRoleRepository customerRoleRepository;
 
+    @Autowired
+    private com.wd.api.repository.LeadInteractionRepository leadInteractionRepository;
+
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LeadService.class);
 
     @Autowired
@@ -208,7 +211,6 @@ public class LeadService {
             String oldStatus = lead.getLeadStatus();
             String oldCategory = lead.getScoreCategory(); // Capture old score category
             Integer oldScore = lead.getScore(); // Capture old score
-            String oldScoreFactors = lead.getScoreFactors(); // Capture old score factors
             String oldAssigned = lead.getAssignedTeam();
             Long oldAssignedId = lead.getAssignedTo() != null ? lead.getAssignedTo().getId() : null;
 
@@ -704,40 +706,6 @@ public class LeadService {
     }
 
     /**
-     * Normalize lead status values from frontend format to backend format
-     * Frontend uses: new_inquiry, qualified_lead, project_won, etc.
-     * Database might have: "New Inquiry", "new", "new_inquiry", etc.
-     * This method normalizes all variations to a standard format for comparison
-     */
-    private String normalizeLeadStatus(String status) {
-        if (status == null || status.isEmpty()) {
-            return status;
-        }
-        // Normalize to lowercase and replace spaces/underscores for consistent comparison
-        String normalized = status.toLowerCase().trim();
-        
-        // Map all variations to standard backend values
-        if (normalized.equals("new_inquiry") || normalized.equals("new inquiry") || normalized.equals("new")) {
-            return "new";
-        } else if (normalized.equals("contacted")) {
-            return "contacted";
-        } else if (normalized.equals("qualified_lead") || normalized.equals("qualified lead") || normalized.equals("qualified")) {
-            return "qualified";
-        } else if (normalized.equals("proposal_sent") || normalized.equals("proposal sent")) {
-            return "proposal_sent";
-        } else if (normalized.equals("negotiation")) {
-            return "negotiation";
-        } else if (normalized.equals("project_won") || normalized.equals("project won") || normalized.equals("won") || normalized.equals("converted")) {
-            return "won";
-        } else if (normalized.equals("lost")) {
-            return "lost";
-        } else {
-            // If it doesn't match any known mapping, return lowercase version for case-insensitive comparison
-            return normalized;
-        }
-    }
-
-    /**
      * Normalize status for comparison by removing spaces/underscores and mapping to standard values
      * This ensures "New Inquiry", "new_inquiry", and "new" all normalize to "new"
      * Used for comparing database values with input values
@@ -1214,6 +1182,77 @@ public class LeadService {
                     factors.put("Medium Project (1500-3000 sqft)", 5);
                 }
             }
+
+            // Interaction Frequency scoring (0-20 points)
+            if (lead.getId() != null) {
+                long interactionCount = leadInteractionRepository.findByLeadIdOrderByInteractionDateDesc(lead.getId()).size();
+                if (interactionCount >= 5) {
+                    score += 20;
+                    factors.put("High Engagement (5+ interactions)", 20);
+                } else if (interactionCount >= 3) {
+                    score += 15;
+                    factors.put("Medium Engagement (3-4 interactions)", 15);
+                } else if (interactionCount >= 1) {
+                    score += 10;
+                    factors.put("Initial Contact (1-2 interactions)", 10);
+                }
+            }
+
+            // Timeline Urgency scoring (0-15 points)
+            if (lead.getNextFollowUp() != null) {
+                LocalDateTime now = LocalDateTime.now();
+                long daysUntilFollowUp = java.time.Duration.between(now, lead.getNextFollowUp()).toDays();
+                if (daysUntilFollowUp < 0) {
+                    // Overdue follow-up - high urgency
+                    score += 15;
+                    factors.put("Overdue Follow-up (Urgent)", 15);
+                } else if (daysUntilFollowUp <= 3) {
+                    // Follow-up within 3 days - medium-high urgency
+                    score += 12;
+                    factors.put("Immediate Follow-up (0-3 days)", 12);
+                } else if (daysUntilFollowUp <= 7) {
+                    // Follow-up within a week - medium urgency
+                    score += 8;
+                    factors.put("Near-term Follow-up (4-7 days)", 8);
+                } else if (daysUntilFollowUp <= 30) {
+                    // Follow-up within a month - low-medium urgency
+                    score += 5;
+                    factors.put("Scheduled Follow-up (8-30 days)", 5);
+                }
+            }
+
+            // Location scoring (0-10 points) - Premium locations get higher scores
+            if (lead.getState() != null) {
+                String state = lead.getState().toLowerCase();
+                // Tier 1 cities/states (e.g., Karnataka, Maharashtra, Tamil Nadu, Delhi)
+                if (state.contains("karnataka") || state.contains("maharashtra") || 
+                    state.contains("tamil") || state.contains("delhi") || 
+                    state.contains("gujarat") || state.contains("telangana")) {
+                    score += 10;
+                    factors.put("Premium Location (Tier 1)", 10);
+                } else if (state.contains("kerala") || state.contains("punjab") || 
+                          state.contains("haryana") || state.contains("rajasthan")) {
+                    score += 7;
+                    factors.put("Good Location (Tier 2)", 7);
+                } else {
+                    score += 5;
+                    factors.put("Standard Location", 5);
+                }
+            }
+
+            // Contact Completeness scoring (0-10 points)
+            int contactCompleteness = 0;
+            if (lead.getEmail() != null && !lead.getEmail().trim().isEmpty()) contactCompleteness += 3;
+            if (lead.getPhone() != null && !lead.getPhone().trim().isEmpty()) contactCompleteness += 3;
+            if (lead.getWhatsappNumber() != null && !lead.getWhatsappNumber().trim().isEmpty()) contactCompleteness += 2;
+            if (lead.getAddress() != null && !lead.getAddress().trim().isEmpty()) contactCompleteness += 2;
+            if (contactCompleteness > 0) {
+                score += contactCompleteness;
+                factors.put("Contact Completeness", contactCompleteness);
+            }
+
+            // Ensure score is within bounds (0-100)
+            score = Math.min(100, Math.max(0, score));
 
             lead.setScore(score);
             lead.setScoreCategory(score > 60 ? "HOT" : (score >= 30 ? "WARM" : "COLD"));

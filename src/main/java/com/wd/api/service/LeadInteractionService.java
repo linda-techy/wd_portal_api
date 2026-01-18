@@ -23,6 +23,9 @@ public class LeadInteractionService {
     @Autowired
     private LeadInteractionRepository interactionRepository;
 
+    @Autowired
+    private com.wd.api.repository.LeadRepository leadRepository;
+
     @Transactional(readOnly = true)
     public Page<LeadInteraction> searchLeadInteractions(LeadInteractionSearchFilter filter) {
         Specification<LeadInteraction> spec = buildSpecification(filter);
@@ -120,14 +123,28 @@ public class LeadInteractionService {
         interaction.setCreatedById(createdById);
 
         // Set interaction date to now if not provided
+        final LocalDateTime interactionDate;
         if (interaction.getInteractionDate() == null) {
-            interaction.setInteractionDate(LocalDateTime.now());
+            interactionDate = LocalDateTime.now();
+            interaction.setInteractionDate(interactionDate);
+        } else {
+            interactionDate = interaction.getInteractionDate();
         }
 
         // Validate interaction type
         validateInteractionType(interaction.getInteractionType());
 
-        return interactionRepository.save(interaction);
+        LeadInteraction saved = interactionRepository.save(interaction);
+
+        // Update lead's last_contact_date when interaction is created
+        if (interaction.getLeadId() != null) {
+            leadRepository.findById(interaction.getLeadId()).ifPresent(lead -> {
+                lead.setLastContactDate(interactionDate);
+                leadRepository.save(lead);
+            });
+        }
+
+        return saved;
     }
 
     /**
@@ -166,14 +183,25 @@ public class LeadInteractionService {
      */
     @Transactional
     public LeadInteraction logQuickInteraction(Long leadId, String type, String notes, Long createdById) {
+        LocalDateTime now = LocalDateTime.now();
         LeadInteraction interaction = new LeadInteraction();
         interaction.setLeadId(leadId);
         interaction.setInteractionType(type);
         interaction.setNotes(notes);
         interaction.setCreatedById(createdById);
-        interaction.setInteractionDate(LocalDateTime.now());
+        interaction.setInteractionDate(now);
 
-        return interactionRepository.save(interaction);
+        LeadInteraction saved = interactionRepository.save(interaction);
+
+        // Update lead's last_contact_date
+        if (leadId != null) {
+            leadRepository.findById(leadId).ifPresent(lead -> {
+                lead.setLastContactDate(now);
+                leadRepository.save(lead);
+            });
+        }
+
+        return saved;
     }
 
     /**
@@ -182,6 +210,7 @@ public class LeadInteractionService {
     @Transactional
     public LeadInteraction scheduleFollowUp(Long leadId, String nextAction, LocalDateTime nextActionDate,
             Long createdById) {
+        LocalDateTime now = LocalDateTime.now();
         LeadInteraction interaction = new LeadInteraction();
         interaction.setLeadId(leadId);
         interaction.setInteractionType("OTHER");
@@ -189,9 +218,20 @@ public class LeadInteractionService {
         interaction.setNextAction(nextAction);
         interaction.setNextActionDate(nextActionDate);
         interaction.setCreatedById(createdById);
-        interaction.setInteractionDate(LocalDateTime.now());
+        interaction.setInteractionDate(now);
 
-        return interactionRepository.save(interaction);
+        LeadInteraction saved = interactionRepository.save(interaction);
+
+        // Update lead's last_contact_date and next_follow_up
+        if (leadId != null) {
+            leadRepository.findById(leadId).ifPresent(lead -> {
+                lead.setLastContactDate(now);
+                lead.setNextFollowUp(nextActionDate);
+                leadRepository.save(lead);
+            });
+        }
+
+        return saved;
     }
 
     /**

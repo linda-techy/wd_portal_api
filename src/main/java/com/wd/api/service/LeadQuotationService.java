@@ -173,12 +173,26 @@ public class LeadQuotationService {
 
         existing.setTitle(updatedQuotation.getTitle());
         existing.setDescription(updatedQuotation.getDescription());
-        existing.setTotalAmount(updatedQuotation.getTotalAmount());
         existing.setTaxAmount(updatedQuotation.getTaxAmount());
         existing.setDiscountAmount(updatedQuotation.getDiscountAmount());
-        existing.setFinalAmount(updatedQuotation.getFinalAmount());
         existing.setValidityDays(updatedQuotation.getValidityDays());
         existing.setNotes(updatedQuotation.getNotes());
+
+        // Update items if provided
+        if (updatedQuotation.getItems() != null && !updatedQuotation.getItems().isEmpty()) {
+            // Clear existing items and add new ones
+            existing.getItems().clear();
+            for (LeadQuotationItem item : updatedQuotation.getItems()) {
+                item.setQuotation(existing);
+                existing.getItems().add(item);
+            }
+            // Recalculate totals from items
+            calculateTotals(existing);
+        } else {
+            // If items not provided, use amounts from request (manual override)
+            existing.setTotalAmount(updatedQuotation.getTotalAmount());
+            existing.setFinalAmount(updatedQuotation.getFinalAmount());
+        }
 
         return quotationRepository.save(existing);
     }

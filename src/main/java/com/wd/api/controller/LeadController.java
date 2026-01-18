@@ -259,6 +259,12 @@ public class LeadController {
             }
         } catch (NumberFormatException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Invalid lead ID format"));
+        } catch (IllegalStateException e) {
+            logger.warn("Invalid status transition: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid argument: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error updating lead", e);
             return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
