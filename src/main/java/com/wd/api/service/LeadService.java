@@ -41,6 +41,9 @@ public class LeadService {
     private ActivityFeedService activityFeedService;
 
     @Autowired
+    private LeadScoreHistoryService leadScoreHistoryService;
+
+    @Autowired
     private com.wd.api.repository.PortalUserRepository portalUserRepository;
 
     @Autowired
@@ -101,6 +104,16 @@ public class LeadService {
 
         Lead savedLead = leadRepository.save(lead);
         try {
+            // Log initial score in history (previous score/category is null for new leads)
+            leadScoreHistoryService.logScoreChange(
+                    savedLead,
+                    null, // previousScore - null for initial calculation
+                    null, // previousCategory - null for initial calculation
+                    savedLead.getCreatedByUserId(), // scoredById - user who created the lead
+                    "Initial lead score calculation", // reason
+                    savedLead.getScoreFactors() // scoreFactors
+            );
+
             activityFeedService.logSystemActivity(
                     "LEAD_CREATED",
                     "New Lead Created",
@@ -194,6 +207,8 @@ public class LeadService {
         return leadRepository.findById(id).map(lead -> {
             String oldStatus = lead.getLeadStatus();
             String oldCategory = lead.getScoreCategory(); // Capture old score category
+            Integer oldScore = lead.getScore(); // Capture old score
+            String oldScoreFactors = lead.getScoreFactors(); // Capture old score factors
             String oldAssigned = lead.getAssignedTeam();
             Long oldAssignedId = lead.getAssignedTo() != null ? lead.getAssignedTo().getId() : null;
 
@@ -243,6 +258,31 @@ public class LeadService {
             lead.setUpdatedAt(java.time.LocalDateTime.now());
 
             Lead savedLead = leadRepository.save(lead);
+
+            // Log score change in history if score or category changed
+            if (!java.util.Objects.equals(oldScore, savedLead.getScore()) ||
+                !java.util.Objects.equals(oldCategory, savedLead.getScoreCategory())) {
+                try {
+                    String reason = "Lead updated - automatic score recalculation";
+                    if (!java.util.Objects.equals(oldScore, savedLead.getScore())) {
+                        reason = String.format("Score changed from %d to %d", 
+                                oldScore != null ? oldScore : 0, 
+                                savedLead.getScore() != null ? savedLead.getScore() : 0);
+                    }
+                    
+                    leadScoreHistoryService.logScoreChange(
+                            savedLead,
+                            oldScore, // previousScore
+                            oldCategory, // previousCategory
+                            savedLead.getUpdatedByUserId(), // scoredById - user who updated the lead
+                            reason,
+                            savedLead.getScoreFactors() // scoreFactors - new factors
+                    );
+                } catch (Exception e) {
+                    logger.warn("Error logging score change for lead {}: {}", savedLead.getId(), e.getMessage());
+                    // Don't throw - score logging should not break lead updates
+                }
+            }
 
             try {
                 activityFeedService.logSystemActivity(
@@ -301,7 +341,7 @@ public class LeadService {
         return false;
     }
 
-    public List<com.wd.api.model.ActivityFeed> getLeadActivities(Long leadId) {
+    public List<com.wd.api.dto.ActivityFeedDTO> getLeadActivities(Long leadId) {
         return activityFeedService.getActivitiesForLead(leadId);
     }
 

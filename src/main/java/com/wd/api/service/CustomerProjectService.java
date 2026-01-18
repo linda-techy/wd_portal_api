@@ -12,6 +12,8 @@ import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.ProjectMemberRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.LeadRepository;
+import com.wd.api.repository.ActivityFeedRepository;
+import com.wd.api.model.ActivityFeed;
 import com.wd.api.model.ProjectMember;
 import com.wd.api.util.SpecificationBuilder;
 
@@ -60,6 +62,9 @@ public class CustomerProjectService {
 
     @Autowired
     private LeadRepository leadRepository;
+
+    @Autowired
+    private ActivityFeedRepository activityFeedRepository;
 
     /**
      * NEW: Standardized search method using ProjectSearchFilter
@@ -395,10 +400,10 @@ public class CustomerProjectService {
     }
 
     /**
-     * Delete customer project with cascade delete of dependent entities
-     */
-    /**
      * Delete customer project with safe hard delete check
+     * Enterprise-grade deletion: Cascades deletion of activity feeds (audit logs)
+     * while preserving business-critical data (tasks, invoices, payments, etc.)
+     * that require explicit deletion for compliance and audit trail purposes
      */
     public void deleteProject(Long id) {
         if (id == null) {
@@ -408,16 +413,65 @@ public class CustomerProjectService {
                 .orElseThrow(() -> new IllegalArgumentException("Project with ID " + id + " not found"));
 
         try {
-            // Attempt hard delete
-            // If Foreign Keys exist (Tasks, Documents, Payments), this will fail with
-            // DataIntegrityViolationException
+            // Step 1: Delete activity feeds (audit logs) that reference this project
+            // Activity feeds are non-critical logs that can be safely cascaded
+            List<ActivityFeed> activityFeeds = activityFeedRepository.findByProjectIdOrderByCreatedAtDesc(id);
+            if (!activityFeeds.isEmpty()) {
+                logger.info("Deleting {} activity feed(s) for project ID: {}", activityFeeds.size(), id);
+                activityFeedRepository.deleteAll(activityFeeds);
+                activityFeedRepository.flush(); // Ensure deletion is committed before project deletion
+                logger.debug("Activity feeds deleted successfully for project ID: {}", id);
+            }
+
+            // Step 2: Attempt to delete the project
+            // If Foreign Keys exist (Tasks, Invoices, Payments, etc.), this will fail with
+            // DataIntegrityViolationException - these entities require explicit deletion
+            // for business compliance and audit trail purposes
             customerProjectRepository.delete(project);
             logger.info("Customer project deleted successfully - ID: {}", id);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            logger.error("Cannot delete project ID {} due to existing related data", id, e);
+            // Extract constraint information from the exception
+            String constraintMessage = extractConstraintInfo(e);
+            logger.error("Cannot delete project ID {} due to existing related data: {}", id, constraintMessage, e);
+            
+            // Provide detailed error message for business-critical entities
             throw new IllegalStateException(
-                    "Cannot delete project because it contains related data (Tasks, Documents, Payments, etc.). Please delete the related data first.");
+                    "Cannot delete project because it contains related business data. " +
+                    "Please delete the following related data first: Tasks, Invoices, Payments, " +
+                    "Purchase Orders, Subcontract Work Orders, Material Indents, " +
+                    "Project Warranty records, Measurement Books, or other business-critical entities. " +
+                    "Error details: " + constraintMessage);
+        } catch (Exception e) {
+            logger.error("Unexpected error deleting project ID: {}", id, e);
+            throw new RuntimeException("Failed to delete project: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Extract constraint information from DataIntegrityViolationException
+     * for better error reporting
+     */
+    private String extractConstraintInfo(org.springframework.dao.DataIntegrityViolationException e) {
+        String message = e.getMessage();
+        if (message != null && message.contains("violates foreign key constraint")) {
+            // Extract constraint name and table name from the message
+            // Example: "violates foreign key constraint "fk8vxso9srli6g5ys0gw6md5vwu" on table "activity_feeds""
+            try {
+                int constraintStart = message.indexOf("constraint \"");
+                int constraintEnd = message.indexOf("\"", constraintStart + 12);
+                int tableStart = message.indexOf("table \"");
+                int tableEnd = message.indexOf("\"", tableStart + 7);
+                
+                if (constraintStart > 0 && constraintEnd > constraintStart && 
+                    tableStart > 0 && tableEnd > tableStart) {
+                    String tableName = message.substring(tableStart + 7, tableEnd);
+                    return "Foreign key constraint violation on table: " + tableName;
+                }
+            } catch (Exception ex) {
+                logger.debug("Could not parse constraint info from exception message", ex);
+            }
+        }
+        return message != null ? message : "Unknown constraint violation";
     }
 
     // ==================== Private Helper Methods ====================

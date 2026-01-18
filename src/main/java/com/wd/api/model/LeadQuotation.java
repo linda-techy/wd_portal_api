@@ -1,5 +1,6 @@
 package com.wd.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -72,6 +73,11 @@ public class LeadQuotation {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /**
+     * Lazy-loaded quotation items - excluded from JSON serialization to prevent lazy-loading proxy issues
+     * Use explicit item loading in service layer if items are needed in responses
+     */
+    @JsonIgnore
     @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<LeadQuotationItem> items = new ArrayList<>();
 

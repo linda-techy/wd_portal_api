@@ -1,18 +1,26 @@
 package com.wd.api.service;
 
+import com.wd.api.dto.ActivityFeedDTO;
 import com.wd.api.model.ActivityFeed;
 import com.wd.api.model.ActivityType;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.CustomerUser;
+import com.wd.api.model.LeadInteraction;
 import com.wd.api.model.PortalUser;
 import com.wd.api.repository.ActivityFeedRepository;
-import com.wd.api.repository.ActivityTypeRepository; // Need this
-// Need this to find user ? Or AuthService?
+import com.wd.api.repository.ActivityTypeRepository;
+import com.wd.api.repository.LeadInteractionRepository;
+import com.wd.api.repository.PortalUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ActivityFeedService {
@@ -22,6 +30,12 @@ public class ActivityFeedService {
 
     @Autowired
     private ActivityTypeRepository activityTypeRepository;
+
+    @Autowired
+    private LeadInteractionRepository leadInteractionRepository;
+
+    @Autowired
+    private PortalUserRepository portalUserRepository;
 
     // We might need to resolve the current user here or pass it in.
     // Usually the Service calling this provies the user or we get it from
@@ -76,8 +90,113 @@ public class ActivityFeedService {
         activityFeedRepository.save(feed);
     }
 
-    public java.util.List<ActivityFeed> getActivitiesForLead(Long leadId) {
-        return activityFeedRepository.findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(leadId, "LEAD");
+    /**
+     * Get activities for a lead and return as DTOs to avoid lazy-loading serialization issues
+     * Combines data from both activity_feeds and lead_interactions tables
+     * Enterprise-grade pattern: Returns DTOs instead of entities for API responses
+     */
+    @Transactional(readOnly = true)
+    public List<ActivityFeedDTO> getActivitiesForLead(Long leadId) {
+        // Fetch from activity_feeds table
+        List<ActivityFeed> activityFeeds = activityFeedRepository.findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(leadId, "LEAD");
+        List<ActivityFeedDTO> feedDTOs = activityFeeds.stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+
+        // Fetch from lead_interactions table
+        List<LeadInteraction> interactions = leadInteractionRepository.findByLeadIdOrderByInteractionDateDesc(leadId);
+        List<ActivityFeedDTO> interactionDTOs = interactions.stream()
+                .map(this::interactionToDTO)
+                .collect(Collectors.toList());
+
+        // Combine both lists
+        List<ActivityFeedDTO> allActivities = new ArrayList<>();
+        allActivities.addAll(feedDTOs);
+        allActivities.addAll(interactionDTOs);
+
+        // Sort by date descending (most recent first)
+        allActivities.sort(Comparator.comparing(ActivityFeedDTO::getCreatedAt).reversed());
+
+        return allActivities;
+    }
+
+    /**
+     * Convert ActivityFeed entity to ActivityFeedDTO
+     * Safely extracts data from lazy-loaded relationships
+     */
+    private ActivityFeedDTO toDTO(ActivityFeed feed) {
+        String activityTypeName = feed.getActivityType() != null ? feed.getActivityType().getName() : "UNKNOWN";
+        String createdByName = null;
+        if (feed.getCreatedBy() != null) {
+            createdByName = feed.getCreatedBy().getEmail();
+        } else if (feed.getPortalUser() != null) {
+            createdByName = feed.getPortalUser().getEmail();
+        }
+        
+        return ActivityFeedDTO.builder()
+                .id(feed.getId())
+                .title(feed.getTitle())
+                .description(feed.getDescription())
+                .activityType(activityTypeName)
+                .createdAt(feed.getCreatedAt())
+                .createdByName(createdByName)
+                .build();
+    }
+
+    /**
+     * Convert LeadInteraction entity to ActivityFeedDTO
+     * Maps interaction data to activity feed format for unified display
+     */
+    private ActivityFeedDTO interactionToDTO(LeadInteraction interaction) {
+        // Build title from interaction type and subject
+        String title = interaction.getSubject() != null && !interaction.getSubject().isEmpty()
+                ? interaction.getSubject()
+                : interaction.getInteractionType() != null
+                        ? interaction.getInteractionType().replace("_", " ")
+                        : "Interaction";
+
+        // Build description from notes and outcome
+        StringBuilder description = new StringBuilder();
+        if (interaction.getNotes() != null && !interaction.getNotes().isEmpty()) {
+            description.append(interaction.getNotes());
+        }
+        if (interaction.getOutcome() != null && !interaction.getOutcome().isEmpty()) {
+            if (description.length() > 0) {
+                description.append(" | ");
+            }
+            description.append("Outcome: ").append(interaction.getOutcome());
+        }
+        if (interaction.getDurationMinutes() != null && interaction.getDurationMinutes() > 0) {
+            if (description.length() > 0) {
+                description.append(" | ");
+            }
+            description.append("Duration: ").append(interaction.getDurationMinutes()).append(" min");
+        }
+
+        // Get created by name
+        String createdByName = null;
+        if (interaction.getCreatedById() != null) {
+            Optional<PortalUser> userOpt = portalUserRepository.findById(interaction.getCreatedById());
+            if (userOpt.isPresent()) {
+                createdByName = userOpt.get().getEmail();
+            }
+        }
+
+        // Use interaction date as the activity date, fallback to createdAt
+        LocalDateTime activityDate = interaction.getInteractionDate() != null
+                ? interaction.getInteractionDate()
+                : interaction.getCreatedAt();
+
+        return ActivityFeedDTO.builder()
+                .id(interaction.getId())
+                .title(title)
+                .description(description.toString())
+                .activityType(interaction.getInteractionType() != null
+                        ? interaction.getInteractionType()
+                        : "INTERACTION")
+                .createdAt(activityDate)
+                .createdByName(createdByName)
+                .build();
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.wd.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
@@ -26,18 +27,26 @@ public class Task extends BaseEntity {
     @Column(nullable = false)
     private TaskPriority priority = TaskPriority.MEDIUM;
 
+    /**
+     * Lazy-loaded relationships - excluded from JSON serialization to prevent lazy-loading proxy issues
+     * These are managed via foreign key columns in the database
+     */
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to")
     private PortalUser assignedTo;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private PortalUser createdBy;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private CustomerProject project;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lead_id")
     private Lead lead;

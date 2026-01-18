@@ -166,13 +166,17 @@ public class LeadController {
         }
     }
 
+    /**
+     * Get activities for a lead
+     * Returns DTOs to avoid Hibernate lazy-loading proxy serialization issues
+     */
     @GetMapping("/{leadId}/activities")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<ApiResponse<List<com.wd.api.model.ActivityFeed>>> getLeadActivities(
+    public ResponseEntity<ApiResponse<List<com.wd.api.dto.ActivityFeedDTO>>> getLeadActivities(
             @PathVariable String leadId) {
         try {
             Long id = Long.parseLong(leadId);
-            List<com.wd.api.model.ActivityFeed> activities = leadService.getLeadActivities(id);
+            List<com.wd.api.dto.ActivityFeedDTO> activities = leadService.getLeadActivities(id);
             return ResponseEntity.ok(ApiResponse.success("Lead activities retrieved successfully", activities));
         } catch (NumberFormatException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Invalid lead ID format"));
