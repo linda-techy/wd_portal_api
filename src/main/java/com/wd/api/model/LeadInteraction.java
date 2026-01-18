@@ -49,6 +49,12 @@ public class LeadInteraction {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(length = 255)
+    private String location;
+
+    @Column(columnDefinition = "TEXT")
+    private String metadata;
+
     // Lifecycle callbacks
     @PrePersist
     protected void onCreate() {
@@ -157,5 +163,21 @@ public class LeadInteraction {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(String metadata) {
+        this.metadata = metadata;
     }
 }
