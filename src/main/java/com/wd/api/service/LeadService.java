@@ -217,6 +217,13 @@ public class LeadService {
             lead.setPhone(leadDetails.getPhone());
             lead.setWhatsappNumber(leadDetails.getWhatsappNumber());
             lead.setLeadSource(leadDetails.getLeadSource());
+            
+            // Validate status transition before updating (Enterprise business rules)
+            if (leadDetails.getLeadStatus() != null && 
+                !leadDetails.getLeadStatus().equals(oldStatus)) {
+                validateLeadStatusTransition(oldStatus, leadDetails.getLeadStatus());
+            }
+            
             lead.setLeadStatus(leadDetails.getLeadStatus());
             lead.setPriority(leadDetails.getPriority());
             lead.setCustomerType(leadDetails.getCustomerType());
@@ -735,6 +742,124 @@ public class LeadService {
      * This ensures "New Inquiry", "new_inquiry", and "new" all normalize to "new"
      * Used for comparing database values with input values
      */
+    /**
+     * Validate Lead status transitions (Enterprise business rules for Construction CRM)
+     * 
+     * Valid transitions:
+     * - NEW_INQUIRY → CONTACTED → QUALIFIED → PROPOSAL_SENT → PROJECT_WON/LOST
+     * - Any → LOST (terminal state - cannot change)
+     * - PROJECT_WON → Cannot change (terminal state - converted)
+     * - LOST → Cannot change (terminal state)
+     * 
+     * @param fromStatus Current lead status
+     * @param toStatus   New lead status to transition to
+     * @throws IllegalStateException if transition is invalid
+     */
+    private void validateLeadStatusTransition(String fromStatus, String toStatus) {
+        if (fromStatus == null || toStatus == null) {
+            return; // Allow null status changes (handled separately)
+        }
+        
+        // Normalize status strings for comparison
+        String fromNormalized = normalizeStatusForComparison(fromStatus);
+        String toNormalized = normalizeStatusForComparison(toStatus);
+        
+        // Terminal states - cannot transition from these
+        if (fromNormalized.equals("lost") || 
+            fromNormalized.equals("won") || 
+            fromNormalized.equals("converted") ||
+            fromNormalized.equals("projectwon")) {
+            throw new IllegalStateException(
+                String.format("Cannot change status from '%s' (terminal state). Lead is %s.", 
+                    fromStatus, 
+                    fromNormalized.equals("lost") ? "lost" : "already converted"));
+        }
+        
+        // Terminal states - cannot transition to these without proper flow
+        // LOST can be set from any non-terminal state
+        if (toNormalized.equals("lost")) {
+            // Allowed from any non-terminal state
+            return;
+        }
+        
+        // PROJECT_WON/CONVERTED can only be set from PROPOSAL_SENT or QUALIFIED
+        if (toNormalized.equals("won") || 
+            toNormalized.equals("converted") || 
+            toNormalized.equals("projectwon")) {
+            if (!fromNormalized.equals("proposal_sent") && 
+                !fromNormalized.equals("qualified")) {
+                throw new IllegalStateException(
+                    String.format("Cannot transition from '%s' to '%s'. Lead must be in PROPOSAL_SENT or QUALIFIED status first.", 
+                        fromStatus, toStatus));
+            }
+            return;
+        }
+        
+        // Valid progression transitions
+        boolean isValidTransition = false;
+        
+        switch (fromNormalized) {
+            case "new":
+            case "newinquiry":
+                // NEW_INQUIRY can transition to CONTACTED, QUALIFIED (skip contacted), or LOST
+                isValidTransition = (toNormalized.equals("contacted") || 
+                                   toNormalized.equals("qualified") ||
+                                   toNormalized.equals("proposal_sent")); // Allow skipping contacted
+                break;
+                
+            case "contacted":
+                // CONTACTED can transition to QUALIFIED, PROPOSAL_SENT (skip qualified), or LOST
+                isValidTransition = (toNormalized.equals("qualified") || 
+                                   toNormalized.equals("proposal_sent"));
+                break;
+                
+            case "qualified":
+                // QUALIFIED can transition to PROPOSAL_SENT, or LOST
+                isValidTransition = (toNormalized.equals("proposal_sent"));
+                break;
+                
+            case "proposal_sent":
+                // PROPOSAL_SENT can transition to PROJECT_WON/CONVERTED, or LOST
+                isValidTransition = (toNormalized.equals("won") || 
+                                   toNormalized.equals("converted") ||
+                                   toNormalized.equals("projectwon"));
+                break;
+                
+            default:
+                // Unknown from status - allow transition but log warning
+                logger.warn("Unknown lead status '{}' in transition to '{}'", fromStatus, toStatus);
+                isValidTransition = true; // Allow unknown statuses for flexibility
+                break;
+        }
+        
+        if (!isValidTransition) {
+            throw new IllegalStateException(
+                String.format("Invalid status transition from '%s' to '%s'. Valid transitions: %s", 
+                    fromStatus, 
+                    toStatus,
+                    getValidTransitions(fromNormalized)));
+        }
+    }
+    
+    /**
+     * Get valid transitions for a given status (for error messages)
+     */
+    private String getValidTransitions(String normalizedStatus) {
+        switch (normalizedStatus) {
+            case "new":
+            case "newinquiry":
+                return "CONTACTED, QUALIFIED, PROPOSAL_SENT, LOST";
+            case "contacted":
+                return "QUALIFIED, PROPOSAL_SENT, LOST";
+            case "qualified":
+                return "PROPOSAL_SENT, LOST";
+            case "proposalsent":
+                return "PROJECT_WON/CONVERTED, LOST";
+            default:
+                return "Consult business rules";
+        }
+    }
+
     private String normalizeStatusForComparison(String status) {
         if (status == null || status.isEmpty()) {
             return status;
