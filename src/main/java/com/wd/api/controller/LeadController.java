@@ -155,6 +155,117 @@ public class LeadController {
     }
 
     /**
+     * Get a lead by ID
+     * 
+     * @param id The ID of the lead
+     * @return Lead details
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<ApiResponse<Lead>> getLeadById(@PathVariable Long id) {
+        try {
+            Lead lead = leadService.getLeadById(id);
+            return ResponseEntity.ok(ApiResponse.success("Lead retrieved successfully", lead));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Lead not found: {}", id);
+            return ResponseEntity.status(404)
+                    .body(ApiResponse.error("Lead not found with id: " + id));
+        } catch (Exception e) {
+            logger.error("Error fetching lead {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to retrieve lead: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Create a new lead
+     * 
+     * @param lead The lead to create
+     * @return Created lead
+     */
+    @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<ApiResponse<Lead>> createLead(@RequestBody Lead lead) {
+        try {
+            Lead createdLead = leadService.createLead(lead);
+            return ResponseEntity.ok(ApiResponse.success("Lead created successfully", createdLead));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid lead data: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Invalid lead data: " + e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error creating lead: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to create lead: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Update an existing lead
+     * Enterprise-grade implementation with proper error handling and validation
+     * 
+     * @param id The ID of the lead to update
+     * @param leadDetails The updated lead data
+     * @return Updated lead
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<ApiResponse<Lead>> updateLead(
+            @PathVariable Long id,
+            @RequestBody Lead leadDetails) {
+        try {
+            logger.debug("Updating lead {} with data: {}", id, leadDetails);
+            
+            Lead updatedLead = leadService.updateLead(id, leadDetails);
+            
+            if (updatedLead == null) {
+                logger.warn("Lead not found for update: {}", id);
+                return ResponseEntity.status(404)
+                        .body(ApiResponse.error("Lead not found with id: " + id));
+            }
+            
+            logger.info("Lead {} updated successfully", id);
+            return ResponseEntity.ok(ApiResponse.success("Lead updated successfully", updatedLead));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid lead data for update {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Invalid lead data: " + e.getMessage()));
+        } catch (IllegalStateException e) {
+            logger.warn("Invalid status transition for lead {}: {}", id, e.getMessage());
+            return ResponseEntity.status(409)
+                    .body(ApiResponse.error("Invalid status transition: " + e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error updating lead {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to update lead: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Delete a lead
+     * 
+     * @param id The ID of the lead to delete
+     * @return Success message
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteLead(@PathVariable Long id) {
+        try {
+            boolean deleted = leadService.deleteLead(id);
+            if (deleted) {
+                return ResponseEntity.ok(ApiResponse.success("Lead deleted successfully"));
+            } else {
+                return ResponseEntity.status(404)
+                        .body(ApiResponse.error("Lead not found with id: " + id));
+            }
+        } catch (Exception e) {
+            logger.error("Error deleting lead {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to delete lead: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Get activities for a specific lead
      * Returns combined activities from activity_feeds and lead_interactions tables
      * 

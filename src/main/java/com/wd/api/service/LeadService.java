@@ -213,11 +213,6 @@ public class LeadService {
             Integer oldScore = lead.getScore(); // Capture old score
             String oldAssigned = lead.getAssignedTeam();
             Long oldAssignedId = lead.getAssignedTo() != null ? lead.getAssignedTo().getId() : null;
-            
-            // Handle assignedTo update
-            if (leadDetails.getAssignedTo() != null) {
-                lead.setAssignedTo(leadDetails.getAssignedTo());
-            }
 
             lead.setName(leadDetails.getName());
             lead.setEmail(leadDetails.getEmail());
@@ -241,7 +236,6 @@ public class LeadService {
             lead.setProjectSqftArea(leadDetails.getProjectSqftArea());
             lead.setNextFollowUp(leadDetails.getNextFollowUp());
             lead.setLastContactDate(leadDetails.getLastContactDate());
-            lead.setAssignedTeam(leadDetails.getAssignedTeam());
             lead.setState(leadDetails.getState());
             lead.setDistrict(leadDetails.getDistrict());
             lead.setLocation(leadDetails.getLocation());
@@ -252,17 +246,35 @@ public class LeadService {
             lead.setLostReason(leadDetails.getLostReason());
             lead.setDateOfEnquiry(leadDetails.getDateOfEnquiry());
 
-            // Handle Assignment Update
+            // Handle Assignment Update - Priority: assignedToId > assignedTo > assignedTeam
+            // assignedToId is a @Transient field used for JSON deserialization
             if (leadDetails.getAssignedToId() != null) {
-                if (!leadDetails.getAssignedToId().equals(oldAssignedId)) {
-                    Long assignedId = java.util.Objects.requireNonNull(leadDetails.getAssignedToId());
+                // New assignment or change in assignment
+                Long assignedId = leadDetails.getAssignedToId();
+                if (!assignedId.equals(oldAssignedId)) {
                     com.wd.api.model.PortalUser user = portalUserRepository.findById(assignedId)
-                            .orElse(null);
-                    if (user != null) {
-                        lead.setAssignedTo(user);
-                        lead.setAssignedToId(leadDetails.getAssignedToId());
-                        lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
-                    }
+                            .orElseThrow(() -> new IllegalArgumentException("Assigned user not found with id: " + assignedId));
+                    lead.setAssignedTo(user);
+                    lead.setAssignedToId(assignedId);
+                    lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
+                }
+            } else if (leadDetails.getAssignedTo() != null) {
+                // If assignedTo entity is provided directly (less common)
+                if (!leadDetails.getAssignedTo().getId().equals(oldAssignedId)) {
+                    lead.setAssignedTo(leadDetails.getAssignedTo());
+                    lead.setAssignedToId(leadDetails.getAssignedTo().getId());
+                    lead.setAssignedTeam(leadDetails.getAssignedTo().getFirstName() + " " + leadDetails.getAssignedTo().getLastName());
+                }
+            } else {
+                // Unassign lead if assignedToId is explicitly null
+                // This handles the case where user wants to remove assignment
+                lead.setAssignedTo(null);
+                lead.setAssignedToId(null);
+                // Keep assignedTeam as is if provided, otherwise set to null
+                if (leadDetails.getAssignedTeam() != null && !leadDetails.getAssignedTeam().isEmpty()) {
+                    lead.setAssignedTeam(leadDetails.getAssignedTeam());
+                } else {
+                    lead.setAssignedTeam(null);
                 }
             }
 

@@ -2,8 +2,14 @@
 -- Add reference_type field to document_categories to filter categories by context (LEAD, PROJECT, or BOTH)
 
 -- Add reference_type column (nullable for backward compatibility)
+-- PostgreSQL 9.6+ supports IF NOT EXISTS
 ALTER TABLE document_categories 
-ADD COLUMN IF NOT EXISTS reference_type VARCHAR(50) DEFAULT 'BOTH';
+ADD COLUMN IF NOT EXISTS reference_type VARCHAR(50);
+
+-- Set default value for existing rows
+UPDATE document_categories 
+SET reference_type = 'BOTH' 
+WHERE reference_type IS NULL;
 
 -- Update existing categories to be PROJECT-specific (most are project-related)
 -- First, update by exact name matches
