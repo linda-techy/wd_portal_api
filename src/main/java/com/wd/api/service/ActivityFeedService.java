@@ -182,10 +182,12 @@ public class ActivityFeedService {
             }
         }
 
-        // Use interaction date as the activity date, fallback to createdAt
+        // Use interaction date as the activity date, fallback to createdAt, then current time
         LocalDateTime activityDate = interaction.getInteractionDate() != null
                 ? interaction.getInteractionDate()
-                : interaction.getCreatedAt();
+                : (interaction.getCreatedAt() != null 
+                    ? interaction.getCreatedAt() 
+                    : LocalDateTime.now());
 
         return ActivityFeedDTO.builder()
                 .id(interaction.getId())

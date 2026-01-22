@@ -39,9 +39,22 @@ public class DocumentService {
     /**
      * Get all document categories sorted by display order.
      * Used for category selection dropdowns in document upload flow.
+     * 
+     * @param referenceType Optional filter by reference type (LEAD, PROJECT). 
+     *                      If null, returns all categories.
      */
-    public List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> getAllCategories() {
-        return categoryRepository.findAll().stream()
+    public List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> getAllCategories(String referenceType) {
+        List<DocumentCategory> categories;
+        
+        if (referenceType != null && !referenceType.isEmpty()) {
+            // Filter by reference type (includes BOTH and null for backward compatibility)
+            categories = categoryRepository.findByReferenceTypeOrBoth(referenceType.toUpperCase());
+        } else {
+            // Return all categories
+            categories = categoryRepository.findAllByOrderByDisplayOrderAsc();
+        }
+        
+        return categories.stream()
                 .sorted((a, b) -> {
                     int orderA = a.getDisplayOrder() != null ? a.getDisplayOrder() : 100;
                     int orderB = b.getDisplayOrder() != null ? b.getDisplayOrder() : 100;
@@ -50,6 +63,13 @@ public class DocumentService {
                 .map(c -> new com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto(
                         c.getId(), c.getName(), c.getDescription(), c.getDisplayOrder()))
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get all document categories (backward compatibility - returns all).
+     */
+    public List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> getAllCategories() {
+        return getAllCategories(null);
     }
 
     @Transactional

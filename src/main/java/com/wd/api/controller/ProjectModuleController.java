@@ -43,8 +43,8 @@ public class ProjectModuleController {
     @GetMapping("/documents/categories")
     public ResponseEntity<ApiResponse<List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto>>> getDocumentCategories(
             @PathVariable Long projectId) {
-        List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService.getAllCategories();
-        return ResponseEntity.ok(ApiResponse.success("Categories retrieved successfully", categories));
+        List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService.getAllCategories("PROJECT");
+        return ResponseEntity.ok(ApiResponse.success("Project document categories retrieved successfully", categories));
     }
 
     @DeleteMapping("/documents/{documentId}")

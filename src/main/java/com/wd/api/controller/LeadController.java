@@ -3,6 +3,7 @@ package com.wd.api.controller;
 import com.wd.api.model.Lead;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LeadSearchFilter;
+import com.wd.api.dto.ActivityFeedDTO;
 import com.wd.api.service.LeadService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * REST Controller for Lead management operations
@@ -148,6 +151,30 @@ public class LeadController {
             logger.error("Error fetching paginated leads", e);
             return ResponseEntity.status(500)
                     .body(ApiResponse.error("Failed to retrieve leads: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get activities for a specific lead
+     * Returns combined activities from activity_feeds and lead_interactions tables
+     * 
+     * @param leadId The ID of the lead
+     * @return List of activities sorted by date (most recent first)
+     */
+    @GetMapping("/{leadId}/activities")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<ApiResponse<List<ActivityFeedDTO>>> getLeadActivities(@PathVariable Long leadId) {
+        try {
+            List<ActivityFeedDTO> activities = leadService.getLeadActivities(leadId);
+            return ResponseEntity.ok(ApiResponse.success("Lead activities retrieved successfully", activities));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Lead not found: {}", leadId);
+            return ResponseEntity.status(404)
+                    .body(ApiResponse.error("Lead not found with id: " + leadId));
+        } catch (Exception e) {
+            logger.error("Error fetching activities for lead {}: {}", leadId, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to retrieve lead activities: " + e.getMessage()));
         }
     }
 }

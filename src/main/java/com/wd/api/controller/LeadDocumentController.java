@@ -46,12 +46,13 @@ public class LeadDocumentController {
     }
 
     /**
-     * Get all document categories for lead document uploads
+     * Get document categories for lead document uploads
+     * Returns only LEAD-specific and BOTH categories
      */
     @GetMapping("/documents/categories")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<ApiResponse<List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto>>> getDocumentCategories() {
-        List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService.getAllCategories();
-        return ResponseEntity.ok(ApiResponse.success("Document categories retrieved successfully", categories));
+        List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService.getAllCategories("LEAD");
+        return ResponseEntity.ok(ApiResponse.success("Lead document categories retrieved successfully", categories));
     }
 }

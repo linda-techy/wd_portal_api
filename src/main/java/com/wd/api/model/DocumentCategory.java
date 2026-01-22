@@ -23,6 +23,9 @@ public class DocumentCategory {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     
+    @Column(name = "reference_type", length = 50)
+    private String referenceType; // "LEAD", "PROJECT", or "BOTH" (null means BOTH for backward compatibility)
+    
     // Constructors
     public DocumentCategory() {}
     
@@ -71,6 +74,14 @@ public class DocumentCategory {
     
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+    
+    public String getReferenceType() {
+        return referenceType;
+    }
+    
+    public void setReferenceType(String referenceType) {
+        this.referenceType = referenceType;
     }
 }
 
