@@ -9,7 +9,6 @@ import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.security.TaskAuthorizationService;
 import com.wd.api.util.SpecificationBuilder;
-import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +18,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -185,6 +183,10 @@ public class TaskService {
      * Get tasks for a specific lead
      */
     public List<Task> getTasksByLead(Long leadId) {
+        if (leadId == null) {
+            logger.warn("Attempted to fetch tasks with null leadId");
+            return List.of();
+        }
         return taskRepository.findByLeadId(leadId);
     }
 

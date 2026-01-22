@@ -24,7 +24,12 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
 
         List<Task> findByCreatedByOrAssignedTo(PortalUser createdBy, PortalUser assignedTo);
 
-        List<Task> findByLeadId(Long leadId);
+        /**
+         * Find tasks by lead ID using explicit JPQL query
+         * Fixes issue with @ManyToOne relationship mapping
+         */
+        @org.springframework.data.jpa.repository.Query("SELECT t FROM Task t WHERE t.lead.id = :leadId")
+        List<Task> findByLeadId(@org.springframework.data.repository.query.Param("leadId") Long leadId);
 
         // Aggregation Queries
         int countByProjectId(Long projectId);

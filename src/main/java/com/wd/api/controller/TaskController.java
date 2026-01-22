@@ -219,11 +219,15 @@ public class TaskController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<ApiResponse<List<Task>>> getTasksByLead(@PathVariable Long leadId) {
         try {
+            logger.info("Fetching tasks for lead ID: {}", leadId);
+            List<Task> tasks = taskService.getTasksByLead(leadId);
+            logger.info("Found {} tasks for lead ID: {}", tasks.size(), leadId);
             return ResponseEntity
-                    .ok(ApiResponse.success("Tasks retrieved successfully", taskService.getTasksByLead(leadId)));
+                    .ok(ApiResponse.success("Tasks retrieved successfully", tasks));
         } catch (Exception e) {
-            logger.error("Error fetching tasks by lead", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            logger.error("Error fetching tasks by lead ID {}: {}", leadId, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Error fetching tasks: " + e.getMessage()));
         }
     }
 
