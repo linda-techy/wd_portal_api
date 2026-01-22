@@ -70,8 +70,6 @@ public class LeadService {
     @Autowired
     private com.wd.api.repository.LeadInteractionRepository leadInteractionRepository;
 
-    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LeadService.class);
-
     @Autowired
     private com.wd.api.repository.ProjectMemberRepository projectMemberRepository;
 
@@ -80,6 +78,11 @@ public class LeadService {
 
     @Autowired
     private com.wd.api.repository.BoqItemRepository boqItemRepository;
+
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LeadService.class);
+    
+    // Thread-safe ObjectMapper instance for JSON serialization
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Transactional
     public Lead createLead(Lead lead) {
@@ -205,9 +208,17 @@ public class LeadService {
 
     @Transactional
     public Lead updateLead(Long id, Lead leadDetails) {
-        if (id == null)
-            return null;
-        return leadRepository.findById(id).map(lead -> {
+        if (id == null) {
+            throw new IllegalArgumentException("Lead ID cannot be null");
+        }
+        if (leadDetails == null) {
+            throw new IllegalArgumentException("Lead details cannot be null");
+        }
+        
+        Lead lead = leadRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Lead not found with id: " + id));
+        
+        try {
             String oldStatus = lead.getLeadStatus();
             String oldCategory = lead.getScoreCategory(); // Capture old score category
             Integer oldScore = lead.getScore(); // Capture old score
@@ -234,8 +245,10 @@ public class LeadService {
             lead.setRequirements(leadDetails.getRequirements());
             lead.setBudget(leadDetails.getBudget());
             lead.setProjectSqftArea(leadDetails.getProjectSqftArea());
+            // Handle date fields with null safety
             lead.setNextFollowUp(leadDetails.getNextFollowUp());
             lead.setLastContactDate(leadDetails.getLastContactDate());
+            lead.setDateOfEnquiry(leadDetails.getDateOfEnquiry());
             lead.setState(leadDetails.getState());
             lead.setDistrict(leadDetails.getDistrict());
             lead.setLocation(leadDetails.getLocation());
@@ -244,46 +257,61 @@ public class LeadService {
             lead.setClientRating(leadDetails.getClientRating());
             lead.setProbabilityToWin(leadDetails.getProbabilityToWin());
             lead.setLostReason(leadDetails.getLostReason());
-            lead.setDateOfEnquiry(leadDetails.getDateOfEnquiry());
 
             // Handle Assignment Update - Priority: assignedToId > assignedTo > assignedTeam
             // assignedToId is a @Transient field used for JSON deserialization
             if (leadDetails.getAssignedToId() != null) {
                 // New assignment or change in assignment
                 Long assignedId = leadDetails.getAssignedToId();
-                if (!assignedId.equals(oldAssignedId)) {
+                if (oldAssignedId == null || !assignedId.equals(oldAssignedId)) {
                     com.wd.api.model.PortalUser user = portalUserRepository.findById(assignedId)
                             .orElseThrow(() -> new IllegalArgumentException("Assigned user not found with id: " + assignedId));
                     lead.setAssignedTo(user);
-                    lead.setAssignedToId(assignedId);
+                    // Note: assignedToId is @Transient, so setting it doesn't persist, but it's useful for JSON serialization
                     lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
                 }
-            } else if (leadDetails.getAssignedTo() != null) {
+            } else if (leadDetails.getAssignedTo() != null && leadDetails.getAssignedTo().getId() != null) {
                 // If assignedTo entity is provided directly (less common)
-                if (!leadDetails.getAssignedTo().getId().equals(oldAssignedId)) {
+                Long newAssignedId = leadDetails.getAssignedTo().getId();
+                if (oldAssignedId == null || !newAssignedId.equals(oldAssignedId)) {
                     lead.setAssignedTo(leadDetails.getAssignedTo());
-                    lead.setAssignedToId(leadDetails.getAssignedTo().getId());
                     lead.setAssignedTeam(leadDetails.getAssignedTo().getFirstName() + " " + leadDetails.getAssignedTo().getLastName());
                 }
-            } else {
-                // Unassign lead if assignedToId is explicitly null
+            } else if (leadDetails.getAssignedToId() == null && leadDetails.getAssignedTo() == null) {
+                // Unassign lead if both assignedToId and assignedTo are explicitly null
                 // This handles the case where user wants to remove assignment
-                lead.setAssignedTo(null);
-                lead.setAssignedToId(null);
-                // Keep assignedTeam as is if provided, otherwise set to null
-                if (leadDetails.getAssignedTeam() != null && !leadDetails.getAssignedTeam().isEmpty()) {
-                    lead.setAssignedTeam(leadDetails.getAssignedTeam());
-                } else {
-                    lead.setAssignedTeam(null);
+                if (oldAssignedId != null) {
+                    lead.setAssignedTo(null);
+                    // Keep assignedTeam as is if provided, otherwise set to null
+                    if (leadDetails.getAssignedTeam() != null && !leadDetails.getAssignedTeam().isEmpty()) {
+                        lead.setAssignedTeam(leadDetails.getAssignedTeam());
+                    } else {
+                        lead.setAssignedTeam(null);
+                    }
                 }
             }
 
             // Recalculate Score on Update
-            calculateLeadScore(lead);
+            // Wrap in try-catch to prevent score calculation errors from breaking updates
+            try {
+                calculateLeadScore(lead);
+            } catch (Exception e) {
+                logger.error("Error calculating lead score for lead {}: {}", id, e.getMessage(), e);
+                // Set default score values but don't fail the update
+                lead.setScore(lead.getScore() != null ? lead.getScore() : 0);
+                lead.setScoreCategory(lead.getScoreCategory() != null ? lead.getScoreCategory() : "COLD");
+            }
 
             lead.setUpdatedAt(java.time.LocalDateTime.now());
 
-            Lead savedLead = leadRepository.save(lead);
+            // Save the lead - this is the critical operation
+            Lead savedLead;
+            try {
+                savedLead = leadRepository.save(lead);
+            } catch (Exception e) {
+                logger.error("Error saving lead {}: {}", id, e.getMessage(), e);
+                throw new RuntimeException("Failed to save lead: " + e.getMessage(), e);
+            }
 
             // Log score change in history if score or category changed
             if (!java.util.Objects.equals(oldScore, savedLead.getScore()) ||
@@ -355,7 +383,17 @@ public class LeadService {
                 e.printStackTrace();
             }
             return savedLead;
-        }).orElse(null);
+        } catch (IllegalArgumentException e) {
+            // Re-throw IllegalArgumentException as-is (for validation errors)
+            throw e;
+        } catch (IllegalStateException e) {
+            // Re-throw IllegalStateException as-is (for business rule violations)
+            throw e;
+        } catch (Exception e) {
+            // Wrap unexpected exceptions with more context
+            logger.error("Unexpected error updating lead {}: {}", id, e.getMessage(), e);
+            throw new RuntimeException("Failed to update lead: " + e.getMessage(), e);
+        }
     }
 
     @Transactional
@@ -1202,39 +1240,53 @@ public class LeadService {
 
             // Interaction Frequency scoring (0-20 points)
             if (lead.getId() != null) {
-                long interactionCount = leadInteractionRepository.findByLeadIdOrderByInteractionDateDesc(lead.getId()).size();
-                if (interactionCount >= 5) {
-                    score += 20;
-                    factors.put("High Engagement (5+ interactions)", 20);
-                } else if (interactionCount >= 3) {
-                    score += 15;
-                    factors.put("Medium Engagement (3-4 interactions)", 15);
-                } else if (interactionCount >= 1) {
-                    score += 10;
-                    factors.put("Initial Contact (1-2 interactions)", 10);
+                try {
+                    long interactionCount = leadInteractionRepository.findByLeadIdOrderByInteractionDateDesc(lead.getId()).size();
+                    if (interactionCount >= 5) {
+                        score += 20;
+                        factors.put("High Engagement (5+ interactions)", 20);
+                    } else if (interactionCount >= 3) {
+                        score += 15;
+                        factors.put("Medium Engagement (3-4 interactions)", 15);
+                    } else if (interactionCount >= 1) {
+                        score += 10;
+                        factors.put("Initial Contact (1-2 interactions)", 10);
+                    }
+                } catch (Exception e) {
+                    logger.warn("Error fetching interaction count for lead {}: {}", lead.getId(), e.getMessage());
+                    // Continue scoring without interaction count - don't break the update
                 }
             }
 
             // Timeline Urgency scoring (0-15 points)
             if (lead.getNextFollowUp() != null) {
-                LocalDateTime now = LocalDateTime.now();
-                long daysUntilFollowUp = java.time.Duration.between(now, lead.getNextFollowUp()).toDays();
-                if (daysUntilFollowUp < 0) {
-                    // Overdue follow-up - high urgency
-                    score += 15;
-                    factors.put("Overdue Follow-up (Urgent)", 15);
-                } else if (daysUntilFollowUp <= 3) {
-                    // Follow-up within 3 days - medium-high urgency
-                    score += 12;
-                    factors.put("Immediate Follow-up (0-3 days)", 12);
-                } else if (daysUntilFollowUp <= 7) {
-                    // Follow-up within a week - medium urgency
-                    score += 8;
-                    factors.put("Near-term Follow-up (4-7 days)", 8);
-                } else if (daysUntilFollowUp <= 30) {
-                    // Follow-up within a month - low-medium urgency
-                    score += 5;
-                    factors.put("Scheduled Follow-up (8-30 days)", 5);
+                try {
+                    LocalDateTime now = LocalDateTime.now();
+                    LocalDateTime followUpDate = lead.getNextFollowUp();
+                    // Ensure followUpDate is not null (double check)
+                    if (followUpDate != null) {
+                        long daysUntilFollowUp = java.time.Duration.between(now, followUpDate).toDays();
+                        if (daysUntilFollowUp < 0) {
+                            // Overdue follow-up - high urgency
+                            score += 15;
+                            factors.put("Overdue Follow-up (Urgent)", 15);
+                        } else if (daysUntilFollowUp <= 3) {
+                            // Follow-up within 3 days - medium-high urgency
+                            score += 12;
+                            factors.put("Immediate Follow-up (0-3 days)", 12);
+                        } else if (daysUntilFollowUp <= 7) {
+                            // Follow-up within a week - medium urgency
+                            score += 8;
+                            factors.put("Near-term Follow-up (4-7 days)", 8);
+                        } else if (daysUntilFollowUp <= 30) {
+                            // Follow-up within a month - low-medium urgency
+                            score += 5;
+                            factors.put("Scheduled Follow-up (8-30 days)", 5);
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warn("Error calculating timeline urgency for lead {}: {}", lead.getId(), e.getMessage());
+                    // Continue scoring without timeline urgency - don't break the update
                 }
             }
 
@@ -1275,8 +1327,10 @@ public class LeadService {
             lead.setScoreCategory(score > 60 ? "HOT" : (score >= 30 ? "WARM" : "COLD"));
             lead.setLastScoredAt(LocalDateTime.now());
             try {
-                lead.setScoreFactors(new ObjectMapper().writeValueAsString(factors));
+                // Use thread-safe ObjectMapper instance
+                lead.setScoreFactors(objectMapper.writeValueAsString(factors));
             } catch (Exception e) {
+                logger.warn("Error serializing score factors for lead {}: {}", lead.getId(), e.getMessage());
                 lead.setScoreFactors("{}");
             }
         } catch (Exception e) {
