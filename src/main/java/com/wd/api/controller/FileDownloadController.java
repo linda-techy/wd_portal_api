@@ -25,7 +25,7 @@ import java.nio.file.Paths;
 @RequestMapping("/api/storage")
 public class FileDownloadController {
 
-    @Value("${file.upload-dir:uploads}")
+    @Value("${storageBasePath:N:\\Projects\\wd projects git\\storage}")
     private String storageBasePath;
 
     /**

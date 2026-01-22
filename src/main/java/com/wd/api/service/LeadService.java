@@ -213,6 +213,11 @@ public class LeadService {
             Integer oldScore = lead.getScore(); // Capture old score
             String oldAssigned = lead.getAssignedTeam();
             Long oldAssignedId = lead.getAssignedTo() != null ? lead.getAssignedTo().getId() : null;
+            
+            // Handle assignedTo update
+            if (leadDetails.getAssignedTo() != null) {
+                lead.setAssignedTo(leadDetails.getAssignedTo());
+            }
 
             lead.setName(leadDetails.getName());
             lead.setEmail(leadDetails.getEmail());
@@ -1268,6 +1273,202 @@ public class LeadService {
             lead.setScoreCategory("COLD");
             lead.setScoreFactors("{}");
         }
+    }
+
+    /**
+     * Quick status update endpoint - updates only the status field
+     * Enterprise-grade with status transition validation
+     */
+    @Transactional
+    public Lead updateLeadStatus(Long id, String newStatus) {
+        if (id == null) {
+            throw new IllegalArgumentException("Lead ID cannot be null");
+        }
+        if (newStatus == null || newStatus.trim().isEmpty()) {
+            throw new IllegalArgumentException("Status cannot be null or empty");
+        }
+
+        Lead lead = leadRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + id));
+
+        String oldStatus = lead.getLeadStatus();
+        
+        // Validate status transition
+        if (!newStatus.equals(oldStatus)) {
+            validateLeadStatusTransition(oldStatus, newStatus);
+        }
+
+        lead.setLeadStatus(newStatus);
+        Lead savedLead = leadRepository.save(lead);
+
+        // Log activity
+        try {
+            if (!newStatus.equals(oldStatus)) {
+                activityFeedService.logSystemActivity(
+                        "LEAD_STATUS_CHANGED",
+                        "Lead Status Changed",
+                        "Status changed from " + oldStatus + " to " + newStatus,
+                        savedLead.getId(),
+                        "LEAD");
+            }
+        } catch (Exception e) {
+            logger.warn("Error logging status change activity: {}", e.getMessage());
+        }
+
+        return savedLead;
+    }
+
+    /**
+     * Quick assignment update endpoint - updates only the assignedTo field
+     */
+    @Transactional
+    public Lead assignLead(Long id, Long assignedToId) {
+        if (id == null) {
+            throw new IllegalArgumentException("Lead ID cannot be null");
+        }
+
+        Lead lead = leadRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + id));
+
+        Long oldAssignedId = lead.getAssignedTo() != null ? lead.getAssignedTo().getId() : null;
+
+        if (assignedToId != null) {
+            com.wd.api.model.PortalUser user = portalUserRepository.findById(assignedToId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found: " + assignedToId));
+            lead.setAssignedTo(user);
+            lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
+        } else {
+            lead.setAssignedTo(null);
+            lead.setAssignedTeam(null);
+        }
+
+        Lead savedLead = leadRepository.save(lead);
+
+        // Log activity
+        try {
+            String oldAssignee = oldAssignedId != null ? "User " + oldAssignedId : "Unassigned";
+            String newAssignee = assignedToId != null ? savedLead.getAssignedTeam() : "Unassigned";
+            
+            if (!oldAssignee.equals(newAssignee)) {
+                activityFeedService.logSystemActivity(
+                        "LEAD_ASSIGNED",
+                        "Lead Assigned",
+                        "Lead assigned from " + oldAssignee + " to " + newAssignee,
+                        savedLead.getId(),
+                        "LEAD");
+            }
+        } catch (Exception e) {
+            logger.warn("Error logging assignment activity: {}", e.getMessage());
+        }
+
+        return savedLead;
+    }
+
+    /**
+     * Manual score update endpoint - updates score and score category
+     * Note: This bypasses automatic score calculation
+     */
+    @Transactional
+    public Lead updateLeadScore(Long id, Integer score, String reason) {
+        if (id == null) {
+            throw new IllegalArgumentException("Lead ID cannot be null");
+        }
+        if (score == null || score < 0 || score > 100) {
+            throw new IllegalArgumentException("Score must be between 0 and 100");
+        }
+
+        Lead lead = leadRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + id));
+
+        Integer oldScore = lead.getScore();
+        String oldCategory = lead.getScoreCategory();
+
+        // Update score
+        lead.setScore(score);
+        
+        // Determine category based on score
+        String category;
+        if (score >= 80) {
+            category = "HOT";
+        } else if (score >= 50) {
+            category = "WARM";
+        } else {
+            category = "COLD";
+        }
+        lead.setScoreCategory(category);
+
+        Lead savedLead = leadRepository.save(lead);
+
+        // Log score history
+        try {
+            leadScoreHistoryService.logScoreChange(
+                    savedLead,
+                    oldScore,
+                    oldCategory,
+                    savedLead.getUpdatedByUserId(),
+                    reason != null ? reason : "Manual score update",
+                    savedLead.getScoreFactors()
+            );
+        } catch (Exception e) {
+            logger.warn("Error logging score change: {}", e.getMessage());
+        }
+
+        // Log activity
+        try {
+            activityFeedService.logSystemActivity(
+                    "LEAD_SCORE_UPDATED",
+                    "Lead Score Updated",
+                    "Score changed from " + oldScore + " to " + score + " (Category: " + category + ")",
+                    savedLead.getId(),
+                    "LEAD");
+        } catch (Exception e) {
+            logger.warn("Error logging score update activity: {}", e.getMessage());
+        }
+
+        return savedLead;
+    }
+
+    /**
+     * Get conversion history for a lead
+     * Returns list of projects that were converted from this lead (if any)
+     */
+    public List<Map<String, Object>> getConversionHistory(Long leadId) {
+        if (leadId == null) {
+            throw new IllegalArgumentException("Lead ID cannot be null");
+        }
+
+        Lead lead = leadRepository.findById(leadId)
+                .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + leadId));
+
+        List<Map<String, Object>> history = new ArrayList<>();
+
+        // Check if lead has been converted
+        if (lead.getConvertedAt() != null && lead.getConvertedById() != null) {
+            // Find the project that was converted from this lead
+            com.wd.api.model.CustomerProject project = customerProjectRepository
+                    .findByLeadId(leadId)
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
+
+            if (project != null) {
+                Map<String, Object> conversion = new HashMap<>();
+                conversion.put("projectId", project.getId());
+                conversion.put("projectName", project.getName());
+                conversion.put("convertedAt", lead.getConvertedAt());
+                conversion.put("convertedById", lead.getConvertedById());
+                
+                // Get converter user name
+                portalUserRepository.findById(lead.getConvertedById()).ifPresent(user -> {
+                    conversion.put("convertedByName", user.getFirstName() + " " + user.getLastName());
+                });
+                
+                conversion.put("status", "SUCCESS");
+                history.add(conversion);
+            }
+        }
+
+        return history;
     }
 
     private String generateSecurePassword() {

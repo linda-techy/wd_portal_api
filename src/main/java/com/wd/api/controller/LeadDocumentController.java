@@ -44,4 +44,14 @@ public class LeadDocumentController {
         documentService.deleteDocument(documentId);
         return ResponseEntity.ok(ApiResponse.success("Document deleted successfully"));
     }
+
+    /**
+     * Get all document categories for lead document uploads
+     */
+    @GetMapping("/documents/categories")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<ApiResponse<List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto>>> getDocumentCategories() {
+        List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService.getAllCategories();
+        return ResponseEntity.ok(ApiResponse.success("Document categories retrieved successfully", categories));
+    }
 }
