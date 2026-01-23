@@ -3,6 +3,7 @@ package com.wd.api.service;
 import com.wd.api.model.Task;
 import com.wd.api.model.TaskAssignmentHistory;
 import com.wd.api.model.PortalUser;
+import com.wd.api.model.Lead;
 import com.wd.api.dto.TaskSearchFilter;
 import com.wd.api.repository.TaskAssignmentHistoryRepository;
 import com.wd.api.repository.TaskRepository;
@@ -41,6 +42,9 @@ public class TaskService {
 
     @Autowired
     private PortalUserRepository portalUserRepository;
+
+    @Autowired
+    private com.wd.api.repository.LeadRepository leadRepository;
 
     @Autowired
     private TaskAssignmentHistoryRepository assignmentHistoryRepository;
@@ -197,8 +201,35 @@ public class TaskService {
     @Transactional
     public Task createTask(Task task, PortalUser createdBy) {
         logger.info("Creating task '{}' by user {}", task.getTitle(), createdBy.getEmail());
-
+        
+        // Always set creator from authenticated user (ignore any client-side spoofing)
         task.setCreatedBy(createdBy);
+
+        // If task is linked to a lead, ensure we attach a managed Lead entity
+        // This prevents transient-entity issues and guarantees referential integrity
+        if (task.getLead() != null) {
+            Lead incomingLead = task.getLead();
+            Long leadIdLocal = null;
+            try {
+                // Prefer primary key id if present
+                if (incomingLead.getId() != null) {
+                    leadIdLocal = incomingLead.getId();
+                }
+            } catch (Exception e) {
+                logger.warn("Incoming task lead object does not expose a valid ID: {}", e.getMessage());
+            }
+
+            if (leadIdLocal != null) {
+                final Long leadId = leadIdLocal;
+                Lead managedLead = leadRepository.findById(leadId)
+                        .orElseThrow(() -> new IllegalArgumentException("Lead not found with id: " + leadId));
+                task.setLead(managedLead);
+            } else {
+                // If lead object is present but without a valid id, treat this as invalid input
+                throw new IllegalArgumentException("Invalid lead reference on task creation. Lead id is required.");
+            }
+        }
+
         Task savedTask = taskRepository.save(task);
 
         // Record initial assignment if task is assigned

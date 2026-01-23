@@ -277,9 +277,18 @@ public class TaskController {
             Task createdTask = taskService.createTask(task, createdBy);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Task created successfully", createdTask));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid task data: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Invalid task data: " + e.getMessage()));
+        } catch (jakarta.validation.ConstraintViolationException e) {
+            logger.warn("Validation error creating task: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Validation error: " + e.getMessage()));
         } catch (Exception e) {
             logger.error("Error creating task", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to create task: " + e.getMessage()));
         }
     }
 
