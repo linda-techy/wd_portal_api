@@ -224,6 +224,112 @@ public class LeadService {
         return createLead(lead);
     }
 
+    /**
+     * Update Lead from DTO
+     * Uses same normalization rules as createLead(LeadCreateRequest)
+     * to ensure consistency and avoid 500s from constraint violations.
+     */
+    @Transactional
+    public Lead updateLead(Long id, com.wd.api.dto.LeadUpdateRequest request) {
+        if (id == null) {
+            throw new IllegalArgumentException("Lead ID cannot be null");
+        }
+
+        // Load existing lead to support partial updates without violating NOT NULL constraints
+        Lead existing = leadRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Lead not found with id: " + id));
+
+        Lead leadDetails = new Lead();
+
+        // Map fields from DTO to a transient Lead details object.
+        // If DTO field is null, keep the existing value (partial update semantics).
+        leadDetails.setName(request.getName() != null ? request.getName() : existing.getName());
+        leadDetails.setEmail(request.getEmail() != null ? request.getEmail() : existing.getEmail());
+        leadDetails.setPhone(request.getPhone() != null ? request.getPhone() : existing.getPhone());
+        leadDetails.setWhatsappNumber(request.getWhatsappNumber() != null
+                ? request.getWhatsappNumber()
+                : existing.getWhatsappNumber());
+
+        // Customer type
+        String customerType = request.getCustomerType() != null
+                ? request.getCustomerType()
+                : existing.getCustomerType();
+        if (customerType != null && !customerType.isEmpty()) {
+            leadDetails.setCustomerType(customerType.trim().toLowerCase());
+        } else {
+            leadDetails.setCustomerType(existing.getCustomerType());
+        }
+
+        leadDetails.setProjectType(request.getProjectType() != null ? request.getProjectType() : existing.getProjectType());
+        leadDetails.setProjectDescription(request.getProjectDescription() != null
+                ? request.getProjectDescription()
+                : existing.getProjectDescription());
+        leadDetails.setRequirements(request.getRequirements() != null
+                ? request.getRequirements()
+                : existing.getRequirements());
+        leadDetails.setBudget(request.getBudget() != null ? request.getBudget() : existing.getBudget());
+        leadDetails.setProjectSqftArea(request.getProjectSqftArea() != null
+                ? request.getProjectSqftArea()
+                : existing.getProjectSqftArea());
+
+        // Status
+        String status = request.getLeadStatus() != null ? request.getLeadStatus() : existing.getLeadStatus();
+        if (status != null && !status.isEmpty()) {
+            leadDetails.setLeadStatus(status.trim().toLowerCase().replace(' ', '_'));
+        } else {
+            leadDetails.setLeadStatus(existing.getLeadStatus());
+        }
+
+        // Source
+        String source = request.getLeadSource() != null ? request.getLeadSource() : existing.getLeadSource();
+        if (source != null && !source.isEmpty()) {
+            leadDetails.setLeadSource(source.trim().toLowerCase().replace(' ', '_'));
+        } else {
+            leadDetails.setLeadSource(existing.getLeadSource());
+        }
+
+        // Priority
+        String priority = request.getPriority() != null ? request.getPriority() : existing.getPriority();
+        if (priority != null && !priority.isEmpty()) {
+            leadDetails.setPriority(priority.trim().toLowerCase());
+        } else {
+            leadDetails.setPriority(existing.getPriority());
+        }
+
+        leadDetails.setAssignedTeam(request.getAssignedTeam() != null
+                ? request.getAssignedTeam()
+                : existing.getAssignedTeam());
+        leadDetails.setState(request.getState() != null ? request.getState() : existing.getState());
+        leadDetails.setDistrict(request.getDistrict() != null ? request.getDistrict() : existing.getDistrict());
+        leadDetails.setLocation(request.getLocation() != null ? request.getLocation() : existing.getLocation());
+        leadDetails.setAddress(existing.getAddress()); // address not in DTO; keep existing
+
+        leadDetails.setNotes(request.getNotes() != null ? request.getNotes() : existing.getNotes());
+        leadDetails.setClientRating(request.getClientRating() != null
+                ? request.getClientRating()
+                : existing.getClientRating());
+        leadDetails.setProbabilityToWin(request.getProbabilityToWin() != null
+                ? request.getProbabilityToWin()
+                : existing.getProbabilityToWin());
+        leadDetails.setNextFollowUp(request.getNextFollowUp() != null
+                ? request.getNextFollowUp()
+                : existing.getNextFollowUp());
+        leadDetails.setLastContactDate(request.getLastContactDate() != null
+                ? request.getLastContactDate()
+                : existing.getLastContactDate());
+        leadDetails.setDateOfEnquiry(request.getDateOfEnquiry() != null
+                ? request.getDateOfEnquiry()
+                : existing.getDateOfEnquiry());
+
+        // Assignment via transient assignedToId: keep existing if not provided
+        Long newAssignedToId = request.getAssignedToId() != null
+                ? request.getAssignedToId()
+                : existing.getAssignedToId();
+        leadDetails.setAssignedToId(newAssignedToId);
+
+        return updateLead(id, leadDetails);
+    }
+
     @Transactional
     public Lead updateLead(Long id, Lead leadDetails) {
         if (id == null) {

@@ -5,6 +5,7 @@ import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LeadSearchFilter;
 import com.wd.api.dto.ActivityFeedDTO;
 import com.wd.api.dto.LeadCreateRequest;
+import com.wd.api.dto.LeadUpdateRequest;
 import com.wd.api.service.LeadService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -209,28 +210,28 @@ public class LeadController {
 
     /**
      * Update an existing lead
-     * Enterprise-grade implementation with proper error handling and validation
-     * 
+     * Enterprise-grade implementation with DTO-based validation and normalization.
+     *
      * @param id The ID of the lead to update
-     * @param leadDetails The updated lead data
+     * @param request The updated lead data
      * @return Updated lead
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<ApiResponse<Lead>> updateLead(
             @PathVariable Long id,
-            @RequestBody Lead leadDetails) {
+            @Valid @RequestBody LeadUpdateRequest request) {
         try {
-            logger.debug("Updating lead {} with data: {}", id, leadDetails);
-            
-            Lead updatedLead = leadService.updateLead(id, leadDetails);
-            
+            logger.debug("Updating lead {} with DTO: {}", id, request);
+
+            Lead updatedLead = leadService.updateLead(id, request);
+
             if (updatedLead == null) {
                 logger.warn("Lead not found for update: {}", id);
                 return ResponseEntity.status(404)
                         .body(ApiResponse.error("Lead not found with id: " + id));
             }
-            
+
             logger.info("Lead {} updated successfully", id);
             return ResponseEntity.ok(ApiResponse.success("Lead updated successfully", updatedLead));
         } catch (IllegalArgumentException e) {

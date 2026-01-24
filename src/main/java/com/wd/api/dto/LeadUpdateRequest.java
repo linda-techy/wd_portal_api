@@ -78,6 +78,9 @@ public class LeadUpdateRequest {
     
     @JsonProperty("lead_id")
     private String leadId;
+
+    @JsonProperty("assigned_to_id")
+    private Long assignedToId;
     
     // Getters and Setters
     public UUID getId() { return id; }
@@ -169,4 +172,7 @@ public class LeadUpdateRequest {
     
     public String getLeadId() { return leadId; }
     public void setLeadId(String leadId) { this.leadId = leadId; }
+
+    public Long getAssignedToId() { return assignedToId; }
+    public void setAssignedToId(Long assignedToId) { this.assignedToId = assignedToId; }
 }
