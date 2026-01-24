@@ -10,7 +10,9 @@ import com.wd.api.model.PortalUser;
 import com.wd.api.repository.ActivityFeedRepository;
 import com.wd.api.repository.ActivityTypeRepository;
 import com.wd.api.repository.LeadInteractionRepository;
+import com.wd.api.repository.LeadRepository;
 import com.wd.api.repository.PortalUserRepository;
+import com.wd.api.model.Lead;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,9 +39,8 @@ public class ActivityFeedService {
     @Autowired
     private PortalUserRepository portalUserRepository;
 
-    // We might need to resolve the current user here or pass it in.
-    // Usually the Service calling this provies the user or we get it from
-    // SecurityContext.
+    @Autowired
+    private LeadRepository leadRepository;
 
     @Transactional
     public void logActivity(String typeName, String title, String description, Long referenceId, String referenceType,
@@ -83,22 +84,42 @@ public class ActivityFeedService {
         feed.setCreatedAt(LocalDateTime.now());
         feed.setProject(project);
 
-        // If it's a lead activity, try to link it (we might need LeadRepository for
-        // this,
-        // but for now let's just ensure if project is set, it passes the constraint)
+        // CRITICAL: Set lead_id when referenceType is "LEAD" to satisfy
+        // chk_activity_reference constraint
+        // Constraint requires: (project_id IS NOT NULL AND lead_id IS NULL) OR
+        // (project_id IS NULL AND lead_id IS NOT NULL) OR
+        // (reference_type IN ('SYSTEM', 'GLOBAL') AND project_id IS NULL AND lead_id IS
+        // NULL)
+        if ("LEAD".equals(referenceType) && referenceId != null) {
+            Lead lead = leadRepository.findById(referenceId)
+                    .orElseThrow(() -> new RuntimeException("Lead not found with id: " + referenceId));
+            feed.setLead(lead);
+            // Ensure project_id is NULL for lead activities (constraint requirement)
+            feed.setProject(null);
+        } else if ("PROJECT".equals(referenceType)) {
+            // For project activities, ensure lead_id is NULL (constraint requirement)
+            feed.setLead(null);
+        } else if (referenceType != null && ("SYSTEM".equals(referenceType) || "GLOBAL".equals(referenceType))) {
+            // For SYSTEM/GLOBAL activities, both project_id and lead_id must be NULL
+            // (constraint requirement)
+            feed.setProject(null);
+            feed.setLead(null);
+        }
 
         activityFeedRepository.save(feed);
     }
 
     /**
-     * Get activities for a lead and return as DTOs to avoid lazy-loading serialization issues
+     * Get activities for a lead and return as DTOs to avoid lazy-loading
+     * serialization issues
      * Combines data from both activity_feeds and lead_interactions tables
      * Enterprise-grade pattern: Returns DTOs instead of entities for API responses
      */
     @Transactional(readOnly = true)
     public List<ActivityFeedDTO> getActivitiesForLead(Long leadId) {
         // Fetch from activity_feeds table
-        List<ActivityFeed> activityFeeds = activityFeedRepository.findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(leadId, "LEAD");
+        List<ActivityFeed> activityFeeds = activityFeedRepository
+                .findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(leadId, "LEAD");
         List<ActivityFeedDTO> feedDTOs = activityFeeds.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
@@ -132,7 +153,7 @@ public class ActivityFeedService {
         } else if (feed.getPortalUser() != null) {
             createdByName = feed.getPortalUser().getEmail();
         }
-        
+
         return ActivityFeedDTO.builder()
                 .id(feed.getId())
                 .title(feed.getTitle())
@@ -182,12 +203,13 @@ public class ActivityFeedService {
             }
         }
 
-        // Use interaction date as the activity date, fallback to createdAt, then current time
+        // Use interaction date as the activity date, fallback to createdAt, then
+        // current time
         LocalDateTime activityDate = interaction.getInteractionDate() != null
                 ? interaction.getInteractionDate()
-                : (interaction.getCreatedAt() != null 
-                    ? interaction.getCreatedAt() 
-                    : LocalDateTime.now());
+                : (interaction.getCreatedAt() != null
+                        ? interaction.getCreatedAt()
+                        : LocalDateTime.now());
 
         return ActivityFeedDTO.builder()
                 .id(interaction.getId())
@@ -223,6 +245,11 @@ public class ActivityFeedService {
 
         for (ActivityFeed activity : activities) {
             activity.setProject(project);
+            // CRITICAL: Clear lead_id when linking to project to satisfy
+            // chk_activity_reference constraint
+            // Constraint requires: (project_id IS NOT NULL AND lead_id IS NULL) OR
+            // (project_id IS NULL AND lead_id IS NOT NULL)
+            activity.setLead(null);
             // Optionally we can keep referenceId/Type as LEAD or update it to PROJECT
             // Keeping it as LEAD but linking to Project is often best for provenance
         }

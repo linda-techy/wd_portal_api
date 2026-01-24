@@ -235,7 +235,8 @@ public class LeadService {
             throw new IllegalArgumentException("Lead ID cannot be null");
         }
 
-        // Load existing lead to support partial updates without violating NOT NULL constraints
+        // Load existing lead to support partial updates without violating NOT NULL
+        // constraints
         Lead existing = leadRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Lead not found with id: " + id));
 
@@ -260,7 +261,8 @@ public class LeadService {
             leadDetails.setCustomerType(existing.getCustomerType());
         }
 
-        leadDetails.setProjectType(request.getProjectType() != null ? request.getProjectType() : existing.getProjectType());
+        leadDetails.setProjectType(
+                request.getProjectType() != null ? request.getProjectType() : existing.getProjectType());
         leadDetails.setProjectDescription(request.getProjectDescription() != null
                 ? request.getProjectDescription()
                 : existing.getProjectDescription());
@@ -352,11 +354,7 @@ public class LeadService {
             lead.setPhone(leadDetails.getPhone());
             lead.setWhatsappNumber(leadDetails.getWhatsappNumber());
             lead.setLeadSource(leadDetails.getLeadSource());
-            // Validate status transition before updating (Enterprise business rules)
-            if (leadDetails.getLeadStatus() != null &&
-                    !leadDetails.getLeadStatus().equals(oldStatus)) {
-                validateLeadStatusTransition(oldStatus, leadDetails.getLeadStatus());
-            }
+            // Allow free status changes - users know their workflow best
             lead.setLeadStatus(leadDetails.getLeadStatus());
             lead.setPriority(leadDetails.getPriority());
             lead.setCustomerType(leadDetails.getCustomerType());
