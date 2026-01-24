@@ -143,6 +143,23 @@ public class Lead extends BaseEntity {
     @JsonProperty("converted_at")
     private LocalDateTime convertedAt;
 
+    /**
+     * JPA lifecycle callback to sync transient assignedToId from assignedTo
+     * relationship
+     * This ensures assignedToId is populated for JSON serialization when entities
+     * are loaded from DB
+     */
+    @PostLoad
+    @PostPersist
+    @PostUpdate
+    private void syncAssignedToId() {
+        if (this.assignedTo != null) {
+            this.assignedToId = this.assignedTo.getId();
+        } else {
+            this.assignedToId = null;
+        }
+    }
+
     // Getters and Setters
 
     public String getName() {

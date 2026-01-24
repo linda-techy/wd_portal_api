@@ -80,7 +80,6 @@ public class LeadService {
     private com.wd.api.repository.BoqItemRepository boqItemRepository;
 
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LeadService.class);
-    
     // Thread-safe ObjectMapper instance for JSON serialization
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -91,6 +90,23 @@ public class LeadService {
         }
         if (lead.getCreatedAt() == null) {
             lead.setCreatedAt(java.time.LocalDateTime.now());
+        }
+
+        // Set created by user from current authentication
+        if (lead.getCreatedByUserId() == null) {
+            try {
+                String currentUserEmail = org.springframework.security.core.context.SecurityContextHolder
+                        .getContext()
+                        .getAuthentication()
+                        .getName();
+                com.wd.api.model.PortalUser currentUser = portalUserRepository.findByEmail(currentUserEmail)
+                        .orElse(null);
+                if (currentUser != null) {
+                    lead.setCreatedByUserId(currentUser.getId());
+                }
+            } catch (Exception e) {
+                logger.warn("Could not set createdByUserId: {}", e.getMessage());
+            }
         }
 
         // Handle Assignment
@@ -139,8 +155,10 @@ public class LeadService {
             // Send Welcome Email
             emailService.sendLeadWelcomeEmail(savedLead);
         } catch (Exception e) {
-            e.printStackTrace();
+            // Log but don't fail lead creation if activity/email logging fails
+            logger.error("Error in post-creation activities for lead {}: {}", savedLead.getId(), e.getMessage(), e);
         }
+
         return savedLead;
     }
 
@@ -214,10 +232,8 @@ public class LeadService {
         if (leadDetails == null) {
             throw new IllegalArgumentException("Lead details cannot be null");
         }
-        
         Lead lead = leadRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Lead not found with id: " + id));
-        
         try {
             String oldStatus = lead.getLeadStatus();
             String oldCategory = lead.getScoreCategory(); // Capture old score category
@@ -230,13 +246,11 @@ public class LeadService {
             lead.setPhone(leadDetails.getPhone());
             lead.setWhatsappNumber(leadDetails.getWhatsappNumber());
             lead.setLeadSource(leadDetails.getLeadSource());
-            
             // Validate status transition before updating (Enterprise business rules)
-            if (leadDetails.getLeadStatus() != null && 
-                !leadDetails.getLeadStatus().equals(oldStatus)) {
+            if (leadDetails.getLeadStatus() != null &&
+                    !leadDetails.getLeadStatus().equals(oldStatus)) {
                 validateLeadStatusTransition(oldStatus, leadDetails.getLeadStatus());
             }
-            
             lead.setLeadStatus(leadDetails.getLeadStatus());
             lead.setPriority(leadDetails.getPriority());
             lead.setCustomerType(leadDetails.getCustomerType());
@@ -260,24 +274,38 @@ public class LeadService {
 
             // Handle Assignment Update - Priority: assignedToId > assignedTo > assignedTeam
             // assignedToId is a @Transient field used for JSON deserialization
-            if (leadDetails.getAssignedToId() != null) {
+            // Enhanced with null safety and detailed logging
+            Long newAssignedToId = leadDetails.getAssignedToId();
+            logger.debug("Updating lead {} assignment - newAssignedToId: {}, oldAssignedId: {}",
+                    id, newAssignedToId, oldAssignedId);
+
+            if (newAssignedToId != null) {
                 // New assignment or change in assignment
-                Long assignedId = leadDetails.getAssignedToId();
-                if (oldAssignedId == null || !assignedId.equals(oldAssignedId)) {
-                    com.wd.api.model.PortalUser user = portalUserRepository.findById(assignedId)
-                            .orElseThrow(() -> new IllegalArgumentException("Assigned user not found with id: " + assignedId));
-                    lead.setAssignedTo(user);
-                    // Note: assignedToId is @Transient, so setting it doesn't persist, but it's useful for JSON serialization
-                    lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
+                if (oldAssignedId == null || !newAssignedToId.equals(oldAssignedId)) {
+                    try {
+                        com.wd.api.model.PortalUser user = portalUserRepository.findById(newAssignedToId)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                        "Assigned user not found with id: " + newAssignedToId));
+                        lead.setAssignedTo(user);
+                        // Note: assignedToId is @Transient, so setting it doesn't persist, but it's
+                        // useful for JSON serialization
+                        lead.setAssignedTeam(user.getFirstName() + " " + user.getLastName());
+                        logger.info("Lead {} assigned to user {} ({})", id, newAssignedToId, lead.getAssignedTeam());
+                    } catch (IllegalArgumentException e) {
+                        logger.error("Failed to assign lead {} to user {}: {}", id, newAssignedToId, e.getMessage());
+                        throw e;
+                    }
                 }
             } else if (leadDetails.getAssignedTo() != null && leadDetails.getAssignedTo().getId() != null) {
                 // If assignedTo entity is provided directly (less common)
-                Long newAssignedId = leadDetails.getAssignedTo().getId();
-                if (oldAssignedId == null || !newAssignedId.equals(oldAssignedId)) {
+                Long assignedToEntityId = leadDetails.getAssignedTo().getId();
+                if (oldAssignedId == null || !assignedToEntityId.equals(oldAssignedId)) {
                     lead.setAssignedTo(leadDetails.getAssignedTo());
-                    lead.setAssignedTeam(leadDetails.getAssignedTo().getFirstName() + " " + leadDetails.getAssignedTo().getLastName());
+                    lead.setAssignedTeam(leadDetails.getAssignedTo().getFirstName() + " "
+                            + leadDetails.getAssignedTo().getLastName());
+                    logger.info("Lead {} assigned to user {} via assignedTo entity", id, assignedToEntityId);
                 }
-            } else if (leadDetails.getAssignedToId() == null && leadDetails.getAssignedTo() == null) {
+            } else {
                 // Unassign lead if both assignedToId and assignedTo are explicitly null
                 // This handles the case where user wants to remove assignment
                 if (oldAssignedId != null) {
@@ -288,6 +316,7 @@ public class LeadService {
                     } else {
                         lead.setAssignedTeam(null);
                     }
+                    logger.info("Lead {} unassigned (was assigned to user {})", id, oldAssignedId);
                 }
             }
 
@@ -315,15 +344,15 @@ public class LeadService {
 
             // Log score change in history if score or category changed
             if (!java.util.Objects.equals(oldScore, savedLead.getScore()) ||
-                !java.util.Objects.equals(oldCategory, savedLead.getScoreCategory())) {
+                    !java.util.Objects.equals(oldCategory, savedLead.getScoreCategory())) {
                 try {
                     String reason = "Lead updated - automatic score recalculation";
                     if (!java.util.Objects.equals(oldScore, savedLead.getScore())) {
-                        reason = String.format("Score changed from %d to %d", 
-                                oldScore != null ? oldScore : 0, 
+                        reason = String.format("Score changed from %d to %d",
+                                oldScore != null ? oldScore : 0,
                                 savedLead.getScore() != null ? savedLead.getScore() : 0);
                     }
-                    
+
                     leadScoreHistoryService.logScoreChange(
                             savedLead,
                             oldScore, // previousScore
@@ -427,20 +456,19 @@ public class LeadService {
         Specification<Lead> spec = buildSearchSpecification(filter);
         return leadRepository.findAll(spec, filter.toPageable());
     }
-    
+
     /**
      * Build JPA Specification from LeadSearchFilter
      * Uses SpecificationBuilder for clean, reusable logic
      */
     private Specification<Lead> buildSearchSpecification(LeadSearchFilter filter) {
         SpecificationBuilder<Lead> builder = new SpecificationBuilder<>();
-        
+
         // Search across multiple fields
         Specification<Lead> searchSpec = builder.buildSearch(
-            filter.getSearchQuery(),
-            "name", "email", "phone", "whatsappNumber", "projectDescription"
-        );
-        
+                filter.getSearchQuery(),
+                "name", "email", "phone", "whatsappNumber", "projectDescription");
+
         // Apply filters with status normalization
         Specification<Lead> statusSpec = null;
         if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
@@ -449,12 +477,10 @@ public class LeadService {
                 // Normalize database column value (remove spaces/underscores, lowercase)
                 jakarta.persistence.criteria.Expression<String> dbStatusLower = cb.lower(root.get("leadStatus"));
                 jakarta.persistence.criteria.Expression<String> dbStatusNoSpaces = cb.function(
-                    "REPLACE", String.class, dbStatusLower, cb.literal(" "), cb.literal("")
-                );
+                        "REPLACE", String.class, dbStatusLower, cb.literal(" "), cb.literal(""));
                 jakarta.persistence.criteria.Expression<String> dbStatusCleaned = cb.function(
-                    "REPLACE", String.class, dbStatusNoSpaces, cb.literal("_"), cb.literal("")
-                );
-                
+                        "REPLACE", String.class, dbStatusNoSpaces, cb.literal("_"), cb.literal(""));
+
                 // Match all variations that normalize to the same value
                 // For "new": match "newinquiry", "new"
                 // For "qualified": match "qualifiedlead", "qualified"
@@ -476,7 +502,7 @@ public class LeadService {
                     // For other statuses, match the normalized value directly
                     statusPredicates.add(cb.equal(dbStatusCleaned, normalizedStatus));
                 }
-                
+
                 return cb.or(statusPredicates.toArray(new Predicate[0]));
             };
         }
@@ -486,26 +512,24 @@ public class LeadService {
         Specification<Lead> projectTypeSpec = builder.buildEquals("projectType", filter.getProjectType());
         Specification<Lead> stateSpec = builder.buildEquals("state", filter.getState());
         Specification<Lead> districtSpec = builder.buildEquals("district", filter.getDistrict());
-        
+
         // Assigned team filter (handles both ID and name)
         Specification<Lead> assignedSpec = null;
         if (filter.getAssignedTeam() != null && !filter.getAssignedTeam().trim().isEmpty()) {
             try {
                 Long assignedId = Long.parseLong(filter.getAssignedTeam());
-                assignedSpec = (root, query, cb) -> 
-                    cb.equal(root.get("assignedTo").get("id"), assignedId);
+                assignedSpec = (root, query, cb) -> cb.equal(root.get("assignedTo").get("id"), assignedId);
             } catch (NumberFormatException e) {
                 assignedSpec = builder.buildEquals("assignedTeam", filter.getAssignedTeam());
             }
         }
-        
+
         // Budget range
         Specification<Lead> budgetSpec = builder.buildNumericRange(
-            "budget", 
-            filter.getMinBudget(), 
-            filter.getMaxBudget()
-        );
-        
+                "budget",
+                filter.getMinBudget(),
+                filter.getMaxBudget());
+
         // Date range (on createdAt)
         Specification<Lead> dateRangeSpec = null;
         if (filter.getStartDate() != null || filter.getEndDate() != null) {
@@ -513,34 +537,31 @@ public class LeadService {
                 List<Predicate> predicates = new ArrayList<>();
                 if (filter.getStartDate() != null) {
                     predicates.add(cb.greaterThanOrEqualTo(
-                        root.get("createdAt"), 
-                        filter.getStartDate().atStartOfDay()
-                    ));
+                            root.get("createdAt"),
+                            filter.getStartDate().atStartOfDay()));
                 }
                 if (filter.getEndDate() != null) {
                     predicates.add(cb.lessThanOrEqualTo(
-                        root.get("createdAt"), 
-                        filter.getEndDate().plusDays(1).atStartOfDay()
-                    ));
+                            root.get("createdAt"),
+                            filter.getEndDate().plusDays(1).atStartOfDay()));
                 }
                 return cb.and(predicates.toArray(new Predicate[0]));
             };
         }
-        
+
         // Combine all specifications with AND logic
         return builder.and(
-            searchSpec,
-            statusSpec,
-            sourceSpec,
-            prioritySpec,
-            customerTypeSpec,
-            projectTypeSpec,
-            assignedSpec,
-            stateSpec,
-            districtSpec,
-            budgetSpec,
-            dateRangeSpec
-        );
+                searchSpec,
+                statusSpec,
+                sourceSpec,
+                prioritySpec,
+                customerTypeSpec,
+                projectTypeSpec,
+                assignedSpec,
+                stateSpec,
+                districtSpec,
+                budgetSpec,
+                dateRangeSpec);
     }
 
     /**
@@ -561,17 +582,16 @@ public class LeadService {
             if (params.getStatus() != null && !params.getStatus().isEmpty()) {
                 // Normalize input status for comparison
                 String normalizedInput = normalizeStatusForComparison(params.getStatus());
-                
-                // Normalize database column value using SQL functions (remove spaces/underscores, lowercase)
+
+                // Normalize database column value using SQL functions (remove
+                // spaces/underscores, lowercase)
                 // This handles "New Inquiry", "new_inquiry", "new" all matching correctly
                 jakarta.persistence.criteria.Expression<String> dbStatusLower = cb.lower(root.get("leadStatus"));
                 jakarta.persistence.criteria.Expression<String> dbStatusNoSpaces = cb.function(
-                    "REPLACE", String.class, dbStatusLower, cb.literal(" "), cb.literal("")
-                );
+                        "REPLACE", String.class, dbStatusLower, cb.literal(" "), cb.literal(""));
                 jakarta.persistence.criteria.Expression<String> dbStatusCleaned = cb.function(
-                    "REPLACE", String.class, dbStatusNoSpaces, cb.literal("_"), cb.literal("")
-                );
-                
+                        "REPLACE", String.class, dbStatusNoSpaces, cb.literal("_"), cb.literal(""));
+
                 // Match all variations that normalize to the same value
                 // For "new": match "newinquiry", "new"
                 // For "qualified": match "qualifiedlead", "qualified"
@@ -593,7 +613,7 @@ public class LeadService {
                     // For other statuses, match the normalized value directly
                     statusPredicates.add(cb.equal(dbStatusCleaned, normalizedInput));
                 }
-                
+
                 predicates.add(cb.or(statusPredicates.toArray(new Predicate[0])));
             }
             if (params.getSource() != null && !params.getSource().isEmpty()) {
@@ -761,12 +781,14 @@ public class LeadService {
     }
 
     /**
-     * Normalize status for comparison by removing spaces/underscores and mapping to standard values
+     * Normalize status for comparison by removing spaces/underscores and mapping to
+     * standard values
      * This ensures "New Inquiry", "new_inquiry", and "new" all normalize to "new"
      * Used for comparing database values with input values
      */
     /**
-     * Validate Lead status transitions (Enterprise business rules for Construction CRM)
+     * Validate Lead status transitions (Enterprise business rules for Construction
+     * CRM)
      * 
      * Valid transitions:
      * - NEW_INQUIRY → CONTACTED → QUALIFIED → PROPOSAL_SENT → PROJECT_WON/LOST
@@ -782,88 +804,90 @@ public class LeadService {
         if (fromStatus == null || toStatus == null) {
             return; // Allow null status changes (handled separately)
         }
-        
+
         // Normalize status strings for comparison
         String fromNormalized = normalizeStatusForComparison(fromStatus);
         String toNormalized = normalizeStatusForComparison(toStatus);
-        
+
         // Terminal states - cannot transition from these
-        if (fromNormalized.equals("lost") || 
-            fromNormalized.equals("won") || 
-            fromNormalized.equals("converted") ||
-            fromNormalized.equals("projectwon")) {
+        if (fromNormalized.equals("lost") ||
+                fromNormalized.equals("won") ||
+                fromNormalized.equals("converted") ||
+                fromNormalized.equals("projectwon")) {
             throw new IllegalStateException(
-                String.format("Cannot change status from '%s' (terminal state). Lead is %s.", 
-                    fromStatus, 
-                    fromNormalized.equals("lost") ? "lost" : "already converted"));
+                    String.format("Cannot change status from '%s' (terminal state). Lead is %s.",
+                            fromStatus,
+                            fromNormalized.equals("lost") ? "lost" : "already converted"));
         }
-        
+
         // Terminal states - cannot transition to these without proper flow
         // LOST can be set from any non-terminal state
         if (toNormalized.equals("lost")) {
             // Allowed from any non-terminal state
             return;
         }
-        
+
         // PROJECT_WON/CONVERTED can only be set from PROPOSAL_SENT or QUALIFIED
-        if (toNormalized.equals("won") || 
-            toNormalized.equals("converted") || 
-            toNormalized.equals("projectwon")) {
-            if (!fromNormalized.equals("proposal_sent") && 
-                !fromNormalized.equals("qualified")) {
+        if (toNormalized.equals("won") ||
+                toNormalized.equals("converted") ||
+                toNormalized.equals("projectwon")) {
+            if (!fromNormalized.equals("proposal_sent") &&
+                    !fromNormalized.equals("qualified")) {
                 throw new IllegalStateException(
-                    String.format("Cannot transition from '%s' to '%s'. Lead must be in PROPOSAL_SENT or QUALIFIED status first.", 
-                        fromStatus, toStatus));
+                        String.format(
+                                "Cannot transition from '%s' to '%s'. Lead must be in PROPOSAL_SENT or QUALIFIED status first.",
+                                fromStatus, toStatus));
             }
             return;
         }
-        
+
         // Valid progression transitions
         boolean isValidTransition = false;
-        
+
         switch (fromNormalized) {
             case "new":
             case "newinquiry":
                 // NEW_INQUIRY can transition to CONTACTED, QUALIFIED (skip contacted), or LOST
-                isValidTransition = (toNormalized.equals("contacted") || 
-                                   toNormalized.equals("qualified") ||
-                                   toNormalized.equals("proposal_sent")); // Allow skipping contacted
+                isValidTransition = (toNormalized.equals("contacted") ||
+                        toNormalized.equals("qualified") ||
+                        toNormalized.equals("proposal_sent")); // Allow skipping contacted
                 break;
-                
+
             case "contacted":
-                // CONTACTED can transition to QUALIFIED, PROPOSAL_SENT (skip qualified), or LOST
-                isValidTransition = (toNormalized.equals("qualified") || 
-                                   toNormalized.equals("proposal_sent"));
+                // CONTACTED can transition to QUALIFIED, PROPOSAL_SENT (skip qualified), or
+                // LOST
+                isValidTransition = (toNormalized.equals("qualified") ||
+                        toNormalized.equals("proposal_sent"));
                 break;
-                
+
             case "qualified":
                 // QUALIFIED can transition to PROPOSAL_SENT, or LOST
                 isValidTransition = (toNormalized.equals("proposal_sent"));
                 break;
-                
+
             case "proposal_sent":
                 // PROPOSAL_SENT can transition to PROJECT_WON/CONVERTED, or LOST
-                isValidTransition = (toNormalized.equals("won") || 
-                                   toNormalized.equals("converted") ||
-                                   toNormalized.equals("projectwon"));
+                isValidTransition = (toNormalized.equals("won") ||
+                        toNormalized.equals("converted") ||
+                        toNormalized.equals("projectwon"));
                 break;
-                
+
             default:
                 // Unknown from status - allow transition but log warning
                 logger.warn("Unknown lead status '{}' in transition to '{}'", fromStatus, toStatus);
                 isValidTransition = true; // Allow unknown statuses for flexibility
                 break;
         }
-        
+
         if (!isValidTransition) {
             throw new IllegalStateException(
-                String.format("Invalid status transition from '%s' to '%s'. Valid transitions: %s", 
-                    fromStatus, 
-                    toStatus,
-                    getValidTransitions(fromNormalized)));
+                    String.format("Invalid status transition from '%s' to '%s'. Valid transitions: %s",
+                            fromStatus,
+                            toStatus,
+                            getValidTransitions(fromNormalized)));
         }
     }
-    
+
     /**
      * Get valid transitions for a given status (for error messages)
      */
@@ -889,7 +913,7 @@ public class LeadService {
         }
         // Remove spaces and underscores, convert to lowercase
         String cleaned = status.toLowerCase().trim().replaceAll("[\\s_]", "");
-        
+
         // Map to standard values
         if (cleaned.equals("newinquiry") || cleaned.equals("new")) {
             return "new";
@@ -980,9 +1004,10 @@ public class LeadService {
             // 1. Create or Find Customer User
             // CustomerUser requires email (NOT NULL and UNIQUE), so validate lead has email
             if (lead.getEmail() == null || lead.getEmail().trim().isEmpty()) {
-                throw new IllegalArgumentException("Cannot convert lead without email address. Please update lead with a valid email first.");
+                throw new IllegalArgumentException(
+                        "Cannot convert lead without email address. Please update lead with a valid email first.");
             }
-            
+
             com.wd.api.model.CustomerUser customer = customerUserRepository.findByEmail(lead.getEmail())
                     .orElseGet(() -> createCustomerFromLead(lead));
 
@@ -1241,7 +1266,8 @@ public class LeadService {
             // Interaction Frequency scoring (0-20 points)
             if (lead.getId() != null) {
                 try {
-                    long interactionCount = leadInteractionRepository.findByLeadIdOrderByInteractionDateDesc(lead.getId()).size();
+                    long interactionCount = leadInteractionRepository
+                            .findByLeadIdOrderByInteractionDateDesc(lead.getId()).size();
                     if (interactionCount >= 5) {
                         score += 20;
                         factors.put("High Engagement (5+ interactions)", 20);
@@ -1294,13 +1320,13 @@ public class LeadService {
             if (lead.getState() != null) {
                 String state = lead.getState().toLowerCase();
                 // Tier 1 cities/states (e.g., Karnataka, Maharashtra, Tamil Nadu, Delhi)
-                if (state.contains("karnataka") || state.contains("maharashtra") || 
-                    state.contains("tamil") || state.contains("delhi") || 
-                    state.contains("gujarat") || state.contains("telangana")) {
+                if (state.contains("karnataka") || state.contains("maharashtra") ||
+                        state.contains("tamil") || state.contains("delhi") ||
+                        state.contains("gujarat") || state.contains("telangana")) {
                     score += 10;
                     factors.put("Premium Location (Tier 1)", 10);
-                } else if (state.contains("kerala") || state.contains("punjab") || 
-                          state.contains("haryana") || state.contains("rajasthan")) {
+                } else if (state.contains("kerala") || state.contains("punjab") ||
+                        state.contains("haryana") || state.contains("rajasthan")) {
                     score += 7;
                     factors.put("Good Location (Tier 2)", 7);
                 } else {
@@ -1311,10 +1337,14 @@ public class LeadService {
 
             // Contact Completeness scoring (0-10 points)
             int contactCompleteness = 0;
-            if (lead.getEmail() != null && !lead.getEmail().trim().isEmpty()) contactCompleteness += 3;
-            if (lead.getPhone() != null && !lead.getPhone().trim().isEmpty()) contactCompleteness += 3;
-            if (lead.getWhatsappNumber() != null && !lead.getWhatsappNumber().trim().isEmpty()) contactCompleteness += 2;
-            if (lead.getAddress() != null && !lead.getAddress().trim().isEmpty()) contactCompleteness += 2;
+            if (lead.getEmail() != null && !lead.getEmail().trim().isEmpty())
+                contactCompleteness += 3;
+            if (lead.getPhone() != null && !lead.getPhone().trim().isEmpty())
+                contactCompleteness += 3;
+            if (lead.getWhatsappNumber() != null && !lead.getWhatsappNumber().trim().isEmpty())
+                contactCompleteness += 2;
+            if (lead.getAddress() != null && !lead.getAddress().trim().isEmpty())
+                contactCompleteness += 2;
             if (contactCompleteness > 0) {
                 score += contactCompleteness;
                 factors.put("Contact Completeness", contactCompleteness);
@@ -1358,7 +1388,7 @@ public class LeadService {
                 .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + id));
 
         String oldStatus = lead.getLeadStatus();
-        
+
         // Validate status transition
         if (!newStatus.equals(oldStatus)) {
             validateLeadStatusTransition(oldStatus, newStatus);
@@ -1414,7 +1444,7 @@ public class LeadService {
         try {
             String oldAssignee = oldAssignedId != null ? "User " + oldAssignedId : "Unassigned";
             String newAssignee = assignedToId != null ? savedLead.getAssignedTeam() : "Unassigned";
-            
+
             if (!oldAssignee.equals(newAssignee)) {
                 activityFeedService.logSystemActivity(
                         "LEAD_ASSIGNED",
@@ -1451,7 +1481,7 @@ public class LeadService {
 
         // Update score
         lead.setScore(score);
-        
+
         // Determine category based on score
         String category;
         if (score >= 80) {
@@ -1473,8 +1503,7 @@ public class LeadService {
                     oldCategory,
                     savedLead.getUpdatedByUserId(),
                     reason != null ? reason : "Manual score update",
-                    savedLead.getScoreFactors()
-            );
+                    savedLead.getScoreFactors());
         } catch (Exception e) {
             logger.warn("Error logging score change: {}", e.getMessage());
         }
@@ -1523,12 +1552,12 @@ public class LeadService {
                 conversion.put("projectName", project.getName());
                 conversion.put("convertedAt", lead.getConvertedAt());
                 conversion.put("convertedById", lead.getConvertedById());
-                
+
                 // Get converter user name
                 portalUserRepository.findById(lead.getConvertedById()).ifPresent(user -> {
                     conversion.put("convertedByName", user.getFirstName() + " " + user.getLastName());
                 });
-                
+
                 conversion.put("status", "SUCCESS");
                 history.add(conversion);
             }

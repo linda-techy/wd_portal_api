@@ -4,7 +4,9 @@ import com.wd.api.model.Lead;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LeadSearchFilter;
 import com.wd.api.dto.ActivityFeedDTO;
+import com.wd.api.dto.LeadCreateRequest;
 import com.wd.api.service.LeadService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -179,15 +181,20 @@ public class LeadController {
 
     /**
      * Create a new lead
-     * 
-     * @param lead The lead to create
+     *
+     * Enterprise-grade implementation using LeadCreateRequest DTO with Bean Validation.
+     * This ensures all NOT NULL / required columns from the database schema are
+     * validated explicitly before attempting to persist, preventing 500 errors
+     * caused by constraint violations.
+     *
+     * @param request The lead creation request payload
      * @return Created lead
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<ApiResponse<Lead>> createLead(@RequestBody Lead lead) {
+    public ResponseEntity<ApiResponse<Lead>> createLead(@Valid @RequestBody LeadCreateRequest request) {
         try {
-            Lead createdLead = leadService.createLead(lead);
+            Lead createdLead = leadService.createLead(request);
             return ResponseEntity.ok(ApiResponse.success("Lead created successfully", createdLead));
         } catch (IllegalArgumentException e) {
             logger.warn("Invalid lead data: {}", e.getMessage());
