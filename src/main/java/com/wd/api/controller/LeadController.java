@@ -1,11 +1,13 @@
 package com.wd.api.controller;
 
 import com.wd.api.model.Lead;
+import com.wd.api.model.CustomerProject;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LeadSearchFilter;
 import com.wd.api.dto.ActivityFeedDTO;
 import com.wd.api.dto.LeadCreateRequest;
 import com.wd.api.dto.LeadUpdateRequest;
+import com.wd.api.dto.LeadConversionRequest;
 import com.wd.api.service.LeadService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -20,7 +22,8 @@ import java.util.List;
 
 /**
  * REST Controller for Lead management operations
- * Enterprise-grade implementation with comprehensive CRUD and search capabilities
+ * Enterprise-grade implementation with comprehensive CRUD and search
+ * capabilities
  */
 @RestController
 @RequestMapping("/leads")
@@ -79,17 +82,17 @@ public class LeadController {
                     filter.setPage(page - 1); // Convert 1-based to 0-based
                 }
             }
-            
+
             // Handle legacy limit parameter
             if (limit != null && limit > 0) {
                 filter.setSize(Math.min(limit, 100)); // Cap at 100 for safety
             }
-            
+
             // Handle legacy sortOrder parameter
             if (sortOrder != null && filter.getSortDirection() == null) {
                 filter.setSortDirection(sortOrder.toLowerCase());
             }
-            
+
             // Normalize sortBy field name (handle both snake_case and camelCase)
             if (filter.getSortBy() != null) {
                 String sortBy = filter.getSortBy();
@@ -130,7 +133,7 @@ public class LeadController {
             } else {
                 filter.setSortBy("createdAt"); // Default sort
             }
-            
+
             // Normalize sortDirection (handle case variations)
             if (filter.getSortDirection() != null) {
                 String direction = filter.getSortDirection().toLowerCase();
@@ -183,7 +186,8 @@ public class LeadController {
     /**
      * Create a new lead
      *
-     * Enterprise-grade implementation using LeadCreateRequest DTO with Bean Validation.
+     * Enterprise-grade implementation using LeadCreateRequest DTO with Bean
+     * Validation.
      * This ensures all NOT NULL / required columns from the database schema are
      * validated explicitly before attempting to persist, preventing 500 errors
      * caused by constraint violations.
@@ -212,7 +216,7 @@ public class LeadController {
      * Update an existing lead
      * Enterprise-grade implementation with DTO-based validation and normalization.
      *
-     * @param id The ID of the lead to update
+     * @param id      The ID of the lead to update
      * @param request The updated lead data
      * @return Updated lead
      */
@@ -294,6 +298,38 @@ public class LeadController {
             logger.error("Error fetching activities for lead {}: {}", leadId, e.getMessage(), e);
             return ResponseEntity.status(500)
                     .body(ApiResponse.error("Failed to retrieve lead activities: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Convert a lead to a project
+     * 
+     * @param id      The ID of the lead
+     * @param request The conversion details
+     * @return The created project
+     */
+    @PostMapping("/{id}/convert")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<ApiResponse<CustomerProject>> convertLead(
+            @PathVariable Long id,
+            @Valid @RequestBody LeadConversionRequest request) {
+        try {
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext()
+                    .getAuthentication().getName();
+            CustomerProject project = leadService.convertLead(id, request, username);
+            return ResponseEntity.ok(ApiResponse.success("Lead converted to project successfully", project));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid conversion request for lead {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Invalid conversion request: " + e.getMessage()));
+        } catch (IllegalStateException e) {
+            logger.warn("Invalid state for lead conversion {}: {}", id, e.getMessage());
+            return ResponseEntity.status(409)
+                    .body(ApiResponse.error("Conversion failed: " + e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error converting lead {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to convert lead: " + e.getMessage()));
         }
     }
 }
