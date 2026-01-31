@@ -137,7 +137,7 @@ public class CustomerProjectController {
 
     /**
      * Update customer project
-     */
+    */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<ApiResponse<CustomerProjectResponse>> updateCustomerProject(@PathVariable Long id,

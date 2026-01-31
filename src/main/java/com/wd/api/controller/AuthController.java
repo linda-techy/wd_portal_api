@@ -40,9 +40,20 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<LoginResponse.UserInfo> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated() ||
+                "anonymousUser".equals(authentication.getPrincipal())) {
+            return ResponseEntity.status(401).build();
+        }
+
         String email = authentication.getName();
-        LoginResponse.UserInfo userInfo = authService.getCurrentUser(email);
-        return ResponseEntity.ok(userInfo);
+        try {
+            LoginResponse.UserInfo userInfo = authService.getCurrentUser(email);
+            return ResponseEntity.ok(userInfo);
+        } catch (Exception e) {
+            return ResponseEntity.status(401).build();
+        }
     }
 
     @GetMapping("/test")
