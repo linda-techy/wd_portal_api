@@ -72,16 +72,25 @@ public class CustomerUserService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("name")), searchPattern),
-                    cb.like(cb.lower(root.get("email")), searchPattern),
-                    cb.like(cb.lower(root.get("phone")), searchPattern),
-                    cb.like(cb.lower(root.get("companyName")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("name")), searchPattern),
+                        cb.like(cb.lower(root.get("email")), searchPattern),
+                        cb.like(cb.lower(root.get("phone")), searchPattern),
+                        cb.like(cb.lower(root.get("companyName")), searchPattern)));
             }
 
             // Filter by customerType
             if (filter.getCustomerType() != null && !filter.getCustomerType().isEmpty()) {
-                predicates.add(cb.equal(root.get("customerType"), filter.getCustomerType()));
+                if ("individual".equalsIgnoreCase(filter.getCustomerType())) {
+                    // Individual: companyName is NULL or EMPTY
+                    predicates.add(cb.or(
+                            cb.isNull(root.get("companyName")),
+                            cb.equal(root.get("companyName"), "")));
+                } else if ("corporate".equalsIgnoreCase(filter.getCustomerType())) {
+                    // Corporate: companyName is NOT NULL and NOT EMPTY
+                    predicates.add(cb.and(
+                            cb.isNotNull(root.get("companyName")),
+                            cb.notEqual(root.get("companyName"), "")));
+                }
             }
 
             // Filter by location
