@@ -77,7 +77,7 @@ public class CustomerProjectService {
             Specification<CustomerProject> spec = buildSearchSpecification(filter);
             Pageable pageable = filter.toPageable();
             Page<CustomerProject> projectPage = customerProjectRepository.findAll(spec, pageable);
-            
+
             // Map entities to DTOs to avoid Hibernate proxy serialization issues
             return projectPage.map(CustomerProjectResponse::new);
         } catch (IllegalArgumentException e) {
@@ -88,103 +88,103 @@ public class CustomerProjectService {
             throw new RuntimeException("Error searching projects: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * Build JPA Specification from ProjectSearchFilter
      */
     private Specification<CustomerProject> buildSearchSpecification(ProjectSearchFilter filter) {
         SpecificationBuilder<CustomerProject> builder = new SpecificationBuilder<>();
-        
+
         // Search across multiple fields
         Specification<CustomerProject> searchSpec = builder.buildSearch(
-            filter.getSearchQuery(),
-            "name", "location", "code", "state", "city", "district"
-        );
-        
+                filter.getSearchQuery(),
+                "name", "location", "code", "state", "city", "district");
+
         // Apply filters with safe enum conversion
         Specification<CustomerProject> phaseSpec = null;
         if (filter.getPhase() != null && !filter.getPhase().trim().isEmpty()) {
             try {
-                final String phaseValue = filter.getPhase().toUpperCase();
-                phaseSpec = (root, query, cb) -> 
-                    cb.equal(root.get("projectPhase"), 
-                        com.wd.api.model.enums.ProjectPhase.valueOf(phaseValue));
+                String phaseInput = filter.getPhase().toUpperCase().trim();
+
+                // Map frontend UI labels to Backend Enum constants
+                if ("CONSTRUCTION".equals(phaseInput)) {
+                    phaseInput = "EXECUTION";
+                } else if ("COMPLETED".equals(phaseInput)) {
+                    phaseInput = "COMPLETION";
+                }
+
+                final String finalPhaseValue = phaseInput;
+                phaseSpec = (root, query, cb) -> cb.equal(root.get("projectPhase"),
+                        com.wd.api.model.enums.ProjectPhase.valueOf(finalPhaseValue));
             } catch (IllegalArgumentException e) {
                 logger.warn("Invalid project phase value: {}", filter.getPhase());
                 // Skip invalid phase filter instead of failing
             }
         }
-        
+
         Specification<CustomerProject> typeSpec = builder.buildEquals("projectType", filter.getType());
         Specification<CustomerProject> contractTypeSpec = null;
         if (filter.getContractType() != null && !filter.getContractType().trim().isEmpty()) {
             try {
                 final String contractTypeValue = filter.getContractType().toUpperCase();
-                contractTypeSpec = (root, query, cb) -> 
-                    cb.equal(root.get("contractType"), 
+                contractTypeSpec = (root, query, cb) -> cb.equal(root.get("contractType"),
                         com.wd.api.model.enums.ContractType.valueOf(contractTypeValue));
             } catch (IllegalArgumentException e) {
                 logger.warn("Invalid contract type value: {}", filter.getContractType());
                 // Skip invalid contract type filter instead of failing
             }
         }
-        
+
         Specification<CustomerProject> statusSpec = builder.buildEquals("status", filter.getStatus());
         Specification<CustomerProject> locationSpec = builder.buildLike("location", filter.getLocation());
         Specification<CustomerProject> citySpec = builder.buildLike("city", filter.getCity());
         Specification<CustomerProject> stateSpec = builder.buildEquals("state", filter.getState());
-        
+
         // Manager filter
         Specification<CustomerProject> managerSpec = null;
         if (filter.getManagerId() != null) {
-            managerSpec = (root, query, cb) -> 
-                cb.equal(root.get("projectManager").get("id"), filter.getManagerId());
+            managerSpec = (root, query, cb) -> cb.equal(root.get("projectManager").get("id"), filter.getManagerId());
         }
-        
+
         // Customer filter
         Specification<CustomerProject> customerSpec = null;
         if (filter.getCustomerId() != null) {
-            customerSpec = (root, query, cb) -> 
-                cb.equal(root.get("customer").get("id"), filter.getCustomerId());
+            customerSpec = (root, query, cb) -> cb.equal(root.get("customer").get("id"), filter.getCustomerId());
         }
-        
+
         // Budget range
         Specification<CustomerProject> budgetSpec = builder.buildNumericRange(
-            "estimatedBudget", 
-            filter.getMinBudget(), 
-            filter.getMaxBudget()
-        );
-        
+                "estimatedBudget",
+                filter.getMinBudget(),
+                filter.getMaxBudget());
+
         // Progress range
         Specification<CustomerProject> progressSpec = builder.buildNumericRange(
-            "overallProgress", 
-            filter.getMinProgress(), 
-            filter.getMaxProgress()
-        );
-        
+                "overallProgress",
+                filter.getMinProgress(),
+                filter.getMaxProgress());
+
         // Date range (on start date)
         Specification<CustomerProject> dateRangeSpec = builder.buildDateRange(
-            "startDate",
-            filter.getStartDate(),
-            filter.getEndDate()
-        );
-        
+                "startDate",
+                filter.getStartDate(),
+                filter.getEndDate());
+
         // Combine all specifications
         return builder.and(
-            searchSpec,
-            phaseSpec,
-            typeSpec,
-            contractTypeSpec,
-            statusSpec,
-            managerSpec,
-            customerSpec,
-            locationSpec,
-            citySpec,
-            stateSpec,
-            budgetSpec,
-            progressSpec,
-            dateRangeSpec
-        );
+                searchSpec,
+                phaseSpec,
+                typeSpec,
+                contractTypeSpec,
+                statusSpec,
+                managerSpec,
+                customerSpec,
+                locationSpec,
+                citySpec,
+                stateSpec,
+                budgetSpec,
+                progressSpec,
+                dateRangeSpec);
     }
 
     /**
@@ -433,14 +433,14 @@ public class CustomerProjectService {
             // Extract constraint information from the exception
             String constraintMessage = extractConstraintInfo(e);
             logger.error("Cannot delete project ID {} due to existing related data: {}", id, constraintMessage, e);
-            
+
             // Provide detailed error message for business-critical entities
             throw new IllegalStateException(
                     "Cannot delete project because it contains related business data. " +
-                    "Please delete the following related data first: Tasks, Invoices, Payments, " +
-                    "Purchase Orders, Subcontract Work Orders, Material Indents, " +
-                    "Project Warranty records, Measurement Books, or other business-critical entities. " +
-                    "Error details: " + constraintMessage);
+                            "Please delete the following related data first: Tasks, Invoices, Payments, " +
+                            "Purchase Orders, Subcontract Work Orders, Material Indents, " +
+                            "Project Warranty records, Measurement Books, or other business-critical entities. " +
+                            "Error details: " + constraintMessage);
         } catch (Exception e) {
             logger.error("Unexpected error deleting project ID: {}", id, e);
             throw new RuntimeException("Failed to delete project: " + e.getMessage(), e);
@@ -455,15 +455,16 @@ public class CustomerProjectService {
         String message = e.getMessage();
         if (message != null && message.contains("violates foreign key constraint")) {
             // Extract constraint name and table name from the message
-            // Example: "violates foreign key constraint "fk8vxso9srli6g5ys0gw6md5vwu" on table "activity_feeds""
+            // Example: "violates foreign key constraint "fk8vxso9srli6g5ys0gw6md5vwu" on
+            // table "activity_feeds""
             try {
                 int constraintStart = message.indexOf("constraint \"");
                 int constraintEnd = message.indexOf("\"", constraintStart + 12);
                 int tableStart = message.indexOf("table \"");
                 int tableEnd = message.indexOf("\"", tableStart + 7);
-                
-                if (constraintStart > 0 && constraintEnd > constraintStart && 
-                    tableStart > 0 && tableEnd > tableStart) {
+
+                if (constraintStart > 0 && constraintEnd > constraintStart &&
+                        tableStart > 0 && tableEnd > tableStart) {
                     String tableName = message.substring(tableStart + 7, tableEnd);
                     return "Foreign key constraint violation on table: " + tableName;
                 }
