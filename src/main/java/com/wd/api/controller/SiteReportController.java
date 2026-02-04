@@ -96,8 +96,15 @@ public class SiteReportController {
     @PostMapping(consumes = { "multipart/form-data" })
     public ResponseEntity<ApiResponse<SiteReport>> createReport(
             @RequestPart("report") String reportJson,
-            @RequestPart(value = "photos", required = false) List<MultipartFile> photos) {
+            @RequestPart(value = "photos", required = true) List<MultipartFile> photos) {
         try {
+            // Validate that at least one photo is provided
+            if (photos == null || photos.isEmpty()) {
+                logger.warn("Attempt to create site report without photos");
+                return ResponseEntity.status(400)
+                        .body(ApiResponse.error("At least one photo is required for site report submission"));
+            }
+
             Map<String, Object> reportData = objectMapper.readValue(reportJson, Map.class);
             PortalUser currentUser = authService.getCurrentUser();
 
