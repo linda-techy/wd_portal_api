@@ -18,8 +18,14 @@ public class Observation {
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
+
+    @Column(length = 255)
+    private String location;
+
+    @Column(length = 20)
+    private String priority;
 
     @Column(length = 50)
     private String severity;
@@ -27,9 +33,29 @@ public class Observation {
     @Column(length = 50)
     private String status;
 
+    @Column(name = "image_path", length = 500)
+    private String imagePath;
+
+    @Column(name = "reported_date", nullable = false)
+    private LocalDateTime reportedDate;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reported_by_id")
+    @JoinColumn(name = "reported_by_id", nullable = false)
     private PortalUser reportedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reported_by_role_id")
+    private StaffRole reportedByRole;
+
+    @Column(name = "resolution_notes", columnDefinition = "TEXT")
+    private String resolutionNotes;
+
+    @Column(name = "resolved_date")
+    private LocalDateTime resolvedDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resolved_by_id")
+    private PortalUser resolvedBy;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -41,6 +67,12 @@ public class Observation {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (reportedDate == null) {
+            reportedDate = LocalDateTime.now();
+        }
+        if (status == null) {
+            status = "OPEN";
+        }
     }
 
     @PreUpdate
@@ -81,6 +113,22 @@ public class Observation {
         this.description = description;
     }
 
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
+    }
+
     public String getSeverity() {
         return severity;
     }
@@ -97,12 +145,60 @@ public class Observation {
         this.status = status;
     }
 
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
+    }
+
+    public LocalDateTime getReportedDate() {
+        return reportedDate;
+    }
+
+    public void setReportedDate(LocalDateTime reportedDate) {
+        this.reportedDate = reportedDate;
+    }
+
     public PortalUser getReportedBy() {
         return reportedBy;
     }
 
     public void setReportedBy(PortalUser reportedBy) {
         this.reportedBy = reportedBy;
+    }
+
+    public StaffRole getReportedByRole() {
+        return reportedByRole;
+    }
+
+    public void setReportedByRole(StaffRole reportedByRole) {
+        this.reportedByRole = reportedByRole;
+    }
+
+    public String getResolutionNotes() {
+        return resolutionNotes;
+    }
+
+    public void setResolutionNotes(String resolutionNotes) {
+        this.resolutionNotes = resolutionNotes;
+    }
+
+    public LocalDateTime getResolvedDate() {
+        return resolvedDate;
+    }
+
+    public void setResolvedDate(LocalDateTime resolvedDate) {
+        this.resolvedDate = resolvedDate;
+    }
+
+    public PortalUser getResolvedBy() {
+        return resolvedBy;
+    }
+
+    public void setResolvedBy(PortalUser resolvedBy) {
+        this.resolvedBy = resolvedBy;
     }
 
     public LocalDateTime getCreatedAt() {
