@@ -1,12 +1,12 @@
 package com.wd.api.controller;
 
 import com.wd.api.dto.ApiResponse;
-import com.wd.api.dto.CustomerSiteReportDto;
+import com.wd.api.dto.CustomerPaymentScheduleDto;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.CustomerUser;
-import com.wd.api.model.SiteReport;
+import com.wd.api.model.PaymentSchedule;
 import com.wd.api.repository.CustomerProjectRepository;
-import com.wd.api.repository.SiteReportRepository;
+import com.wd.api.repository.PaymentScheduleRepository;
 import com.wd.api.service.AuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,39 +22,41 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Controller for customer-facing site reports API.
- * Customers can view site reports for their projects only.
+ * Controller for customer-facing payment API.
+ * Customers can view payment schedules and transactions for their projects
+ * only.
  */
 @RestController
-@RequestMapping("/api/customer/site-reports")
+@RequestMapping("/api/customer/payments")
 @PreAuthorize("hasRole('CUSTOMER')")
-public class CustomerSiteReportController {
+public class CustomerPaymentController {
 
-        private static final Logger logger = LoggerFactory.getLogger(CustomerSiteReportController.class);
+        private static final Logger logger = LoggerFactory.getLogger(CustomerPaymentController.class);
 
-        private final SiteReportRepository siteReportRepository;
+        private final PaymentScheduleRepository paymentScheduleRepository;
         private final CustomerProjectRepository projectRepository;
         private final AuthService authService;
 
-        public CustomerSiteReportController(
-                        SiteReportRepository siteReportRepository,
+        public CustomerPaymentController(
+                        PaymentScheduleRepository paymentScheduleRepository,
                         CustomerProjectRepository projectRepository,
                         AuthService authService) {
-                this.siteReportRepository = siteReportRepository;
+                this.paymentScheduleRepository = paymentScheduleRepository;
                 this.projectRepository = projectRepository;
                 this.authService = authService;
         }
 
         /**
-         * Get all site reports for projects associated with the current customer.
+         * Get all payment schedules for projects associated with the current customer.
          * 
          * @param projectId Optional filter by specific project
          * @param page      Page number (default: 0)
          * @param size      Page size (default: 20)
-         * @return Paginated list of site reports with photos (customer-safe DTOs)
+         * @return Paginated list of payment schedules with transactions (customer-safe
+         *         DTOs)
          */
         @GetMapping
-        public ResponseEntity<ApiResponse<Page<CustomerSiteReportDto>>> getCustomerSiteReports(
+        public ResponseEntity<ApiResponse<Page<CustomerPaymentScheduleDto>>> getCustomerPayments(
                         @RequestParam(required = false) Long projectId,
                         @RequestParam(defaultValue = "0") int page,
                         @RequestParam(defaultValue = "20") int size) {
@@ -78,7 +80,7 @@ public class CustomerSiteReportController {
                         // Filter by specific project if provided
                         if (projectId != null) {
                                 if (!projectIds.contains(projectId)) {
-                                        logger.warn("Customer {} attempted to access reports for unauthorized project {}",
+                                        logger.warn("Customer {} attempted to access payments for unauthorized project {}",
                                                         currentCustomer.getId(), projectId);
                                         return ResponseEntity.status(403)
                                                         .body(ApiResponse.error("Access denied to this project"));
@@ -86,70 +88,84 @@ public class CustomerSiteReportController {
                                 projectIds = List.of(projectId);
                         }
 
-                        // Create pageable with sorting by report date descending
-                        Pageable pageable = PageRequest.of(page, size, Sort.by("reportDate").descending());
+                        // Create pageable with sorting by due date
+                        Pageable pageable = PageRequest.of(page, size, Sort.by("dueDate").ascending());
 
-                        // Fetch site reports for customer's projects
-                        Page<SiteReport> reports = siteReportRepository.findByProjectIdIn(projectIds, pageable);
+                        // Fetch payment schedules for customer's projects
+                        Page<PaymentSchedule> payments = paymentScheduleRepository.findByProjectIdIn(projectIds,
+                                        pageable);
 
                         // Convert to customer-safe DTOs
-                        Page<CustomerSiteReportDto> reportDtos = reports.map(CustomerSiteReportDto::new);
+                        Page<CustomerPaymentScheduleDto> paymentDtos = payments.map(CustomerPaymentScheduleDto::new);
 
                         return ResponseEntity.ok(ApiResponse.success(
-                                        "Site reports retrieved successfully",
-                                        reportDtos));
+                                        "Payment schedules retrieved successfully",
+                                        paymentDtos));
 
                 } catch (Exception e) {
-                        logger.error("Error fetching customer site reports", e);
+                        logger.error("Error fetching customer payments", e);
                         return ResponseEntity.status(500)
-                                        .body(ApiResponse.error("Failed to retrieve site reports"));
+                                        .body(ApiResponse.error("Failed to retrieve payment schedules"));
                 }
         }
 
         /**
-         * Get a specific site report by ID.
+         * Get a specific payment schedule by ID.
          * Verifies the customer has access to the project.
          * 
-         * @param id Site report ID
-         * @return Site report with all photos (customer-safe DTO)
+         * @param id Payment schedule ID
+         * @return Payment schedule with all transactions (customer-safe DTO)
          */
         @GetMapping("/{id}")
-        public ResponseEntity<ApiResponse<CustomerSiteReportDto>> getSiteReportById(@PathVariable Long id) {
+        public ResponseEntity<ApiResponse<CustomerPaymentScheduleDto>> getPaymentScheduleById(@PathVariable Long id) {
                 try {
                         CustomerUser currentCustomer = authService.getCurrentCustomerUser();
 
-                        SiteReport report = siteReportRepository.findById(id)
+                        PaymentSchedule schedule = paymentScheduleRepository.findById(id)
                                         .orElse(null);
 
-                        if (report == null) {
+                        if (schedule == null) {
                                 return ResponseEntity.status(404)
-                                                .body(ApiResponse.error("Site report not found"));
+                                                .body(ApiResponse.error("Payment schedule not found"));
+                        }
+
+                        // CRITICAL FIX: PaymentSchedule -> DesignPackagePayment -> CustomerProject
+                        // schedule.getProject() doesn't exist!
+                        Long scheduleProjectId = schedule.getDesignPayment() != null
+                                        && schedule.getDesignPayment().getProject() != null
+                                                        ? schedule.getDesignPayment().getProject().getId()
+                                                        : null;
+
+                        if (scheduleProjectId == null) {
+                                logger.error("Payment schedule {} has no associated project", id);
+                                return ResponseEntity.status(500)
+                                                .body(ApiResponse.error("Invalid payment schedule data"));
                         }
 
                         // Verify customer has access to this project
                         List<CustomerProject> customerProjects = projectRepository
                                         .findByCustomer_IdAndDeletedAtIsNull(currentCustomer.getId());
                         boolean hasAccess = customerProjects.stream()
-                                        .anyMatch(p -> p.getId().equals(report.getProject().getId()));
+                                        .anyMatch(p -> p.getId().equals(scheduleProjectId));
 
                         if (!hasAccess) {
-                                logger.warn("Customer {} attempted to access unauthorized report {}",
+                                logger.warn("Customer {} attempted to access unauthorized payment schedule {}",
                                                 currentCustomer.getId(), id);
                                 return ResponseEntity.status(403)
-                                                .body(ApiResponse.error("Access denied to this report"));
+                                                .body(ApiResponse.error("Access denied to this payment schedule"));
                         }
 
                         // Convert to customer-safe DTO
-                        CustomerSiteReportDto reportDto = new CustomerSiteReportDto(report);
+                        CustomerPaymentScheduleDto scheduleDto = new CustomerPaymentScheduleDto(schedule);
 
                         return ResponseEntity.ok(ApiResponse.success(
-                                        "Site report retrieved successfully",
-                                        reportDto));
+                                        "Payment schedule retrieved successfully",
+                                        scheduleDto));
 
                 } catch (Exception e) {
-                        logger.error("Error fetching site report by ID", e);
+                        logger.error("Error fetching payment schedule by ID", e);
                         return ResponseEntity.status(500)
-                                        .body(ApiResponse.error("Failed to retrieve site report"));
+                                        .body(ApiResponse.error("Failed to retrieve payment schedule"));
                 }
         }
 }
