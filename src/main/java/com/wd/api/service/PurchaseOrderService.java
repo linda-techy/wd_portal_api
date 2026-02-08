@@ -11,7 +11,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
@@ -23,11 +22,8 @@ public class PurchaseOrderService {
     private final PurchaseOrderRepository poRepository;
     private final CustomerProjectRepository projectRepository;
     private final VendorRepository vendorRepository;
-    private final MaterialRepository materialRepository;
-    private final BoqItemRepository boqItemRepository;
 
     @Transactional
-    @SuppressWarnings("null")
     public PurchaseOrder createPurchaseOrder(Long projectId, Long vendorId, PurchaseOrder po) {
         if (projectId == null || vendorId == null)
             throw new IllegalArgumentException("Project ID and Vendor ID cannot be null");

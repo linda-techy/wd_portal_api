@@ -42,13 +42,11 @@ public class ProjectProgressService {
     @Autowired
     private ProjectTypeTemplateRepository typeTemplateRepository;
 
-    @Autowired
-    private MilestoneTemplateRepository milestoneTemplateRepository;
-
     /**
      * Calculate overall project progress using hybrid method
      * Formula: Overall = (Milestone × 0.40) + (Task × 0.30) + (Budget × 0.30)
      */
+    @SuppressWarnings("null")
     public ProjectProgressDTO calculateProjectProgress(Long projectId) {
         logger.info("Calculating progress for project ID: {}", projectId);
 
@@ -56,9 +54,11 @@ public class ProjectProgressService {
                 .orElseThrow(() -> new RuntimeException("Project not found with ID: " + projectId));
 
         // Get weights (default: 40-30-30)
-        BigDecimal milestoneWeight = project.getMilestoneWeight() != null ? project.getMilestoneWeight() : new BigDecimal("0.40");
+        BigDecimal milestoneWeight = project.getMilestoneWeight() != null ? project.getMilestoneWeight()
+                : new BigDecimal("0.40");
         BigDecimal taskWeight = project.getTaskWeight() != null ? project.getTaskWeight() : new BigDecimal("0.30");
-        BigDecimal budgetWeight = project.getBudgetWeight() != null ? project.getBudgetWeight() : new BigDecimal("0.30");
+        BigDecimal budgetWeight = project.getBudgetWeight() != null ? project.getBudgetWeight()
+                : new BigDecimal("0.30");
 
         // Calculate individual progress components
         BigDecimal milestoneProgress = calculateMilestoneProgress(projectId);
@@ -122,20 +122,21 @@ public class ProjectProgressService {
         BigDecimal weightedSum = BigDecimal.ZERO;
 
         for (ProjectMilestone milestone : milestones) {
-            BigDecimal weight = milestone.getWeightPercentage() != null 
-                    ? milestone.getWeightPercentage() 
+            BigDecimal weight = milestone.getWeightPercentage() != null
+                    ? milestone.getWeightPercentage()
                     : milestone.getMilestonePercentage();
 
             if (weight == null) {
                 weight = new BigDecimal("100").divide(new BigDecimal(milestones.size()), 2, RoundingMode.HALF_UP);
             }
 
-            BigDecimal completion = milestone.getCompletionPercentage() != null 
-                    ? milestone.getCompletionPercentage() 
+            BigDecimal completion = milestone.getCompletionPercentage() != null
+                    ? milestone.getCompletionPercentage()
                     : ("COMPLETED".equals(milestone.getStatus()) ? new BigDecimal("100") : BigDecimal.ZERO);
 
             totalWeight = totalWeight.add(weight);
-            weightedSum = weightedSum.add(weight.multiply(completion).divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+            weightedSum = weightedSum
+                    .add(weight.multiply(completion).divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
         }
 
         if (totalWeight.compareTo(BigDecimal.ZERO) == 0) {
@@ -170,6 +171,7 @@ public class ProjectProgressService {
      * Calculate progress based on budget utilization
      * Compares spent amount to total budget
      */
+    @SuppressWarnings("null")
     private BigDecimal calculateBudgetProgress(Long projectId) {
         CustomerProject project = projectRepository.findById(projectId).orElse(null);
         if (project == null || project.getBudget() == null || project.getBudget().compareTo(BigDecimal.ZERO) == 0) {
@@ -198,6 +200,7 @@ public class ProjectProgressService {
     /**
      * Update project progress in database and log the change
      */
+    @SuppressWarnings("null")
     public void updateProjectProgress(Long projectId, String changeType, String changeReason, Long changedBy) {
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
@@ -237,7 +240,8 @@ public class ProjectProgressService {
 
         progressLogRepository.save(log);
 
-        logger.info("Project {} progress updated: {}% -> {}%", projectId, previousOverall, newProgress.getOverallProgress());
+        logger.info("Project {} progress updated: {}% -> {}%", projectId, previousOverall,
+                newProgress.getOverallProgress());
     }
 
     /**
@@ -263,6 +267,7 @@ public class ProjectProgressService {
     /**
      * Create default milestones for a project based on its type
      */
+    @SuppressWarnings("null")
     public void createMilestonesFromTemplate(Long projectId, String projectType) {
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
@@ -271,7 +276,7 @@ public class ProjectProgressService {
                 .orElseThrow(() -> new RuntimeException("Template not found for project type: " + projectType));
 
         List<MilestoneTemplate> templates = template.getMilestoneTemplates();
-        
+
         logger.info("Creating {} milestones for project {} from template {}", templates.size(), projectId, projectType);
 
         for (MilestoneTemplate mt : templates) {
@@ -336,4 +341,3 @@ public class ProjectProgressService {
         return dto;
     }
 }
-

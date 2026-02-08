@@ -37,16 +37,17 @@ public class LeadScoreHistoryService {
      * Log a score change for a lead
      * Enterprise-grade: Tracks all score changes for audit trail and analysis
      * 
-     * @param lead The lead with updated score
-     * @param previousScore The score before the change
+     * @param lead             The lead with updated score
+     * @param previousScore    The score before the change
      * @param previousCategory The category before the change
-     * @param scoredById The ID of the user who scored (null for system calculations)
-     * @param reason Optional reason for the score change
-     * @param scoreFactors JSON string of scoring factors
+     * @param scoredById       The ID of the user who scored (null for system
+     *                         calculations)
+     * @param reason           Optional reason for the score change
+     * @param scoreFactors     JSON string of scoring factors
      */
     @Transactional
     public void logScoreChange(Lead lead, Integer previousScore, String previousCategory,
-                              Long scoredById, String reason, String scoreFactors) {
+            Long scoredById, String reason, String scoreFactors) {
         try {
             LeadScoreHistory history = new LeadScoreHistory();
             history.setLeadId(lead.getId());
@@ -60,7 +61,7 @@ public class LeadScoreHistoryService {
             history.setScoredAt(java.time.LocalDateTime.now());
 
             scoreHistoryRepository.save(history);
-            
+
             logger.debug("Logged score change for lead {}: {} -> {} ({})",
                     lead.getId(), previousScore, history.getNewScore(), history.getNewCategory());
         } catch (Exception e) {
@@ -77,13 +78,14 @@ public class LeadScoreHistoryService {
      * @return List of score history entries, most recent first
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public List<LeadScoreHistoryDTO> getScoreHistory(Long leadId) {
         List<LeadScoreHistory> historyList = scoreHistoryRepository.findByLeadIdOrderByScoredAtDesc(leadId);
-        
+
         return historyList.stream()
                 .map(history -> {
                     LeadScoreHistoryDTO dto = new LeadScoreHistoryDTO(history);
-                    
+
                     // Safely extract scored by name
                     if (history.getScoredById() != null) {
                         Optional<PortalUser> userOpt = portalUserRepository.findById(history.getScoredById());
@@ -91,7 +93,7 @@ public class LeadScoreHistoryService {
                             dto.setScoredByName(userOpt.get().getEmail());
                         }
                     }
-                    
+
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -100,17 +102,18 @@ public class LeadScoreHistoryService {
     /**
      * Get score history for a lead with pagination
      * 
-     * @param leadId The lead ID
+     * @param leadId   The lead ID
      * @param pageable Pagination parameters
      * @return Page of score history entries
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<LeadScoreHistoryDTO> getScoreHistoryPaginated(Long leadId, Pageable pageable) {
         Page<LeadScoreHistory> historyPage = scoreHistoryRepository.findByLeadIdOrderByScoredAtDesc(leadId, pageable);
-        
+
         return historyPage.map(history -> {
             LeadScoreHistoryDTO dto = new LeadScoreHistoryDTO(history);
-            
+
             // Safely extract scored by name
             if (history.getScoredById() != null) {
                 Optional<PortalUser> userOpt = portalUserRepository.findById(history.getScoredById());
@@ -118,7 +121,7 @@ public class LeadScoreHistoryService {
                     dto.setScoredByName(userOpt.get().getEmail());
                 }
             }
-            
+
             return dto;
         });
     }
@@ -130,17 +133,18 @@ public class LeadScoreHistoryService {
      * @return Latest score history entry or null if none exists
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public LeadScoreHistoryDTO getLatestScoreHistory(Long leadId) {
         List<LeadScoreHistory> latest = scoreHistoryRepository.findLatestByLeadId(
                 leadId, org.springframework.data.domain.PageRequest.of(0, 1));
-        
+
         if (latest.isEmpty()) {
             return null;
         }
-        
+
         LeadScoreHistory history = latest.get(0);
         LeadScoreHistoryDTO dto = new LeadScoreHistoryDTO(history);
-        
+
         // Safely extract scored by name
         if (history.getScoredById() != null) {
             Optional<PortalUser> userOpt = portalUserRepository.findById(history.getScoredById());
@@ -148,7 +152,7 @@ public class LeadScoreHistoryService {
                 dto.setScoredByName(userOpt.get().getEmail());
             }
         }
-        
+
         return dto;
     }
 
