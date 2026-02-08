@@ -5,7 +5,6 @@ import com.wd.api.dto.LoginResponse;
 import com.wd.api.dto.RefreshTokenRequest;
 import com.wd.api.dto.RefreshTokenResponse;
 import com.wd.api.model.RefreshToken;
-import com.wd.api.model.RefreshToken;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.PortalRole;
 import com.wd.api.repository.RefreshTokenRepository;

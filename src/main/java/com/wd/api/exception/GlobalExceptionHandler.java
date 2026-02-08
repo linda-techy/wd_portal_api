@@ -38,7 +38,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleBusinessException(BusinessException ex) {
         logger.warn("Business exception: {}", ex.getMessage());
         ApiError error = new ApiError(ex.getMessage(), ex.getErrorCode());
-        return ResponseEntity.status(ex.getStatus()).body(error);
+        @SuppressWarnings("null")
+        ResponseEntity<ApiError> response = ResponseEntity.status(ex.getStatus().value()).body(error);
+        return response;
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -80,7 +82,8 @@ public class GlobalExceptionHandler {
         return buildResponse("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @SuppressWarnings("null")
     private ResponseEntity<ApiError> buildResponse(String message, HttpStatus status) {
-        return ResponseEntity.status(status).body(new ApiError(message));
+        return ResponseEntity.status(status.value()).body(new ApiError(message));
     }
 }

@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.SiteReportSearchFilter;
@@ -105,7 +106,9 @@ public class SiteReportController {
                         .body(ApiResponse.error("At least one photo is required for site report submission"));
             }
 
-            Map<String, Object> reportData = objectMapper.readValue(reportJson, Map.class);
+            Map<String, Object> reportData = objectMapper.readValue(reportJson,
+                    new TypeReference<Map<String, Object>>() {
+                    });
             PortalUser currentUser = authService.getCurrentUser();
 
             SiteReport report = new SiteReport();
@@ -119,12 +122,14 @@ public class SiteReportController {
             }
 
             Long projectId = Long.valueOf(reportData.get("projectId").toString());
+            @SuppressWarnings("null")
             CustomerProject project = projectRepository.findById(projectId)
                     .orElseThrow(() -> new RuntimeException("Project not found"));
             report.setProject(project);
 
             if (reportData.containsKey("siteVisitId") && reportData.get("siteVisitId") != null) {
                 Long visitId = Long.valueOf(reportData.get("siteVisitId").toString());
+                @SuppressWarnings("null")
                 SiteVisit visit = siteVisitRepository.findById(visitId)
                         .orElseThrow(() -> new RuntimeException("Site Visit not found"));
                 report.setSiteVisit(visit);

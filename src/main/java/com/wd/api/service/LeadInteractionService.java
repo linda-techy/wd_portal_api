@@ -27,6 +27,7 @@ public class LeadInteractionService {
     private com.wd.api.repository.LeadRepository leadRepository;
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<LeadInteraction> searchLeadInteractions(LeadInteractionSearchFilter filter) {
         Specification<LeadInteraction> spec = buildSpecification(filter);
         return interactionRepository.findAll(spec, filter.toPageable());
@@ -40,10 +41,9 @@ public class LeadInteractionService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("notes")), searchPattern),
-                    cb.like(cb.lower(root.get("subject")), searchPattern),
-                    cb.like(cb.lower(root.get("interactionType")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("notes")), searchPattern),
+                        cb.like(cb.lower(root.get("subject")), searchPattern),
+                        cb.like(cb.lower(root.get("interactionType")), searchPattern)));
             }
 
             // Filter by leadId
@@ -77,10 +77,12 @@ public class LeadInteractionService {
 
             // Date range filter
             if (filter.getStartDate() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("interactionDate"), filter.getStartDate().atStartOfDay()));
+                predicates.add(
+                        cb.greaterThanOrEqualTo(root.get("interactionDate"), filter.getStartDate().atStartOfDay()));
             }
             if (filter.getEndDate() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("interactionDate"), filter.getEndDate().atTime(23, 59, 59)));
+                predicates
+                        .add(cb.lessThanOrEqualTo(root.get("interactionDate"), filter.getEndDate().atTime(23, 59, 59)));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -119,6 +121,7 @@ public class LeadInteractionService {
      * Create a new interaction
      */
     @Transactional
+    @SuppressWarnings("null")
     public LeadInteraction createInteraction(LeadInteraction interaction, Long createdById) {
         interaction.setCreatedById(createdById);
 
@@ -151,6 +154,7 @@ public class LeadInteractionService {
      * Update an existing interaction
      */
     @Transactional
+    @SuppressWarnings("null")
     public LeadInteraction updateInteraction(Long id, LeadInteraction updatedInteraction) {
         LeadInteraction existing = interactionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Interaction not found"));
@@ -171,6 +175,7 @@ public class LeadInteractionService {
      * Delete an interaction
      */
     @Transactional
+    @SuppressWarnings("null")
     public void deleteInteraction(Long id) {
         if (!interactionRepository.existsById(id)) {
             throw new RuntimeException("Interaction not found");

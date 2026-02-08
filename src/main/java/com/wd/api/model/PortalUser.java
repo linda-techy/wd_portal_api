@@ -1,7 +1,6 @@
 package com.wd.api.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import org.springframework.security.core.GrantedAuthority;

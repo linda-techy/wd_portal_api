@@ -118,6 +118,7 @@ public class CustomerSiteReportController {
                 try {
                         CustomerUser currentCustomer = authService.getCurrentCustomerUser();
 
+                        @SuppressWarnings("null")
                         SiteReport report = siteReportRepository.findById(id)
                                         .orElse(null);
 

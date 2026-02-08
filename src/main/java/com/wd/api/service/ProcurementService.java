@@ -46,6 +46,7 @@ public class ProcurementService {
     private final VendorQuotationRepository quotationRepository;
 
     @Transactional
+    @SuppressWarnings("null")
     public VendorDTO createVendor(VendorDTO dto) {
         Vendor vendor = Vendor.builder()
                 .name(dto.getName())
@@ -75,6 +76,7 @@ public class ProcurementService {
      * Update Vendor (construction workflow - update contact/bank info)
      */
     @Transactional
+    @SuppressWarnings("null")
     public VendorDTO updateVendor(Long id, VendorDTO dto) {
         Vendor vendor = vendorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + id));
@@ -111,6 +113,7 @@ public class ProcurementService {
      * Vendors linked to POs cannot be deleted, only deactivated
      */
     @Transactional
+    @SuppressWarnings("null")
     public void deactivateVendor(Long id) {
         Vendor vendor = vendorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + id));
@@ -133,6 +136,7 @@ public class ProcurementService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public PurchaseOrderDTO createPurchaseOrder(PurchaseOrderDTO dto) {
         Long vendorId = dto.getVendorId();
         Long projectId = dto.getProjectId();
@@ -199,6 +203,7 @@ public class ProcurementService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public GRNDTO recordGRN(GRNDTO dto) {
         Long poId = dto.getPoId();
         if (poId == null) {
@@ -242,6 +247,7 @@ public class ProcurementService {
      * Excludes soft-deleted records automatically
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<PurchaseOrderDTO> searchPurchaseOrders(String searchTerm, String status, Long projectId,
             Pageable pageable) {
         Specification<PurchaseOrder> spec = (root, query, cb) -> {
@@ -283,6 +289,7 @@ public class ProcurementService {
      * Soft delete Purchase Order (Enterprise-grade - preserves audit trail)
      */
     @Transactional
+    @SuppressWarnings("null")
     public void softDeletePurchaseOrder(Long id, Long deletedByUserId) {
         PurchaseOrder po = poRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
@@ -310,6 +317,7 @@ public class ProcurementService {
      * Cancel Purchase Order (Enterprise-grade - better than delete)
      */
     @Transactional
+    @SuppressWarnings("null")
     public PurchaseOrderDTO cancelPurchaseOrder(Long id, String cancelReason) {
         PurchaseOrder po = poRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
@@ -340,6 +348,7 @@ public class ProcurementService {
      * verified)
      */
     @Transactional
+    @SuppressWarnings("null")
     public PurchaseOrderDTO closePurchaseOrder(Long id) {
         PurchaseOrder po = poRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
@@ -364,6 +373,7 @@ public class ProcurementService {
      * Update Purchase Order (Enterprise-grade with validation)
      */
     @Transactional
+    @SuppressWarnings("null")
     public PurchaseOrderDTO updatePurchaseOrder(Long id, PurchaseOrderDTO dto) {
         PurchaseOrder po = poRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));

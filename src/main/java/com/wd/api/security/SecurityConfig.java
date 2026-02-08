@@ -134,6 +134,7 @@ public class SecurityConfig {
         }
 
         @Bean
+        @SuppressWarnings("deprecation")
         public AuthenticationProvider authenticationProvider() {
                 DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
                 authProvider.setUserDetailsService(customUserDetailsService);

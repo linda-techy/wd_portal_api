@@ -43,6 +43,7 @@ public class ChallanService {
                 .orElseGet(() -> createNewChallan(transactionId, userId));
     }
 
+    @SuppressWarnings("null")
     private PaymentChallan createNewChallan(Long transactionId, Long userId) {
         PaymentTransaction tx = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
@@ -79,6 +80,7 @@ public class ChallanService {
         return challanRepository.save(challan);
     }
 
+    @SuppressWarnings("null")
     public byte[] generateChallanPdf(Long challanId) {
         PaymentChallan challan = challanRepository.findById(challanId)
                 .orElseThrow(() -> new RuntimeException("Challan not found"));
@@ -110,6 +112,7 @@ public class ChallanService {
         }
     }
 
+    @SuppressWarnings("null")
     public byte[] generateBulkZip(List<Long> challanIds) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 ZipOutputStream zos = new ZipOutputStream(baos)) {

@@ -17,6 +17,7 @@ import java.util.Optional;
 public class JpaAuditConfig {
 
     @Bean
+    @SuppressWarnings("null")
     public AuditorAware<Long> auditorProvider() {
         return () -> {
             SecurityContext context = SecurityContextHolder.getContext();

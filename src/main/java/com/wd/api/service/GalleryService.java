@@ -37,9 +37,9 @@ public class GalleryService {
     private final FileStorageService fileStorageService;
 
     public GalleryService(GalleryImageRepository galleryImageRepository,
-                          CustomerProjectRepository projectRepository,
-                          SiteReportRepository siteReportRepository,
-                          FileStorageService fileStorageService) {
+            CustomerProjectRepository projectRepository,
+            SiteReportRepository siteReportRepository,
+            FileStorageService fileStorageService) {
         this.galleryImageRepository = galleryImageRepository;
         this.projectRepository = projectRepository;
         this.siteReportRepository = siteReportRepository;
@@ -47,6 +47,7 @@ public class GalleryService {
     }
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<GalleryImageDto> searchGalleryImages(GallerySearchFilter filter) {
         Specification<GalleryImage> spec = buildSpecification(filter);
         Page<GalleryImage> images = galleryImageRepository.findAll(spec, filter.toPageable());
@@ -60,9 +61,8 @@ public class GalleryService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("caption")), searchPattern),
-                    cb.like(cb.lower(root.get("locationTag")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("caption")), searchPattern),
+                        cb.like(cb.lower(root.get("locationTag")), searchPattern)));
             }
 
             if (filter.getProjectId() != null) {
@@ -78,8 +78,8 @@ public class GalleryService {
             }
 
             if (filter.getLocationTag() != null && !filter.getLocationTag().isEmpty()) {
-                predicates.add(cb.like(cb.lower(root.get("locationTag")), 
-                    "%" + filter.getLocationTag().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("locationTag")),
+                        "%" + filter.getLocationTag().toLowerCase() + "%"));
             }
 
             if (filter.getUploadedById() != null) {
@@ -114,6 +114,7 @@ public class GalleryService {
     }
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public GalleryImageDto getImageById(Long id) {
         GalleryImage image = galleryImageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Gallery image not found with id: " + id));
@@ -121,9 +122,10 @@ public class GalleryService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public GalleryImageDto uploadImage(Long projectId, MultipartFile file, String caption,
-                                        String locationTag, String[] tags, LocalDate takenDate,
-                                        PortalUser uploadedBy) {
+            String locationTag, String[] tags, LocalDate takenDate,
+            PortalUser uploadedBy) {
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found with id: " + projectId));
 
@@ -148,6 +150,7 @@ public class GalleryService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public GalleryImageDto updateImage(Long id, String caption, String locationTag, String[] tags) {
         GalleryImage image = galleryImageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Gallery image not found with id: " + id));
@@ -167,6 +170,7 @@ public class GalleryService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public void deleteImage(Long id) {
         GalleryImage image = galleryImageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Gallery image not found with id: " + id));
@@ -188,6 +192,7 @@ public class GalleryService {
      * Called automatically when a site report is created with photos.
      */
     @Transactional
+    @SuppressWarnings("null")
     public void createImagesFromSiteReport(Long siteReportId, PortalUser uploadedBy) {
         SiteReport siteReport = siteReportRepository.findById(siteReportId)
                 .orElseThrow(() -> new RuntimeException("Site report not found: " + siteReportId));
@@ -203,8 +208,8 @@ public class GalleryService {
             galleryImage.setImagePath(photo.getStoragePath());
             galleryImage.setImageUrl(photo.getPhotoUrl());
             galleryImage.setCaption("From Site Report: " + siteReport.getTitle());
-            galleryImage.setTakenDate(siteReport.getReportDate() != null 
-                    ? siteReport.getReportDate().toLocalDate() 
+            galleryImage.setTakenDate(siteReport.getReportDate() != null
+                    ? siteReport.getReportDate().toLocalDate()
                     : LocalDate.now());
             galleryImage.setUploadedBy(uploadedBy);
             galleryImage.setUploadedAt(LocalDateTime.now());
@@ -212,7 +217,7 @@ public class GalleryService {
             galleryImageRepository.save(galleryImage);
         }
 
-        logger.info("Created {} gallery images from site report {}", 
+        logger.info("Created {} gallery images from site report {}",
                 siteReport.getPhotos().size(), siteReportId);
     }
 

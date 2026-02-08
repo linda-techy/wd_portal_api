@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,7 +32,7 @@ public class FeedbackService {
     @Transactional
     public FeedbackFormDto createForm(Long projectId, String title, String description, 
                                        String formSchema, String creatorEmail) {
-        CustomerProject project = projectRepository.findById(projectId)
+        CustomerProject project = projectRepository.findById(Objects.requireNonNull(projectId, "Project ID is required"))
                 .orElseThrow(() -> new RuntimeException("Project not found: " + projectId));
         
         PortalUser creator = portalUserRepository.findByEmail(creatorEmail)
@@ -69,7 +70,7 @@ public class FeedbackService {
 
     @Transactional(readOnly = true)
     public FeedbackFormDto getFormById(Long formId) {
-        FeedbackForm form = feedbackFormRepository.findById(formId)
+        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, "Form ID is required"))
                 .orElseThrow(() -> new RuntimeException("Feedback form not found: " + formId));
         
         FeedbackFormDto dto = FeedbackFormDto.fromEntity(form);
@@ -80,7 +81,7 @@ public class FeedbackService {
     @Transactional
     public FeedbackFormDto updateForm(Long formId, String title, String description, 
                                        String formSchema, Boolean isActive) {
-        FeedbackForm form = feedbackFormRepository.findById(formId)
+        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, "Form ID is required"))
                 .orElseThrow(() -> new RuntimeException("Feedback form not found: " + formId));
 
         if (title != null) {
@@ -96,13 +97,13 @@ public class FeedbackService {
             form.setIsActive(isActive);
         }
 
-        FeedbackForm saved = feedbackFormRepository.save(form);
+        FeedbackForm saved = feedbackFormRepository.save(Objects.requireNonNull(form));
         return FeedbackFormDto.fromEntity(saved);
     }
 
     @Transactional
     public void deactivateForm(Long formId) {
-        FeedbackForm form = feedbackFormRepository.findById(formId)
+        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, "Form ID is required"))
                 .orElseThrow(() -> new RuntimeException("Feedback form not found: " + formId));
         
         form.setIsActive(false);
@@ -111,7 +112,7 @@ public class FeedbackService {
 
     @Transactional
     public void deleteForm(Long formId) {
-        FeedbackForm form = feedbackFormRepository.findById(formId)
+        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, "Form ID is required"))
                 .orElseThrow(() -> new RuntimeException("Feedback form not found: " + formId));
         
         // Check if form has responses - if so, deactivate instead of delete
@@ -120,7 +121,7 @@ public class FeedbackService {
             form.setIsActive(false);
             feedbackFormRepository.save(form);
         } else {
-            feedbackFormRepository.delete(form);
+            feedbackFormRepository.delete(Objects.requireNonNull(form));
         }
     }
 
@@ -144,7 +145,7 @@ public class FeedbackService {
 
     @Transactional(readOnly = true)
     public FeedbackResponseDto getResponseById(Long responseId) {
-        FeedbackResponse response = feedbackResponseRepository.findById(responseId)
+        FeedbackResponse response = feedbackResponseRepository.findById(Objects.requireNonNull(responseId, "Response ID is required"))
                 .orElseThrow(() -> new RuntimeException("Feedback response not found: " + responseId));
         return FeedbackResponseDto.fromEntity(response);
     }

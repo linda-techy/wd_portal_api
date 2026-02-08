@@ -22,7 +22,9 @@ public class GallerySearchFilter {
     private String sortDir = "desc";
 
     public Pageable toPageable() {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        String direction = (sortDir != null) ? sortDir : "desc";
+        String property = (sortBy != null) ? sortBy : "takenDate";
+        Sort sort = Sort.by(Sort.Direction.fromString(direction), property);
         return PageRequest.of(page, size, sort);
     }
 

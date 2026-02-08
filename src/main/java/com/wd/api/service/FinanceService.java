@@ -31,6 +31,7 @@ public class FinanceService {
         private final ReceiptRepository receiptRepository;
 
         @Transactional
+        @SuppressWarnings("null")
         public ProjectInvoiceDTO createProjectInvoice(ProjectInvoiceDTO dto) {
                 Long projectId = java.util.Objects.requireNonNull(dto.getProjectId());
                 CustomerProject project = projectRepository.findById(projectId)
@@ -60,6 +61,7 @@ public class FinanceService {
         }
 
         @Transactional
+        @SuppressWarnings("null")
         public PurchaseInvoiceDTO recordPurchaseInvoice(PurchaseInvoiceDTO dto) {
                 Long vendorId = java.util.Objects.requireNonNull(dto.getVendorId());
                 Vendor vendor = vendorRepository.findById(vendorId)
@@ -96,6 +98,7 @@ public class FinanceService {
         }
 
         @Transactional
+        @SuppressWarnings("null")
         public LabourPaymentDTO recordLabourPayment(LabourPaymentDTO dto) {
                 Long labourId = java.util.Objects.requireNonNull(dto.getLabourId());
                 Labour labour = labourRepository.findById(labourId)
@@ -184,11 +187,13 @@ public class FinanceService {
         }
 
         @Transactional
+        @SuppressWarnings("null")
         public ProjectMilestone createMilestone(ProjectMilestone milestone) {
                 return milestoneRepository.save(milestone);
         }
 
         @Transactional
+        @SuppressWarnings("null")
         public ProjectMilestone updateMilestone(Long id, ProjectMilestone details) {
                 ProjectMilestone milestone = milestoneRepository.findById(id)
                                 .orElseThrow(() -> new RuntimeException("Milestone not found"));
@@ -210,6 +215,7 @@ public class FinanceService {
         }
 
         @Transactional
+        @SuppressWarnings("null")
         public ProjectInvoiceDTO generateInvoiceForMilestone(Long milestoneId) {
                 ProjectMilestone milestone = milestoneRepository.findById(milestoneId)
                                 .orElseThrow(() -> new RuntimeException("Milestone not found"));
@@ -248,6 +254,7 @@ public class FinanceService {
         }
 
         @Transactional
+        @SuppressWarnings("null")
         public Receipt recordReceipt(Receipt receipt) {
                 if (receipt.getProject() == null && receipt.getInvoice() != null) {
                         receipt.setProject(receipt.getInvoice().getProject());

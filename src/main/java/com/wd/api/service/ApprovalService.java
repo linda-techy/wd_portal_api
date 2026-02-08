@@ -22,6 +22,7 @@ import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,7 +38,7 @@ public class ApprovalService {
         @Transactional(readOnly = true)
         public Page<ApprovalRequest> searchApprovals(ApprovalSearchFilter filter) {
                 Specification<ApprovalRequest> spec = buildSpecification(filter);
-                return approvalRepository.findAll(spec, filter.toPageable());
+                return approvalRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()));
         }
 
         private Specification<ApprovalRequest> buildSpecification(ApprovalSearchFilter filter) {
@@ -90,11 +91,11 @@ public class ApprovalService {
 
         @Transactional
         public ApprovalRequestDTO createRequest(ApprovalRequestDTO dto) {
-                PortalUser requester = userRepository.findById(dto.getRequestedById())
+                PortalUser requester = userRepository.findById(Objects.requireNonNull(dto.getRequestedById(), "Requester ID is required"))
                                 .orElseThrow(() -> new RuntimeException("Requester not found"));
 
                 PortalUser approver = dto.getApproverId() != null
-                                ? userRepository.findById(dto.getApproverId()).orElse(null)
+                                ? userRepository.findById(Objects.requireNonNull(dto.getApproverId())).orElse(null)
                                 : null;
 
                 ApprovalRequest request = ApprovalRequest.builder()
@@ -106,16 +107,16 @@ public class ApprovalService {
                                 .comments(dto.getComments())
                                 .build();
 
-                request = approvalRepository.save(request);
+                request = approvalRepository.save(Objects.requireNonNull(request));
                 return mapToDTO(request);
         }
 
         @Transactional
         public ApprovalRequestDTO processRequest(Long requestId, String status, String comments, Long approverId) {
-                ApprovalRequest request = approvalRepository.findById(requestId)
+                ApprovalRequest request = approvalRepository.findById(Objects.requireNonNull(requestId, "Request ID is required"))
                                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
-                PortalUser approver = userRepository.findById(approverId)
+                PortalUser approver = userRepository.findById(Objects.requireNonNull(approverId, "Approver ID is required"))
                                 .orElseThrow(() -> new RuntimeException("Approver not found"));
 
                 request.setStatus(status);
@@ -126,8 +127,9 @@ public class ApprovalService {
                 request = approvalRepository.save(request);
 
                 // Update the target object status
+                Long targetId = Objects.requireNonNull(request.getTargetId(), "Target ID is required");
                 if ("PO".equals(request.getTargetType())) {
-                        PurchaseOrder po = poRepository.findById(request.getTargetId()).orElse(null);
+                        PurchaseOrder po = poRepository.findById(targetId).orElse(null);
                         if (po != null) {
                                 if ("APPROVED".equals(status)) {
                                         po.setStatus(com.wd.api.model.enums.PurchaseOrderStatus.ISSUED);
@@ -137,7 +139,7 @@ public class ApprovalService {
                                 poRepository.save(po);
                         }
                 } else if ("INVOICE".equals(request.getTargetType())) {
-                        ProjectInvoice inv = invoiceRepository.findById(request.getTargetId()).orElse(null);
+                        ProjectInvoice inv = invoiceRepository.findById(targetId).orElse(null);
                         if (inv != null) {
                                 inv.setStatus(
                                                 "APPROVED".equals(status) ? "ISSUED"
@@ -146,7 +148,7 @@ public class ApprovalService {
                                 invoiceRepository.save(inv);
                         }
                 } else if ("CHALLAN".equals(request.getTargetType())) {
-                        PaymentChallan challan = challanRepository.findById(request.getTargetId()).orElse(null);
+                        PaymentChallan challan = challanRepository.findById(targetId).orElse(null);
                         if (challan != null) {
                                 challan.setStatus(
                                                 "APPROVED".equals(status) ? "APPROVED"

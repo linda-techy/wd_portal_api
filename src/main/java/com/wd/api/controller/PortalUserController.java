@@ -110,6 +110,7 @@ public class PortalUserController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PortalUserResponse>> getPortalUserById(@PathVariable Long id) {
         try {
+            @SuppressWarnings("null")
             Optional<PortalUser> userOpt = portalUserRepository.findById(id);
             if (!userOpt.isPresent()) {
                 return ResponseEntity.status(404).body(ApiResponse.error("User not found"));
@@ -159,7 +160,9 @@ public class PortalUserController {
 
             // Set role by looking up PortalRole entity
             if (request.getRoleId() != null) {
-                portalRoleRepository.findById(request.getRoleId()).ifPresent(user::setRole);
+                @SuppressWarnings("null")
+                Optional<com.wd.api.model.PortalRole> roleOpt = portalRoleRepository.findById(request.getRoleId());
+                roleOpt.ifPresent(user::setRole);
             }
 
             user.setEnabled(request.getEnabled() != null ? request.getEnabled() : true);
@@ -231,13 +234,16 @@ public class PortalUserController {
             }
 
             if (request.getRoleId() != null) {
-                portalRoleRepository.findById(request.getRoleId()).ifPresent(user::setRole);
+                @SuppressWarnings("null")
+                Optional<com.wd.api.model.PortalRole> roleOpt = portalRoleRepository.findById(request.getRoleId());
+                roleOpt.ifPresent(user::setRole);
             }
 
             if (request.getEnabled() != null) {
                 user.setEnabled(request.getEnabled());
             }
 
+            @SuppressWarnings("null")
             PortalUser updatedUser = portalUserRepository.save(user);
             return ResponseEntity
                     .ok(ApiResponse.success("User updated successfully", new PortalUserResponse(updatedUser)));

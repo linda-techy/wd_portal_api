@@ -35,6 +35,7 @@ public class View360Controller {
             @RequestPart("tour") String tourJson,
             @RequestPart("file") MultipartFile file) throws Exception {
 
+        @SuppressWarnings("unchecked")
         Map<String, Object> tourData = objectMapper.readValue(tourJson, Map.class);
 
         String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()
@@ -42,7 +43,12 @@ public class View360Controller {
         PortalUser currentUser = portalUserRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
-        Long projectId = Long.valueOf(tourData.get("projectId").toString());
+        Object projectIdObj = tourData.get("projectId");
+        if (projectIdObj == null) {
+            throw new RuntimeException("projectId is required");
+        }
+        Long projectId = Long.valueOf(projectIdObj.toString());
+        @SuppressWarnings("null")
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 

@@ -5,10 +5,8 @@ import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
 import com.wd.api.dto.ProjectSearchFilter;
 import com.wd.api.model.CustomerProject;
-import com.wd.api.model.Task;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.CustomerUserRepository;
-import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.ProjectMemberRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.LeadRepository;
@@ -19,7 +17,6 @@ import com.wd.api.util.SpecificationBuilder;
 
 import com.wd.api.model.PortalUser;
 
-import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +28,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
@@ -72,6 +68,7 @@ public class CustomerProjectService {
      * Returns DTOs to avoid Hibernate lazy-loading proxy serialization issues
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<CustomerProjectResponse> search(ProjectSearchFilter filter) {
         try {
             Specification<CustomerProject> spec = buildSearchSpecification(filter);
@@ -193,6 +190,7 @@ public class CustomerProjectService {
      */
     @Deprecated
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<CustomerProjectResponse> getAllProjects(String search, Pageable pageable) {
         Page<CustomerProject> projectPage;
         Pageable resolvedPageable = pageable != null ? pageable : PageRequest.of(0, 10);
@@ -232,6 +230,7 @@ public class CustomerProjectService {
     /**
      * Create new customer project
      */
+    @SuppressWarnings("null")
     public CustomerProject createProject(CustomerProjectCreateRequest request, String createdBy) {
         // Validate required fields
         validateProjectRequest(request);
@@ -405,6 +404,7 @@ public class CustomerProjectService {
      * while preserving business-critical data (tasks, invoices, payments, etc.)
      * that require explicit deletion for compliance and audit trail purposes
      */
+    @SuppressWarnings("null")
     public void deleteProject(Long id) {
         if (id == null) {
             throw new IllegalArgumentException("Project ID is required");

@@ -121,6 +121,7 @@ public class CustomerPaymentController {
                 try {
                         CustomerUser currentCustomer = authService.getCurrentCustomerUser();
 
+                        @SuppressWarnings("null")
                         PaymentSchedule schedule = paymentScheduleRepository.findById(id)
                                         .orElse(null);
 

@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -47,7 +48,7 @@ public class LeadQuotationService {
     @Transactional(readOnly = true)
     public Page<LeadQuotation> searchLeadQuotations(LeadQuotationSearchFilter filter) {
         Specification<LeadQuotation> spec = buildSpecification(filter);
-        return quotationRepository.findAll(spec, filter.toPageable());
+        return quotationRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()));
     }
 
     private Specification<LeadQuotation> buildSpecification(LeadQuotationSearchFilter filter) {
@@ -114,7 +115,7 @@ public class LeadQuotationService {
      */
     @Transactional(readOnly = true)
     public LeadQuotation getQuotationById(Long id) {
-        LeadQuotation quotation = quotationRepository.findById(id)
+        LeadQuotation quotation = quotationRepository.findById(Objects.requireNonNull(id, "Quotation ID is required"))
                 .orElseThrow(() -> new RuntimeException("Quotation not found with id: " + id));
         
         // Force eager loading of items by accessing the collection
@@ -163,7 +164,7 @@ public class LeadQuotationService {
      */
     @Transactional
     public LeadQuotation updateQuotation(Long id, LeadQuotation updatedQuotation) {
-        LeadQuotation existing = quotationRepository.findById(id)
+        LeadQuotation existing = quotationRepository.findById(Objects.requireNonNull(id, "Quotation ID is required"))
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
 
         // Only allow updates if not accepted or rejected
@@ -202,7 +203,7 @@ public class LeadQuotationService {
      */
     @Transactional
     public LeadQuotation sendQuotation(Long id) {
-        LeadQuotation quotation = quotationRepository.findById(id)
+        LeadQuotation quotation = quotationRepository.findById(Objects.requireNonNull(id, "Quotation ID is required"))
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
 
         if (!"DRAFT".equals(quotation.getStatus())) {
@@ -220,7 +221,7 @@ public class LeadQuotationService {
      */
     @Transactional
     public LeadQuotation markAsViewed(Long id) {
-        LeadQuotation quotation = quotationRepository.findById(id)
+        LeadQuotation quotation = quotationRepository.findById(Objects.requireNonNull(id, "Quotation ID is required"))
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
 
         if (quotation.getViewedAt() == null) {

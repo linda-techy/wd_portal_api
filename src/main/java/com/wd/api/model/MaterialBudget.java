@@ -2,6 +2,7 @@ package com.wd.api.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * Material Budget - Enterprise Budget Tracking
@@ -87,7 +88,7 @@ public class MaterialBudget extends BaseEntity {
             return BigDecimal.ZERO;
         }
         BigDecimal variance = proposedRate.subtract(budgetedRate);
-        return variance.divide(budgetedRate, 4, BigDecimal.ROUND_HALF_UP)
+        return variance.divide(budgetedRate, 4, RoundingMode.HALF_UP)
                 .multiply(new BigDecimal("100"));
     }
 

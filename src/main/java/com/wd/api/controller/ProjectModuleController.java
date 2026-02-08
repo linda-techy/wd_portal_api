@@ -43,7 +43,8 @@ public class ProjectModuleController {
     @GetMapping("/documents/categories")
     public ResponseEntity<ApiResponse<List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto>>> getDocumentCategories(
             @PathVariable Long projectId) {
-        List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService.getAllCategories("PROJECT");
+        List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService
+                .getAllCategories("PROJECT");
         return ResponseEntity.ok(ApiResponse.success("Project document categories retrieved successfully", categories));
     }
 
@@ -56,6 +57,7 @@ public class ProjectModuleController {
     }
 
     // Helper method to extract user ID from authentication
+    @SuppressWarnings("unused")
     private Long getUserIdFromAuth(Authentication auth) {
         if (auth == null || auth.getPrincipal() == null) {
             return null;

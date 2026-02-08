@@ -20,6 +20,7 @@ public class BoqService {
     private BoqItemRepository boqItemRepository;
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<BoqItem> searchBoqItems(BoqSearchFilter filter) {
         Specification<BoqItem> spec = buildSpecification(filter);
         return boqItemRepository.findAll(spec, filter.toPageable());
@@ -33,9 +34,8 @@ public class BoqService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("description")), searchPattern),
-                    cb.like(cb.lower(root.get("itemCode")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("description")), searchPattern),
+                        cb.like(cb.lower(root.get("itemCode")), searchPattern)));
             }
 
             // Filter by projectId
@@ -71,6 +71,7 @@ public class BoqService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public BoqItem updateBoqItem(Long id, BoqItem details) {
         BoqItem item = boqItemRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BoQ Item not found: " + id));

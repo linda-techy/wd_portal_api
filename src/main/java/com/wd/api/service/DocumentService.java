@@ -1,13 +1,8 @@
 package com.wd.api.service;
 
 import com.wd.api.dto.DocumentResponse;
-import com.wd.api.model.ActivityFeed;
-import com.wd.api.model.ActivityType;
-import com.wd.api.model.CustomerProject;
-import com.wd.api.model.CustomerUser;
 import com.wd.api.model.Document;
 import com.wd.api.model.DocumentCategory;
-import com.wd.api.model.PortalUser;
 import com.wd.api.repository.DocumentCategoryRepository;
 import com.wd.api.repository.DocumentRepository;
 import com.wd.api.repository.PortalUserRepository;
@@ -40,12 +35,12 @@ public class DocumentService {
      * Get all document categories sorted by display order.
      * Used for category selection dropdowns in document upload flow.
      * 
-     * @param referenceType Optional filter by reference type (LEAD, PROJECT). 
+     * @param referenceType Optional filter by reference type (LEAD, PROJECT).
      *                      If null, returns all categories.
      */
     public List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> getAllCategories(String referenceType) {
         List<DocumentCategory> categories;
-        
+
         if (referenceType != null && !referenceType.isEmpty()) {
             // Filter by reference type (includes BOTH and null for backward compatibility)
             categories = categoryRepository.findByReferenceTypeOrBoth(referenceType.toUpperCase());
@@ -53,7 +48,7 @@ public class DocumentService {
             // Return all categories
             categories = categoryRepository.findAllByOrderByDisplayOrderAsc();
         }
-        
+
         return categories.stream()
                 .sorted((a, b) -> {
                     int orderA = a.getDisplayOrder() != null ? a.getDisplayOrder() : 100;
@@ -64,7 +59,7 @@ public class DocumentService {
                         c.getId(), c.getName(), c.getDescription(), c.getDisplayOrder()))
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * Get all document categories (backward compatibility - returns all).
      */
@@ -114,6 +109,7 @@ public class DocumentService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public void deleteDocument(Long documentId) {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new RuntimeException("Document not found"));
@@ -121,6 +117,7 @@ public class DocumentService {
         documentRepository.save(document);
     }
 
+    @SuppressWarnings("null")
     public DocumentResponse toResponse(Document doc) {
         String uploaderName = "System";
         if (doc.getCreatedByUserId() != null) {
