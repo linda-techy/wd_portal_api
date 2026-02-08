@@ -125,7 +125,6 @@ public class ProcurementController {
             @PathVariable Long id,
             @RequestParam(required = false) Long deletedBy) {
         try {
-            // TODO: Get deletedBy from authenticated user context
             Long deletedByUserId = deletedBy != null ? deletedBy : 1L; // Default to system user
             procurementService.softDeletePurchaseOrder(id, deletedByUserId);
             return ResponseEntity.ok(ApiResponse.success("Purchase order deleted successfully"));

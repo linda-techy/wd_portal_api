@@ -134,6 +134,7 @@ public class VendorPaymentService {
         return summaries;
     }
 
+    @SuppressWarnings("null")
     public VendorOutstandingDTO getVendorOutstanding(Long vendorId) {
         Vendor vendor = vendorRepo.findById(vendorId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));

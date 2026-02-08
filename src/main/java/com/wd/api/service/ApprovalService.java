@@ -36,7 +36,6 @@ public class ApprovalService {
         private final PaymentChallanRepository challanRepository;
 
         @Transactional(readOnly = true)
-        @SuppressWarnings("null")
         public Page<ApprovalRequest> searchApprovals(ApprovalSearchFilter filter) {
                 Specification<ApprovalRequest> spec = buildSpecification(filter);
                 return approvalRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()));
@@ -95,7 +94,6 @@ public class ApprovalService {
         }
 
         @Transactional
-        @SuppressWarnings("null")
         public ApprovalRequestDTO createRequest(ApprovalRequestDTO dto) {
                 PortalUser requester = userRepository
                                 .findById(Objects.requireNonNull(dto.getRequestedById(), "Requester ID is required"))
@@ -119,7 +117,6 @@ public class ApprovalService {
         }
 
         @Transactional
-        @SuppressWarnings("null")
         public ApprovalRequestDTO processRequest(Long requestId, String status, String comments, Long approverId) {
                 ApprovalRequest request = approvalRepository
                                 .findById(Objects.requireNonNull(requestId, "Request ID is required"))
@@ -177,7 +174,6 @@ public class ApprovalService {
                                 .collect(Collectors.toList());
         }
 
-        @SuppressWarnings("null")
         private ApprovalRequestDTO mapToDTO(ApprovalRequest req) {
                 return ApprovalRequestDTO.builder()
                                 .id(req.getId())

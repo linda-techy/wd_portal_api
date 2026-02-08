@@ -56,10 +56,9 @@ public class TaskService {
      * NEW: Standardized search method using TaskSearchFilter
      */
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<Task> search(TaskSearchFilter filter) {
         Specification<Task> spec = buildSearchSpecification(filter);
-        return taskRepository.findAll(spec, filter.toPageable());
+        return taskRepository.findAll(spec, java.util.Objects.requireNonNull(filter.toPageable()));
     }
 
     /**
@@ -142,17 +141,15 @@ public class TaskService {
      * Get task by ID
      * Authorization check should be done at controller level
      */
-    @SuppressWarnings("null")
     public Optional<Task> getTaskById(Long id) {
-        return taskRepository.findById(id);
+        return taskRepository.findById(java.util.Objects.requireNonNull(id));
     }
 
     /**
      * Get tasks assigned to a specific user
      */
-    @SuppressWarnings("null")
     public List<Task> getTasksByAssignedUser(Long userId) {
-        Optional<PortalUser> user = portalUserRepository.findById(userId);
+        Optional<PortalUser> user = portalUserRepository.findById(java.util.Objects.requireNonNull(userId));
         return user.map(taskRepository::findByAssignedTo).orElse(List.of());
     }
 
@@ -193,7 +190,6 @@ public class TaskService {
      * Anyone can create tasks (enforced at controller with @PreAuthorize)
      */
     @Transactional
-    @SuppressWarnings("null")
     public Task createTask(Task task, PortalUser createdBy) {
         logger.info("Creating task '{}' by user {}", task.getTitle(), createdBy.getEmail());
 
@@ -247,14 +243,13 @@ public class TaskService {
      * CRITICAL: Authorization is checked BEFORE any modification
      */
     @Transactional
-    @SuppressWarnings("null")
     public Task updateTask(Long id, Task taskDetails, Authentication auth, Long userId) {
         logger.info("Attempting to update task {} by user {}", id, userId);
 
         // CRITICAL: Verify permission BEFORE modification
         authService.requireModifyPermission(id, auth, userId);
 
-        Task task = taskRepository.findById(id)
+        Task task = taskRepository.findById(java.util.Objects.requireNonNull(id))
                 .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
 
         // Update fields
@@ -273,7 +268,7 @@ public class TaskService {
             if (previousAssignee == null || !previousAssignee.getId().equals(newAssignee.getId())) {
                 task.setAssignedTo(newAssignee);
 
-                PortalUser assignedBy = portalUserRepository.findById(userId)
+                PortalUser assignedBy = portalUserRepository.findById(java.util.Objects.requireNonNull(userId))
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
                 recordAssignment(
@@ -308,19 +303,18 @@ public class TaskService {
      * Records complete audit trail of who assigned what to whom.
      */
     @Transactional
-    @SuppressWarnings("null")
     public Task assignTask(Long taskId, Long newAssigneeId, Long assignedById, String notes) {
         logger.info("Assigning task {} to user {} by user {}", taskId, newAssigneeId, assignedById);
 
-        Task task = taskRepository.findById(taskId)
+        Task task = taskRepository.findById(java.util.Objects.requireNonNull(taskId))
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
         PortalUser newAssignee = newAssigneeId != null
-                ? portalUserRepository.findById(newAssigneeId)
+                ? portalUserRepository.findById(java.util.Objects.requireNonNull(newAssigneeId))
                         .orElseThrow(() -> new RuntimeException("Assignee user not found"))
                 : null;
 
-        PortalUser assignedBy = portalUserRepository.findById(assignedById)
+        PortalUser assignedBy = portalUserRepository.findById(java.util.Objects.requireNonNull(assignedById))
                 .orElseThrow(() -> new RuntimeException("Assigning user not found"));
 
         PortalUser previousAssignee = task.getAssignedTo();
@@ -349,18 +343,17 @@ public class TaskService {
      * CRITICAL: Authorization is checked BEFORE deletion
      */
     @Transactional
-    @SuppressWarnings("null")
     public void deleteTask(Long id, Authentication auth, Long userId) {
         logger.info("Attempting to delete task {} by user {}", id, userId);
 
         // CRITICAL: Verify permission BEFORE deletion
         authService.requireModifyPermission(id, auth, userId);
 
-        if (!taskRepository.existsById(id)) {
+        if (!taskRepository.existsById(java.util.Objects.requireNonNull(id))) {
             throw new RuntimeException("Task not found with id: " + id);
         }
 
-        taskRepository.deleteById(id);
+        taskRepository.deleteById(java.util.Objects.requireNonNull(id));
         // Note: Assignment history is cascade deleted (ON DELETE CASCADE)
 
         logger.info("Task {} deleted successfully", id);
@@ -395,7 +388,6 @@ public class TaskService {
      * Record assignment change in history table
      * This creates an audit trail for all assignment changes
      */
-    @SuppressWarnings("null")
     private void recordAssignment(Long taskId, PortalUser from, PortalUser to, PortalUser by, String notes) {
         TaskAssignmentHistory history = new TaskAssignmentHistory();
         history.setTaskId(taskId);

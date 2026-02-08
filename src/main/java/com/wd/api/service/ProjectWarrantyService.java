@@ -98,7 +98,6 @@ public class ProjectWarrantyService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectWarranty createWarranty(ProjectWarranty warranty, Long projectId) {
         if (projectId == null)
             throw new IllegalArgumentException("Project ID cannot be null");
@@ -116,7 +115,6 @@ public class ProjectWarrantyService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectWarranty updateWarranty(Long id, ProjectWarranty details) {
         if (id == null)
             throw new IllegalArgumentException("Warranty ID cannot be null");
@@ -135,7 +133,6 @@ public class ProjectWarrantyService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void deleteWarranty(Long id) {
         if (id != null) {
             warrantyRepository.deleteById(id);

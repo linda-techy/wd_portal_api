@@ -117,7 +117,6 @@ public class ProjectVariationService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectVariation createVariation(ProjectVariation variation, Long projectId, Long createdById) {
         CustomerProject project = projectRepository
                 .findById(Objects.requireNonNull(projectId, "Project ID is required"))
@@ -135,7 +134,6 @@ public class ProjectVariationService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectVariation updateVariation(Long id, ProjectVariation details) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
@@ -152,7 +150,6 @@ public class ProjectVariationService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectVariation deleteVariation(Long id) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
@@ -166,7 +163,6 @@ public class ProjectVariationService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectVariation submitForApproval(Long id) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
@@ -176,7 +172,6 @@ public class ProjectVariationService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectVariation approveVariation(Long id, Long approverId) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
@@ -190,14 +185,10 @@ public class ProjectVariationService {
         existing.setApprovedBy(approver);
         existing.setApprovedAt(LocalDateTime.now());
 
-        // TODO: Logic to update project budget or create additional invoice could go
-        // here
-
         return variationRepository.save(existing);
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectVariation rejectVariation(Long id, Long approverId, String reason) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));

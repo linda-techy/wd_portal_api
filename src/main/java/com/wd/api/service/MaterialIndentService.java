@@ -212,6 +212,7 @@ public class MaterialIndentService {
         return indentRepository.findAll(spec, pageable);
     }
 
+    @SuppressWarnings("null")
     public MaterialIndent getIndentById(Long id) {
         return indentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Indent not found"));

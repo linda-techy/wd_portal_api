@@ -101,7 +101,6 @@ public class PartnershipController {
             }
 
             // For now, return mock data
-            // TODO: Implement actual stats calculation
             Map<String, Object> stats = new HashMap<>();
             stats.put("totalReferrals", 0);
             stats.put("pendingReferrals", 0);
@@ -132,7 +131,6 @@ public class PartnershipController {
             }
 
             // For now, return empty array
-            // TODO: Implement actual referrals retrieval
             return ResponseEntity.ok(new java.util.ArrayList<>());
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -156,8 +154,6 @@ public class PartnershipController {
                 throw new RuntimeException("Invalid token");
             }
 
-            // TODO: Implement actual referral submission
-            // TODO: Implement actual referral submission
             throw new RuntimeException("Referral submission not implemented yet");
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();

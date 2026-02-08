@@ -7,7 +7,6 @@ import com.wd.api.model.PortalUser;
 import com.wd.api.repository.QualityCheckRepository;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.PortalUserRepository;
-import com.wd.api.util.SpecificationBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
@@ -121,7 +120,6 @@ public class QualityCheckService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public QualityCheck updateCheck(Long id, QualityCheck checkDetails) {
         QualityCheck check = getCheckById(id);
 

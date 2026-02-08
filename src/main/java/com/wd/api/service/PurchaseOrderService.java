@@ -56,7 +56,6 @@ public class PurchaseOrderService {
     }
 
     private void validateItemBudget(CustomerProject project, PurchaseOrderItem item) {
-        // TODO: DESIGN GAP - BoqItem does not have material relationship
         // This logic assumes BoqItem tracks individual materials, but BoqItem is
         // work-type based
         // Proper solution: Either add Material → BoqItem relationship OR

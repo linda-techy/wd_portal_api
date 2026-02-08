@@ -25,7 +25,6 @@ public class MaterialIndentController {
     public ResponseEntity<ApiResponse<MaterialIndent>> createIndent(
             @PathVariable Long projectId,
             @RequestBody MaterialIndent indent) {
-        // TODO: Get Current User ID from Security Context
         Long currentUserId = 1L; // Placeholder or extract from Principal
         MaterialIndent created = indentService.createIndent(projectId, indent, currentUserId);
         return ResponseEntity.ok(ApiResponse.success("Indent created successfully", created));
@@ -41,7 +40,6 @@ public class MaterialIndentController {
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
     public ResponseEntity<ApiResponse<MaterialIndent>> approveIndent(@PathVariable Long id) {
-        // TODO: Get Current User ID
         Long currentUserId = 1L;
         MaterialIndent approved = indentService.approveIndent(id, currentUserId);
         return ResponseEntity.ok(ApiResponse.success("Indent approved successfully", approved));

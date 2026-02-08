@@ -38,7 +38,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleBusinessException(BusinessException ex) {
         logger.warn("Business exception: {}", ex.getMessage());
         ApiError error = new ApiError(ex.getMessage(), ex.getErrorCode());
-        @SuppressWarnings("null")
         ResponseEntity<ApiError> response = ResponseEntity.status(ex.getStatus().value()).body(error);
         return response;
     }
@@ -82,7 +81,6 @@ public class GlobalExceptionHandler {
         return buildResponse("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @SuppressWarnings("null")
     private ResponseEntity<ApiError> buildResponse(String message, HttpStatus status) {
         return ResponseEntity.status(status.value()).body(new ApiError(message));
     }

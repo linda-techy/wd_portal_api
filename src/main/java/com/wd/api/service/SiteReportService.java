@@ -14,7 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class SiteReportService {
@@ -129,7 +128,6 @@ public class SiteReportService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void deleteReport(Long id) {
         SiteReport report = getReportById(id);
 

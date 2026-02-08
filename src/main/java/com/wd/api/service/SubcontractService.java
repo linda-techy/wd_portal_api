@@ -93,7 +93,6 @@ public class SubcontractService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public SubcontractWorkOrder createWorkOrder(Long projectId, Long vendorId, SubcontractWorkOrder workOrder) {
         if (projectId == null || vendorId == null)
             throw new IllegalArgumentException("Project ID and Vendor ID cannot be null");
@@ -119,7 +118,6 @@ public class SubcontractService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public SubcontractMeasurement recordMeasurement(Long workOrderId, SubcontractMeasurement measurement) {
         if (workOrderId == null)
             throw new IllegalArgumentException("Work Order ID cannot be null");
@@ -134,7 +132,6 @@ public class SubcontractService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public SubcontractPayment processPayment(Long workOrderId, SubcontractPayment payment) {
         if (workOrderId == null)
             throw new IllegalArgumentException("Work Order ID cannot be null");

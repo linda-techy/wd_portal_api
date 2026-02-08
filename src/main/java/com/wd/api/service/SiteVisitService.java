@@ -249,6 +249,7 @@ public class SiteVisitService {
     /**
      * Get a specific visit by ID
      */
+    @SuppressWarnings("null")
     public SiteVisitDTO getVisitById(Long id) {
         return siteVisitRepository.findById(id)
                 .map(this::mapToDTO)
@@ -286,7 +287,6 @@ public class SiteVisitService {
     /**
      * Map entity to DTO
      */
-    @SuppressWarnings("null")
     private SiteVisitDTO mapToDTO(SiteVisit visit) {
         PortalUser visitedBy = visit.getVisitedBy();
         return SiteVisitDTO.builder()

@@ -128,7 +128,6 @@ public class ProjectTrackingService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectVariation submitForApproval(Long variationId) {
         Long vId = java.util.Objects.requireNonNull(variationId);
         ProjectVariation variation = variationRepository.findById(vId)
@@ -140,7 +139,6 @@ public class ProjectTrackingService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectVariation approveVariation(Long variationId, Long approvedById, boolean approve) {
         Long vId = java.util.Objects.requireNonNull(variationId);
         ProjectVariation variation = variationRepository.findById(vId)

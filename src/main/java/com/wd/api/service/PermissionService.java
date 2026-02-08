@@ -32,6 +32,7 @@ public class PermissionService {
      * Get all permission names for a user
      * ADMIN users get ALL available permissions automatically
      */
+    @SuppressWarnings("null")
     public List<String> getUserPermissions(Long userId) {
         PortalUser user = portalUserRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -68,6 +69,7 @@ public class PermissionService {
      * Check if user has a specific permission
      * ADMIN always returns true
      */
+    @SuppressWarnings("null")
     public boolean hasPermission(Long userId, String permission) {
         PortalUser user = portalUserRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -142,6 +144,7 @@ public class PermissionService {
     /**
      * Get permissions for a specific role
      */
+    @SuppressWarnings("null")
     public List<String> getRolePermissions(Long roleId) {
         PortalRole role = portalRoleRepository.findById(roleId)
                 .orElseThrow(() -> new RuntimeException("Role not found"));

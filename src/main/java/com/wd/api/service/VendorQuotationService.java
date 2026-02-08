@@ -133,7 +133,6 @@ public class VendorQuotationService {
                 return quotation;
         }
 
-        @SuppressWarnings("null")
         private void createDraftPOFromQuotation(VendorQuotation quotation) {
                 MaterialIndent indent = quotation.getIndent();
 
