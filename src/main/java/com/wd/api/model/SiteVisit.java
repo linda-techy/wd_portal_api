@@ -52,6 +52,12 @@ public class SiteVisit {
     @Column(name = "check_out_longitude")
     private Double checkOutLongitude;
 
+    @Column(name = "distance_from_project_checkin")
+    private Double distanceFromProjectCheckIn;
+
+    @Column(name = "distance_from_project_checkout")
+    private Double distanceFromProjectCheckOut;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "visit_type", length = 50)
     private VisitType visitType = VisitType.GENERAL;
@@ -260,5 +266,21 @@ public class SiteVisit {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Double getDistanceFromProjectCheckIn() {
+        return distanceFromProjectCheckIn;
+    }
+
+    public void setDistanceFromProjectCheckIn(Double distanceFromProjectCheckIn) {
+        this.distanceFromProjectCheckIn = distanceFromProjectCheckIn;
+    }
+
+    public Double getDistanceFromProjectCheckOut() {
+        return distanceFromProjectCheckOut;
+    }
+
+    public void setDistanceFromProjectCheckOut(Double distanceFromProjectCheckOut) {
+        this.distanceFromProjectCheckOut = distanceFromProjectCheckOut;
     }
 }

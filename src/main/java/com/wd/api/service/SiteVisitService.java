@@ -13,6 +13,9 @@ import com.wd.api.model.enums.VisitType;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.SiteVisitRepository;
 import com.wd.api.repository.PortalUserRepository;
+import com.wd.api.util.GeoUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class SiteVisitService {
+
+    private static final Logger logger = LoggerFactory.getLogger(SiteVisitService.class);
 
     private final SiteVisitRepository siteVisitRepository;
     private final CustomerProjectRepository projectRepository;
@@ -142,6 +147,32 @@ public class SiteVisitService {
         PortalUser user = portalUserRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        // Validate GPS coordinates are provided
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            throw new IllegalStateException(
+                    "GPS coordinates are required for check-in. Please enable location services.");
+        }
+
+        // Validate GPS proximity - must be within 2km of project site
+        if (project.hasLocation()) {
+            double distanceKm = GeoUtils.calculateDistanceKm(
+                    request.getLatitude(), request.getLongitude(),
+                    project.getLatitude(), project.getLongitude());
+
+            if (!GeoUtils.isWithinRadius(
+                    request.getLatitude(), request.getLongitude(),
+                    project.getLatitude(), project.getLongitude(),
+                    GeoUtils.MAX_CHECKIN_DISTANCE_KM)) {
+                throw new IllegalStateException(
+                        "Check-in failed: You are " + GeoUtils.formatDistance(distanceKm) +
+                        " away from the project site. You must be within " +
+                        GeoUtils.formatDistance(GeoUtils.MAX_CHECKIN_DISTANCE_KM) +
+                        " to check in.");
+            }
+            logger.info("Check-in GPS validated for user {}: {} from project site",
+                    userId, GeoUtils.formatDistance(distanceKm));
+        }
+
         // Create new visit
         SiteVisit visit = new SiteVisit();
         visit.setProject(project);
@@ -163,6 +194,14 @@ public class SiteVisitService {
         // Perform check-in
         visit.checkIn(request.getLatitude(), request.getLongitude());
 
+        // Store distance from project site
+        if (project.hasLocation()) {
+            double distanceKm = GeoUtils.calculateDistanceKm(
+                    request.getLatitude(), request.getLongitude(),
+                    project.getLatitude(), project.getLongitude());
+            visit.setDistanceFromProjectCheckIn(Math.round(distanceKm * 1000.0) / 1000.0);
+        }
+
         visit = siteVisitRepository.save(visit);
         return mapToDTO(visit);
     }
@@ -181,8 +220,43 @@ public class SiteVisitService {
             throw new IllegalStateException("You can only check out from your own visits");
         }
 
+        // Validate GPS coordinates are provided
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            throw new IllegalStateException(
+                    "GPS coordinates are required for check-out. Please enable location services.");
+        }
+
+        // Validate GPS proximity - must be within 2km of project site
+        CustomerProject project = visit.getProject();
+        if (project.hasLocation()) {
+            double distanceKm = GeoUtils.calculateDistanceKm(
+                    request.getLatitude(), request.getLongitude(),
+                    project.getLatitude(), project.getLongitude());
+
+            if (!GeoUtils.isWithinRadius(
+                    request.getLatitude(), request.getLongitude(),
+                    project.getLatitude(), project.getLongitude(),
+                    GeoUtils.MAX_CHECKIN_DISTANCE_KM)) {
+                throw new IllegalStateException(
+                        "Check-out failed: You are " + GeoUtils.formatDistance(distanceKm) +
+                        " away from the project site. You must be within " +
+                        GeoUtils.formatDistance(GeoUtils.MAX_CHECKIN_DISTANCE_KM) +
+                        " to check out.");
+            }
+            logger.info("Check-out GPS validated for user {}: {} from project site",
+                    userId, GeoUtils.formatDistance(distanceKm));
+        }
+
         // Perform check-out (this validates status and calculates duration)
         visit.checkOut(request.getLatitude(), request.getLongitude(), request.getNotes());
+
+        // Store distance from project site
+        if (project.hasLocation()) {
+            double distanceKm = GeoUtils.calculateDistanceKm(
+                    request.getLatitude(), request.getLongitude(),
+                    project.getLatitude(), project.getLongitude());
+            visit.setDistanceFromProjectCheckOut(Math.round(distanceKm * 1000.0) / 1000.0);
+        }
 
         visit = siteVisitRepository.save(visit);
         return mapToDTO(visit);
@@ -309,6 +383,8 @@ public class SiteVisitService {
                 .formattedDuration(visit.getFormattedDuration())
                 .checkOutNotes(visit.getCheckOutNotes())
                 .createdAt(visit.getCreatedAt())
+                .distanceFromProjectCheckIn(visit.getDistanceFromProjectCheckIn())
+                .distanceFromProjectCheckOut(visit.getDistanceFromProjectCheckOut())
                 .build();
     }
 }

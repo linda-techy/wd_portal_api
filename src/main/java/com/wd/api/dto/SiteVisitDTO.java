@@ -25,6 +25,8 @@ public class SiteVisitDTO {
     private String formattedDuration;
     private String checkOutNotes;
     private LocalDateTime createdAt;
+    private Double distanceFromProjectCheckIn;
+    private Double distanceFromProjectCheckOut;
 
     public SiteVisitDTO() {
     }
@@ -129,6 +131,16 @@ public class SiteVisitDTO {
 
         public SiteVisitDTOBuilder createdAt(LocalDateTime createdAt) {
             dto.createdAt = createdAt;
+            return this;
+        }
+
+        public SiteVisitDTOBuilder distanceFromProjectCheckIn(Double distance) {
+            dto.distanceFromProjectCheckIn = distance;
+            return this;
+        }
+
+        public SiteVisitDTOBuilder distanceFromProjectCheckOut(Double distance) {
+            dto.distanceFromProjectCheckOut = distance;
             return this;
         }
 
@@ -288,5 +300,21 @@ public class SiteVisitDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Double getDistanceFromProjectCheckIn() {
+        return distanceFromProjectCheckIn;
+    }
+
+    public void setDistanceFromProjectCheckIn(Double distanceFromProjectCheckIn) {
+        this.distanceFromProjectCheckIn = distanceFromProjectCheckIn;
+    }
+
+    public Double getDistanceFromProjectCheckOut() {
+        return distanceFromProjectCheckOut;
+    }
+
+    public void setDistanceFromProjectCheckOut(Double distanceFromProjectCheckOut) {
+        this.distanceFromProjectCheckOut = distanceFromProjectCheckOut;
     }
 }
