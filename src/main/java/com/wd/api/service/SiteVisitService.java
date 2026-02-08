@@ -48,6 +48,7 @@ public class SiteVisitService {
      * Search site visits with filters and pagination
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<SiteVisit> searchSiteVisits(SiteVisitSearchFilter filter) {
         Specification<SiteVisit> spec = buildSpecification(filter);
         return siteVisitRepository.findAll(spec, filter.toPageable());
@@ -61,11 +62,10 @@ public class SiteVisitService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.join("project").get("name")), searchPattern),
-                    cb.like(cb.lower(root.join("visitedBy").get("firstName")), searchPattern),
-                    cb.like(cb.lower(root.join("visitedBy").get("lastName")), searchPattern),
-                    cb.like(cb.lower(root.get("notes")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.join("project").get("name")), searchPattern),
+                        cb.like(cb.lower(root.join("visitedBy").get("firstName")), searchPattern),
+                        cb.like(cb.lower(root.join("visitedBy").get("lastName")), searchPattern),
+                        cb.like(cb.lower(root.get("notes")), searchPattern)));
             }
 
             // Filter by projectId
@@ -126,6 +126,7 @@ public class SiteVisitService {
      * Check in to a project site
      */
     @Transactional
+    @SuppressWarnings("null")
     public SiteVisitDTO checkIn(CheckInRequest request, Long userId) {
         // Verify user doesn't have an active visit
         siteVisitRepository.findActiveVisitByUser(userId)
@@ -170,6 +171,7 @@ public class SiteVisitService {
      * Check out from a site visit
      */
     @Transactional
+    @SuppressWarnings("null")
     public SiteVisitDTO checkOut(Long visitId, CheckOutRequest request, Long userId) {
         SiteVisit visit = siteVisitRepository.findById(visitId)
                 .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));
@@ -257,6 +259,7 @@ public class SiteVisitService {
      * Cancel a pending visit
      */
     @Transactional
+    @SuppressWarnings("null")
     public void cancelVisit(Long visitId, Long userId) {
         SiteVisit visit = siteVisitRepository.findById(visitId)
                 .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));
@@ -283,6 +286,7 @@ public class SiteVisitService {
     /**
      * Map entity to DTO
      */
+    @SuppressWarnings("null")
     private SiteVisitDTO mapToDTO(SiteVisit visit) {
         PortalUser visitedBy = visit.getVisitedBy();
         return SiteVisitDTO.builder()

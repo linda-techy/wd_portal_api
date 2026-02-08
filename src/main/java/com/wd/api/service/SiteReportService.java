@@ -32,6 +32,7 @@ public class SiteReportService {
     }
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<SiteReport> searchSiteReports(SiteReportSearchFilter filter) {
         Specification<SiteReport> spec = buildSpecification(filter);
         return siteReportRepository.findAll(spec, filter.toPageable());
@@ -45,10 +46,9 @@ public class SiteReportService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("title")), searchPattern),
-                    cb.like(cb.lower(root.get("description")), searchPattern),
-                    cb.like(cb.lower(root.join("submittedBy").get("name")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("title")), searchPattern),
+                        cb.like(cb.lower(root.get("description")), searchPattern),
+                        cb.like(cb.lower(root.join("submittedBy").get("name")), searchPattern)));
             }
 
             // Filter by projectId
@@ -99,12 +99,14 @@ public class SiteReportService {
     }
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public SiteReport getReportById(Long id) {
         return siteReportRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Site Report not found with id: " + id));
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public SiteReport createReport(SiteReport report, List<MultipartFile> photos) {
         SiteReport savedReport = siteReportRepository.save(report);
 
@@ -127,6 +129,7 @@ public class SiteReportService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public void deleteReport(Long id) {
         SiteReport report = getReportById(id);
 

@@ -556,6 +556,7 @@ public class LeadService {
      * NEW: Standardized search method using LeadSearchFilter
      * Enterprise-grade implementation with SpecificationBuilder
      */
+    @SuppressWarnings("null")
     public Page<Lead> search(LeadSearchFilter filter) {
         Specification<Lead> spec = buildSearchSpecification(filter);
         return leadRepository.findAll(spec, filter.toPageable());
@@ -673,6 +674,7 @@ public class LeadService {
      * Use search(LeadSearchFilter) instead
      */
     @Deprecated
+    @SuppressWarnings("null")
     public Page<Lead> getLeadsPaginated(PaginationParams params) {
         String sortOrder = params.getSortOrder() != null ? params.getSortOrder() : "DESC";
         String sortBy = params.getSortBy() != null ? params.getSortBy() : "createdAt";
@@ -1080,6 +1082,7 @@ public class LeadService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public com.wd.api.model.CustomerProject convertLead(Long leadId, com.wd.api.dto.LeadConversionRequest request,
             String username) {
         if (leadId == null)
@@ -1204,6 +1207,7 @@ public class LeadService {
         }
     }
 
+    @SuppressWarnings("null")
     private void migrateQuotationToBoq(Long quoteId, com.wd.api.model.CustomerProject project) {
         com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(quoteId).orElse(null);
         if (quote != null && !quote.getItems().isEmpty()) {
@@ -1631,6 +1635,7 @@ public class LeadService {
      * Get conversion history for a lead
      * Returns list of projects that were converted from this lead (if any)
      */
+    @SuppressWarnings("null")
     public List<Map<String, Object>> getConversionHistory(Long leadId) {
         if (leadId == null) {
             throw new IllegalArgumentException("Lead ID cannot be null");

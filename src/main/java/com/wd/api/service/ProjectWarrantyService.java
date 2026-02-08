@@ -27,6 +27,7 @@ public class ProjectWarrantyService {
     private CustomerProjectRepository projectRepository;
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<ProjectWarranty> searchProjectWarranties(ProjectWarrantySearchFilter filter) {
         Specification<ProjectWarranty> spec = buildSpecification(filter);
         return warrantyRepository.findAll(spec, filter.toPageable());
@@ -40,10 +41,9 @@ public class ProjectWarrantyService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("warrantyType")), searchPattern),
-                    cb.like(cb.lower(root.get("description")), searchPattern),
-                    cb.like(cb.lower(root.get("terms")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("warrantyType")), searchPattern),
+                        cb.like(cb.lower(root.get("description")), searchPattern),
+                        cb.like(cb.lower(root.get("terms")), searchPattern)));
             }
 
             // Filter by projectId
@@ -98,6 +98,7 @@ public class ProjectWarrantyService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ProjectWarranty createWarranty(ProjectWarranty warranty, Long projectId) {
         if (projectId == null)
             throw new IllegalArgumentException("Project ID cannot be null");
@@ -115,6 +116,7 @@ public class ProjectWarrantyService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ProjectWarranty updateWarranty(Long id, ProjectWarranty details) {
         if (id == null)
             throw new IllegalArgumentException("Warranty ID cannot be null");
@@ -133,6 +135,7 @@ public class ProjectWarrantyService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public void deleteWarranty(Long id) {
         if (id != null) {
             warrantyRepository.deleteById(id);

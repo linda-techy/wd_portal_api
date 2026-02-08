@@ -26,6 +26,7 @@ public class VendorQuotationService {
         private final ProcurementService procurementService;
 
         @Transactional(readOnly = true)
+        @SuppressWarnings("null")
         public Page<VendorQuotation> searchVendorQuotations(VendorQuotationSearchFilter filter) {
                 Specification<VendorQuotation> spec = buildSpecification(filter);
                 return quotationRepository.findAll(spec, filter.toPageable());
@@ -39,9 +40,8 @@ public class VendorQuotationService {
                         if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                                 predicates.add(cb.or(
-                                        cb.like(cb.lower(root.get("quotationNumber")), searchPattern),
-                                        cb.like(cb.lower(root.join("vendor").get("name")), searchPattern)
-                                ));
+                                                cb.like(cb.lower(root.get("quotationNumber")), searchPattern),
+                                                cb.like(cb.lower(root.join("vendor").get("name")), searchPattern)));
                         }
 
                         // Filter by vendorId
@@ -51,22 +51,26 @@ public class VendorQuotationService {
 
                         // Filter by projectId (through indent)
                         if (filter.getProjectId() != null) {
-                                predicates.add(cb.equal(root.join("indent").join("project").get("id"), filter.getProjectId()));
+                                predicates.add(cb.equal(root.join("indent").join("project").get("id"),
+                                                filter.getProjectId()));
                         }
 
                         // Filter by quotationNumber
                         if (filter.getQuotationNumber() != null && !filter.getQuotationNumber().isEmpty()) {
-                                predicates.add(cb.like(cb.lower(root.get("quotationNumber")), "%" + filter.getQuotationNumber().toLowerCase() + "%"));
+                                predicates.add(cb.like(cb.lower(root.get("quotationNumber")),
+                                                "%" + filter.getQuotationNumber().toLowerCase() + "%"));
                         }
 
                         // Filter by status
                         if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
-                                predicates.add(cb.equal(root.get("status"), VendorQuotation.QuotationStatus.valueOf(filter.getStatus())));
+                                predicates.add(cb.equal(root.get("status"),
+                                                VendorQuotation.QuotationStatus.valueOf(filter.getStatus())));
                         }
 
                         // Amount range filter
                         if (filter.getMinAmount() != null) {
-                                predicates.add(cb.greaterThanOrEqualTo(root.get("quotedAmount"), filter.getMinAmount()));
+                                predicates.add(cb.greaterThanOrEqualTo(root.get("quotedAmount"),
+                                                filter.getMinAmount()));
                         }
                         if (filter.getMaxAmount() != null) {
                                 predicates.add(cb.lessThanOrEqualTo(root.get("quotedAmount"), filter.getMaxAmount()));
@@ -74,10 +78,12 @@ public class VendorQuotationService {
 
                         // Date range filter
                         if (filter.getStartDate() != null) {
-                                predicates.add(cb.greaterThanOrEqualTo(root.get("quotationDate"), filter.getStartDate().atStartOfDay()));
+                                predicates.add(cb.greaterThanOrEqualTo(root.get("quotationDate"),
+                                                filter.getStartDate().atStartOfDay()));
                         }
                         if (filter.getEndDate() != null) {
-                                predicates.add(cb.lessThanOrEqualTo(root.get("quotationDate"), filter.getEndDate().atTime(23, 59, 59)));
+                                predicates.add(cb.lessThanOrEqualTo(root.get("quotationDate"),
+                                                filter.getEndDate().atTime(23, 59, 59)));
                         }
 
                         return cb.and(predicates.toArray(new Predicate[0]));
@@ -85,6 +91,7 @@ public class VendorQuotationService {
         }
 
         @Transactional
+        @SuppressWarnings("null")
         public VendorQuotation createQuotation(Long indentId, Long vendorId, VendorQuotation quotation) {
                 MaterialIndent indent = indentRepository.findById(indentId)
                                 .orElseThrow(() -> new RuntimeException("Indent not found"));
@@ -105,6 +112,7 @@ public class VendorQuotationService {
         }
 
         @Transactional
+        @SuppressWarnings("null")
         public VendorQuotation approveQuotation(Long quotationId) {
                 VendorQuotation quotation = quotationRepository.findById(quotationId)
                                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
@@ -125,6 +133,7 @@ public class VendorQuotationService {
                 return quotation;
         }
 
+        @SuppressWarnings("null")
         private void createDraftPOFromQuotation(VendorQuotation quotation) {
                 MaterialIndent indent = quotation.getIndent();
 

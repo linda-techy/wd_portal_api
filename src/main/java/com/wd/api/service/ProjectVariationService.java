@@ -33,6 +33,7 @@ public class ProjectVariationService {
     private PortalUserRepository portalUserRepository;
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<ProjectVariation> searchProjectVariations(ProjectVariationSearchFilter filter) {
         Specification<ProjectVariation> spec = buildSpecification(filter);
         return variationRepository.findAll(spec, filter.toPageable());
@@ -46,10 +47,9 @@ public class ProjectVariationService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("title")), searchPattern),
-                    cb.like(cb.lower(root.get("description")), searchPattern),
-                    cb.like(cb.lower(root.get("variationType")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("title")), searchPattern),
+                        cb.like(cb.lower(root.get("description")), searchPattern),
+                        cb.like(cb.lower(root.get("variationType")), searchPattern)));
             }
 
             // Filter by projectId
@@ -117,6 +117,7 @@ public class ProjectVariationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ProjectVariation createVariation(ProjectVariation variation, Long projectId, Long createdById) {
         CustomerProject project = projectRepository
                 .findById(Objects.requireNonNull(projectId, "Project ID is required"))
@@ -134,6 +135,7 @@ public class ProjectVariationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ProjectVariation updateVariation(Long id, ProjectVariation details) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
@@ -150,6 +152,7 @@ public class ProjectVariationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ProjectVariation deleteVariation(Long id) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
@@ -163,6 +166,7 @@ public class ProjectVariationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ProjectVariation submitForApproval(Long id) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
@@ -172,6 +176,7 @@ public class ProjectVariationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ProjectVariation approveVariation(Long id, Long approverId) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
@@ -192,6 +197,7 @@ public class ProjectVariationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ProjectVariation rejectVariation(Long id, Long approverId, String reason) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));

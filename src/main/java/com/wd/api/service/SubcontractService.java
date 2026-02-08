@@ -39,6 +39,7 @@ public class SubcontractService {
     }
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<SubcontractWorkOrder> searchSubcontracts(SubcontractSearchFilter filter) {
         Specification<SubcontractWorkOrder> spec = buildSpecification(filter);
         return workOrderRepository.findAll(spec, filter.toPageable());
@@ -52,10 +53,9 @@ public class SubcontractService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("workOrderNumber")), searchPattern),
-                    cb.like(cb.lower(root.get("workDescription")), searchPattern),
-                    cb.like(cb.lower(root.join("vendor").get("name")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("workOrderNumber")), searchPattern),
+                        cb.like(cb.lower(root.get("workDescription")), searchPattern),
+                        cb.like(cb.lower(root.join("vendor").get("name")), searchPattern)));
             }
 
             // Filter by projectId
@@ -70,12 +70,14 @@ public class SubcontractService {
 
             // Filter by workOrderNumber
             if (filter.getWorkOrderNumber() != null && !filter.getWorkOrderNumber().isEmpty()) {
-                predicates.add(cb.like(cb.lower(root.get("workOrderNumber")), "%" + filter.getWorkOrderNumber().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("workOrderNumber")),
+                        "%" + filter.getWorkOrderNumber().toLowerCase() + "%"));
             }
 
             // Filter by status
             if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
-                predicates.add(cb.equal(root.get("status"), SubcontractWorkOrder.WorkOrderStatus.valueOf(filter.getStatus())));
+                predicates.add(
+                        cb.equal(root.get("status"), SubcontractWorkOrder.WorkOrderStatus.valueOf(filter.getStatus())));
             }
 
             // Date range filter
@@ -91,6 +93,7 @@ public class SubcontractService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public SubcontractWorkOrder createWorkOrder(Long projectId, Long vendorId, SubcontractWorkOrder workOrder) {
         if (projectId == null || vendorId == null)
             throw new IllegalArgumentException("Project ID and Vendor ID cannot be null");
@@ -116,6 +119,7 @@ public class SubcontractService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public SubcontractMeasurement recordMeasurement(Long workOrderId, SubcontractMeasurement measurement) {
         if (workOrderId == null)
             throw new IllegalArgumentException("Work Order ID cannot be null");
@@ -130,6 +134,7 @@ public class SubcontractService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public SubcontractPayment processPayment(Long workOrderId, SubcontractPayment payment) {
         if (workOrderId == null)
             throw new IllegalArgumentException("Work Order ID cannot be null");
@@ -164,6 +169,7 @@ public class SubcontractService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public RetentionRelease releaseRetention(RetentionRelease release) {
         if (release.getWorkOrder() == null || release.getWorkOrder().getId() == null) {
             throw new IllegalArgumentException("Work Order ID is required");

@@ -56,85 +56,77 @@ public class TaskService {
      * NEW: Standardized search method using TaskSearchFilter
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<Task> search(TaskSearchFilter filter) {
         Specification<Task> spec = buildSearchSpecification(filter);
         return taskRepository.findAll(spec, filter.toPageable());
     }
-    
+
     /**
      * Build JPA Specification from TaskSearchFilter
      */
     private Specification<Task> buildSearchSpecification(TaskSearchFilter filter) {
         SpecificationBuilder<Task> builder = new SpecificationBuilder<>();
-        
+
         // Search across task fields
         Specification<Task> searchSpec = builder.buildSearch(
-            filter.getSearchQuery(),
-            "title", "description"
-        );
-        
+                filter.getSearchQuery(),
+                "title", "description");
+
         // Status filter
         Specification<Task> statusSpec = null;
         if (filter.getStatus() != null && !filter.getStatus().trim().isEmpty()) {
-            statusSpec = (root, query, cb) -> 
-                cb.equal(root.get("status"), 
+            statusSpec = (root, query, cb) -> cb.equal(root.get("status"),
                     Task.TaskStatus.valueOf(filter.getStatus().toUpperCase()));
         }
-        
+
         // Priority filter
         Specification<Task> prioritySpec = null;
         if (filter.getPriority() != null && !filter.getPriority().trim().isEmpty()) {
-            prioritySpec = (root, query, cb) -> 
-                cb.equal(root.get("priority"), 
+            prioritySpec = (root, query, cb) -> cb.equal(root.get("priority"),
                     Task.TaskPriority.valueOf(filter.getPriority().toUpperCase()));
         }
-        
+
         // Assigned user filter
         Specification<Task> assignedSpec = null;
         if (filter.getAssignedTo() != null) {
-            assignedSpec = (root, query, cb) -> 
-                cb.equal(root.get("assignedTo").get("id"), filter.getAssignedTo());
+            assignedSpec = (root, query, cb) -> cb.equal(root.get("assignedTo").get("id"), filter.getAssignedTo());
         }
-        
+
         // Project filter
         Specification<Task> projectSpec = null;
         if (filter.getProjectId() != null) {
-            projectSpec = (root, query, cb) -> 
-                cb.equal(root.get("projectId"), filter.getProjectId());
+            projectSpec = (root, query, cb) -> cb.equal(root.get("projectId"), filter.getProjectId());
         }
-        
+
         // Lead filter
         Specification<Task> leadSpec = null;
         if (filter.getLeadId() != null) {
-            leadSpec = (root, query, cb) -> 
-                cb.equal(root.get("leadId"), filter.getLeadId());
+            leadSpec = (root, query, cb) -> cb.equal(root.get("leadId"), filter.getLeadId());
         }
-        
+
         // Created by filter
         Specification<Task> createdBySpec = null;
         if (filter.getCreatedBy() != null) {
-            createdBySpec = (root, query, cb) -> 
-                cb.equal(root.get("createdBy").get("id"), filter.getCreatedBy());
+            createdBySpec = (root, query, cb) -> cb.equal(root.get("createdBy").get("id"), filter.getCreatedBy());
         }
-        
+
         // Due date range
         Specification<Task> dueDateSpec = builder.buildDateRange(
-            "dueDate",
-            filter.getDueDateStart(),
-            filter.getDueDateEnd()
-        );
-        
+                "dueDate",
+                filter.getDueDateStart(),
+                filter.getDueDateEnd());
+
         // Combine all specifications
         return builder.and(
-            searchSpec,
-            statusSpec,
-            prioritySpec,
-            assignedSpec,
-            projectSpec,
-            leadSpec,
-            createdBySpec,
-            dueDateSpec
-        );
+                searchSpec,
+                statusSpec,
+                prioritySpec,
+                assignedSpec,
+                projectSpec,
+                leadSpec,
+                createdBySpec,
+                dueDateSpec);
     }
 
     /**
@@ -150,6 +142,7 @@ public class TaskService {
      * Get task by ID
      * Authorization check should be done at controller level
      */
+    @SuppressWarnings("null")
     public Optional<Task> getTaskById(Long id) {
         return taskRepository.findById(id);
     }
@@ -157,6 +150,7 @@ public class TaskService {
     /**
      * Get tasks assigned to a specific user
      */
+    @SuppressWarnings("null")
     public List<Task> getTasksByAssignedUser(Long userId) {
         Optional<PortalUser> user = portalUserRepository.findById(userId);
         return user.map(taskRepository::findByAssignedTo).orElse(List.of());
@@ -199,9 +193,10 @@ public class TaskService {
      * Anyone can create tasks (enforced at controller with @PreAuthorize)
      */
     @Transactional
+    @SuppressWarnings("null")
     public Task createTask(Task task, PortalUser createdBy) {
         logger.info("Creating task '{}' by user {}", task.getTitle(), createdBy.getEmail());
-        
+
         // Always set creator from authenticated user (ignore any client-side spoofing)
         task.setCreatedBy(createdBy);
 
@@ -252,6 +247,7 @@ public class TaskService {
      * CRITICAL: Authorization is checked BEFORE any modification
      */
     @Transactional
+    @SuppressWarnings("null")
     public Task updateTask(Long id, Task taskDetails, Authentication auth, Long userId) {
         logger.info("Attempting to update task {} by user {}", id, userId);
 
@@ -312,6 +308,7 @@ public class TaskService {
      * Records complete audit trail of who assigned what to whom.
      */
     @Transactional
+    @SuppressWarnings("null")
     public Task assignTask(Long taskId, Long newAssigneeId, Long assignedById, String notes) {
         logger.info("Assigning task {} to user {} by user {}", taskId, newAssigneeId, assignedById);
 
@@ -352,6 +349,7 @@ public class TaskService {
      * CRITICAL: Authorization is checked BEFORE deletion
      */
     @Transactional
+    @SuppressWarnings("null")
     public void deleteTask(Long id, Authentication auth, Long userId) {
         logger.info("Attempting to delete task {} by user {}", id, userId);
 
@@ -397,6 +395,7 @@ public class TaskService {
      * Record assignment change in history table
      * This creates an audit trail for all assignment changes
      */
+    @SuppressWarnings("null")
     private void recordAssignment(Long taskId, PortalUser from, PortalUser to, PortalUser by, String notes) {
         TaskAssignmentHistory history = new TaskAssignmentHistory();
         history.setTaskId(taskId);

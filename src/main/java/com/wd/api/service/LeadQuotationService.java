@@ -59,10 +59,9 @@ public class LeadQuotationService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("quotationNumber")), searchPattern),
-                    cb.like(cb.lower(root.get("notes")), searchPattern),
-                    cb.like(cb.lower(root.get("status")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("quotationNumber")), searchPattern),
+                        cb.like(cb.lower(root.get("notes")), searchPattern),
+                        cb.like(cb.lower(root.get("status")), searchPattern)));
             }
 
             // Filter by leadId
@@ -72,7 +71,8 @@ public class LeadQuotationService {
 
             // Filter by quotationNumber
             if (filter.getQuotationNumber() != null && !filter.getQuotationNumber().isEmpty()) {
-                predicates.add(cb.like(cb.lower(root.get("quotationNumber")), "%" + filter.getQuotationNumber().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("quotationNumber")),
+                        "%" + filter.getQuotationNumber().toLowerCase() + "%"));
             }
 
             // Filter by preparedById (createdById)
@@ -117,10 +117,10 @@ public class LeadQuotationService {
     public LeadQuotation getQuotationById(Long id) {
         LeadQuotation quotation = quotationRepository.findById(Objects.requireNonNull(id, "Quotation ID is required"))
                 .orElseThrow(() -> new RuntimeException("Quotation not found with id: " + id));
-        
+
         // Force eager loading of items by accessing the collection
         quotation.getItems().size(); // This triggers lazy loading
-        
+
         return quotation;
     }
 
@@ -238,6 +238,7 @@ public class LeadQuotationService {
      * Accept quotation
      */
     @Transactional
+    @SuppressWarnings("null")
     public LeadQuotation acceptQuotation(Long id) {
         LeadQuotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
@@ -252,6 +253,7 @@ public class LeadQuotationService {
      * Reject quotation
      */
     @Transactional
+    @SuppressWarnings("null")
     public LeadQuotation rejectQuotation(Long id, String reason) {
         LeadQuotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
@@ -302,6 +304,7 @@ public class LeadQuotationService {
      * Delete quotation
      */
     @Transactional
+    @SuppressWarnings("null")
     public void deleteQuotation(Long id) {
         LeadQuotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
@@ -316,11 +319,13 @@ public class LeadQuotationService {
 
     /**
      * Generate quotation PDF for client presentation
-     * Enterprise-grade PDF generation with company branding and professional formatting
+     * Enterprise-grade PDF generation with company branding and professional
+     * formatting
      */
+    @SuppressWarnings("null")
     public byte[] generateQuotationPdf(Long quotationId) {
         LeadQuotation quotation = getQuotationById(quotationId);
-        
+
         // Load lead information for client details
         Optional<Lead> leadOpt = leadRepository.findById(quotation.getLeadId());
         Lead lead = leadOpt.orElse(null);
@@ -330,7 +335,7 @@ public class LeadQuotationService {
         context.setVariable("quotation", quotation);
         context.setVariable("lead", lead);
         context.setVariable("items", quotation.getItems());
-        
+
         // Company information from configuration
         context.setVariable("companyName", companyInfoConfig.getName());
         context.setVariable("companyAddress", companyInfoConfig.getAddress());
@@ -338,10 +343,10 @@ public class LeadQuotationService {
         context.setVariable("companyEmail", companyInfoConfig.getEmail());
         context.setVariable("companyWebsite", companyInfoConfig.getWebsite());
         context.setVariable("companyGst", companyInfoConfig.getGst());
-        
+
         // Calculate amount in words
-        BigDecimal finalAmount = quotation.getFinalAmount() != null ? quotation.getFinalAmount() : 
-                                 (quotation.getTotalAmount() != null ? quotation.getTotalAmount() : BigDecimal.ZERO);
+        BigDecimal finalAmount = quotation.getFinalAmount() != null ? quotation.getFinalAmount()
+                : (quotation.getTotalAmount() != null ? quotation.getTotalAmount() : BigDecimal.ZERO);
         String amountInWords = NumberToWords.convert(finalAmount);
         context.setVariable("amountInWords", amountInWords);
 

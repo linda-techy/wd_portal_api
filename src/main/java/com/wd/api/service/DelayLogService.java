@@ -34,6 +34,7 @@ public class DelayLogService {
     private PortalUserRepository portalUserRepository;
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<DelayLog> searchDelayLogs(DelayLogSearchFilter filter) {
         Specification<DelayLog> spec = buildSpecification(filter);
         return delayLogRepository.findAll(spec, filter.toPageable());
@@ -47,12 +48,11 @@ public class DelayLogService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("delayType")), searchPattern),
-                    cb.like(cb.lower(root.get("reason")), searchPattern),
-                    cb.like(cb.lower(root.get("description")), searchPattern),
-                    cb.like(cb.lower(root.join("loggedBy").get("firstName")), searchPattern),
-                    cb.like(cb.lower(root.join("loggedBy").get("lastName")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("delayType")), searchPattern),
+                        cb.like(cb.lower(root.get("reason")), searchPattern),
+                        cb.like(cb.lower(root.get("description")), searchPattern),
+                        cb.like(cb.lower(root.join("loggedBy").get("firstName")), searchPattern),
+                        cb.like(cb.lower(root.join("loggedBy").get("lastName")), searchPattern)));
             }
 
             // Filter by projectId

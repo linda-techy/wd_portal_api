@@ -32,6 +32,7 @@ public class QualityCheckService {
     private PortalUserRepository portalUserRepository;
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<QualityCheck> searchQualityChecks(QualityCheckSearchFilter filter) {
         Specification<QualityCheck> spec = buildSpecification(filter);
         return qualityCheckRepository.findAll(spec, filter.toPageable());
@@ -45,10 +46,9 @@ public class QualityCheckService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("title")), searchPattern),
-                    cb.like(cb.lower(root.get("description")), searchPattern),
-                    cb.like(cb.lower(root.join("conductedBy").get("name")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("title")), searchPattern),
+                        cb.like(cb.lower(root.get("description")), searchPattern),
+                        cb.like(cb.lower(root.join("conductedBy").get("name")), searchPattern)));
             }
 
             // Filter by projectId
@@ -63,7 +63,8 @@ public class QualityCheckService {
 
             // Filter by checklistName (title)
             if (filter.getChecklistName() != null && !filter.getChecklistName().isEmpty()) {
-                predicates.add(cb.like(cb.lower(root.get("title")), "%" + filter.getChecklistName().toLowerCase() + "%"));
+                predicates
+                        .add(cb.like(cb.lower(root.get("title")), "%" + filter.getChecklistName().toLowerCase() + "%"));
             }
 
             // Filter by result
@@ -94,12 +95,14 @@ public class QualityCheckService {
     }
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public QualityCheck getCheckById(Long id) {
         return qualityCheckRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Quality check not found with id: " + id));
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public QualityCheck createCheck(QualityCheck check, Long projectId, Long conductedById) {
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
@@ -118,6 +121,7 @@ public class QualityCheckService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public QualityCheck updateCheck(Long id, QualityCheck checkDetails) {
         QualityCheck check = getCheckById(id);
 
@@ -131,6 +135,7 @@ public class QualityCheckService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public void deleteCheck(Long id) {
         qualityCheckRepository.deleteById(id);
     }

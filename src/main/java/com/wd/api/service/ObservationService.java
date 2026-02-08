@@ -36,9 +36,9 @@ public class ObservationService {
     private final FileStorageService fileStorageService;
 
     public ObservationService(ObservationRepository observationRepository,
-                              CustomerProjectRepository projectRepository,
-                              StaffRoleRepository staffRoleRepository,
-                              FileStorageService fileStorageService) {
+            CustomerProjectRepository projectRepository,
+            StaffRoleRepository staffRoleRepository,
+            FileStorageService fileStorageService) {
         this.observationRepository = observationRepository;
         this.projectRepository = projectRepository;
         this.staffRoleRepository = staffRoleRepository;
@@ -46,6 +46,7 @@ public class ObservationService {
     }
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<ObservationDto> searchObservations(ObservationSearchFilter filter) {
         Specification<Observation> spec = buildSpecification(filter);
         Page<Observation> observations = observationRepository.findAll(spec, filter.toPageable());
@@ -59,10 +60,9 @@ public class ObservationService {
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("title")), searchPattern),
-                    cb.like(cb.lower(root.get("description")), searchPattern),
-                    cb.like(cb.lower(root.get("location")), searchPattern)
-                ));
+                        cb.like(cb.lower(root.get("title")), searchPattern),
+                        cb.like(cb.lower(root.get("description")), searchPattern),
+                        cb.like(cb.lower(root.get("location")), searchPattern)));
             }
 
             if (filter.getProjectId() != null) {
@@ -86,13 +86,13 @@ public class ObservationService {
             }
 
             if (filter.getStartDate() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("reportedDate"), 
-                    filter.getStartDate().atStartOfDay()));
+                predicates.add(cb.greaterThanOrEqualTo(root.get("reportedDate"),
+                        filter.getStartDate().atStartOfDay()));
             }
 
             if (filter.getEndDate() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("reportedDate"), 
-                    filter.getEndDate().atTime(23, 59, 59)));
+                predicates.add(cb.lessThanOrEqualTo(root.get("reportedDate"),
+                        filter.getEndDate().atTime(23, 59, 59)));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -124,6 +124,7 @@ public class ObservationService {
     }
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public ObservationDto getObservationById(Long id) {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
@@ -131,9 +132,10 @@ public class ObservationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ObservationDto createObservation(Long projectId, String title, String description,
-                                             String location, String priority, String severity,
-                                             MultipartFile image, PortalUser reportedBy, Long reportedByRoleId) {
+            String location, String priority, String severity,
+            MultipartFile image, PortalUser reportedBy, Long reportedByRoleId) {
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found with id: " + projectId));
 
@@ -166,18 +168,25 @@ public class ObservationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ObservationDto updateObservation(Long id, String title, String description,
-                                             String location, String priority, String severity,
-                                             String status, MultipartFile image) {
+            String location, String priority, String severity,
+            String status, MultipartFile image) {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
 
-        if (title != null) observation.setTitle(title);
-        if (description != null) observation.setDescription(description);
-        if (location != null) observation.setLocation(location);
-        if (priority != null) observation.setPriority(priority);
-        if (severity != null) observation.setSeverity(severity);
-        if (status != null) observation.setStatus(status);
+        if (title != null)
+            observation.setTitle(title);
+        if (description != null)
+            observation.setDescription(description);
+        if (location != null)
+            observation.setLocation(location);
+        if (priority != null)
+            observation.setPriority(priority);
+        if (severity != null)
+            observation.setSeverity(severity);
+        if (status != null)
+            observation.setStatus(status);
 
         if (image != null && !image.isEmpty()) {
             // Delete old image if exists
@@ -194,6 +203,7 @@ public class ObservationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ObservationDto resolveObservation(Long id, String resolutionNotes, PortalUser resolvedBy) {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
@@ -210,6 +220,7 @@ public class ObservationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public ObservationDto updateStatus(Long id, String status) {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
@@ -220,6 +231,7 @@ public class ObservationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public void deleteObservation(Long id) {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));

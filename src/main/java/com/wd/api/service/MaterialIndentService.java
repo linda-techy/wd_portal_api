@@ -29,6 +29,7 @@ public class MaterialIndentService {
     // passed IDs or SecurityContext
 
     @Transactional
+    @SuppressWarnings("null")
     public MaterialIndent createIndent(Long projectId, MaterialIndent indent, Long requestedById) {
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
@@ -63,6 +64,7 @@ public class MaterialIndentService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public MaterialIndent submitIndent(Long indentId) {
         MaterialIndent indent = indentRepository.findById(indentId)
                 .orElseThrow(() -> new RuntimeException("Indent not found"));
@@ -76,6 +78,7 @@ public class MaterialIndentService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public MaterialIndent approveIndent(Long indentId, Long approvedById) {
         MaterialIndent indent = indentRepository.findById(indentId)
                 .orElseThrow(() -> new RuntimeException("Indent not found"));
@@ -102,47 +105,45 @@ public class MaterialIndentService {
      * NEW: Standardized search method using MaterialIndentSearchFilter
      */
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<MaterialIndent> search(MaterialIndentSearchFilter filter) {
         Specification<MaterialIndent> spec = buildSearchSpecification(filter);
         return indentRepository.findAll(spec, filter.toPageable());
     }
-    
+
     /**
      * Build JPA Specification from MaterialIndentSearchFilter
      */
     private Specification<MaterialIndent> buildSearchSpecification(MaterialIndentSearchFilter filter) {
         SpecificationBuilder<MaterialIndent> builder = new SpecificationBuilder<>();
-        
+
         // Search across multiple fields
         Specification<MaterialIndent> searchSpec = builder.buildSearch(
-            filter.getSearchQuery(),
-            "indentNumber", "description", "notes"
-        );
-        
+                filter.getSearchQuery(),
+                "indentNumber", "description", "notes");
+
         // Apply filters
         Specification<MaterialIndent> statusSpec = null;
         if (filter.getStatus() != null && !filter.getStatus().trim().isEmpty()) {
-            statusSpec = (root, query, cb) -> 
-                cb.equal(root.get("status"), 
+            statusSpec = (root, query, cb) -> cb.equal(root.get("status"),
                     MaterialIndent.IndentStatus.valueOf(filter.getStatus().toUpperCase()));
         }
-        
+
         // Project filter
         Specification<MaterialIndent> projectSpec = null;
         if (filter.getProjectId() != null) {
-            projectSpec = (root, query, cb) -> 
-                cb.equal(root.get("project").get("id"), filter.getProjectId());
+            projectSpec = (root, query, cb) -> cb.equal(root.get("project").get("id"), filter.getProjectId());
         }
-        
+
         // Requester filter
         Specification<MaterialIndent> requesterSpec = builder.buildEquals("requestedById", filter.getRequestedBy());
-        
+
         // Approver filter
         Specification<MaterialIndent> approverSpec = builder.buildEquals("approvedById", filter.getApprovedBy());
-        
+
         // Indent number filter (partial match)
         Specification<MaterialIndent> indentNumberSpec = builder.buildLike("indentNumber", filter.getIndentNumber());
-        
+
         // Date range (on createdAt)
         Specification<MaterialIndent> dateRangeSpec = null;
         if (filter.getStartDate() != null || filter.getEndDate() != null) {
@@ -150,35 +151,31 @@ public class MaterialIndentService {
                 List<Predicate> predicates = new ArrayList<>();
                 if (filter.getStartDate() != null) {
                     predicates.add(cb.greaterThanOrEqualTo(
-                        root.get("createdAt"),
-                        filter.getStartDate().atStartOfDay()
-                    ));
+                            root.get("createdAt"),
+                            filter.getStartDate().atStartOfDay()));
                 }
                 if (filter.getEndDate() != null) {
                     predicates.add(cb.lessThanOrEqualTo(
-                        root.get("createdAt"),
-                        filter.getEndDate().plusDays(1).atStartOfDay()
-                    ));
+                            root.get("createdAt"),
+                            filter.getEndDate().plusDays(1).atStartOfDay()));
                 }
                 return cb.and(predicates.toArray(new Predicate[0]));
             };
         }
-        
+
         // Exclude soft deleted
-        Specification<MaterialIndent> notDeletedSpec = (root, query, cb) -> 
-            cb.isNull(root.get("deletedAt"));
-        
+        Specification<MaterialIndent> notDeletedSpec = (root, query, cb) -> cb.isNull(root.get("deletedAt"));
+
         // Combine all specifications
         return builder.and(
-            searchSpec,
-            statusSpec,
-            projectSpec,
-            requesterSpec,
-            approverSpec,
-            indentNumberSpec,
-            dateRangeSpec,
-            notDeletedSpec
-        );
+                searchSpec,
+                statusSpec,
+                projectSpec,
+                requesterSpec,
+                approverSpec,
+                indentNumberSpec,
+                dateRangeSpec,
+                notDeletedSpec);
     }
 
     /**
@@ -186,6 +183,7 @@ public class MaterialIndentService {
      */
     @Deprecated
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<MaterialIndent> searchIndents(Long projectId, String status, String searchTerm, Pageable pageable) {
         Specification<MaterialIndent> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();

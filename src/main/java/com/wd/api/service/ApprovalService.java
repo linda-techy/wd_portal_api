@@ -36,6 +36,7 @@ public class ApprovalService {
         private final PaymentChallanRepository challanRepository;
 
         @Transactional(readOnly = true)
+        @SuppressWarnings("null")
         public Page<ApprovalRequest> searchApprovals(ApprovalSearchFilter filter) {
                 Specification<ApprovalRequest> spec = buildSpecification(filter);
                 return approvalRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()));
@@ -49,12 +50,14 @@ public class ApprovalService {
                         if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                                 predicates.add(cb.or(
-                                        cb.like(cb.lower(root.join("requestedBy").get("firstName")), searchPattern),
-                                        cb.like(cb.lower(root.join("requestedBy").get("lastName")), searchPattern),
-                                        cb.like(cb.lower(root.join("approver").get("firstName")), searchPattern),
-                                        cb.like(cb.lower(root.join("approver").get("lastName")), searchPattern),
-                                        cb.like(cb.lower(root.get("targetType")), searchPattern)
-                                ));
+                                                cb.like(cb.lower(root.join("requestedBy").get("firstName")),
+                                                                searchPattern),
+                                                cb.like(cb.lower(root.join("requestedBy").get("lastName")),
+                                                                searchPattern),
+                                                cb.like(cb.lower(root.join("approver").get("firstName")),
+                                                                searchPattern),
+                                                cb.like(cb.lower(root.join("approver").get("lastName")), searchPattern),
+                                                cb.like(cb.lower(root.get("targetType")), searchPattern)));
                         }
 
                         // Filter by moduleType (targetType)
@@ -79,10 +82,12 @@ public class ApprovalService {
 
                         // Date range filter
                         if (filter.getStartDate() != null) {
-                                predicates.add(cb.greaterThanOrEqualTo(root.get("requestedAt"), filter.getStartDate().atStartOfDay()));
+                                predicates.add(cb.greaterThanOrEqualTo(root.get("requestedAt"),
+                                                filter.getStartDate().atStartOfDay()));
                         }
                         if (filter.getEndDate() != null) {
-                                predicates.add(cb.lessThanOrEqualTo(root.get("requestedAt"), filter.getEndDate().atTime(23, 59, 59)));
+                                predicates.add(cb.lessThanOrEqualTo(root.get("requestedAt"),
+                                                filter.getEndDate().atTime(23, 59, 59)));
                         }
 
                         return cb.and(predicates.toArray(new Predicate[0]));
@@ -90,8 +95,10 @@ public class ApprovalService {
         }
 
         @Transactional
+        @SuppressWarnings("null")
         public ApprovalRequestDTO createRequest(ApprovalRequestDTO dto) {
-                PortalUser requester = userRepository.findById(Objects.requireNonNull(dto.getRequestedById(), "Requester ID is required"))
+                PortalUser requester = userRepository
+                                .findById(Objects.requireNonNull(dto.getRequestedById(), "Requester ID is required"))
                                 .orElseThrow(() -> new RuntimeException("Requester not found"));
 
                 PortalUser approver = dto.getApproverId() != null
@@ -112,11 +119,14 @@ public class ApprovalService {
         }
 
         @Transactional
+        @SuppressWarnings("null")
         public ApprovalRequestDTO processRequest(Long requestId, String status, String comments, Long approverId) {
-                ApprovalRequest request = approvalRepository.findById(Objects.requireNonNull(requestId, "Request ID is required"))
+                ApprovalRequest request = approvalRepository
+                                .findById(Objects.requireNonNull(requestId, "Request ID is required"))
                                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
-                PortalUser approver = userRepository.findById(Objects.requireNonNull(approverId, "Approver ID is required"))
+                PortalUser approver = userRepository
+                                .findById(Objects.requireNonNull(approverId, "Approver ID is required"))
                                 .orElseThrow(() -> new RuntimeException("Approver not found"));
 
                 request.setStatus(status);
@@ -167,6 +177,7 @@ public class ApprovalService {
                                 .collect(Collectors.toList());
         }
 
+        @SuppressWarnings("null")
         private ApprovalRequestDTO mapToDTO(ApprovalRequest req) {
                 return ApprovalRequestDTO.builder()
                                 .id(req.getId())
