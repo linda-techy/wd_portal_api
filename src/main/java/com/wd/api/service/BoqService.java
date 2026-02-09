@@ -34,7 +34,7 @@ public class BoqService {
     @Transactional(readOnly = true)
     public Page<BoqItem> searchBoqItems(BoqSearchFilter filter) {
         Specification<BoqItem> spec = buildSpecification(filter);
-        return boqItemRepository.findAll(spec, filter.toPageable());
+        return boqItemRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()));
     }
 
     private Specification<BoqItem> buildSpecification(BoqSearchFilter filter) {
@@ -112,7 +112,7 @@ public class BoqService {
 
     @Transactional
     public BoqItem updateBoqItem(Long id, Map<String, Object> details) {
-        BoqItem item = boqItemRepository.findById(id)
+        BoqItem item = boqItemRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new RuntimeException("BoQ Item not found: " + id));
 
         if (details.containsKey("description")) {
@@ -137,14 +137,14 @@ public class BoqService {
             item.setWorkType(workType);
         }
 
-        return boqItemRepository.save(item);
+        return Objects.requireNonNull(boqItemRepository.save(item));
     }
 
     @Transactional
     public void deleteBoqItem(Long id) {
-        BoqItem item = boqItemRepository.findById(id)
+        BoqItem item = boqItemRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new RuntimeException("BoQ Item not found: " + id));
-        boqItemRepository.delete(item);
+        boqItemRepository.delete(Objects.requireNonNull(item));
     }
 
     @Transactional(readOnly = true)
