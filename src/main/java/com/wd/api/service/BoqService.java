@@ -32,7 +32,6 @@ public class BoqService {
     private CustomerProjectRepository customerProjectRepository;
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<BoqItem> searchBoqItems(BoqSearchFilter filter) {
         Specification<BoqItem> spec = buildSpecification(filter);
         return boqItemRepository.findAll(spec, filter.toPageable());
@@ -80,7 +79,6 @@ public class BoqService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public BoqItem createBoqItem(Map<String, Object> request) {
         Long projectId = ((Number) request.get("projectId")).longValue();
         CustomerProject project = customerProjectRepository.findById(projectId)
@@ -113,7 +111,6 @@ public class BoqService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public BoqItem updateBoqItem(Long id, Map<String, Object> details) {
         BoqItem item = boqItemRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BoQ Item not found: " + id));
@@ -144,7 +141,6 @@ public class BoqService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void deleteBoqItem(Long id) {
         BoqItem item = boqItemRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("BoQ Item not found: " + id));
