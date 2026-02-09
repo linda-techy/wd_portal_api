@@ -12752,5 +12752,229 @@
       }
     ],
     "unique_constraints": []
+  },
+  "labour_advances": {
+    "columns": [
+      {"name": "id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "labour_id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "advance_date", "type": "date", "default": null, "nullable": "NO", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "amount", "type": "numeric", "default": null, "nullable": "NO", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "recovered_amount", "type": "numeric", "default": "0.00", "nullable": "NO", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "notes", "type": "text", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "text"},
+      {"name": "created_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "updated_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "created_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "updated_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "deleted_at", "type": "timestamp without time zone", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "deleted_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "version", "type": "bigint", "default": "1", "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"}
+    ],
+    "primary_keys": [{"column": "id", "constraint": "labour_advances_pkey"}],
+    "foreign_keys": [
+      {"column": "labour_id", "references_table": "labour", "references_column": "id", "constraint": "fk_labour_advances_labour"},
+      {"column": "created_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_labour_advances_created_by"},
+      {"column": "updated_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_labour_advances_updated_by"},
+      {"column": "deleted_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_labour_advances_deleted_by"}
+    ],
+    "unique_constraints": []
+  },
+  "material_indents": {
+    "columns": [
+      {"name": "id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "indent_number", "type": "character varying", "default": null, "nullable": "NO", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "project_id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "request_date", "type": "date", "default": null, "nullable": "NO", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "required_date", "type": "date", "default": null, "nullable": "NO", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "status", "type": "character varying", "default": "'DRAFT'", "nullable": "NO", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "priority", "type": "character varying", "default": "'MEDIUM'", "nullable": "YES", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "notes", "type": "text", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "text"},
+      {"name": "requested_by_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "approved_by_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "approved_at", "type": "timestamp without time zone", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "rejection_reason", "type": "text", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "text"},
+      {"name": "created_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "updated_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "created_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "updated_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "deleted_at", "type": "timestamp without time zone", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "deleted_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "version", "type": "bigint", "default": "1", "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"}
+    ],
+    "primary_keys": [{"column": "id", "constraint": "material_indents_pkey"}],
+    "foreign_keys": [
+      {"column": "project_id", "references_table": "customer_projects", "references_column": "id", "constraint": "fk_material_indents_project"},
+      {"column": "requested_by_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_material_indents_requested_by"},
+      {"column": "approved_by_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_material_indents_approved_by"},
+      {"column": "created_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_material_indents_created_by"},
+      {"column": "updated_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_material_indents_updated_by"},
+      {"column": "deleted_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_material_indents_deleted_by"}
+    ],
+    "unique_constraints": [{"columns": ["indent_number"], "constraint": "uk_material_indents_number"}]
+  },
+  "material_indent_items": {
+    "columns": [
+      {"name": "id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "indent_id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "material_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "item_name", "type": "character varying", "default": null, "nullable": "NO", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "description", "type": "text", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "text"},
+      {"name": "unit", "type": "character varying", "default": null, "nullable": "NO", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "quantity_requested", "type": "numeric", "default": null, "nullable": "NO", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "quantity_approved", "type": "numeric", "default": null, "nullable": "YES", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "po_quantity", "type": "numeric", "default": "0.00", "nullable": "YES", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "estimated_rate", "type": "numeric", "default": null, "nullable": "YES", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "estimated_amount", "type": "numeric", "default": null, "nullable": "YES", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "created_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "updated_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "created_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "updated_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "deleted_at", "type": "timestamp without time zone", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "deleted_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "version", "type": "bigint", "default": "1", "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"}
+    ],
+    "primary_keys": [{"column": "id", "constraint": "material_indent_items_pkey"}],
+    "foreign_keys": [
+      {"column": "indent_id", "references_table": "material_indents", "references_column": "id", "constraint": "fk_material_indent_items_indent"},
+      {"column": "material_id", "references_table": "materials", "references_column": "id", "constraint": "fk_material_indent_items_material"},
+      {"column": "created_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_material_indent_items_created_by"},
+      {"column": "updated_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_material_indent_items_updated_by"},
+      {"column": "deleted_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_material_indent_items_deleted_by"}
+    ],
+    "unique_constraints": []
+  },
+  "vendor_quotations": {
+    "columns": [
+      {"name": "id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "indent_id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "vendor_id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "quoted_amount", "type": "numeric", "default": null, "nullable": "NO", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "items_included", "type": "character varying", "default": null, "nullable": "YES", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "delivery_charges", "type": "numeric", "default": null, "nullable": "YES", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "tax_amount", "type": "numeric", "default": null, "nullable": "YES", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "expected_delivery_date", "type": "date", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "valid_until", "type": "date", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "document_url", "type": "character varying", "default": null, "nullable": "YES", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "notes", "type": "text", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "text"},
+      {"name": "status", "type": "character varying", "default": "'PENDING'", "nullable": "NO", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "selected_at", "type": "timestamp without time zone", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "created_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "updated_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "created_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "updated_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "deleted_at", "type": "timestamp without time zone", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "deleted_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "version", "type": "bigint", "default": "1", "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"}
+    ],
+    "primary_keys": [{"column": "id", "constraint": "vendor_quotations_pkey"}],
+    "foreign_keys": [
+      {"column": "indent_id", "references_table": "material_indents", "references_column": "id", "constraint": "fk_vendor_quotations_indent"},
+      {"column": "vendor_id", "references_table": "vendors", "references_column": "id", "constraint": "fk_vendor_quotations_vendor"},
+      {"column": "created_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_vendor_quotations_created_by"},
+      {"column": "updated_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_vendor_quotations_updated_by"},
+      {"column": "deleted_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_vendor_quotations_deleted_by"}
+    ],
+    "unique_constraints": []
+  },
+  "project_milestones": {
+    "columns": [
+      {"name": "id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "project_id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "name", "type": "character varying", "default": null, "nullable": "NO", "max_length": 100, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "description", "type": "character varying", "default": null, "nullable": "YES", "max_length": 500, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "milestone_percentage", "type": "numeric", "default": null, "nullable": "YES", "max_length": null, "precision": 5, "scale": 2, "udt_name": "numeric"},
+      {"name": "amount", "type": "numeric", "default": null, "nullable": "NO", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "status", "type": "character varying", "default": "'PENDING'", "nullable": "NO", "max_length": 20, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "due_date", "type": "date", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "completed_date", "type": "date", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "invoice_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "template_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "completion_percentage", "type": "numeric", "default": "0.00", "nullable": "YES", "max_length": null, "precision": 5, "scale": 2, "udt_name": "numeric"},
+      {"name": "weight_percentage", "type": "numeric", "default": null, "nullable": "YES", "max_length": null, "precision": 5, "scale": 2, "udt_name": "numeric"},
+      {"name": "actual_start_date", "type": "date", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "actual_end_date", "type": "date", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "created_at", "type": "timestamp without time zone", "default": "now()", "nullable": "NO", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "updated_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"}
+    ],
+    "primary_keys": [{"column": "id", "constraint": "project_milestones_pkey"}],
+    "foreign_keys": [
+      {"column": "project_id", "references_table": "customer_projects", "references_column": "id", "constraint": "fk_project_milestones_project"},
+      {"column": "invoice_id", "references_table": "project_invoices", "references_column": "id", "constraint": "fk_project_milestones_invoice"},
+      {"column": "template_id", "references_table": "milestone_templates", "references_column": "id", "constraint": "fk_project_milestones_template"}
+    ],
+    "unique_constraints": []
+  },
+  "receipts": {
+    "columns": [
+      {"name": "id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "project_id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "invoice_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "receipt_number", "type": "character varying", "default": null, "nullable": "NO", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "amount", "type": "numeric", "default": null, "nullable": "NO", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "payment_date", "type": "date", "default": null, "nullable": "NO", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "payment_method", "type": "character varying", "default": null, "nullable": "YES", "max_length": 50, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "transaction_reference", "type": "character varying", "default": null, "nullable": "YES", "max_length": 100, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "notes", "type": "character varying", "default": null, "nullable": "YES", "max_length": 500, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "created_at", "type": "timestamp without time zone", "default": "now()", "nullable": "NO", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"}
+    ],
+    "primary_keys": [{"column": "id", "constraint": "receipts_pkey"}],
+    "foreign_keys": [
+      {"column": "project_id", "references_table": "customer_projects", "references_column": "id", "constraint": "fk_receipts_project"},
+      {"column": "invoice_id", "references_table": "project_invoices", "references_column": "id", "constraint": "fk_receipts_invoice"}
+    ],
+    "unique_constraints": [{"columns": ["receipt_number"], "constraint": "uk_receipts_receipt_number"}]
+  },
+  "wage_sheets": {
+    "columns": [
+      {"name": "id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "sheet_number", "type": "character varying", "default": null, "nullable": "NO", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "project_id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "period_start", "type": "date", "default": null, "nullable": "NO", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "period_end", "type": "date", "default": null, "nullable": "NO", "max_length": null, "precision": null, "scale": null, "udt_name": "date"},
+      {"name": "total_amount", "type": "numeric", "default": null, "nullable": "NO", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "status", "type": "character varying", "default": "'DRAFT'", "nullable": "NO", "max_length": 255, "precision": null, "scale": null, "udt_name": "varchar"},
+      {"name": "created_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "updated_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "created_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "updated_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "deleted_at", "type": "timestamp without time zone", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "deleted_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "version", "type": "bigint", "default": "1", "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"}
+    ],
+    "primary_keys": [{"column": "id", "constraint": "wage_sheets_pkey"}],
+    "foreign_keys": [
+      {"column": "project_id", "references_table": "customer_projects", "references_column": "id", "constraint": "fk_wage_sheets_project"},
+      {"column": "created_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_wage_sheets_created_by"},
+      {"column": "updated_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_wage_sheets_updated_by"},
+      {"column": "deleted_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_wage_sheets_deleted_by"}
+    ],
+    "unique_constraints": [{"columns": ["sheet_number"], "constraint": "uk_wage_sheets_sheet_number"}]
+  },
+  "wage_sheet_entries": {
+    "columns": [
+      {"name": "id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "wage_sheet_id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "labour_id", "type": "bigint", "default": null, "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "days_worked", "type": "numeric", "default": null, "nullable": "NO", "max_length": null, "precision": 4, "scale": 1, "udt_name": "numeric"},
+      {"name": "daily_wage", "type": "numeric", "default": null, "nullable": "NO", "max_length": null, "precision": 10, "scale": 2, "udt_name": "numeric"},
+      {"name": "total_wage", "type": "numeric", "default": null, "nullable": "NO", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "advances_deducted", "type": "numeric", "default": "0.00", "nullable": "NO", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "net_payable", "type": "numeric", "default": null, "nullable": "NO", "max_length": null, "precision": 15, "scale": 2, "udt_name": "numeric"},
+      {"name": "created_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "updated_at", "type": "timestamp without time zone", "default": "now()", "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "created_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "updated_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "deleted_at", "type": "timestamp without time zone", "default": null, "nullable": "YES", "max_length": null, "precision": null, "scale": null, "udt_name": "timestamp"},
+      {"name": "deleted_by_user_id", "type": "bigint", "default": null, "nullable": "YES", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"},
+      {"name": "version", "type": "bigint", "default": "1", "nullable": "NO", "max_length": null, "precision": 64, "scale": 0, "udt_name": "int8"}
+    ],
+    "primary_keys": [{"column": "id", "constraint": "wage_sheet_entries_pkey"}],
+    "foreign_keys": [
+      {"column": "wage_sheet_id", "references_table": "wage_sheets", "references_column": "id", "constraint": "fk_wage_sheet_entries_sheet"},
+      {"column": "labour_id", "references_table": "labour", "references_column": "id", "constraint": "fk_wage_sheet_entries_labour"},
+      {"column": "created_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_wage_sheet_entries_created_by"},
+      {"column": "updated_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_wage_sheet_entries_updated_by"},
+      {"column": "deleted_by_user_id", "references_table": "portal_users", "references_column": "id", "constraint": "fk_wage_sheet_entries_deleted_by"}
+    ],
+    "unique_constraints": []
   }
 }

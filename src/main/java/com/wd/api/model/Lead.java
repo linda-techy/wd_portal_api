@@ -59,9 +59,11 @@ public class Lead extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String requirements;
+
+    @Column(precision = 15, scale = 2)
     private BigDecimal budget;
 
-    @Column(name = "project_sqft_area")
+    @Column(name = "project_sqft_area", precision = 15, scale = 2)
     @JsonProperty("project_sqft_area")
     private BigDecimal projectSqftArea;
 

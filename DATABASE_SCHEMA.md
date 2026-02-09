@@ -1,5 +1,5 @@
 # WallDot Builders - Database Schema Documentation
-**Total Tables:** 77
+**Total Tables:** 85
 **Database:** PostgreSQL (wdTestDB)
 
 ## Table of Contents
@@ -26,61 +26,69 @@
 20. [goods_received_notes](#goods-received-notes)
 21. [inventory_stock](#inventory-stock)
 22. [labour](#labour)
-23. [labour_attendance](#labour-attendance)
-24. [labour_payments](#labour-payments)
-25. [lead_interactions](#lead-interactions)
-26. [lead_quotation_items](#lead-quotation-items)
-27. [lead_quotations](#lead-quotations)
-28. [lead_score_history](#lead-score-history)
-29. [leads](#leads)
-30. [material_budgets](#material-budgets)
-31. [materials](#materials)
-32. [measurement_book](#measurement-book)
-33. [milestone_templates](#milestone-templates)
-34. [observations](#observations)
-35. [partnership_users](#partnership-users)
-36. [payment_challans](#payment-challans)
-37. [payment_schedule](#payment-schedule)
-38. [payment_transactions](#payment-transactions)
-39. [portal_permissions](#portal-permissions)
-40. [portal_refresh_tokens](#portal-refresh-tokens)
-41. [portal_role_permissions](#portal-role-permissions)
-42. [portal_roles](#portal-roles)
-43. [portal_users](#portal-users)
-44. [project_design_steps](#project-design-steps)
-45. [project_documents](#project-documents)
-46. [project_invoices](#project-invoices)
-47. [project_members](#project-members)
-48. [project_phases](#project-phases)
-49. [project_progress_logs](#project-progress-logs)
-50. [project_queries](#project-queries)
-51. [project_type_templates](#project-type-templates)
-52. [project_variations](#project-variations)
-53. [project_warranties](#project-warranties)
-54. [purchase_invoices](#purchase-invoices)
-55. [purchase_order_items](#purchase-order-items)
-56. [purchase_orders](#purchase-orders)
-57. [quality_checks](#quality-checks)
-58. [retention_releases](#retention-releases)
-59. [site_report_photos](#site-report-photos)
-60. [site_reports](#site-reports)
-61. [site_visits](#site-visits)
-62. [sqft_categories](#sqft-categories)
-63. [staff_roles](#staff-roles)
-64. [stock_adjustments](#stock-adjustments)
-65. [subcontract_measurements](#subcontract-measurements)
-66. [subcontract_payments](#subcontract-payments)
-67. [subcontract_work_orders](#subcontract-work-orders)
-68. [task_alerts](#task-alerts)
-69. [task_assignment_history](#task-assignment-history)
-70. [tasks](#tasks)
-71. [tax_invoices](#tax-invoices)
-72. [v_accounts_payable_aging](#v-accounts-payable-aging)
-73. [v_pending_vendor_payments](#v-pending-vendor-payments)
-74. [v_subcontract_summary](#v-subcontract-summary)
-75. [vendor_payments](#vendor-payments)
-76. [vendors](#vendors)
-77. [view_360](#view-360)
+23. [labour_advances](#labour-advances)
+24. [labour_attendance](#labour-attendance)
+25. [labour_payments](#labour-payments)
+26. [lead_interactions](#lead-interactions)
+27. [lead_quotation_items](#lead-quotation-items)
+28. [lead_quotations](#lead-quotations)
+29. [lead_score_history](#lead-score-history)
+30. [leads](#leads)
+31. [material_budgets](#material-budgets)
+32. [material_indent_items](#material-indent-items)
+33. [material_indents](#material-indents)
+34. [materials](#materials)
+35. [measurement_book](#measurement-book)
+36. [milestone_templates](#milestone-templates)
+37. [observations](#observations)
+38. [partnership_users](#partnership-users)
+39. [payment_challans](#payment-challans)
+40. [payment_schedule](#payment-schedule)
+41. [payment_transactions](#payment-transactions)
+42. [portal_permissions](#portal-permissions)
+43. [portal_refresh_tokens](#portal-refresh-tokens)
+44. [portal_role_permissions](#portal-role-permissions)
+45. [portal_roles](#portal-roles)
+46. [portal_users](#portal-users)
+47. [project_design_steps](#project-design-steps)
+48. [project_documents](#project-documents)
+49. [project_invoices](#project-invoices)
+50. [project_members](#project-members)
+51. [project_milestones](#project-milestones)
+52. [project_phases](#project-phases)
+53. [project_progress_logs](#project-progress-logs)
+54. [project_queries](#project-queries)
+55. [project_type_templates](#project-type-templates)
+56. [project_variations](#project-variations)
+57. [project_warranties](#project-warranties)
+58. [purchase_invoices](#purchase-invoices)
+59. [purchase_order_items](#purchase-order-items)
+60. [purchase_orders](#purchase-orders)
+61. [quality_checks](#quality-checks)
+62. [receipts](#receipts)
+63. [retention_releases](#retention-releases)
+64. [site_report_photos](#site-report-photos)
+65. [site_reports](#site-reports)
+66. [site_visits](#site-visits)
+67. [sqft_categories](#sqft-categories)
+68. [staff_roles](#staff-roles)
+69. [stock_adjustments](#stock-adjustments)
+70. [subcontract_measurements](#subcontract-measurements)
+71. [subcontract_payments](#subcontract-payments)
+72. [subcontract_work_orders](#subcontract-work-orders)
+73. [task_alerts](#task-alerts)
+74. [task_assignment_history](#task-assignment-history)
+75. [tasks](#tasks)
+76. [tax_invoices](#tax-invoices)
+77. [v_accounts_payable_aging](#v-accounts-payable-aging)
+78. [v_pending_vendor_payments](#v-pending-vendor-payments)
+79. [v_subcontract_summary](#v-subcontract-summary)
+80. [vendor_payments](#vendor-payments)
+81. [vendor_quotations](#vendor-quotations)
+82. [vendors](#vendors)
+83. [view_360](#view-360)
+84. [wage_sheet_entries](#wage-sheet-entries)
+85. [wage_sheets](#wage-sheets)
 
 ---
 
@@ -792,6 +800,39 @@
 
 ---
 
+## labour_advances
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64)` | No | - | PK |
+| `labour_id` | `bigint(64)` | No | - | FK -> `labour.id` |
+| `advance_date` | `date` | No | - | - |
+| `amount` | `numeric(15,2)` | No | - | - |
+| `recovered_amount` | `numeric(15,2)` | No | 0.00 | - |
+| `notes` | `text` | Yes | - | - |
+| `created_at` | `timestamp without time zone` | Yes | now() | - |
+| `updated_at` | `timestamp without time zone` | Yes | now() | - |
+| `created_by_user_id` | `bigint(64)` | Yes | - | FK -> `portal_users.id` |
+| `updated_by_user_id` | `bigint(64)` | Yes | - | FK -> `portal_users.id` |
+| `deleted_at` | `timestamp without time zone` | Yes | - | - |
+| `deleted_by_user_id` | `bigint(64)` | Yes | - | FK -> `portal_users.id` |
+| `version` | `bigint(64)` | No | 1 | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `labour_id` -> `labour.id`
+- `created_by_user_id` -> `portal_users.id`
+- `updated_by_user_id` -> `portal_users.id`
+- `deleted_by_user_id` -> `portal_users.id`
+
+---
+
 ## labour_attendance
 
 ### Columns
@@ -1072,6 +1113,90 @@
 - `updated_by_user_id` → `portal_users.id`
 - `created_by_user_id` → `portal_users.id`
 - `material_id` → `materials.id`
+
+---
+
+## material_indent_items
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64)` | ✗ | - | 🔑 PK |
+| `indent_id` | `bigint(64)` | ✗ | - | 🔗 FK → `material_indents.id` |
+| `material_id` | `bigint(64)` | ✓ | - | 🔗 FK → `materials.id` |
+| `item_name` | `character varying(255)` | ✗ | - | - |
+| `description` | `text` | ✓ | - | - |
+| `unit` | `character varying(255)` | ✗ | - | - |
+| `quantity_requested` | `numeric(15,2)` | ✗ | - | - |
+| `quantity_approved` | `numeric(15,2)` | ✓ | - | - |
+| `po_quantity` | `numeric(15,2)` | ✓ | 0.00 | - |
+| `estimated_rate` | `numeric(15,2)` | ✓ | - | - |
+| `estimated_amount` | `numeric(15,2)` | ✓ | - | - |
+| `created_at` | `timestamp without time zone` | ✓ | now() | - |
+| `updated_at` | `timestamp without time zone` | ✓ | now() | - |
+| `created_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp without time zone` | ✓ | - | - |
+| `deleted_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `version` | `bigint(64)` | ✗ | 1 | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `indent_id` → `material_indents.id`
+- `material_id` → `materials.id`
+- `created_by_user_id` → `portal_users.id`
+- `updated_by_user_id` → `portal_users.id`
+- `deleted_by_user_id` → `portal_users.id`
+
+---
+
+## material_indents
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64)` | ✗ | - | 🔑 PK |
+| `indent_number` | `character varying(255)` | ✗ | - | - |
+| `project_id` | `bigint(64)` | ✗ | - | 🔗 FK → `customer_projects.id` |
+| `request_date` | `date` | ✗ | - | - |
+| `required_date` | `date` | ✗ | - | - |
+| `status` | `character varying(255)` | ✗ | 'DRAFT' | - |
+| `priority` | `character varying(255)` | ✓ | 'MEDIUM' | - |
+| `notes` | `text` | ✓ | - | - |
+| `requested_by_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `approved_by_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `approved_at` | `timestamp without time zone` | ✓ | - | - |
+| `rejection_reason` | `text` | ✓ | - | - |
+| `created_at` | `timestamp without time zone` | ✓ | now() | - |
+| `updated_at` | `timestamp without time zone` | ✓ | now() | - |
+| `created_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp without time zone` | ✓ | - | - |
+| `deleted_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `version` | `bigint(64)` | ✗ | 1 | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `requested_by_id` → `portal_users.id`
+- `approved_by_id` → `portal_users.id`
+- `created_by_user_id` → `portal_users.id`
+- `updated_by_user_id` → `portal_users.id`
+- `deleted_by_user_id` → `portal_users.id`
+
+### Unique Constraints
+
+- `indent_number`
 
 ---
 
@@ -1616,6 +1741,42 @@
 
 ---
 
+## project_milestones
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64)` | ✗ | - | 🔑 PK |
+| `project_id` | `bigint(64)` | ✗ | - | 🔗 FK → `customer_projects.id` |
+| `name` | `character varying(100)` | ✗ | - | - |
+| `description` | `character varying(500)` | ✓ | - | - |
+| `milestone_percentage` | `numeric(5,2)` | ✓ | - | - |
+| `amount` | `numeric(15,2)` | ✗ | - | - |
+| `status` | `character varying(20)` | ✗ | 'PENDING' | - |
+| `due_date` | `date` | ✓ | - | - |
+| `completed_date` | `date` | ✓ | - | - |
+| `invoice_id` | `bigint(64)` | ✓ | - | 🔗 FK → `project_invoices.id` |
+| `template_id` | `bigint(64)` | ✓ | - | 🔗 FK → `milestone_templates.id` |
+| `completion_percentage` | `numeric(5,2)` | ✓ | 0.00 | - |
+| `weight_percentage` | `numeric(5,2)` | ✓ | - | - |
+| `actual_start_date` | `date` | ✓ | - | - |
+| `actual_end_date` | `date` | ✓ | - | - |
+| `created_at` | `timestamp without time zone` | ✗ | now() | - |
+| `updated_at` | `timestamp without time zone` | ✓ | now() | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `invoice_id` → `project_invoices.id`
+- `template_id` → `milestone_templates.id`
+
+---
+
 ## project_phases
 
 ### Columns
@@ -1955,6 +2116,38 @@
 - `resolved_by_id` → `customer_users.id`
 - `assigned_to_id` → `customer_users.id`
 - `project_id` → `customer_projects.id`
+
+---
+
+## receipts
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64)` | ✗ | - | 🔑 PK |
+| `project_id` | `bigint(64)` | ✗ | - | 🔗 FK → `customer_projects.id` |
+| `invoice_id` | `bigint(64)` | ✓ | - | 🔗 FK → `project_invoices.id` |
+| `receipt_number` | `character varying(255)` | ✗ | - | - |
+| `amount` | `numeric(15,2)` | ✗ | - | - |
+| `payment_date` | `date` | ✗ | - | - |
+| `payment_method` | `character varying(50)` | ✓ | - | - |
+| `transaction_reference` | `character varying(100)` | ✓ | - | - |
+| `notes` | `character varying(500)` | ✓ | - | - |
+| `created_at` | `timestamp without time zone` | ✗ | now() | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `invoice_id` → `project_invoices.id`
+
+### Unique Constraints
+
+- `receipt_number`
 
 ---
 
@@ -2538,6 +2731,47 @@
 
 ---
 
+## vendor_quotations
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64)` | ✗ | - | 🔑 PK |
+| `indent_id` | `bigint(64)` | ✗ | - | 🔗 FK → `material_indents.id` |
+| `vendor_id` | `bigint(64)` | ✗ | - | 🔗 FK → `vendors.id` |
+| `quoted_amount` | `numeric(15,2)` | ✗ | - | - |
+| `items_included` | `character varying(255)` | ✓ | - | - |
+| `delivery_charges` | `numeric(15,2)` | ✓ | - | - |
+| `tax_amount` | `numeric(15,2)` | ✓ | - | - |
+| `expected_delivery_date` | `date` | ✓ | - | - |
+| `valid_until` | `date` | ✓ | - | - |
+| `document_url` | `character varying(255)` | ✓ | - | - |
+| `notes` | `text` | ✓ | - | - |
+| `status` | `character varying(255)` | ✗ | 'PENDING' | - |
+| `selected_at` | `timestamp without time zone` | ✓ | - | - |
+| `created_at` | `timestamp without time zone` | ✓ | now() | - |
+| `updated_at` | `timestamp without time zone` | ✓ | now() | - |
+| `created_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp without time zone` | ✓ | - | - |
+| `deleted_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `version` | `bigint(64)` | ✗ | 1 | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `indent_id` → `material_indents.id`
+- `vendor_id` → `vendors.id`
+- `created_by_user_id` → `portal_users.id`
+- `updated_by_user_id` → `portal_users.id`
+- `deleted_by_user_id` → `portal_users.id`
+
+---
+
 ## vendors
 
 ### Columns
@@ -2609,6 +2843,80 @@
 - `project_id` → `customer_projects.id`
 - `uploaded_by` → `portal_users.id`
 - `uploaded_by_id` → `customer_users.id`
+
+---
+
+## wage_sheet_entries
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64)` | ✗ | - | 🔑 PK |
+| `wage_sheet_id` | `bigint(64)` | ✗ | - | 🔗 FK → `wage_sheets.id` |
+| `labour_id` | `bigint(64)` | ✗ | - | 🔗 FK → `labour.id` |
+| `days_worked` | `numeric(4,1)` | ✗ | - | - |
+| `daily_wage` | `numeric(10,2)` | ✗ | - | - |
+| `total_wage` | `numeric(15,2)` | ✗ | - | - |
+| `advances_deducted` | `numeric(15,2)` | ✗ | 0.00 | - |
+| `net_payable` | `numeric(15,2)` | ✗ | - | - |
+| `created_at` | `timestamp without time zone` | ✓ | now() | - |
+| `updated_at` | `timestamp without time zone` | ✓ | now() | - |
+| `created_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp without time zone` | ✓ | - | - |
+| `deleted_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `version` | `bigint(64)` | ✗ | 1 | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `wage_sheet_id` → `wage_sheets.id`
+- `labour_id` → `labour.id`
+- `created_by_user_id` → `portal_users.id`
+- `updated_by_user_id` → `portal_users.id`
+- `deleted_by_user_id` → `portal_users.id`
+
+---
+
+## wage_sheets
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64)` | ✗ | - | 🔑 PK |
+| `sheet_number` | `character varying(255)` | ✗ | - | - |
+| `project_id` | `bigint(64)` | ✗ | - | 🔗 FK → `customer_projects.id` |
+| `period_start` | `date` | ✗ | - | - |
+| `period_end` | `date` | ✗ | - | - |
+| `total_amount` | `numeric(15,2)` | ✗ | - | - |
+| `status` | `character varying(255)` | ✗ | 'DRAFT' | - |
+| `created_at` | `timestamp without time zone` | ✓ | now() | - |
+| `updated_at` | `timestamp without time zone` | ✓ | now() | - |
+| `created_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp without time zone` | ✓ | - | - |
+| `deleted_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `version` | `bigint(64)` | ✗ | 1 | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `created_by_user_id` → `portal_users.id`
+- `updated_by_user_id` → `portal_users.id`
+- `deleted_by_user_id` → `portal_users.id`
+
+### Unique Constraints
+
+- `sheet_number`
 
 ---
 
@@ -2741,6 +3049,20 @@ erDiagram
     customer_projects ||--o{ view_360 : "has"
     portal_users ||--o{ view_360 : "has"
     customer_users ||--o{ view_360 : "has"
+    labour ||--o{ labour_advances : "has"
+    customer_projects ||--o{ project_milestones : "has"
+    project_invoices ||--o{ project_milestones : "has"
+    milestone_templates ||--o{ project_milestones : "has"
+    customer_projects ||--o{ receipts : "has"
+    project_invoices ||--o{ receipts : "has"
+    customer_projects ||--o{ material_indents : "has"
+    material_indents ||--o{ material_indent_items : "has"
+    materials ||--o{ material_indent_items : "has"
+    material_indents ||--o{ vendor_quotations : "has"
+    vendors ||--o{ vendor_quotations : "has"
+    customer_projects ||--o{ wage_sheets : "has"
+    wage_sheets ||--o{ wage_sheet_entries : "has"
+    labour ||--o{ wage_sheet_entries : "has"
 ```
 
 
