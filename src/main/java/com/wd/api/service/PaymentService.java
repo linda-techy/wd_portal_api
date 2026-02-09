@@ -9,6 +9,7 @@ import com.wd.api.repository.PaymentScheduleRepository;
 import com.wd.api.repository.PaymentTransactionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,9 +30,10 @@ public class PaymentService {
     private final PaymentScheduleRepository scheduleRepository;
     private final PaymentTransactionRepository transactionRepository;
     private final com.wd.api.repository.CustomerProjectRepository projectRepository;
-    // private final com.wd.api.repository.RetentionReleaseRepository
-    // retentionReleaseRepository; // Removed
     private final com.wd.api.repository.TaxInvoiceRepository taxInvoiceRepository;
+
+    @Value("${company.gst:}")
+    private String companyGstin;
 
     public PaymentService(
             DesignPackagePaymentRepository paymentRepository,
@@ -366,6 +368,7 @@ public class PaymentService {
         com.wd.api.model.TaxInvoice invoice = new com.wd.api.model.TaxInvoice();
         invoice.setPaymentId(paymentId);
         invoice.setInvoiceNumber(taxInvoiceRepository.generateInvoiceNumber());
+        invoice.setCompanyGstin(companyGstin);
         invoice.setPlaceOfSupply(placeOfSupply);
         invoice.setCustomerGstin(customerGstin);
         invoice.setCreatedById(createdById);

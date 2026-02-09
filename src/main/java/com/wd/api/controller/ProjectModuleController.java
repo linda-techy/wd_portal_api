@@ -56,19 +56,26 @@ public class ProjectModuleController {
         return ResponseEntity.ok(ApiResponse.success("Document deleted successfully"));
     }
 
-    // Helper method to extract user ID from authentication
+    /**
+     * Extract user ID from authentication context.
+     * Returns null only if authentication is genuinely unavailable
+     * (e.g., public endpoints). Callers should handle null appropriately.
+     */
     @SuppressWarnings("unused")
     private Long getUserIdFromAuth(Authentication auth) {
-        if (auth == null || auth.getPrincipal() == null) {
+        if (auth == null || auth.getPrincipal() == null
+                || "anonymousUser".equals(auth.getPrincipal())) {
             return null;
         }
 
+        if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser) {
+            return ((com.wd.api.model.PortalUser) auth.getPrincipal()).getId();
+        }
+
         try {
-            if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser) {
-                return ((com.wd.api.model.PortalUser) auth.getPrincipal()).getId();
-            }
             return Long.parseLong(auth.getName());
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
+            // Name is not a numeric ID (e.g., email address)
             return null;
         }
     }

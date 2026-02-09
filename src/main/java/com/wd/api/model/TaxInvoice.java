@@ -19,9 +19,9 @@ public class TaxInvoice {
     @Column(name = "payment_id", nullable = false)
     private Long paymentId;
 
-    // GST Details
+    // GST Details - set from company.gst config at invoice creation time
     @Column(name = "company_gstin", nullable = false, length = 15)
-    private String companyGstin = "29AABCU9603R1ZX"; // Default placeholder
+    private String companyGstin;
 
     @Column(name = "customer_gstin", length = 15)
     private String customerGstin;

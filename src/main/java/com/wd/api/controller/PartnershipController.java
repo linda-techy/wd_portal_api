@@ -6,8 +6,8 @@ import com.wd.api.dto.PartnershipApplicationRequest;
 import com.wd.api.dto.PartnershipReferralRequest;
 import com.wd.api.model.Lead;
 import com.wd.api.service.JwtService;
-import com.wd.api.service.PartnershipService;
 import com.wd.api.service.LeadService;
+import com.wd.api.service.PartnershipService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -100,15 +100,13 @@ public class PartnershipController {
                 throw new RuntimeException("Invalid token");
             }
 
-            // For now, return mock data
-            Map<String, Object> stats = new HashMap<>();
-            stats.put("totalReferrals", 0);
-            stats.put("pendingReferrals", 0);
-            stats.put("approvedReferrals", 0);
-            stats.put("totalCommission", 0.0);
-            stats.put("paidCommission", 0.0);
-            stats.put("pendingCommission", 0.0);
+            String phone = jwtService.extractActualSubject(token);
+            var partner = partnershipService.getPartnerByPhone(phone);
+            if (partner == null) {
+                throw new RuntimeException("Partner not found");
+            }
 
+            Map<String, Object> stats = partnershipService.getPartnerStats(partner.getId());
             return ResponseEntity.ok(stats);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -130,8 +128,13 @@ public class PartnershipController {
                 throw new RuntimeException("Invalid token");
             }
 
-            // For now, return empty array
-            return ResponseEntity.ok(new java.util.ArrayList<>());
+            String phone = jwtService.extractActualSubject(token);
+            var partner = partnershipService.getPartnerByPhone(phone);
+            if (partner == null) {
+                throw new RuntimeException("Partner not found");
+            }
+
+            return ResponseEntity.ok(partnershipService.getReferralSummaries(partner.getId()));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -142,6 +145,7 @@ public class PartnershipController {
     /**
      * Submit New Referral (Protected Route)
      * POST /api/partnerships/referrals
+     * Creates a lead with lead_source = "referral_architect"
      */
     @PostMapping("/referrals")
     public ResponseEntity<?> submitReferral(
@@ -154,7 +158,40 @@ public class PartnershipController {
                 throw new RuntimeException("Invalid token");
             }
 
-            throw new RuntimeException("Referral submission not implemented yet");
+            String phone = jwtService.extractActualSubject(token);
+            var partner = partnershipService.getPartnerByPhone(phone);
+            if (partner == null) {
+                throw new RuntimeException("Partner not found");
+            }
+
+            // Build a PartnershipReferralRequest from the map
+            PartnershipReferralRequest request = new PartnershipReferralRequest();
+            request.setClientName((String) referralData.get("clientName"));
+            request.setClientEmail((String) referralData.get("clientEmail"));
+            request.setClientPhone((String) referralData.get("clientPhone"));
+            request.setClientWhatsapp((String) referralData.get("clientWhatsapp"));
+            request.setProjectType((String) referralData.get("projectType"));
+            request.setProjectDescription((String) referralData.get("projectDescription"));
+            request.setLocation((String) referralData.get("location"));
+            request.setState((String) referralData.get("state"));
+            request.setDistrict((String) referralData.get("district"));
+            request.setAddress((String) referralData.get("address"));
+            request.setRequirements((String) referralData.get("requirements"));
+            request.setNotes((String) referralData.get("notes"));
+            request.setPartnerId(partner.getId().toString());
+            request.setPartnerName(partner.getFullName());
+            request.setPartnershipType(partner.getPartnershipType());
+
+            Lead createdLead = leadService.createLeadFromPartnershipReferral(request);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Referral submitted successfully");
+            response.put("leadId", createdLead.getId());
+            response.put("clientName", request.getClientName());
+            response.put("partnerName", partner.getFullName());
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());

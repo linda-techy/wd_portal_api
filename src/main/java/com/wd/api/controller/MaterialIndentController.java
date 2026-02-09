@@ -1,6 +1,7 @@
 package com.wd.api.controller;
 
 import com.wd.api.model.MaterialIndent;
+import com.wd.api.model.PortalUser;
 import com.wd.api.service.MaterialIndentService;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.MaterialIndentSearchFilter;
@@ -10,12 +11,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/indents")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // Adjust as per security config
+@CrossOrigin(origins = "*")
 public class MaterialIndentController {
 
     private final MaterialIndentService indentService;
@@ -25,7 +28,7 @@ public class MaterialIndentController {
     public ResponseEntity<ApiResponse<MaterialIndent>> createIndent(
             @PathVariable Long projectId,
             @RequestBody MaterialIndent indent) {
-        Long currentUserId = 1L; // Placeholder or extract from Principal
+        Long currentUserId = getCurrentUserId();
         MaterialIndent created = indentService.createIndent(projectId, indent, currentUserId);
         return ResponseEntity.ok(ApiResponse.success("Indent created successfully", created));
     }
@@ -40,7 +43,7 @@ public class MaterialIndentController {
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
     public ResponseEntity<ApiResponse<MaterialIndent>> approveIndent(@PathVariable Long id) {
-        Long currentUserId = 1L;
+        Long currentUserId = getCurrentUserId();
         MaterialIndent approved = indentService.approveIndent(id, currentUserId);
         return ResponseEntity.ok(ApiResponse.success("Indent approved successfully", approved));
     }
@@ -80,5 +83,21 @@ public class MaterialIndentController {
                 PageRequest.of(page, limit, sort));
 
         return ResponseEntity.ok(ApiResponse.success("Indents fetched successfully", result));
+    }
+
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof PortalUser) {
+            return ((PortalUser) authentication.getPrincipal()).getId();
+        }
+        if (authentication != null && authentication.isAuthenticated()
+                && !"anonymousUser".equals(authentication.getName())) {
+            try {
+                return Long.parseLong(authentication.getName());
+            } catch (NumberFormatException ignored) {
+                // Name is not a numeric ID (e.g., email); return null safely
+            }
+        }
+        return null;
     }
 }

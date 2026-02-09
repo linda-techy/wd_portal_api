@@ -45,4 +45,6 @@ public interface LeadRepository extends JpaRepository<Lead, Long>, JpaSpecificat
 
     @Query("SELECT l.priority, COUNT(l) FROM Lead l GROUP BY l.priority")
     List<Object[]> countLeadsByPriority();
+
+    List<Lead> findByLeadSourceAndNotesContaining(String leadSource, String notesFragment);
 }

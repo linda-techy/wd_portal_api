@@ -341,6 +341,6 @@ public class CustomerProjectController {
         } catch (Exception e) {
             logger.warn("Error getting current user for project creation", e);
         }
-        return null;
+        return "system";
     }
 }
