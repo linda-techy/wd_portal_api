@@ -2187,65 +2187,6 @@
 | `site_report_id` | `bigint(64)` | ✗ | - | 🔗 FK → `site_reports.id` |
 | `photo_url` | `text` | ✗ | - | - |
 | `storage_path` | `text` | ✗ | - | - |
-| `created_at` | `timestamp without time zone` | ✓ | CURRENT_TIMESTAMP | - |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `site_report_id` → `site_reports.id`
-
----
-
-## site_reports
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64)` | ✗ | - | 🔑 PK |
-| `created_at` | `timestamp without time zone` | ✗ | - | - |
-| `description` | `text` | ✓ | - | - |
-| `equipment_used` | `text` | ✓ | - | - |
-| `manpower_deployed` | `integer(32)` | ✓ | - | - |
-| `report_date` | `timestamp without time zone` | ✗ | - | - |
-| `title` | `character varying(255)` | ✗ | - | - |
-| `weather` | `character varying(100)` | ✓ | - | - |
-| `work_progress` | `text` | ✓ | - | - |
-| `created_by_id` | `bigint(64)` | ✗ | - | 🔗 FK → `customer_users.id` |
-| `project_id` | `bigint(64)` | ✗ | - | 🔗 FK → `customer_projects.id` |
-| `status` | `character varying(50)` | ✓ | - | - |
-| `updated_at` | `timestamp without time zone` | ✓ | - | - |
-| `submitted_by` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
-| `report_type` | `character varying(50)` | ✓ | 'DAILY_PROGRESS'::character varying | - |
-| `site_visit_id` | `bigint(64)` | ✓ | - | 🔗 FK → `site_visits.id` |
-
-### Primary Key
-
-- `id`
-
-### Foreign Keys
-
-- `site_visit_id` → `site_visits.id`
-- `submitted_by` → `portal_users.id`
-- `project_id` → `customer_projects.id`
-- `created_by_id` → `customer_users.id`
-
----
-
-
-## site_report_photos
-
-### Columns
-
-| Column Name | Data Type | Nullable | Default | Notes |
-|-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64)` | ✗ | nextval('site_report_photos_id_seq'::regclass) | 🔑 PK |
-| `site_report_id` | `bigint(64)` | ✗ | - | 🔗 FK → `site_reports.id` |
-| `photo_url` | `text` | ✗ | - | - |
-| `storage_path` | `text` | ✗ | - | - |
 | `created_at` | `timestamp without time zone` | ✗ | CURRENT_TIMESTAMP | - |
 
 ### Primary Key
@@ -3080,7 +3021,6 @@ erDiagram
     site_visits ||--o{ site_reports : "has"
     portal_users ||--o{ site_reports : "has"
     customer_projects ||--o{ site_reports : "has"
-    customer_users ||--o{ site_reports : "has"
     staff_roles ||--o{ site_visits : "has"
     customer_projects ||--o{ site_visits : "has"
     portal_users ||--o{ site_visits : "has"

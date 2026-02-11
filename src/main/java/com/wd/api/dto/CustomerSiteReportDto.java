@@ -22,11 +22,13 @@ public class CustomerSiteReportDto {
     private Integer workforceCount;
     private List<CustomerSiteReportPhotoDto> photos;
 
-    // Customer-friendly constructor
+    // Customer-friendly constructor with null safety
     public CustomerSiteReportDto(SiteReport report) {
         this.id = report.getId();
-        this.projectId = report.getProject().getId();
-        this.projectName = report.getProject().getProjectName();
+        if (report.getProject() != null) {
+            this.projectId = report.getProject().getId();
+            this.projectName = report.getProject().getName();
+        }
         this.title = report.getTitle();
         this.description = report.getDescription();
         this.reportDate = report.getReportDate() != null ? report.getReportDate().toString() : null;

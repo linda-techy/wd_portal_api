@@ -47,13 +47,14 @@ public class SiteReportController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<Page<SiteReport>> searchSiteReports(@ModelAttribute SiteReportSearchFilter filter) {
+    public ResponseEntity<?> searchSiteReports(@ModelAttribute SiteReportSearchFilter filter) {
         try {
             Page<SiteReport> reports = siteReportService.searchSiteReports(filter);
             return ResponseEntity.ok(reports);
         } catch (Exception e) {
-            logger.error("Error searching site reports", e);
-            return ResponseEntity.status(500).build();
+            logger.error("Error searching site reports: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to search site reports: " + e.getMessage()));
         }
     }
 
@@ -67,8 +68,9 @@ public class SiteReportController {
                     .collect(java.util.stream.Collectors.toList());
             return ResponseEntity.ok(ApiResponse.success("Reports retrieved successfully", reportDtos));
         } catch (Exception e) {
-            logger.error("Error fetching project reports", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            logger.error("Error fetching project reports for projectId={}: {}", projectId, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to retrieve project reports: " + e.getMessage()));
         }
     }
 
@@ -79,8 +81,9 @@ public class SiteReportController {
             List<SiteReport> reports = siteReportService.getReportsByUser(currentUser.getId());
             return ResponseEntity.ok(ApiResponse.success("My reports retrieved successfully", reports));
         } catch (Exception e) {
-            logger.error("Error fetching my reports", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            logger.error("Error fetching my reports: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to retrieve your reports: " + e.getMessage()));
         }
     }
 
@@ -92,9 +95,14 @@ public class SiteReportController {
                 return ResponseEntity.status(404).body(ApiResponse.error("Report not found"));
             }
             return ResponseEntity.ok(ApiResponse.success("Report retrieved successfully", report));
-        } catch (Exception e) {
-            logger.error("Error fetching report by ID", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                logger.warn("Site report not found: id={}", id);
+                return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
+            }
+            logger.error("Error fetching report by id={}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to retrieve report: " + e.getMessage()));
         }
     }
 
@@ -115,35 +123,64 @@ public class SiteReportController {
                     });
             PortalUser currentUser = authService.getCurrentUser();
 
+            // Validate required fields
+            if (reportData.get("title") == null || reportData.get("title").toString().trim().isEmpty()) {
+                return ResponseEntity.status(400)
+                        .body(ApiResponse.error("Title is required"));
+            }
+            if (reportData.get("projectId") == null) {
+                return ResponseEntity.status(400)
+                        .body(ApiResponse.error("Project ID is required"));
+            }
+
             SiteReport report = new SiteReport();
             report.setTitle((String) reportData.get("title"));
             report.setDescription((String) reportData.get("description"));
             report.setStatus("SUBMITTED");
             report.setSubmittedBy(currentUser);
 
-            if (reportData.containsKey("reportType")) {
-                report.setReportType(ReportType.valueOf((String) reportData.get("reportType")));
+            if (reportData.containsKey("reportType") && reportData.get("reportType") != null) {
+                try {
+                    report.setReportType(ReportType.valueOf((String) reportData.get("reportType")));
+                } catch (IllegalArgumentException e) {
+                    logger.warn("Invalid report type: {}", reportData.get("reportType"));
+                    return ResponseEntity.status(400)
+                            .body(ApiResponse.error("Invalid report type: " + reportData.get("reportType")));
+                }
             }
 
             Long projectId = Long.valueOf(reportData.get("projectId").toString());
             @SuppressWarnings("null")
             CustomerProject project = projectRepository.findById(projectId)
-                    .orElseThrow(() -> new RuntimeException("Project not found"));
+                    .orElse(null);
+            if (project == null) {
+                return ResponseEntity.status(404)
+                        .body(ApiResponse.error("Project not found with id: " + projectId));
+            }
             report.setProject(project);
 
             if (reportData.containsKey("siteVisitId") && reportData.get("siteVisitId") != null) {
                 Long visitId = Long.valueOf(reportData.get("siteVisitId").toString());
                 @SuppressWarnings("null")
                 SiteVisit visit = siteVisitRepository.findById(visitId)
-                        .orElseThrow(() -> new RuntimeException("Site Visit not found"));
+                        .orElse(null);
+                if (visit == null) {
+                    return ResponseEntity.status(404)
+                            .body(ApiResponse.error("Site Visit not found with id: " + visitId));
+                }
                 report.setSiteVisit(visit);
             }
 
             SiteReport savedReport = siteReportService.createReport(report, photos);
             return ResponseEntity.ok(ApiResponse.success("Report created successfully", savedReport));
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            logger.error("Invalid JSON in report data: {}", e.getMessage());
+            return ResponseEntity.status(400)
+                    .body(ApiResponse.error("Invalid report data format: " + e.getMessage()));
         } catch (Exception e) {
-            logger.error("Error creating site report", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            logger.error("Error creating site report: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to create site report: " + e.getMessage()));
         }
     }
 
@@ -152,9 +189,14 @@ public class SiteReportController {
         try {
             siteReportService.deleteReport(id);
             return ResponseEntity.ok(ApiResponse.success("Report deleted successfully"));
-        } catch (Exception e) {
-            logger.error("Error deleting report", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                logger.warn("Attempted to delete non-existent report: id={}", id);
+                return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
+            }
+            logger.error("Error deleting report id={}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to delete report: " + e.getMessage()));
         }
     }
 }

@@ -22,8 +22,10 @@ public class SiteReportDto {
 
     public SiteReportDto(SiteReport report) {
         this.id = report.getId();
-        this.projectId = report.getProject().getId();
-        this.projectName = report.getProject().getProjectName();
+        if (report.getProject() != null) {
+            this.projectId = report.getProject().getId();
+            this.projectName = report.getProject().getName();
+        }
         this.title = report.getTitle();
         this.description = report.getDescription();
         this.reportDate = report.getReportDate();

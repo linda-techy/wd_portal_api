@@ -100,9 +100,9 @@ public class CustomerSiteReportController {
                                         reportDtos));
 
                 } catch (Exception e) {
-                        logger.error("Error fetching customer site reports", e);
+                        logger.error("Error fetching customer site reports: {}", e.getMessage(), e);
                         return ResponseEntity.status(500)
-                                        .body(ApiResponse.error("Failed to retrieve site reports"));
+                                        .body(ApiResponse.error("Failed to retrieve site reports: " + e.getMessage()));
                 }
         }
 
@@ -124,13 +124,13 @@ public class CustomerSiteReportController {
 
                         if (report == null) {
                                 return ResponseEntity.status(404)
-                                                .body(ApiResponse.error("Site report not found"));
+                                                .body(ApiResponse.error("Site report not found with id: " + id));
                         }
 
                         // Verify customer has access to this project
                         List<CustomerProject> customerProjects = projectRepository
                                         .findByCustomer_IdAndDeletedAtIsNull(currentCustomer.getId());
-                        boolean hasAccess = customerProjects.stream()
+                        boolean hasAccess = report.getProject() != null && customerProjects.stream()
                                         .anyMatch(p -> p.getId().equals(report.getProject().getId()));
 
                         if (!hasAccess) {
@@ -148,9 +148,9 @@ public class CustomerSiteReportController {
                                         reportDto));
 
                 } catch (Exception e) {
-                        logger.error("Error fetching site report by ID", e);
+                        logger.error("Error fetching site report id={}: {}", id, e.getMessage(), e);
                         return ResponseEntity.status(500)
-                                        .body(ApiResponse.error("Failed to retrieve site report"));
+                                        .body(ApiResponse.error("Failed to retrieve site report: " + e.getMessage()));
                 }
         }
 }

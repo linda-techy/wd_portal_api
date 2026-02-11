@@ -1,5 +1,6 @@
 package com.wd.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.wd.api.model.enums.ReportType;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -8,6 +9,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "site_reports")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class SiteReport {
 
     @Id
