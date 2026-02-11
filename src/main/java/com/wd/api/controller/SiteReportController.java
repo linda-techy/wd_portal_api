@@ -19,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.wd.api.dto.SiteReportDto;
 import java.util.List;
 import java.util.Map;
 
@@ -58,10 +59,13 @@ public class SiteReportController {
 
     @GetMapping("/project/{projectId}")
     @Deprecated
-    public ResponseEntity<ApiResponse<List<SiteReport>>> getReportsByProject(@PathVariable Long projectId) {
+    public ResponseEntity<ApiResponse<List<SiteReportDto>>> getReportsByProject(@PathVariable Long projectId) {
         try {
             List<SiteReport> reports = siteReportService.getReportsByProject(projectId);
-            return ResponseEntity.ok(ApiResponse.success("Reports retrieved successfully", reports));
+            List<SiteReportDto> reportDtos = reports.stream()
+                    .map(SiteReportDto::new)
+                    .collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(ApiResponse.success("Reports retrieved successfully", reportDtos));
         } catch (Exception e) {
             logger.error("Error fetching project reports", e);
             return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));

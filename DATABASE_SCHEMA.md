@@ -2235,6 +2235,68 @@
 
 ---
 
+
+## site_report_photos
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64)` | ✗ | nextval('site_report_photos_id_seq'::regclass) | 🔑 PK |
+| `site_report_id` | `bigint(64)` | ✗ | - | 🔗 FK → `site_reports.id` |
+| `photo_url` | `text` | ✗ | - | - |
+| `storage_path` | `text` | ✗ | - | - |
+| `created_at` | `timestamp without time zone` | ✗ | CURRENT_TIMESTAMP | - |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `site_report_id` → `site_reports.id`
+
+### Indexes
+
+- `idx_site_report_photos_report` → `site_report_id`
+
+---
+
+## site_reports
+
+### Columns
+
+| Column Name | Data Type | Nullable | Default | Notes |
+|-------------|-----------|----------|---------|-------|
+| `id` | `bigint(64)` | ✗ | nextval('site_reports_id_seq'::regclass) | 🔑 PK |
+| `project_id` | `bigint(64)` | ✗ | - | 🔗 FK → `customer_projects.id` |
+| `title` | `character varying(255)` | ✗ | - | - |
+| `description` | `text` | ✓ | - | - |
+| `report_date` | `timestamp without time zone` | ✗ | CURRENT_TIMESTAMP | - |
+| `status` | `character varying(50)` | ✗ | 'SUBMITTED' | - |
+| `submitted_by` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `created_at` | `timestamp without time zone` | ✗ | CURRENT_TIMESTAMP | - |
+| `updated_at` | `timestamp without time zone` | ✗ | CURRENT_TIMESTAMP | - |
+| `report_type` | `character varying(50)` | ✗ | 'DAILY_PROGRESS' | - |
+| `site_visit_id` | `bigint(64)` | ✓ | - | 🔗 FK → `site_visits.id` |
+
+### Primary Key
+
+- `id`
+
+### Foreign Keys
+
+- `project_id` → `customer_projects.id`
+- `submitted_by` → `portal_users.id`
+- `site_visit_id` → `site_visits.id`
+
+### Indexes
+
+- `idx_site_reports_project` → `project_id`
+- `idx_site_reports_visit` → `site_visit_id`
+
+---
+
 ## site_visits
 
 ### Columns

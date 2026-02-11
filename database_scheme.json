@@ -1,0 +1,28 @@
+{
+  "tables": {
+    "site_reports": {
+      "columns": [
+        { "name": "id", "type": "bigint(64)", "nullable": false, "pk": true },
+        { "name": "project_id", "type": "bigint(64)", "nullable": false, "fk": "customer_projects.id" },
+        { "name": "title", "type": "character varying(255)", "nullable": false },
+        { "name": "description", "type": "text", "nullable": true },
+        { "name": "report_date", "type": "timestamp", "nullable": false, "default": "CURRENT_TIMESTAMP" },
+        { "name": "status", "type": "character varying(50)", "nullable": false, "default": "SUBMITTED" },
+        { "name": "report_type", "type": "character varying(50)", "nullable": false, "default": "DAILY_PROGRESS" },
+        { "name": "site_visit_id", "type": "bigint(64)", "nullable": true, "fk": "site_visits.id" },
+        { "name": "submitted_by", "type": "bigint(64)", "nullable": true, "fk": "portal_users.id" },
+        { "name": "created_at", "type": "timestamp", "nullable": false, "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "timestamp", "nullable": false, "default": "CURRENT_TIMESTAMP" }
+      ]
+    },
+    "site_report_photos": {
+      "columns": [
+        { "name": "id", "type": "bigint(64)", "nullable": false, "pk": true },
+        { "name": "site_report_id", "type": "bigint(64)", "nullable": false, "fk": "site_reports.id" },
+        { "name": "photo_url", "type": "text", "nullable": false },
+        { "name": "storage_path", "type": "text", "nullable": false },
+        { "name": "created_at", "type": "timestamp", "nullable": false, "default": "CURRENT_TIMESTAMP" }
+      ]
+    }
+  }
+}
