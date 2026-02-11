@@ -62,12 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_boq_items_work_type_id
 ON boq_items(work_type_id);
 
 -- Documents
-CREATE INDEX IF NOT EXISTS idx_portal_project_documents_project_id 
-ON portal_project_documents(project_id);
-
-CREATE INDEX IF NOT EXISTS idx_portal_project_documents_category_id 
-ON portal_project_documents(category_id);
-
+-- Note: portal_project_documents was dropped in V1_45 (consolidated into project_documents)
 CREATE INDEX IF NOT EXISTS idx_project_documents_project_id 
 ON project_documents(project_id);
 

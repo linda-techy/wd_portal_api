@@ -806,19 +806,19 @@
 
 | Column Name | Data Type | Nullable | Default | Notes |
 |-------------|-----------|----------|---------|-------|
-| `id` | `bigint(64)` | No | - | PK |
-| `labour_id` | `bigint(64)` | No | - | FK -> `labour.id` |
-| `advance_date` | `date` | No | - | - |
-| `amount` | `numeric(15,2)` | No | - | - |
-| `recovered_amount` | `numeric(15,2)` | No | 0.00 | - |
-| `notes` | `text` | Yes | - | - |
-| `created_at` | `timestamp without time zone` | Yes | now() | - |
-| `updated_at` | `timestamp without time zone` | Yes | now() | - |
-| `created_by_user_id` | `bigint(64)` | Yes | - | FK -> `portal_users.id` |
-| `updated_by_user_id` | `bigint(64)` | Yes | - | FK -> `portal_users.id` |
-| `deleted_at` | `timestamp without time zone` | Yes | - | - |
-| `deleted_by_user_id` | `bigint(64)` | Yes | - | FK -> `portal_users.id` |
-| `version` | `bigint(64)` | No | 1 | - |
+| `id` | `bigint(64)` | ✗ | - | 🔑 PK |
+| `labour_id` | `bigint(64)` | ✗ | - | 🔗 FK → `labour.id` |
+| `advance_date` | `date` | ✗ | - | - |
+| `amount` | `numeric(15,2)` | ✗ | - | - |
+| `recovered_amount` | `numeric(15,2)` | ✗ | 0.00 | - |
+| `notes` | `text` | ✓ | - | - |
+| `created_at` | `timestamp without time zone` | ✓ | now() | - |
+| `updated_at` | `timestamp without time zone` | ✓ | now() | - |
+| `created_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `updated_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `deleted_at` | `timestamp without time zone` | ✓ | - | - |
+| `deleted_by_user_id` | `bigint(64)` | ✓ | - | 🔗 FK → `portal_users.id` |
+| `version` | `bigint(64)` | ✗ | 1 | - |
 
 ### Primary Key
 
@@ -826,10 +826,10 @@
 
 ### Foreign Keys
 
-- `labour_id` -> `labour.id`
-- `created_by_user_id` -> `portal_users.id`
-- `updated_by_user_id` -> `portal_users.id`
-- `deleted_by_user_id` -> `portal_users.id`
+- `labour_id` → `labour.id`
+- `created_by_user_id` → `portal_users.id`
+- `updated_by_user_id` → `portal_users.id`
+- `deleted_by_user_id` → `portal_users.id`
 
 ---
 

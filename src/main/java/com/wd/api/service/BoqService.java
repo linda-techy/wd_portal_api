@@ -137,7 +137,9 @@ public class BoqService {
             item.setWorkType(workType);
         }
 
-        return Objects.requireNonNull(boqItemRepository.save(item));
+        @SuppressWarnings("null")
+        BoqItem savedItem = boqItemRepository.save(item);
+        return savedItem;
     }
 
     @Transactional
