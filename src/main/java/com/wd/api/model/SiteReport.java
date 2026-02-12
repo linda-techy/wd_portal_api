@@ -9,8 +9,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "site_reports")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-public class SiteReport {
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+public class SiteReport extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,27 +44,34 @@ public class SiteReport {
     @JoinColumn(name = "site_visit_id")
     private SiteVisit siteVisit;
 
+    @Column(length = 100)
+    private String weather;
+
+    @Column(name = "manpower_deployed")
+    private Integer manpowerDeployed;
+
+    @Column(name = "equipment_used", columnDefinition = "TEXT")
+    private String equipmentUsed;
+
+    @Column(name = "work_progress", columnDefinition = "TEXT")
+    private String workProgress;
+
     @OneToMany(mappedBy = "siteReport", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SiteReportPhoto> photos = new ArrayList<>();
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
+    @Override
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        super.onCreate();
         if (reportDate == null) {
             reportDate = LocalDateTime.now();
         }
     }
 
+    @Override
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        super.onUpdate();
     }
 
     // Getters and Setters
@@ -124,22 +131,6 @@ public class SiteReport {
         this.submittedBy = submittedBy;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
     public ReportType getReportType() {
         return reportType;
     }
@@ -154,6 +145,38 @@ public class SiteReport {
 
     public void setSiteVisit(SiteVisit siteVisit) {
         this.siteVisit = siteVisit;
+    }
+
+    public String getWeather() {
+        return weather;
+    }
+
+    public void setWeather(String weather) {
+        this.weather = weather;
+    }
+
+    public Integer getManpowerDeployed() {
+        return manpowerDeployed;
+    }
+
+    public void setManpowerDeployed(Integer manpowerDeployed) {
+        this.manpowerDeployed = manpowerDeployed;
+    }
+
+    public String getEquipmentUsed() {
+        return equipmentUsed;
+    }
+
+    public void setEquipmentUsed(String equipmentUsed) {
+        this.equipmentUsed = equipmentUsed;
+    }
+
+    public String getWorkProgress() {
+        return workProgress;
+    }
+
+    public void setWorkProgress(String workProgress) {
+        this.workProgress = workProgress;
     }
 
     public List<SiteReportPhoto> getPhotos() {

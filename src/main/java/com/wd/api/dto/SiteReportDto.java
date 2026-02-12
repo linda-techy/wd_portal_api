@@ -17,6 +17,10 @@ public class SiteReportDto {
     private LocalDateTime createdAt;
     private String reportType;
     private Long siteVisitId;
+    private String weather;
+    private Integer manpowerDeployed;
+    private String equipmentUsed;
+    private String workProgress;
     private List<SiteReportPhotoDto> photos;
 
     public SiteReportDto(SiteReport report) {
@@ -40,6 +44,11 @@ public class SiteReportDto {
         if (report.getSiteVisit() != null) {
             this.siteVisitId = report.getSiteVisit().getId();
         }
+
+        this.weather = report.getWeather();
+        this.manpowerDeployed = report.getManpowerDeployed();
+        this.equipmentUsed = report.getEquipmentUsed();
+        this.workProgress = report.getWorkProgress();
 
         if (report.getPhotos() != null) {
             this.photos = report.getPhotos().stream()
@@ -135,6 +144,38 @@ public class SiteReportDto {
 
     public void setSiteVisitId(Long siteVisitId) {
         this.siteVisitId = siteVisitId;
+    }
+
+    public String getWeather() {
+        return weather;
+    }
+
+    public void setWeather(String weather) {
+        this.weather = weather;
+    }
+
+    public Integer getManpowerDeployed() {
+        return manpowerDeployed;
+    }
+
+    public void setManpowerDeployed(Integer manpowerDeployed) {
+        this.manpowerDeployed = manpowerDeployed;
+    }
+
+    public String getEquipmentUsed() {
+        return equipmentUsed;
+    }
+
+    public void setEquipmentUsed(String equipmentUsed) {
+        this.equipmentUsed = equipmentUsed;
+    }
+
+    public String getWorkProgress() {
+        return workProgress;
+    }
+
+    public void setWorkProgress(String workProgress) {
+        this.workProgress = workProgress;
     }
 
     public List<SiteReportPhotoDto> getPhotos() {

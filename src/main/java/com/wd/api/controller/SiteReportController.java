@@ -107,7 +107,7 @@ public class SiteReportController {
     }
 
     @PostMapping(consumes = { "multipart/form-data" })
-    public ResponseEntity<ApiResponse<SiteReport>> createReport(
+    public ResponseEntity<ApiResponse<SiteReportDto>> createReport(
             @RequestPart("report") String reportJson,
             @RequestPart(value = "photos", required = true) List<MultipartFile> photos) {
         try {
@@ -149,6 +149,8 @@ public class SiteReportController {
                 }
             }
 
+            report.setCreatedByUserId(currentUser.getId());
+
             Long projectId = Long.valueOf(reportData.get("projectId").toString());
             @SuppressWarnings("null")
             CustomerProject project = projectRepository.findById(projectId)
@@ -158,6 +160,20 @@ public class SiteReportController {
                         .body(ApiResponse.error("Project not found with id: " + projectId));
             }
             report.setProject(project);
+
+            // Set reporting fields
+            if (reportData.containsKey("weather")) {
+                report.setWeather((String) reportData.get("weather"));
+            }
+            if (reportData.containsKey("manpowerDeployed") && reportData.get("manpowerDeployed") != null) {
+                report.setManpowerDeployed(Integer.valueOf(reportData.get("manpowerDeployed").toString()));
+            }
+            if (reportData.containsKey("equipmentUsed")) {
+                report.setEquipmentUsed((String) reportData.get("equipmentUsed"));
+            }
+            if (reportData.containsKey("workProgress")) {
+                report.setWorkProgress((String) reportData.get("workProgress"));
+            }
 
             if (reportData.containsKey("siteVisitId") && reportData.get("siteVisitId") != null) {
                 Long visitId = Long.valueOf(reportData.get("siteVisitId").toString());
@@ -172,7 +188,8 @@ public class SiteReportController {
             }
 
             SiteReport savedReport = siteReportService.createReport(report, photos);
-            return ResponseEntity.ok(ApiResponse.success("Report created successfully", savedReport));
+            return ResponseEntity
+                    .ok(ApiResponse.success("Report created successfully", new SiteReportDto(savedReport)));
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             logger.error("Invalid JSON in report data: {}", e.getMessage());
             return ResponseEntity.status(400)
