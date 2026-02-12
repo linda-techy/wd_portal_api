@@ -21,7 +21,7 @@ public class SiteReportPhoto {
     @Column(name = "storage_path", nullable = false)
     private String storagePath;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @PrePersist

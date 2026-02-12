@@ -2,6 +2,9 @@ package com.wd.api.controller;
 
 import com.wd.api.dto.DocumentResponse;
 import com.wd.api.service.DocumentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +17,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/customer-projects/{projectId}")
 public class ProjectModuleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProjectModuleController.class);
 
     private final DocumentService documentService;
 
@@ -29,31 +34,66 @@ public class ProjectModuleController {
             @RequestParam("file") MultipartFile file,
             @RequestParam Long categoryId,
             @RequestParam(required = false) String description) {
-        DocumentResponse doc = documentService.uploadDocument(projectId, "PROJECT", file, categoryId, description);
-        return ResponseEntity.ok(ApiResponse.success("Document uploaded successfully", doc));
+        try {
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("File is required and cannot be empty"));
+            }
+            DocumentResponse doc = documentService.uploadDocument(projectId, "PROJECT", file, categoryId, description);
+            return ResponseEntity.ok(ApiResponse.success("Document uploaded successfully", doc));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Validation error uploading document for project {}: {}", projectId, e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to upload document for project {}: {}", projectId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Failed to upload document"));
+        }
     }
 
     @GetMapping("/documents")
     public ResponseEntity<ApiResponse<List<DocumentResponse>>> getDocuments(
             @PathVariable Long projectId) {
-        List<DocumentResponse> docs = documentService.getDocuments(projectId, "PROJECT");
-        return ResponseEntity.ok(ApiResponse.success("Documents retrieved successfully", docs));
+        try {
+            List<DocumentResponse> docs = documentService.getDocuments(projectId, "PROJECT");
+            return ResponseEntity.ok(ApiResponse.success("Documents retrieved successfully", docs));
+        } catch (Exception e) {
+            logger.error("Failed to get documents for project {}: {}", projectId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Failed to retrieve documents"));
+        }
     }
 
     @GetMapping("/documents/categories")
     public ResponseEntity<ApiResponse<List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto>>> getDocumentCategories(
             @PathVariable Long projectId) {
-        List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService
-                .getAllCategories("PROJECT");
-        return ResponseEntity.ok(ApiResponse.success("Project document categories retrieved successfully", categories));
+        try {
+            List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService
+                    .getAllCategories("PROJECT");
+            return ResponseEntity.ok(ApiResponse.success("Project document categories retrieved successfully", categories));
+        } catch (Exception e) {
+            logger.error("Failed to get document categories for project {}: {}", projectId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Failed to retrieve document categories"));
+        }
     }
 
     @DeleteMapping("/documents/{documentId}")
     public ResponseEntity<ApiResponse<Void>> deleteDocument(
             @PathVariable Long projectId,
             @PathVariable Long documentId) {
-        documentService.deleteDocument(documentId);
-        return ResponseEntity.ok(ApiResponse.success("Document deleted successfully"));
+        try {
+            documentService.deleteDocument(documentId);
+            return ResponseEntity.ok(ApiResponse.success("Document deleted successfully"));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Document not found for deletion - project: {}, document: {}", projectId, documentId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error("Document not found"));
+        } catch (Exception e) {
+            logger.error("Failed to delete document {} for project {}: {}", documentId, projectId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Failed to delete document"));
+        }
     }
 
     /**
@@ -75,7 +115,7 @@ public class ProjectModuleController {
         try {
             return Long.parseLong(auth.getName());
         } catch (NumberFormatException e) {
-            // Name is not a numeric ID (e.g., email address)
+            logger.warn("Invalid user ID format in auth principal: {}", auth.getName());
             return null;
         }
     }

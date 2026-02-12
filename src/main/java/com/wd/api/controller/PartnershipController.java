@@ -9,6 +9,8 @@ import com.wd.api.service.JwtService;
 import com.wd.api.service.LeadService;
 import com.wd.api.service.PartnershipService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,8 @@ import java.util.Map;
 @RequestMapping("/api/partnerships")
 @CrossOrigin(origins = "*") // Configure appropriately for production
 public class PartnershipController {
+
+    private static final Logger logger = LoggerFactory.getLogger(PartnershipController.class);
 
     @Autowired
     private PartnershipService partnershipService;
@@ -41,6 +45,7 @@ public class PartnershipController {
             PartnerLoginResponse response = partnershipService.login(request);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            logger.warn("Partner login failed for request: {}", e.getMessage());
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
@@ -58,18 +63,20 @@ public class PartnershipController {
             // Extract password from request
             String password = (String) requestBody.get("password");
             if (password == null || password.trim().isEmpty()) {
-                throw new RuntimeException("Password is required");
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Password is required"));
             }
 
             // Remove password from the map and convert to PartnershipApplicationRequest
             requestBody.remove("password");
 
-            // Map the request (you might want to use a proper mapper)
+            // Map the request
             PartnershipApplicationRequest request = mapToApplicationRequest(requestBody);
 
             Map<String, Object> response = partnershipService.submitApplication(request, password);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
+            logger.error("Partnership application failed: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -94,21 +101,30 @@ public class PartnershipController {
     @GetMapping("/stats")
     public ResponseEntity<?> getStats(@RequestHeader("Authorization") String authHeader) {
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Authorization header is required"));
+            }
             String token = extractToken(authHeader);
 
             if (!jwtService.validateToken(token)) {
-                throw new RuntimeException("Invalid token");
+                logger.warn("Invalid token used for partner stats request");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or expired token"));
             }
 
             String phone = jwtService.extractActualSubject(token);
             var partner = partnershipService.getPartnerByPhone(phone);
             if (partner == null) {
-                throw new RuntimeException("Partner not found");
+                logger.warn("Partner not found for phone: {}", phone);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Partner not found"));
             }
 
             Map<String, Object> stats = partnershipService.getPartnerStats(partner.getId());
             return ResponseEntity.ok(stats);
         } catch (RuntimeException e) {
+            logger.error("Failed to get partner stats: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
@@ -122,20 +138,29 @@ public class PartnershipController {
     @GetMapping("/referrals")
     public ResponseEntity<?> getReferrals(@RequestHeader("Authorization") String authHeader) {
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Authorization header is required"));
+            }
             String token = extractToken(authHeader);
 
             if (!jwtService.validateToken(token)) {
-                throw new RuntimeException("Invalid token");
+                logger.warn("Invalid token used for partner referrals request");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or expired token"));
             }
 
             String phone = jwtService.extractActualSubject(token);
             var partner = partnershipService.getPartnerByPhone(phone);
             if (partner == null) {
-                throw new RuntimeException("Partner not found");
+                logger.warn("Partner not found for phone: {}", phone);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Partner not found"));
             }
 
             return ResponseEntity.ok(partnershipService.getReferralSummaries(partner.getId()));
         } catch (RuntimeException e) {
+            logger.error("Failed to get partner referrals: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
@@ -152,16 +177,24 @@ public class PartnershipController {
             @RequestHeader("Authorization") String authHeader,
             @RequestBody Map<String, Object> referralData) {
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Authorization header is required"));
+            }
             String token = extractToken(authHeader);
 
             if (!jwtService.validateToken(token)) {
-                throw new RuntimeException("Invalid token");
+                logger.warn("Invalid token used for referral submission");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or expired token"));
             }
 
             String phone = jwtService.extractActualSubject(token);
             var partner = partnershipService.getPartnerByPhone(phone);
             if (partner == null) {
-                throw new RuntimeException("Partner not found");
+                logger.warn("Partner not found for phone: {} during referral submission", phone);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Partner not found"));
             }
 
             // Build a PartnershipReferralRequest from the map
@@ -193,6 +226,7 @@ public class PartnershipController {
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
+            logger.error("Failed to submit referral: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -209,10 +243,16 @@ public class PartnershipController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody PartnershipReferralRequest request) {
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Authorization header is required"));
+            }
             String token = extractToken(authHeader);
 
             if (!jwtService.validateToken(token)) {
-                throw new RuntimeException("Invalid token");
+                logger.warn("Invalid token used for referral-as-lead submission");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or expired token"));
             }
 
             // Extract partner information from token
@@ -220,7 +260,9 @@ public class PartnershipController {
             var partner = partnershipService.getPartnerByPhone(phone);
 
             if (partner == null) {
-                throw new RuntimeException("Partner not found");
+                logger.warn("Partner not found for phone: {} during referral-as-lead submission", phone);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Partner not found"));
             }
 
             // Set partner information in the request
@@ -241,6 +283,7 @@ public class PartnershipController {
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
+            logger.error("Failed to submit referral as lead: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
