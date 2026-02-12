@@ -1,7 +1,6 @@
 package com.wd.api.dto;
 
 import com.wd.api.model.SiteReport;
-import com.wd.api.model.SiteReportPhoto;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
