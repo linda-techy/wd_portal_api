@@ -37,9 +37,6 @@ public class AuthService {
     @Autowired
     private PermissionService permissionService;
 
-    @Autowired
-    private com.wd.api.repository.CustomerUserRepository customerUserRepository;
-
     public LoginResponse login(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -146,23 +143,6 @@ public class AuthService {
 
         return portalUserRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
-    }
-
-    /**
-     * Get current authenticated customer user from Security Context
-     */
-    public com.wd.api.model.CustomerUser getCurrentCustomerUser() {
-        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder
-                .getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("No authenticated customer found");
-        }
-
-        String email = authentication.getName();
-
-        return customerUserRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Customer not found: " + email));
     }
 
     private void saveRefreshToken(PortalUser user, String refreshToken) {

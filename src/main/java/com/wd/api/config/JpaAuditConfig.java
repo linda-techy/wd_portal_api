@@ -1,7 +1,6 @@
 package com.wd.api.config;
 
 import com.wd.api.model.PortalUser;
-import com.wd.api.model.CustomerUser;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
@@ -12,6 +11,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Optional;
 
+/**
+ * JPA Audit configuration - tracks who created/modified entities.
+ * Only PortalUser principals are supported since the portal is for company employees only.
+ */
 @Configuration
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")
 public class JpaAuditConfig {
@@ -33,8 +36,6 @@ public class JpaAuditConfig {
             Object principal = authentication.getPrincipal();
             if (principal instanceof PortalUser) {
                 return Optional.of(((PortalUser) principal).getId());
-            } else if (principal instanceof CustomerUser) {
-                return Optional.of(((CustomerUser) principal).getId());
             }
 
             return Optional.empty();

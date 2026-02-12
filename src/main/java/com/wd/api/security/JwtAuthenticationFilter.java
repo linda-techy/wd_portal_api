@@ -5,6 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,6 +24,8 @@ import java.util.List;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
     @Autowired
     private JwtService jwtService;
 
@@ -37,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.out.println("DEBUG: No Bearer token for " + request.getRequestURI());
+            logger.debug("No Bearer token for {}", request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
@@ -64,7 +68,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Partnership user authentication
             handlePartnerAuthentication(jwt, actualSubject, request);
         } else {
-            // Portal user authentication (default)
+            // Portal user authentication (company employees only)
             handlePortalAuthentication(jwt, actualSubject, request);
         }
 
@@ -86,7 +90,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private void handlePortalAuthentication(String jwt, String email, HttpServletRequest request) {
         try {
-            System.out.println("DEBUG: Loading user for: " + email);
+            logger.debug("Loading portal user for: {}", email);
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
 
             if (jwtService.validateToken(jwt, userDetails)) {
@@ -95,14 +99,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         null,
                         userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                System.out.println(
-                        "DEBUG: Authenticated " + email + " with authorities: " + userDetails.getAuthorities());
+                logger.debug("Authenticated {} with authorities: {}", email, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         } catch (Exception e) {
-            // If user not found in portal users, skip authentication
-            // This allows the request to proceed to the controller where it will be
-            // rejected
+            logger.debug("Authentication failed for {}: {}", email, e.getMessage());
+            // User not found as portal user - request will proceed unauthenticated
+            // and be rejected by Spring Security's authorization checks
         }
     }
 }

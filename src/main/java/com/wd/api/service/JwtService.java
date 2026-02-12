@@ -76,7 +76,7 @@ public class JwtService {
     public String extractTokenType(String token) {
         String subject = extractUsername(token);
         if (subject != null && subject.contains("_")) {
-            return subject.split("_")[0]; // PORTAL, PARTNER, CUSTOMER
+            return subject.split("_")[0]; // PORTAL or PARTNER
         }
         return "PORTAL"; // Default for backward compatibility
     }
