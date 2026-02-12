@@ -135,7 +135,7 @@ public class GalleryService {
         GalleryImage image = new GalleryImage();
         image.setProject(project);
         image.setImagePath(storedPath);
-        image.setImageUrl("/api/files/download/" + storedPath);
+        image.setImageUrl("/api/storage/" + storedPath);
         image.setCaption(caption);
         image.setLocationTag(locationTag);
         image.setTags(tags);

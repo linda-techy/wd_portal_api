@@ -187,7 +187,7 @@ public class SiteReportController {
                 report.setSiteVisit(visit);
             }
 
-            SiteReport savedReport = siteReportService.createReport(report, photos);
+            SiteReport savedReport = siteReportService.createReport(report, photos, currentUser);
             return ResponseEntity
                     .ok(ApiResponse.success("Report created successfully", new SiteReportDto(savedReport)));
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {

@@ -28,7 +28,7 @@ public class View360Service {
         String subDir = "projects/" + tour.getProject().getId() + "/360";
         String storedPath = fileStorageService.storeFile(panoramaFile, subDir);
 
-        tour.setPanoramaUrl("/api/files/download/" + storedPath);
+        tour.setPanoramaUrl("/api/storage/" + storedPath);
         // For now, thumbnail is the same as panorama or a placeholder
         tour.setThumbnailUrl(tour.getPanoramaUrl());
 
@@ -50,8 +50,8 @@ public class View360Service {
     public void deleteTour(Long id) {
         View360 tour = getTour(id);
         // Delete physical file
-        if (tour.getPanoramaUrl() != null && tour.getPanoramaUrl().contains("/api/files/download/")) {
-            String filePath = tour.getPanoramaUrl().replace("/api/files/download/", "");
+        if (tour.getPanoramaUrl() != null && tour.getPanoramaUrl().contains("/api/storage/")) {
+            String filePath = tour.getPanoramaUrl().replace("/api/storage/", "");
             fileStorageService.deleteFile(filePath);
         }
         view360Repository.delete(tour);

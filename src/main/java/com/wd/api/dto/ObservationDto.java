@@ -52,7 +52,7 @@ public class ObservationDto {
 
         // Generate image URL from path
         if (entity.getImagePath() != null) {
-            dto.setImageUrl("/api/files/download/" + entity.getImagePath());
+            dto.setImageUrl("/api/storage/" + entity.getImagePath());
         }
 
         if (entity.getProject() != null) {

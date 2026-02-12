@@ -1,10 +1,13 @@
 package com.wd.api.service;
 
 import com.wd.api.dto.SiteReportSearchFilter;
+import com.wd.api.model.PortalUser;
 import com.wd.api.model.SiteReport;
 import com.wd.api.model.SiteReportPhoto;
 import com.wd.api.repository.SiteReportRepository;
 import com.wd.api.repository.SiteReportPhotoRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -18,16 +21,21 @@ import java.util.List;
 @Service
 public class SiteReportService {
 
+    private static final Logger logger = LoggerFactory.getLogger(SiteReportService.class);
+
     private final SiteReportRepository siteReportRepository;
     private final SiteReportPhotoRepository siteReportPhotoRepository;
     private final FileStorageService fileStorageService;
+    private final GalleryService galleryService;
 
     public SiteReportService(SiteReportRepository siteReportRepository,
             SiteReportPhotoRepository siteReportPhotoRepository,
-            FileStorageService fileStorageService) {
+            FileStorageService fileStorageService,
+            GalleryService galleryService) {
         this.siteReportRepository = siteReportRepository;
         this.siteReportPhotoRepository = siteReportPhotoRepository;
         this.fileStorageService = fileStorageService;
+        this.galleryService = galleryService;
     }
 
     @Transactional(readOnly = true)
@@ -106,7 +114,7 @@ public class SiteReportService {
 
     @Transactional
     @SuppressWarnings("null")
-    public SiteReport createReport(SiteReport report, List<MultipartFile> photos) {
+    public SiteReport createReport(SiteReport report, List<MultipartFile> photos, PortalUser submittedBy) {
         SiteReport savedReport = siteReportRepository.save(report);
 
         if (photos != null && !photos.isEmpty()) {
@@ -117,10 +125,20 @@ public class SiteReportService {
                 SiteReportPhoto reportPhoto = new SiteReportPhoto();
                 reportPhoto.setSiteReport(savedReport);
                 reportPhoto.setStoragePath(storedPath);
-                reportPhoto.setPhotoUrl("/api/files/download/" + storedPath); // Simplified URL
+                reportPhoto.setPhotoUrl("/api/storage/" + storedPath);
 
                 siteReportPhotoRepository.save(reportPhoto);
                 savedReport.addPhoto(reportPhoto);
+            }
+
+            // Auto-sync site report photos to gallery
+            try {
+                galleryService.createImagesFromSiteReport(savedReport.getId(), submittedBy);
+                logger.info("Auto-synced {} photos from site report {} to gallery", 
+                        savedReport.getPhotos().size(), savedReport.getId());
+            } catch (Exception e) {
+                logger.error("Failed to sync site report photos to gallery: {}", e.getMessage(), e);
+                // Don't fail the entire operation if gallery sync fails
             }
         }
 

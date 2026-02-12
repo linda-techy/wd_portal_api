@@ -692,6 +692,33 @@
 - `uploaded_by_id` → `portal_users.id`
 - `uploaded_by_id` → `customer_users.id`
 
+### Auto-Sync Behavior
+
+**Site Report Integration:**
+- When a site report is created with photos, corresponding gallery images are **automatically created**
+- This auto-sync is implemented in `SiteReportService.createReport()` method
+- Gallery images are linked back to the originating site report via `site_report_id` FK
+- Auto-generated gallery images inherit the following properties:
+  - `image_url` and `image_path`: Copied from `site_report_photos.photo_url` and `storage_path`
+  - `taken_date`: Set to site report's `report_date` (converted to LocalDate)
+  - `caption`: Auto-set to "From Site Report: {title}"
+  - `uploaded_by`: Set to the user who submitted the site report
+  - `uploaded_at`: Set to current timestamp
+  - `project_id`: Inherited from the site report's project
+
+**Business Logic:**
+- Gallery sync occurs within the same transaction as site report creation
+- If gallery sync fails, the error is logged but does not fail the site report creation
+- This ensures site reports can always be created even if gallery service is unavailable
+- Gallery images created from site reports can be viewed in both:
+  - Site Reports detail screen (showing report-specific photos)
+  - Gallery module (showing all project photos with site report attribution)
+
+**Implementation References:**
+- Backend Service: `com.wd.api.service.SiteReportService.createReport()`
+- Gallery Sync Method: `com.wd.api.service.GalleryService.createImagesFromSiteReport()`
+- Migration: V1_39 (creates tables), V1_63 (adds audit fields)
+
 ---
 
 ## goods_received_notes
