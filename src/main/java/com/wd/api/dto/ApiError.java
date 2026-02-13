@@ -1,48 +1,95 @@
 package com.wd.api.dto;
 
-import java.time.LocalDateTime;
-import java.util.Map;
+import java.time.Instant;
 
+/**
+ * Standardized error response structure for all API errors.
+ * Provides consistent error format with correlation IDs for traceability.
+ */
 public class ApiError {
-    private boolean success; // Always false for errors
+    private boolean success = false;
     private String message;
-    private String errorCode; // Optional code for frontend logic
-    private LocalDateTime timestamp;
-    private Map<String, String> validationErrors; // For 400
+    private String errorCode;
+    private String correlationId;
+    private Long timestamp;
+    private String path;
 
-    public ApiError(String message, String errorCode) {
-        this.success = false;
-        this.message = message;
-        this.errorCode = errorCode;
-        this.timestamp = LocalDateTime.now();
+    public ApiError() {
+        this.timestamp = Instant.now().toEpochMilli();
     }
 
     public ApiError(String message) {
-        this(message, null);
+        this();
+        this.message = message;
     }
 
-    // Getters/Setters
+    public ApiError(String message, String errorCode) {
+        this();
+        this.message = message;
+        this.errorCode = errorCode;
+    }
+
+    public ApiError(String message, String errorCode, String correlationId) {
+        this();
+        this.message = message;
+        this.errorCode = errorCode;
+        this.correlationId = correlationId;
+    }
+
+    public ApiError(String message, String errorCode, String correlationId, String path) {
+        this();
+        this.message = message;
+        this.errorCode = errorCode;
+        this.correlationId = correlationId;
+        this.path = path;
+    }
+
+    // Getters and Setters
     public boolean isSuccess() {
         return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
     }
 
     public String getMessage() {
         return message;
     }
 
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
     public String getErrorCode() {
         return errorCode;
     }
 
-    public LocalDateTime getTimestamp() {
+    public void setErrorCode(String errorCode) {
+        this.errorCode = errorCode;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
+    }
+
+    public void setCorrelationId(String correlationId) {
+        this.correlationId = correlationId;
+    }
+
+    public Long getTimestamp() {
         return timestamp;
     }
 
-    public Map<String, String> getValidationErrors() {
-        return validationErrors;
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
     }
 
-    public void setValidationErrors(Map<String, String> validationErrors) {
-        this.validationErrors = validationErrors;
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 }

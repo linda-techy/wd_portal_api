@@ -1,6 +1,7 @@
 package com.wd.api.service;
 
 import com.wd.api.dto.SiteReportSearchFilter;
+import com.wd.api.exception.ResourceNotFoundException;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.SiteReport;
 import com.wd.api.model.SiteReportPhoto;
@@ -109,7 +110,7 @@ public class SiteReportService {
     @SuppressWarnings("null")
     public SiteReport getReportById(Long id) {
         return siteReportRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Site Report not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("SiteReport", id));
     }
 
     @Transactional
