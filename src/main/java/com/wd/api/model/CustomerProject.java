@@ -42,7 +42,7 @@ public class CustomerProject extends BaseEntity {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "project_phase", length = 100)
-    private ProjectPhase projectPhase = ProjectPhase.DESIGN;
+    private ProjectPhase projectPhase = ProjectPhase.PLANNING;
 
     @Column(length = 50)
     private String state;

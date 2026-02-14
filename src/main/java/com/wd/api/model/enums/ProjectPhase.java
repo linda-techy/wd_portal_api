@@ -2,40 +2,14 @@ package com.wd.api.model.enums;
 
 /**
  * Represents the current phase of a construction project lifecycle.
- * Used to track project progression from initial design through completion and
- * warranty.
+ * Standardized to 5 phases: Planning, Design, Construction, Completed, On Hold.
  */
 public enum ProjectPhase {
-    /**
-     * Design phase - Creating architectural plans, approvals, design package
-     * selection
-     */
-    DESIGN("Design", "Initial design and planning stage", 1),
-
-    /**
-     * Planning phase - Budget finalization, timeline creation, resource allocation
-     */
-    PLANNING("Planning", "Project planning and preparation", 2),
-
-    /**
-     * Execution phase - Active construction work in progress
-     */
-    EXECUTION("Execution", "Construction work in progress", 3),
-
-    /**
-     * Completion phase - Final inspections, handover preparation
-     */
-    COMPLETION("Completion", "Project nearing completion", 4),
-
-    /**
-     * Handover phase - Customer acceptance, final documentation
-     */
-    HANDOVER("Handover", "Project handover to customer", 5),
-
-    /**
-     * Warranty phase - Post-completion support and warranty period
-     */
-    WARRANTY("Warranty", "Post-completion warranty period", 6);
+    PLANNING("Planning", "Budget, timeline & preparation", 1),
+    DESIGN("Design", "Plans, approvals & design package", 2),
+    CONSTRUCTION("Construction", "Active construction on site", 3),
+    COMPLETED("Completed", "Project completed & handed over", 4),
+    ON_HOLD("On Hold", "Project temporarily paused", 5);
 
     private final String displayName;
     private final String description;
@@ -60,14 +34,15 @@ public enum ProjectPhase {
     }
 
     /**
-     * Check if this phase comes before another phase in the project lifecycle
+     * Check if this phase comes before another phase in the project lifecycle.
+     * Note: ON_HOLD is a special state and not part of the linear progression.
      */
     public boolean isBefore(ProjectPhase other) {
         return this.order < other.order;
     }
 
     /**
-     * Check if this phase comes after another phase in the project lifecycle
+     * Check if this phase comes after another phase in the project lifecycle.
      */
     public boolean isAfter(ProjectPhase other) {
         return this.order > other.order;

@@ -101,16 +101,7 @@ public class CustomerProjectService {
         Specification<CustomerProject> phaseSpec = null;
         if (filter.getPhase() != null && !filter.getPhase().trim().isEmpty()) {
             try {
-                String phaseInput = filter.getPhase().toUpperCase().trim();
-
-                // Map frontend UI labels to Backend Enum constants
-                if ("CONSTRUCTION".equals(phaseInput)) {
-                    phaseInput = "EXECUTION";
-                } else if ("COMPLETED".equals(phaseInput)) {
-                    phaseInput = "COMPLETION";
-                }
-
-                final String finalPhaseValue = phaseInput;
+                final String finalPhaseValue = filter.getPhase().trim().toUpperCase().replace(' ', '_');
                 phaseSpec = (root, query, cb) -> cb.equal(root.get("projectPhase"),
                         com.wd.api.model.enums.ProjectPhase.valueOf(finalPhaseValue));
             } catch (IllegalArgumentException e) {
@@ -242,11 +233,11 @@ public class CustomerProjectService {
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
 
-        // Set defaults with enum conversion
+        // Set defaults with enum conversion (normalize spaces to underscores for ON_HOLD)
         if (request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()) {
             try {
-                project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.valueOf(
-                        request.getProjectPhase().trim().toUpperCase()));
+                String phaseValue = request.getProjectPhase().trim().toUpperCase().replace(' ', '_');
+                project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.valueOf(phaseValue));
             } catch (IllegalArgumentException e) {
                 project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.PLANNING);
             }
@@ -363,11 +354,11 @@ public class CustomerProjectService {
         project.setLocation(request.getLocation().trim());
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
-        // Update project phase with enum conversion
+        // Update project phase with enum conversion (normalize spaces to underscores for ON_HOLD)
         if (request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()) {
             try {
-                project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.valueOf(
-                        request.getProjectPhase().trim().toUpperCase()));
+                String phaseValue = request.getProjectPhase().trim().toUpperCase().replace(' ', '_');
+                project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.valueOf(phaseValue));
             } catch (IllegalArgumentException e) {
                 // Keep existing value if invalid enum provided
             }
