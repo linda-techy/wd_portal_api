@@ -21,10 +21,9 @@ import java.nio.file.Paths;
 
 /**
  * Controller for serving files from storage
- * Endpoint: /api/storage/**
+ * Endpoints: /api/storage/** and /api/files/download/** (legacy)
  */
 @RestController
-@RequestMapping("/api/storage")
 public class FileDownloadController {
 
     private static final Logger logger = LoggerFactory.getLogger(FileDownloadController.class);
@@ -35,19 +34,22 @@ public class FileDownloadController {
     /**
      * Serve files from storage path
      * GET /api/storage/projects/1/documents/file.pdf
+     * GET /api/files/download/site-reports/10/file.png (legacy path)
      */
-    @GetMapping("/**")
+    @GetMapping({"/api/storage/**", "/api/files/download/**"})
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<Resource> serveFile(HttpServletRequest request,
             @RequestParam(required = false) String download,
             @RequestHeader(value = "Range", required = false) String rangeHeader) {
         try {
-            // Get the full request path (everything after /api/storage/)
+            // Get the full request path (everything after the prefix)
             String requestURI = request.getRequestURI();
             String requestPath;
 
             if (requestURI.startsWith("/api/storage/")) {
                 requestPath = requestURI.substring("/api/storage/".length());
+            } else if (requestURI.startsWith("/api/files/download/")) {
+                requestPath = requestURI.substring("/api/files/download/".length());
             } else if (requestURI.startsWith("/api/storage")) {
                 requestPath = requestURI.substring("/api/storage".length());
                 if (requestPath.startsWith("/")) {

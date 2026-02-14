@@ -132,7 +132,7 @@ public class SiteVisit {
      */
     public String getFormattedDuration() {
         if (durationMinutes == null)
-            return null;
+            return "";
         int hours = durationMinutes / 60;
         int mins = durationMinutes % 60;
         return String.format("%dh %dm", hours, mins);

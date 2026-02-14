@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * REST controller for managing lead score history
@@ -98,9 +99,9 @@ public class LeadScoreHistoryController {
             @PathVariable String leadId) {
         try {
             Long id = Long.parseLong(leadId);
-            LeadScoreHistoryDTO latest = scoreHistoryService.getLatestScoreHistory(id);
-            if (latest != null) {
-                return ResponseEntity.ok(ApiResponse.success("Latest score history retrieved successfully", latest));
+            Optional<LeadScoreHistoryDTO> latestOpt = scoreHistoryService.getLatestScoreHistory(id);
+            if (latestOpt.isPresent()) {
+                return ResponseEntity.ok(ApiResponse.success("Latest score history retrieved successfully", latestOpt.get()));
             } else {
                 return ResponseEntity.ok(ApiResponse.success("No score history found", null));
             }

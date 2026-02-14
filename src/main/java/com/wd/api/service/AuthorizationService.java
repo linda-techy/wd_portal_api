@@ -11,6 +11,8 @@ import com.wd.api.repository.SiteReportRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -94,16 +96,22 @@ public class AuthorizationService {
         List<Long> projectIds;
 
         // Admin/Super Admin can access all projects
+        // PERFORMANCE: Limit to 10000 projects to prevent memory issues with large datasets
+        // If more projects exist, consider implementing a more targeted query approach
         if (isAdmin(user)) {
-            projectIds = projectRepository.findAll()
+            Pageable pageable = PageRequest.of(0, 10000);
+            projectIds = projectRepository.findAll(pageable)
                 .stream()
                 .map(CustomerProject::getId)
                 .collect(Collectors.toList());
         } else {
             // Regular users can only access projects they're assigned to as members
+            // PERFORMANCE: Limit to 10000 projects to prevent memory issues with large datasets
+            // Note: For better performance, consider a custom repository query that filters by userId in SQL
             @SuppressWarnings("null")
             Long userId = user.getId();
-            projectIds = projectRepository.findAll()
+            Pageable pageable = PageRequest.of(0, 10000);
+            projectIds = projectRepository.findAll(pageable)
                 .stream()
                 .filter(project -> project.getProjectMembers().stream()
                     .anyMatch(member -> member.getPortalUser() != null && 

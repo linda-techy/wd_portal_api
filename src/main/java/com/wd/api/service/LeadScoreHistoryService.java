@@ -130,16 +130,16 @@ public class LeadScoreHistoryService {
      * Get the latest score history entry for a lead
      * 
      * @param leadId The lead ID
-     * @return Latest score history entry or null if none exists
+     * @return Latest score history entry or empty Optional if none exists
      */
     @Transactional(readOnly = true)
     @SuppressWarnings("null")
-    public LeadScoreHistoryDTO getLatestScoreHistory(Long leadId) {
+    public Optional<LeadScoreHistoryDTO> getLatestScoreHistory(Long leadId) {
         List<LeadScoreHistory> latest = scoreHistoryRepository.findLatestByLeadId(
                 leadId, org.springframework.data.domain.PageRequest.of(0, 1));
 
         if (latest.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
         LeadScoreHistory history = latest.get(0);
@@ -153,7 +153,7 @@ public class LeadScoreHistoryService {
             }
         }
 
-        return dto;
+        return Optional.of(dto);
     }
 
     /**

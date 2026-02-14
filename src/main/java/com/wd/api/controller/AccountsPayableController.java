@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,7 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/accounts-payable")
 @RequiredArgsConstructor
-// CORS configuration is handled globally in SecurityConfig
+@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class AccountsPayableController {
 
     private final VendorPaymentService vendorPaymentService;

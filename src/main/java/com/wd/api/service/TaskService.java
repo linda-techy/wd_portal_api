@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -131,10 +133,13 @@ public class TaskService {
     /**
      * DEPRECATED: Get all tasks (admin only) or user's tasks (non-admin)
      * Use search() instead
+     * PERFORMANCE: Limited to 1000 tasks to prevent memory issues
      */
     @Deprecated
     public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+        // PERFORMANCE: Limit to prevent loading all records into memory
+        Pageable pageable = PageRequest.of(0, 1000);
+        return taskRepository.findAll(pageable).getContent();
     }
 
     /**
@@ -368,13 +373,16 @@ public class TaskService {
 
     /**
      * Get tasks visible to user based on permissions
-     * - Admin: All tasks
+     * - Admin: All tasks (limited to 1000)
      * - Project Manager: All tasks in their projects
      * - Regular User: Tasks they created or are assigned to
+     * PERFORMANCE: Admin path limited to 1000 tasks to prevent memory issues
      */
     public List<Task> getTasksForUser(PortalUser user, Authentication auth) {
         if (authService.isAdmin(auth)) {
-            return taskRepository.findAll();
+            // PERFORMANCE: Limit to prevent loading all records into memory
+            Pageable pageable = PageRequest.of(0, 1000);
+            return taskRepository.findAll(pageable).getContent();
         }
 
         // Get tasks created by user or assigned to user

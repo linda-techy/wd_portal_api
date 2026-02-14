@@ -9,6 +9,8 @@ import com.wd.api.repository.PurchaseInvoiceRepository;
 import com.wd.api.repository.VendorPaymentRepository;
 import com.wd.api.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -117,8 +119,14 @@ public class VendorPaymentService {
 
     // ===== VENDOR OUTSTANDING SUMMARY =====
 
+    /**
+     * Get vendor outstanding summaries with pagination limit.
+     * PERFORMANCE: Limited to 1000 vendors to prevent memory issues with large datasets.
+     */
     public List<VendorOutstandingDTO> getVendorOutstandingSummaries() {
-        List<Vendor> vendors = vendorRepo.findAll();
+        // PERFORMANCE: Limit to prevent loading all vendors into memory
+        Pageable pageable = PageRequest.of(0, 1000);
+        List<Vendor> vendors = vendorRepo.findAll(pageable).getContent();
         List<VendorOutstandingDTO> summaries = new ArrayList<>();
 
         for (Vendor vendor : vendors) {

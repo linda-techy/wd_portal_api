@@ -352,7 +352,7 @@ public class SiteVisitService {
      */
     private String getFullName(PortalUser user) {
         if (user == null)
-            return null;
+            return "";
         String firstName = user.getFirstName() != null ? user.getFirstName() : "";
         String lastName = user.getLastName() != null ? user.getLastName() : "";
         return (firstName + " " + lastName).trim();

@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/payments")
+@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class RetentionInvoiceController {
 
     private static final Logger logger = LoggerFactory.getLogger(RetentionInvoiceController.class);
@@ -125,16 +127,16 @@ public class RetentionInvoiceController {
     // Helper: Extract user ID from authentication
     private Long getUserIdFromAuth(Authentication auth) {
         if (auth == null || auth.getPrincipal() == null) {
-            return null;
+            throw new IllegalStateException("Authentication required");
+        }
+        if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser) {
+            return ((com.wd.api.model.PortalUser) auth.getPrincipal()).getId();
         }
         try {
-            if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser) {
-                return ((com.wd.api.model.PortalUser) auth.getPrincipal()).getId();
-            }
             return Long.parseLong(auth.getName());
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
             logger.warn("Could not extract user ID from auth: {}", auth.getName());
-            return null;
+            throw new IllegalStateException("Invalid authentication principal");
         }
     }
 }

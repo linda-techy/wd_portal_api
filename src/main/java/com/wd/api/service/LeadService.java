@@ -544,12 +544,19 @@ public class LeadService {
 
     public Lead getLeadById(Long id) {
         if (id == null)
-            return null;
+            throw new IllegalArgumentException("Lead ID cannot be null");
         return leadRepository.findById(id).orElse(null);
     }
 
+    /**
+     * Get all leads with a safety limit to prevent memory issues.
+     * WARNING: This method loads up to 1000 leads into memory.
+     * For production use, prefer the paginated search() method instead.
+     */
     public List<Lead> getAllLeads() {
-        return leadRepository.findAll();
+        // PERFORMANCE: Limit to prevent loading all records into memory
+        // Use search(LeadSearchFilter) with pagination for better performance
+        return leadRepository.findAll(PageRequest.of(0, 1000)).getContent();
     }
 
     /**

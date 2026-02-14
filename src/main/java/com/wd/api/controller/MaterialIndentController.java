@@ -154,9 +154,10 @@ public class MaterialIndentController {
             } catch (NumberFormatException e) {
                 logger.warn("Invalid user ID format in authentication principal: {}", 
                     authentication.getName());
-                // Name is not a numeric ID (e.g., email); return null safely
+                // Name is not a numeric ID (e.g., email); throw exception
+                throw new IllegalStateException("Authentication required");
             }
         }
-        return null;
+        throw new IllegalStateException("Authentication required");
     }
 }
