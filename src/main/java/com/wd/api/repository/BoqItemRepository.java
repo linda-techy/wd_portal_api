@@ -10,5 +10,9 @@ import java.util.List;
 public interface BoqItemRepository extends JpaRepository<BoqItem, Long>, JpaSpecificationExecutor<BoqItem> {
     List<BoqItem> findByProjectId(Long projectId);
 
+    List<BoqItem> findByProjectIdAndDeletedAtIsNull(Long projectId);
+
     List<BoqItem> findByProjectIdAndWorkTypeId(Long projectId, Long workTypeId);
+
+    List<BoqItem> findByProjectIdAndItemCodeAndDeletedAtIsNull(Long projectId, String itemCode);
 }

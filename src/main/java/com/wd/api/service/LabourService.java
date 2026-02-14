@@ -37,6 +37,7 @@ public class LabourService {
         private final BoqItemRepository boqItemRepository;
         private final WageSheetRepository wageSheetRepository;
         private final LabourAdvanceRepository labourAdvanceRepository;
+        private final BoqService boqService;
 
         @Transactional(readOnly = true)
         @SuppressWarnings("null")
@@ -162,6 +163,25 @@ public class LabourService {
                                 .build();
 
                 MeasurementBook savedMb = mbRepository.save(mb);
+                
+                // Auto-update BOQ executed quantity if BOQ item is linked
+                if (boqItem != null && dto.getQuantity() != null) {
+                        try {
+                                com.wd.api.dto.RecordExecutionRequest execRequest = 
+                                        new com.wd.api.dto.RecordExecutionRequest(
+                                                dto.getQuantity(),
+                                                "MB-" + savedMb.getId(),
+                                                "Auto-updated from Measurement Book"
+                                        );
+                                // Get current user ID - using 1L as placeholder for now
+                                Long userId = 1L; // TODO: Get from security context
+                                boqService.recordExecution(boqItem.getId(), execRequest, userId);
+                        } catch (Exception e) {
+                                // Log error but don't fail the measurement book creation
+                                System.err.println("Failed to update BOQ executed quantity: " + e.getMessage());
+                        }
+                }
+                
                 return mapToMBDTO(java.util.Objects.requireNonNull(savedMb));
         }
 

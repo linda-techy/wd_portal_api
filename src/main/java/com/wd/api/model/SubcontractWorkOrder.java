@@ -23,6 +23,10 @@ public class SubcontractWorkOrder extends BaseEntity {
     @JoinColumn(name = "vendor_id", nullable = false)
     private Vendor vendor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "boq_item_id")
+    private BoqItem boqItem;
+
     @Column(name = "scope_description", columnDefinition = "TEXT", nullable = false)
     private String scopeDescription;
 
@@ -123,6 +127,14 @@ public class SubcontractWorkOrder extends BaseEntity {
 
     public void setVendor(Vendor vendor) {
         this.vendor = vendor;
+    }
+
+    public BoqItem getBoqItem() {
+        return boqItem;
+    }
+
+    public void setBoqItem(BoqItem boqItem) {
+        this.boqItem = boqItem;
     }
 
     public String getScopeDescription() {
