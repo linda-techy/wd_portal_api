@@ -53,6 +53,7 @@ public class AuthorizationService {
         logger.debug("Checking site report access for user {} on report {}", userEmail, reportId);
 
         // Fetch report
+        @SuppressWarnings("null") // reportId is validated as non-null by caller
         SiteReport report = siteReportRepository.findById(reportId)
             .orElseThrow(() -> {
                 logger.warn("Site report not found: {}", reportId);
@@ -130,6 +131,7 @@ public class AuthorizationService {
         logger.debug("Checking project access for user {} on project {}", userEmail, projectId);
 
         // Check if project exists
+        @SuppressWarnings("null") // projectId is validated as non-null by caller
         boolean projectExists = projectRepository.existsById(projectId);
         if (!projectExists) {
             logger.warn("Project not found: {}", projectId);
@@ -198,12 +200,14 @@ public class AuthorizationService {
         }
 
         // Check if user is assigned to the project as a project member
-        @SuppressWarnings("null")
+        @SuppressWarnings("null") // user.getId() and projectId are validated as non-null
         Long userId = user.getId();
-        return projectRepository.findById(projectId)
+        @SuppressWarnings("null") // projectId is validated as non-null by caller
+        var hasAccess = projectRepository.findById(projectId)
             .map(project -> project.getProjectMembers().stream()
                 .anyMatch(member -> member.getPortalUser() != null && 
                          member.getPortalUser().getId().equals(userId)))
             .orElse(false);
+        return hasAccess;
     }
 }

@@ -513,7 +513,7 @@ public class LeadService {
                             "LEAD");
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("Failed to send notification for lead assignment", e);
             }
             return savedLead;
         } catch (IllegalArgumentException e) {

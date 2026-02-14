@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/indents")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+// CORS configuration is handled globally in SecurityConfig
 public class MaterialIndentController {
 
     private static final Logger logger = LoggerFactory.getLogger(MaterialIndentController.class);

@@ -22,7 +22,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/leads/{leadId}/score-history")
-@CrossOrigin(origins = "*") 
+// CORS configuration is handled globally in SecurityConfig
 public class LeadScoreHistoryController {
 
     private static final Logger logger = LoggerFactory.getLogger(LeadScoreHistoryController.class);

@@ -1,6 +1,8 @@
 package com.wd.api.service;
 
 import com.wd.api.config.FileUploadConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +17,7 @@ import java.util.UUID;
 @Service
 public class FileStorageService {
 
+    private static final Logger logger = LoggerFactory.getLogger(FileStorageService.class);
     private final Path fileStorageLocation;
 
     public FileStorageService(FileUploadConfig fileUploadConfig,
@@ -23,7 +26,7 @@ public class FileStorageService {
                 ? storageBasePath.trim()
                 : "N:\\Projects\\wd projects git\\storage";
 
-        System.out.println("Initializing File Storage at: " + uploadDir);
+        logger.info("Initializing File Storage at: {}", uploadDir);
 
         this.fileStorageLocation = Paths.get(uploadDir)
                 .toAbsolutePath().normalize();

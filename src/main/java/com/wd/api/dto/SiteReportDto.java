@@ -21,6 +21,10 @@ public class SiteReportDto {
     private Integer manpowerDeployed;
     private String equipmentUsed;
     private String workProgress;
+    private Double latitude;
+    private Double longitude;
+    private Double locationAccuracy;
+    private Double distanceFromProject;
     private List<SiteReportPhotoDto> photos;
 
     public SiteReportDto(SiteReport report) {
@@ -50,9 +54,15 @@ public class SiteReportDto {
         this.equipmentUsed = report.getEquipmentUsed();
         this.workProgress = report.getWorkProgress();
 
+        this.latitude = report.getLatitude();
+        this.longitude = report.getLongitude();
+        this.locationAccuracy = report.getLocationAccuracy();
+        this.distanceFromProject = report.getDistanceFromProject();
+
         if (report.getPhotos() != null) {
             this.photos = report.getPhotos().stream()
                     .map(SiteReportPhotoDto::new)
+                    .sorted((p1, p2) -> Integer.compare(p1.getDisplayOrder(), p2.getDisplayOrder()))
                     .collect(Collectors.toList());
         }
     }
@@ -184,5 +194,37 @@ public class SiteReportDto {
 
     public void setPhotos(List<SiteReportPhotoDto> photos) {
         this.photos = photos;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public Double getLocationAccuracy() {
+        return locationAccuracy;
+    }
+
+    public void setLocationAccuracy(Double locationAccuracy) {
+        this.locationAccuracy = locationAccuracy;
+    }
+
+    public Double getDistanceFromProject() {
+        return distanceFromProject;
+    }
+
+    public void setDistanceFromProject(Double distanceFromProject) {
+        this.distanceFromProject = distanceFromProject;
     }
 }

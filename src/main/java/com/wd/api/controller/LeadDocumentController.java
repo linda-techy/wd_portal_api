@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/leads")
-@CrossOrigin(origins = "*")
+// CORS configuration is handled globally in SecurityConfig
 public class LeadDocumentController {
 
     private static final Logger logger = LoggerFactory.getLogger(LeadDocumentController.class);

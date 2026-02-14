@@ -21,7 +21,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/partnerships")
-@CrossOrigin(origins = "*") // Configure appropriately for production
+// CORS configuration is handled globally in SecurityConfig
 public class PartnershipController {
 
     private static final Logger logger = LoggerFactory.getLogger(PartnershipController.class);

@@ -26,6 +26,19 @@ public class SiteReportPhoto {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    // Photo metadata
+    @Column(length = 255)
+    private String caption;
+
+    @Column(precision = 10, scale = 8)
+    private Double latitude;
+
+    @Column(precision = 11, scale = 8)
+    private Double longitude;
+
+    @Column(name = "display_order")
+    private Integer displayOrder = 0;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -70,5 +83,37 @@ public class SiteReportPhoto {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getCaption() {
+        return caption;
+    }
+
+    public void setCaption(String caption) {
+        this.caption = caption;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public Integer getDisplayOrder() {
+        return displayOrder;
+    }
+
+    public void setDisplayOrder(Integer displayOrder) {
+        this.displayOrder = displayOrder;
     }
 }

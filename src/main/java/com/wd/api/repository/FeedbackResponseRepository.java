@@ -23,6 +23,9 @@ public interface FeedbackResponseRepository extends JpaRepository<FeedbackRespon
     @Query("SELECT COUNT(r) FROM FeedbackResponse r WHERE r.form.id = :formId")
     Long countByFormId(@Param("formId") Long formId);
     
+    // WARNING: This query uses string manipulation on JSON data which is fragile
+    // TODO: Consider using PostgreSQL JSON functions or parsing JSON in application code
+    // For better maintainability, parse responseData with Jackson/Gson instead
     @Query("SELECT AVG(CAST(SUBSTRING(r.responseData, " +
            "POSITION('\"rating\":' IN r.responseData) + 9, 1) AS integer)) " +
            "FROM FeedbackResponse r WHERE r.form.id = :formId AND r.responseData LIKE '%rating%'")

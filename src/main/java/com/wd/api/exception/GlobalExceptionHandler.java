@@ -151,9 +151,10 @@ public class GlobalExceptionHandler {
             correlationId,
             request.getRequestURI()
         );
+        // ApiException always has a non-null status
         @SuppressWarnings("null")
-        HttpStatus status = ex.getStatus();
-        return ResponseEntity.status(status).body(error);
+        var response = ResponseEntity.status(ex.getStatus()).body(error);
+        return response;
     }
 
     // ===== VALIDATION EXCEPTIONS =====

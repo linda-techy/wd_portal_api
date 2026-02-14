@@ -22,7 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/accounts-payable")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+// CORS configuration is handled globally in SecurityConfig
 public class AccountsPayableController {
 
     private final VendorPaymentService vendorPaymentService;

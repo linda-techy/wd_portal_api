@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/common")
-@CrossOrigin(origins = "*")
+// CORS configuration is handled globally in SecurityConfig
 public class CommonController {
     
     private static final Logger logger = LoggerFactory.getLogger(CommonController.class);

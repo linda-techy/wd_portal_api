@@ -56,6 +56,19 @@ public class SiteReport extends BaseEntity {
     @Column(name = "work_progress", columnDefinition = "TEXT")
     private String workProgress;
 
+    // GPS/Location fields for accountability and tracking
+    @Column(precision = 10, scale = 8)
+    private Double latitude;
+
+    @Column(precision = 11, scale = 8)
+    private Double longitude;
+
+    @Column(name = "location_accuracy", precision = 10, scale = 2)
+    private Double locationAccuracy;
+
+    @Column(name = "distance_from_project", precision = 10, scale = 2)
+    private Double distanceFromProject;
+
     @OneToMany(mappedBy = "siteReport", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SiteReportPhoto> photos = new ArrayList<>();
 
@@ -195,5 +208,37 @@ public class SiteReport extends BaseEntity {
     public void removePhoto(SiteReportPhoto photo) {
         photos.remove(photo);
         photo.setSiteReport(null);
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public Double getLocationAccuracy() {
+        return locationAccuracy;
+    }
+
+    public void setLocationAccuracy(Double locationAccuracy) {
+        this.locationAccuracy = locationAccuracy;
+    }
+
+    public Double getDistanceFromProject() {
+        return distanceFromProject;
+    }
+
+    public void setDistanceFromProject(Double distanceFromProject) {
+        this.distanceFromProject = distanceFromProject;
     }
 }

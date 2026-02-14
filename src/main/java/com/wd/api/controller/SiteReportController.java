@@ -138,6 +138,17 @@ public class SiteReportController {
             report.setWorkProgress((String) reportData.get("workProgress"));
         }
 
+        // Set GPS/Location fields
+        if (reportData.containsKey("latitude") && reportData.get("latitude") != null) {
+            report.setLatitude(Double.valueOf(reportData.get("latitude").toString()));
+        }
+        if (reportData.containsKey("longitude") && reportData.get("longitude") != null) {
+            report.setLongitude(Double.valueOf(reportData.get("longitude").toString()));
+        }
+        if (reportData.containsKey("locationAccuracy") && reportData.get("locationAccuracy") != null) {
+            report.setLocationAccuracy(Double.valueOf(reportData.get("locationAccuracy").toString()));
+        }
+
         if (reportData.containsKey("siteVisitId") && reportData.get("siteVisitId") != null) {
             Long visitId = Long.valueOf(reportData.get("siteVisitId").toString());
             @SuppressWarnings("null")
@@ -155,5 +166,98 @@ public class SiteReportController {
     public ResponseEntity<ApiResponse<Void>> deleteReport(@PathVariable Long id) {
         siteReportService.deleteReport(id);
         return ResponseEntity.ok(ApiResponse.success("Report deleted successfully"));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<SiteReportDto>> updateReport(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updateData) {
+        
+        PortalUser currentUser = authService.getCurrentUser();
+        SiteReport report = siteReportService.getReportById(id);
+
+        // Verify ownership or admin rights
+        if (!report.getSubmittedBy().getId().equals(currentUser.getId()) && 
+            (currentUser.getRole() == null || !"ADMIN".equals(currentUser.getRole().getCode()))) {
+            throw new BusinessException("You don't have permission to update this report", 
+                HttpStatus.FORBIDDEN, "FORBIDDEN");
+        }
+
+        // Update fields if provided
+        if (updateData.containsKey("title")) {
+            report.setTitle((String) updateData.get("title"));
+        }
+        if (updateData.containsKey("description")) {
+            report.setDescription((String) updateData.get("description"));
+        }
+        if (updateData.containsKey("weather")) {
+            report.setWeather((String) updateData.get("weather"));
+        }
+        if (updateData.containsKey("manpowerDeployed") && updateData.get("manpowerDeployed") != null) {
+            report.setManpowerDeployed(Integer.valueOf(updateData.get("manpowerDeployed").toString()));
+        }
+        if (updateData.containsKey("equipmentUsed")) {
+            report.setEquipmentUsed((String) updateData.get("equipmentUsed"));
+        }
+        if (updateData.containsKey("workProgress")) {
+            report.setWorkProgress((String) updateData.get("workProgress"));
+        }
+        if (updateData.containsKey("latitude") && updateData.get("latitude") != null) {
+            report.setLatitude(Double.valueOf(updateData.get("latitude").toString()));
+        }
+        if (updateData.containsKey("longitude") && updateData.get("longitude") != null) {
+            report.setLongitude(Double.valueOf(updateData.get("longitude").toString()));
+        }
+
+        SiteReport updatedReport = siteReportService.updateReport(report);
+        return ResponseEntity.ok(ApiResponse.success("Report updated successfully", 
+            new SiteReportDto(updatedReport)));
+    }
+
+    @PostMapping("/{id}/photos")
+    public ResponseEntity<ApiResponse<SiteReportDto>> addPhotosToReport(
+            @PathVariable Long id,
+            @RequestPart(value = "photos", required = true) List<MultipartFile> photos,
+            @RequestPart(value = "metadata", required = false) String metadataJson) throws Exception {
+        
+        PortalUser currentUser = authService.getCurrentUser();
+        
+        // Parse photo metadata if provided
+        List<Map<String, Object>> metadata = null;
+        if (metadataJson != null && !metadataJson.isEmpty()) {
+            metadata = objectMapper.readValue(metadataJson, 
+                new TypeReference<List<Map<String, Object>>>() {});
+        }
+
+        SiteReport updatedReport = siteReportService.addPhotosToReport(id, photos, metadata, currentUser);
+        return ResponseEntity.ok(ApiResponse.success("Photos added successfully", 
+            new SiteReportDto(updatedReport)));
+    }
+
+    @DeleteMapping("/{reportId}/photos/{photoId}")
+    public ResponseEntity<ApiResponse<Void>> deletePhoto(
+            @PathVariable Long reportId,
+            @PathVariable Long photoId) {
+        
+        PortalUser currentUser = authService.getCurrentUser();
+        siteReportService.deletePhoto(reportId, photoId, currentUser);
+        return ResponseEntity.ok(ApiResponse.success("Photo deleted successfully"));
+    }
+
+    @PutMapping("/{id}/photos/order")
+    public ResponseEntity<ApiResponse<Void>> reorderPhotos(
+            @PathVariable Long id,
+            @RequestBody Map<String, List<Long>> orderData) {
+        
+        PortalUser currentUser = authService.getCurrentUser();
+        List<Long> photoIds = orderData.get("photoIds");
+        
+        if (photoIds == null || photoIds.isEmpty()) {
+            throw new BusinessException("Photo IDs are required", 
+                HttpStatus.BAD_REQUEST, "PHOTO_IDS_REQUIRED");
+        }
+
+        siteReportService.reorderPhotos(id, photoIds, currentUser);
+        return ResponseEntity.ok(ApiResponse.success("Photos reordered successfully"));
     }
 }

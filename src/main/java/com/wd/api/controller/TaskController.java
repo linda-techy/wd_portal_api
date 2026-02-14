@@ -36,7 +36,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/tasks")
-@CrossOrigin(origins = "*")
+// CORS configuration is handled globally in SecurityConfig
 public class TaskController {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskController.class);

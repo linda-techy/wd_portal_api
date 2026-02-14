@@ -1,16 +1,19 @@
 package com.wd.api.service;
 
 import com.wd.api.dto.SiteReportSearchFilter;
+import com.wd.api.exception.BusinessException;
 import com.wd.api.exception.ResourceNotFoundException;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.SiteReport;
 import com.wd.api.model.SiteReportPhoto;
+import com.wd.api.model.CustomerProject;
 import com.wd.api.repository.SiteReportRepository;
 import com.wd.api.repository.SiteReportPhotoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SiteReportService {
@@ -116,9 +120,22 @@ public class SiteReportService {
     @Transactional
     @SuppressWarnings("null")
     public SiteReport createReport(SiteReport report, List<MultipartFile> photos, PortalUser submittedBy) {
+        // Calculate distance from project if GPS coordinates provided
+        if (report.getLatitude() != null && report.getLongitude() != null && report.getProject() != null) {
+            CustomerProject project = report.getProject();
+            if (project.getLatitude() != null && project.getLongitude() != null) {
+                Double distance = calculateDistance(
+                    report.getLatitude(), report.getLongitude(),
+                    project.getLatitude(), project.getLongitude()
+                );
+                report.setDistanceFromProject(distance);
+            }
+        }
+
         SiteReport savedReport = siteReportRepository.save(report);
 
         if (photos != null && !photos.isEmpty()) {
+            int displayOrder = 0;
             for (MultipartFile photo : photos) {
                 String subDir = "site-reports/" + savedReport.getId();
                 String storedPath = fileStorageService.storeFile(photo, subDir);
@@ -127,6 +144,7 @@ public class SiteReportService {
                 reportPhoto.setSiteReport(savedReport);
                 reportPhoto.setStoragePath(storedPath);
                 reportPhoto.setPhotoUrl("/api/storage/" + storedPath);
+                reportPhoto.setDisplayOrder(displayOrder++);
 
                 siteReportPhotoRepository.save(reportPhoto);
                 savedReport.addPhoto(reportPhoto);
@@ -156,5 +174,150 @@ public class SiteReportService {
         }
 
         siteReportRepository.delete(report);
+    }
+
+    @Transactional
+    @SuppressWarnings("null")
+    public SiteReport updateReport(SiteReport report) {
+        return siteReportRepository.save(report);
+    }
+
+    @Transactional
+    @SuppressWarnings("null")
+    public SiteReport addPhotosToReport(Long reportId, List<MultipartFile> photos, 
+            List<Map<String, Object>> metadata, PortalUser currentUser) {
+        
+        SiteReport report = getReportById(reportId);
+
+        // Verify ownership or admin rights
+        if (!report.getSubmittedBy().getId().equals(currentUser.getId()) && 
+            (currentUser.getRole() == null || !"ADMIN".equals(currentUser.getRole().getCode()))) {
+            throw new BusinessException("You don't have permission to add photos to this report", 
+                HttpStatus.FORBIDDEN, "FORBIDDEN");
+        }
+
+        // Get current max display order
+        int maxOrder = report.getPhotos().stream()
+            .mapToInt(SiteReportPhoto::getDisplayOrder)
+            .max()
+            .orElse(-1);
+
+        // Add new photos
+        for (int i = 0; i < photos.size(); i++) {
+            MultipartFile photo = photos.get(i);
+            String subDir = "site-reports/" + reportId;
+            String storedPath = fileStorageService.storeFile(photo, subDir);
+
+            SiteReportPhoto reportPhoto = new SiteReportPhoto();
+            reportPhoto.setSiteReport(report);
+            reportPhoto.setStoragePath(storedPath);
+            reportPhoto.setPhotoUrl("/api/storage/" + storedPath);
+            reportPhoto.setDisplayOrder(++maxOrder);
+
+            // Apply metadata if provided
+            if (metadata != null && i < metadata.size()) {
+                Map<String, Object> meta = metadata.get(i);
+                if (meta.containsKey("caption")) {
+                    reportPhoto.setCaption((String) meta.get("caption"));
+                }
+                if (meta.containsKey("latitude") && meta.get("latitude") != null) {
+                    reportPhoto.setLatitude(Double.valueOf(meta.get("latitude").toString()));
+                }
+                if (meta.containsKey("longitude") && meta.get("longitude") != null) {
+                    reportPhoto.setLongitude(Double.valueOf(meta.get("longitude").toString()));
+                }
+            }
+
+            siteReportPhotoRepository.save(reportPhoto);
+            report.addPhoto(reportPhoto);
+        }
+
+        // Sync to gallery
+        try {
+            galleryService.createImagesFromSiteReport(reportId, currentUser);
+            logger.info("Synced {} new photos from site report {} to gallery", 
+                    photos.size(), reportId);
+        } catch (Exception e) {
+            logger.error("Failed to sync new photos to gallery: {}", e.getMessage(), e);
+        }
+
+        return report;
+    }
+
+    @Transactional
+    @SuppressWarnings("null")
+    public void deletePhoto(Long reportId, Long photoId, PortalUser currentUser) {
+        SiteReport report = getReportById(reportId);
+
+        // Verify ownership or admin rights
+        if (!report.getSubmittedBy().getId().equals(currentUser.getId()) && 
+            (currentUser.getRole() == null || !"ADMIN".equals(currentUser.getRole().getCode()))) {
+            throw new BusinessException("You don't have permission to delete photos from this report", 
+                HttpStatus.FORBIDDEN, "FORBIDDEN");
+        }
+
+        SiteReportPhoto photo = siteReportPhotoRepository.findById(photoId)
+            .orElseThrow(() -> new ResourceNotFoundException("SiteReportPhoto", photoId));
+
+        // Verify photo belongs to this report
+        if (!photo.getSiteReport().getId().equals(reportId)) {
+            throw new BusinessException("Photo does not belong to this report", 
+                HttpStatus.BAD_REQUEST, "PHOTO_MISMATCH");
+        }
+
+        // Delete physical file
+        fileStorageService.deleteFile(photo.getStoragePath());
+
+        // Remove from report and delete
+        report.removePhoto(photo);
+        siteReportPhotoRepository.delete(photo);
+    }
+
+    @Transactional
+    @SuppressWarnings("null")
+    public void reorderPhotos(Long reportId, List<Long> photoIds, PortalUser currentUser) {
+        SiteReport report = getReportById(reportId);
+
+        // Verify ownership or admin rights
+        if (!report.getSubmittedBy().getId().equals(currentUser.getId()) && 
+            (currentUser.getRole() == null || !"ADMIN".equals(currentUser.getRole().getCode()))) {
+            throw new BusinessException("You don't have permission to reorder photos in this report", 
+                HttpStatus.FORBIDDEN, "FORBIDDEN");
+        }
+
+        // Update display order for each photo
+        for (int i = 0; i < photoIds.size(); i++) {
+            Long photoId = photoIds.get(i);
+            SiteReportPhoto photo = siteReportPhotoRepository.findById(photoId)
+                .orElseThrow(() -> new ResourceNotFoundException("SiteReportPhoto", photoId));
+
+            // Verify photo belongs to this report
+            if (!photo.getSiteReport().getId().equals(reportId)) {
+                throw new BusinessException("Photo " + photoId + " does not belong to this report", 
+                    HttpStatus.BAD_REQUEST, "PHOTO_MISMATCH");
+            }
+
+            photo.setDisplayOrder(i);
+            siteReportPhotoRepository.save(photo);
+        }
+    }
+
+    /**
+     * Calculate distance between two GPS coordinates using Haversine formula
+     * @return distance in kilometers
+     */
+    private Double calculateDistance(Double lat1, Double lon1, Double lat2, Double lon2) {
+        final int EARTH_RADIUS_KM = 6371;
+
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                   Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                   Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return EARTH_RADIUS_KM * c;
     }
 }
