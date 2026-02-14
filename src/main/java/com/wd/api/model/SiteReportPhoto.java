@@ -30,10 +30,10 @@ public class SiteReportPhoto {
     @Column(length = 255)
     private String caption;
 
-    @Column(precision = 10, scale = 8)
+    @Column
     private Double latitude;
 
-    @Column(precision = 11, scale = 8)
+    @Column
     private Double longitude;
 
     @Column(name = "display_order")

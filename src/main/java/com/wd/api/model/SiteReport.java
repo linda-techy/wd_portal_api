@@ -57,16 +57,16 @@ public class SiteReport extends BaseEntity {
     private String workProgress;
 
     // GPS/Location fields for accountability and tracking
-    @Column(precision = 10, scale = 8)
+    @Column
     private Double latitude;
 
-    @Column(precision = 11, scale = 8)
+    @Column
     private Double longitude;
 
-    @Column(name = "location_accuracy", precision = 10, scale = 2)
+    @Column(name = "location_accuracy")
     private Double locationAccuracy;
 
-    @Column(name = "distance_from_project", precision = 10, scale = 2)
+    @Column(name = "distance_from_project")
     private Double distanceFromProject;
 
     @OneToMany(mappedBy = "siteReport", cascade = CascadeType.ALL, orphanRemoval = true)
