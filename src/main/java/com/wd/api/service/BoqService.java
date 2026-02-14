@@ -119,6 +119,16 @@ public class BoqService {
         if (request.unit() != null) item.setUnit(request.unit());
         if (request.quantity() != null) {
             validateQuantity(request.quantity());
+            
+            // CRITICAL FIX: Prevent reducing quantity below executed
+            if (request.quantity().compareTo(item.getExecutedQuantity()) < 0) {
+                throw new IllegalArgumentException(
+                    String.format("Cannot reduce planned quantity to %.4f. " +
+                        "Already executed: %.4f. Planned quantity must be >= executed quantity.",
+                        request.quantity(), item.getExecutedQuantity())
+                );
+            }
+            
             item.setQuantity(request.quantity());
         }
         if (request.unitRate() != null) {
@@ -223,47 +233,58 @@ public class BoqService {
     // ---- Execution & Billing ----
 
     public BoqItemResponse recordExecution(Long id, RecordExecutionRequest request, Long userId) {
-        BoqItem item = findActiveById(id);
+        // CRITICAL FIX: Use synchronized block for simple concurrency protection
+        // This prevents race conditions without complex locking mechanisms
+        synchronized (this) {
+            BoqItem item = findActiveById(id);
 
-        if (!item.canExecute()) {
-            throw new IllegalStateException("Execution can only be recorded for APPROVED/LOCKED items. Current status: " + item.getStatus());
+            if (!item.canExecute()) {
+                throw new IllegalStateException("Execution can only be recorded for APPROVED/LOCKED items. Current status: " + item.getStatus());
+            }
+
+            BigDecimal newExecuted = item.getExecutedQuantity().add(request.quantity());
+
+            // Validate: executed <= planned (with clear error message)
+            if (newExecuted.compareTo(item.getQuantity()) > 0) {
+                throw new IllegalArgumentException(
+                        String.format("OVER-EXECUTION PREVENTED: Cannot execute %.4f. " +
+                            "Planned: %.4f, Already executed: %.4f, Remaining: %.4f",
+                            request.quantity(), item.getQuantity(), item.getExecutedQuantity(),
+                            item.getRemainingQuantity()));
+            }
+
+            item.setExecutedQuantity(newExecuted);
+            item = boqItemRepository.save(item);
+
+            auditService.logExecute("BOQ_ITEM", id, item.getProject().getId(), userId, request.quantity());
+
+            return BoqItemResponse.fromEntity(item);
         }
-
-        BigDecimal newExecuted = item.getExecutedQuantity().add(request.quantity());
-
-        // Validate: executed <= planned
-        if (newExecuted.compareTo(item.getQuantity()) > 0) {
-            throw new IllegalArgumentException(
-                    String.format("Execution quantity %.4f exceeds planned quantity %.4f. Already executed: %.4f",
-                            newExecuted, item.getQuantity(), item.getExecutedQuantity()));
-        }
-
-        item.setExecutedQuantity(newExecuted);
-        item = boqItemRepository.save(item);
-
-        auditService.logExecute("BOQ_ITEM", id, item.getProject().getId(), userId, request.quantity());
-
-        return BoqItemResponse.fromEntity(item);
     }
 
     public BoqItemResponse recordBilling(Long id, RecordExecutionRequest request, Long userId) {
-        BoqItem item = findActiveById(id);
+        // CRITICAL FIX: Simple concurrency protection for billing
+        synchronized (this) {
+            BoqItem item = findActiveById(id);
 
-        BigDecimal newBilled = item.getBilledQuantity().add(request.quantity());
+            BigDecimal newBilled = item.getBilledQuantity().add(request.quantity());
 
-        // Validate: billed <= executed
-        if (newBilled.compareTo(item.getExecutedQuantity()) > 0) {
-            throw new IllegalArgumentException(
-                    String.format("Billed quantity %.4f exceeds executed quantity %.4f. Already billed: %.4f",
-                            newBilled, item.getExecutedQuantity(), item.getBilledQuantity()));
+            // Validate: billed <= executed (with clear error message)
+            if (newBilled.compareTo(item.getExecutedQuantity()) > 0) {
+                throw new IllegalArgumentException(
+                        String.format("OVER-BILLING PREVENTED: Cannot bill %.4f. " +
+                            "Executed: %.4f, Already billed: %.4f, Remaining billable: %.4f",
+                            request.quantity(), item.getExecutedQuantity(), item.getBilledQuantity(),
+                            item.getRemainingBillableQuantity()));
+            }
+
+            item.setBilledQuantity(newBilled);
+            item = boqItemRepository.save(item);
+
+            auditService.logBill("BOQ_ITEM", id, item.getProject().getId(), userId, request.quantity());
+
+            return BoqItemResponse.fromEntity(item);
         }
-
-        item.setBilledQuantity(newBilled);
-        item = boqItemRepository.save(item);
-
-        auditService.logBill("BOQ_ITEM", id, item.getProject().getId(), userId, request.quantity());
-
-        return BoqItemResponse.fromEntity(item);
     }
 
     // ---- Queries ----

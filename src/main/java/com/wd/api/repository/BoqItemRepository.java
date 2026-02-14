@@ -15,4 +15,7 @@ public interface BoqItemRepository extends JpaRepository<BoqItem, Long>, JpaSpec
     List<BoqItem> findByProjectIdAndWorkTypeId(Long projectId, Long workTypeId);
 
     List<BoqItem> findByProjectIdAndItemCodeAndDeletedAtIsNull(Long projectId, String itemCode);
+    
+    // CRITICAL FIX: Count active items in a category (for safe deletion)
+    long countByCategory_IdAndDeletedAtIsNull(Long categoryId);
 }

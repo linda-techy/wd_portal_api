@@ -21,4 +21,7 @@ public interface BoqCategoryRepository extends JpaRepository<BoqCategory, Long> 
 
     @Query("SELECT COUNT(b) FROM BoqItem b WHERE b.category.id = :categoryId AND b.deletedAt IS NULL")
     int countItemsByCategory(@Param("categoryId") Long categoryId);
+    
+    // CRITICAL FIX: Count subcategories for safe deletion
+    long countByParentIdAndIsActiveTrue(Long parentId);
 }

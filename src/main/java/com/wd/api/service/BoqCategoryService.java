@@ -86,9 +86,24 @@ public class BoqCategoryService {
             throw new IllegalStateException("Category is already deleted");
         }
 
+        // CRITICAL FIX: Enhanced validation with clear error messages
         int itemCount = categoryRepository.countItemsByCategory(categoryId);
         if (itemCount > 0) {
-            throw new IllegalStateException("Cannot delete category with " + itemCount + " active items");
+            throw new IllegalStateException(
+                String.format("Cannot delete category '%s'. It contains %d active BOQ item(s). " +
+                    "Please reassign or delete these items first.",
+                    category.getName(), itemCount)
+            );
+        }
+        
+        // CRITICAL FIX: Check for subcategories
+        long subcategoryCount = categoryRepository.countByParentIdAndIsActiveTrue(categoryId);
+        if (subcategoryCount > 0) {
+            throw new IllegalStateException(
+                String.format("Cannot delete category '%s'. It has %d subcategory(ies). " +
+                    "Please delete or reassign subcategories first.",
+                    category.getName(), subcategoryCount)
+            );
         }
 
         category.setDeletedAt(LocalDateTime.now());

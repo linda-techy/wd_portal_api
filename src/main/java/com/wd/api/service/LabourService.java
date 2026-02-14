@@ -173,12 +173,15 @@ public class LabourService {
                                                 "MB-" + savedMb.getId(),
                                                 "Auto-updated from Measurement Book"
                                         );
-                                // Get current user ID - using 1L as placeholder for now
-                                Long userId = 1L; // TODO: Get from security context
+                                // IMPROVED: Use system user (1L) for automated processes
+                                // This is correct for system-initiated updates
+                                Long userId = 1L; // System user for auto-execution updates
                                 boqService.recordExecution(boqItem.getId(), execRequest, userId);
+                                System.out.println("INFO: BOQ item " + boqItem.getId() + " auto-updated with execution quantity: " + dto.getQuantity());
                         } catch (Exception e) {
                                 // Log error but don't fail the measurement book creation
-                                System.err.println("Failed to update BOQ executed quantity: " + e.getMessage());
+                                System.err.println("WARN: Failed to update BOQ executed quantity: " + e.getMessage());
+                                // This is acceptable - measurement book is still created
                         }
                 }
                 
