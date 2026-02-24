@@ -6,8 +6,6 @@ import com.wd.api.dto.InventorySearchFilter;
 import com.wd.api.model.Material;
 import com.wd.api.model.InventoryStock;
 import com.wd.api.model.CustomerProject;
-import com.wd.api.model.enums.MaterialCategory;
-import com.wd.api.model.enums.MaterialUnit;
 import com.wd.api.repository.MaterialRepository;
 import com.wd.api.repository.InventoryStockRepository;
 import com.wd.api.repository.CustomerProjectRepository;
@@ -125,14 +123,11 @@ public class InventoryService {
 
         @SuppressWarnings("null")
         public MaterialDTO createMaterial(MaterialDTO dto) {
-                // Parse String values from DTO to type-safe enums
-                MaterialUnit unit = MaterialUnit.valueOf(dto.getUnit().toUpperCase());
-                MaterialCategory category = MaterialCategory.valueOf(dto.getCategory().toUpperCase());
-
+                // Use String values directly (validated by DB constraints)
                 Material material = Material.builder()
                                 .name(dto.getName())
-                                .unit(unit)
-                                .category(category)
+                                .unit(dto.getUnit().toUpperCase())
+                                .category(dto.getCategory().toUpperCase())
                                 .active(true)
                                 .build();
                 material = materialRepository.save(material);
@@ -164,7 +159,7 @@ public class InventoryService {
                 Specification<Material> categorySpec = null;
                 if (filter.getMaterialType() != null && !filter.getMaterialType().trim().isEmpty()) {
                         categorySpec = (root, query, cb) -> cb.equal(root.get("category"),
-                                        MaterialCategory.valueOf(filter.getMaterialType().toUpperCase()));
+                                        filter.getMaterialType().toUpperCase());
                 }
 
                 // Material code filter
@@ -238,9 +233,9 @@ public class InventoryService {
                 if (dto.getName() != null)
                         material.setName(dto.getName());
                 if (dto.getUnit() != null)
-                        material.setUnit(com.wd.api.model.enums.MaterialUnit.valueOf(dto.getUnit()));
+                        material.setUnit(dto.getUnit().toUpperCase());
                 if (dto.getCategory() != null)
-                        material.setCategory(com.wd.api.model.enums.MaterialCategory.valueOf(dto.getCategory()));
+                        material.setCategory(dto.getCategory().toUpperCase());
 
                 material = materialRepository.save(material);
                 return mapToMaterialDTO(material);
@@ -321,12 +316,12 @@ public class InventoryService {
         }
 
         private MaterialDTO mapToMaterialDTO(Material m) {
-                // Convert enums to String for DTO (backward API compatibility)
+                // Map String fields directly to DTO
                 return MaterialDTO.builder()
                                 .id(m.getId())
                                 .name(m.getName())
-                                .unit(m.getUnit() != null ? m.getUnit().name() : null)
-                                .category(m.getCategory() != null ? m.getCategory().name() : null)
+                                .unit(m.getUnit())
+                                .category(m.getCategory())
                                 .active(m.isActive())
                                 .build();
         }
@@ -339,7 +334,7 @@ public class InventoryService {
                                 .projectName(s.getProject().getName())
                                 .materialId(mat.getId())
                                 .materialName(mat.getName())
-                                .unit(mat.getUnit() != null ? mat.getUnit().name() : null)
+                                .unit(mat.getUnit())
                                 .currentQuantity(s.getCurrentQuantity())
                                 .lastUpdated(s.getUpdatedAt())
                                 .build();

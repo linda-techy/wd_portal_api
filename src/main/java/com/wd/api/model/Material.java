@@ -1,7 +1,5 @@
 package com.wd.api.model;
 
-import com.wd.api.model.enums.MaterialCategory;
-import com.wd.api.model.enums.MaterialUnit;
 import jakarta.persistence.*;
 
 @Entity
@@ -17,17 +15,17 @@ public class Material extends BaseEntity {
 
     /**
      * Unit of measurement for this material.
+     * Validated by database CHECK constraint.
      */
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private MaterialUnit unit;
+    @Column(nullable = false, length = 50)
+    private String unit;
 
     /**
      * Category classification for this material.
+     * Validated by database CHECK constraint.
      */
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private MaterialCategory category;
+    @Column(nullable = false, length = 100)
+    private String category;
 
     @Column(name = "is_active")
     private boolean active = true;
@@ -35,7 +33,7 @@ public class Material extends BaseEntity {
     public Material() {
     }
 
-    public Material(Long id, String name, MaterialUnit unit, MaterialCategory category, boolean active) {
+    public Material(Long id, String name, String unit, String category, boolean active) {
         this.id = id;
         this.name = name;
         this.unit = unit;
@@ -50,8 +48,8 @@ public class Material extends BaseEntity {
     public static class MaterialBuilder {
         private Long id;
         private String name;
-        private MaterialUnit unit;
-        private MaterialCategory category;
+        private String unit;
+        private String category;
         private boolean active = true;
 
         public MaterialBuilder id(Long id) {
@@ -64,12 +62,12 @@ public class Material extends BaseEntity {
             return this;
         }
 
-        public MaterialBuilder unit(MaterialUnit unit) {
+        public MaterialBuilder unit(String unit) {
             this.unit = unit;
             return this;
         }
 
-        public MaterialBuilder category(MaterialCategory category) {
+        public MaterialBuilder category(String category) {
             this.category = category;
             return this;
         }
@@ -96,11 +94,11 @@ public class Material extends BaseEntity {
         return name;
     }
 
-    public MaterialUnit getUnit() {
+    public String getUnit() {
         return unit;
     }
 
-    public MaterialCategory getCategory() {
+    public String getCategory() {
         return category;
     }
 
@@ -116,11 +114,11 @@ public class Material extends BaseEntity {
         this.name = name;
     }
 
-    public void setUnit(MaterialUnit unit) {
+    public void setUnit(String unit) {
         this.unit = unit;
     }
 
-    public void setCategory(MaterialCategory category) {
+    public void setCategory(String category) {
         this.category = category;
     }
 }
