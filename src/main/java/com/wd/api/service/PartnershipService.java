@@ -164,7 +164,6 @@ public class PartnershipService {
     /**
      * Get Partner by ID
      */
-    @SuppressWarnings("null")
     public PartnershipUser getPartnerById(Long partnerId) {
         return partnershipUserRepository.findById(partnerId)
                 .orElseThrow(() -> new RuntimeException("Partner not found"));

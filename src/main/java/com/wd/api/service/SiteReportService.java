@@ -44,7 +44,6 @@ public class SiteReportService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<SiteReport> searchSiteReports(SiteReportSearchFilter filter) {
         Specification<SiteReport> spec = buildSpecification(filter);
         return siteReportRepository.findAll(spec, filter.toPageable());
@@ -111,14 +110,12 @@ public class SiteReportService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public SiteReport getReportById(Long id) {
         return siteReportRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("SiteReport", id));
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public SiteReport createReport(SiteReport report, List<MultipartFile> photos, PortalUser submittedBy) {
         // Calculate distance from project if GPS coordinates provided
         if (report.getLatitude() != null && report.getLongitude() != null && report.getProject() != null) {
@@ -177,13 +174,11 @@ public class SiteReportService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public SiteReport updateReport(SiteReport report) {
         return siteReportRepository.save(report);
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public SiteReport addPhotosToReport(Long reportId, List<MultipartFile> photos, 
             List<Map<String, Object>> metadata, PortalUser currentUser) {
         
@@ -245,7 +240,6 @@ public class SiteReportService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void deletePhoto(Long reportId, Long photoId, PortalUser currentUser) {
         SiteReport report = getReportById(reportId);
 
@@ -274,7 +268,6 @@ public class SiteReportService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void reorderPhotos(Long reportId, List<Long> photoIds, PortalUser currentUser) {
         SiteReport report = getReportById(reportId);
 

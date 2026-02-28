@@ -29,7 +29,6 @@ public class ProjectTrackingService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectPhase createPhase(Long projectId, String phaseName, LocalDate plannedStart,
             LocalDate plannedEnd, Integer displayOrder) {
         CustomerProject project = projectRepository.findById(projectId)
@@ -48,7 +47,6 @@ public class ProjectTrackingService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectPhase updatePhaseProgress(Long phaseId, String status,
             LocalDate actualStart, LocalDate actualEnd) {
         ProjectPhase phase = phaseRepository.findById(phaseId)
@@ -77,7 +75,6 @@ public class ProjectTrackingService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public DelayLog logDelay(Long projectId, Long phaseId, String delayType,
             LocalDate fromDate, LocalDate toDate, String reason, Long loggedById) {
         CustomerProject project = projectRepository.findById(projectId)
@@ -106,7 +103,6 @@ public class ProjectTrackingService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ProjectVariation createVariation(Long projectId, String description,
             BigDecimal estimatedAmount, Long createdById) {
         Long pId = java.util.Objects.requireNonNull(projectId);

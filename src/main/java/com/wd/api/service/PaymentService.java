@@ -49,7 +49,6 @@ public class PaymentService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public DesignPaymentResponse createDesignPayment(CreateDesignPaymentRequest request, Long createdById) {
         logger.info("Creating design payment for project: {}", request.getProjectId());
 
@@ -130,7 +129,6 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public org.springframework.data.domain.Page<DesignPaymentResponse> getAllPayments(String search,
             org.springframework.data.domain.Pageable pageable) {
         org.springframework.data.jpa.domain.Specification<DesignPackagePayment> spec = com.wd.api.repository.spec.PaymentSpecification
@@ -140,7 +138,6 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public org.springframework.data.domain.Page<DesignPaymentResponse> getPendingPayments(String search,
             org.springframework.data.domain.Pageable pageable) {
         org.springframework.data.jpa.domain.Specification<DesignPackagePayment> spec = org.springframework.data.jpa.domain.Specification
@@ -152,7 +149,6 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public org.springframework.data.domain.Page<TransactionResponse> getTransactionHistory(
             String search, String method, String status, LocalDateTime start, LocalDateTime end,
             org.springframework.data.domain.Pageable pageable) {
@@ -168,7 +164,6 @@ public class PaymentService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public TransactionResponse recordTransaction(Long scheduleId, RecordTransactionRequest request, Long recordedById) {
         logger.info("Recording transaction for schedule: {}", scheduleId);
 
@@ -352,7 +347,6 @@ public class PaymentService {
     // ===== Phase 2: GST Invoice Generation =====
 
     @Transactional
-    @SuppressWarnings("null")
     public com.wd.api.model.TaxInvoice generateGstInvoice(Long paymentId, String placeOfSupply,
             String customerGstin, Long createdById) {
         logger.info("Generating GST invoice for payment: {}", paymentId);

@@ -40,7 +40,6 @@ public class LabourService {
         private final BoqService boqService;
 
         @Transactional(readOnly = true)
-        @SuppressWarnings("null")
         public Page<Labour> searchLabour(LabourSearchFilter filter) {
                 Specification<Labour> spec = buildSpecification(filter);
                 return labourRepository.findAll(spec, filter.toPageable());
@@ -81,7 +80,6 @@ public class LabourService {
         }
 
         @Transactional
-        @SuppressWarnings("null")
         public LabourDTO createLabour(LabourDTO dto) {
                 Labour labour = Labour.builder()
                                 .name(dto.getName())
@@ -104,7 +102,6 @@ public class LabourService {
         }
 
         @Transactional
-        @SuppressWarnings("null")
         public List<LabourAttendanceDTO> recordAttendance(List<LabourAttendanceDTO> dtoList) {
                 return dtoList.stream().map(dto -> {
                         Long projectId = java.util.Objects.requireNonNull(dto.getProjectId());
@@ -127,7 +124,6 @@ public class LabourService {
         }
 
         @Transactional
-        @SuppressWarnings("null")
         public MeasurementBookDTO createMBEntry(MeasurementBookDTO dto) {
                 Long projectId = java.util.Objects.requireNonNull(dto.getProjectId());
                 var project = projectRepository.findById(projectId)
@@ -195,7 +191,6 @@ public class LabourService {
         }
 
         @Transactional
-        @SuppressWarnings("null")
         public com.wd.api.model.WageSheet generateWageSheet(Long projectId, java.time.LocalDate start,
                         java.time.LocalDate end) {
                 var project = projectRepository.findById(projectId)
@@ -249,7 +244,6 @@ public class LabourService {
         }
 
         @Transactional
-        @SuppressWarnings("null")
         public com.wd.api.model.LabourAdvance createAdvance(Long labourId, java.math.BigDecimal amount, String notes) {
                 Labour labour = labourRepository.findById(labourId)
                                 .orElseThrow(() -> new RuntimeException("Labour not found"));

@@ -46,7 +46,6 @@ public class ObservationService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<ObservationDto> searchObservations(ObservationSearchFilter filter) {
         Specification<Observation> spec = buildSpecification(filter);
         Page<Observation> observations = observationRepository.findAll(spec, filter.toPageable());
@@ -124,7 +123,6 @@ public class ObservationService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public ObservationDto getObservationById(Long id) {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
@@ -132,7 +130,6 @@ public class ObservationService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ObservationDto createObservation(Long projectId, String title, String description,
             String location, String priority, String severity,
             MultipartFile image, PortalUser reportedBy, Long reportedByRoleId) {
@@ -168,7 +165,6 @@ public class ObservationService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ObservationDto updateObservation(Long id, String title, String description,
             String location, String priority, String severity,
             String status, MultipartFile image) {
@@ -203,7 +199,6 @@ public class ObservationService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ObservationDto resolveObservation(Long id, String resolutionNotes, PortalUser resolvedBy) {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
@@ -220,7 +215,6 @@ public class ObservationService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public ObservationDto updateStatus(Long id, String status) {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
@@ -231,7 +225,6 @@ public class ObservationService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void deleteObservation(Long id) {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));

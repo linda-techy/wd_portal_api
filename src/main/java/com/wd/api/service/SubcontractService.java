@@ -39,7 +39,6 @@ public class SubcontractService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<SubcontractWorkOrder> searchSubcontracts(SubcontractSearchFilter filter) {
         Specification<SubcontractWorkOrder> spec = buildSpecification(filter);
         return workOrderRepository.findAll(spec, filter.toPageable());
@@ -166,7 +165,6 @@ public class SubcontractService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public RetentionRelease releaseRetention(RetentionRelease release) {
         if (release.getWorkOrder() == null || release.getWorkOrder().getId() == null) {
             throw new IllegalArgumentException("Work Order ID is required");

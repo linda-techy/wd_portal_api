@@ -152,7 +152,6 @@ public class GlobalExceptionHandler {
             request.getRequestURI()
         );
         // ApiException always has a non-null status
-        @SuppressWarnings("null")
         var response = ResponseEntity.status(ex.getStatus()).body(error);
         return response;
     }

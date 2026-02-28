@@ -53,7 +53,6 @@ public class SiteVisitService {
      * Search site visits with filters and pagination
      */
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<SiteVisit> searchSiteVisits(SiteVisitSearchFilter filter) {
         Specification<SiteVisit> spec = buildSpecification(filter);
         return siteVisitRepository.findAll(spec, filter.toPageable());
@@ -131,7 +130,6 @@ public class SiteVisitService {
      * Check in to a project site
      */
     @Transactional
-    @SuppressWarnings("null")
     public SiteVisitDTO checkIn(CheckInRequest request, Long userId) {
         // Verify user doesn't have an active visit
         siteVisitRepository.findActiveVisitByUser(userId)
@@ -210,7 +208,6 @@ public class SiteVisitService {
      * Check out from a site visit
      */
     @Transactional
-    @SuppressWarnings("null")
     public SiteVisitDTO checkOut(Long visitId, CheckOutRequest request, Long userId) {
         SiteVisit visit = siteVisitRepository.findById(visitId)
                 .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));
@@ -323,7 +320,6 @@ public class SiteVisitService {
     /**
      * Get a specific visit by ID
      */
-    @SuppressWarnings("null")
     public SiteVisitDTO getVisitById(Long id) {
         return siteVisitRepository.findById(id)
                 .map(this::mapToDTO)
@@ -334,7 +330,6 @@ public class SiteVisitService {
      * Cancel a pending visit
      */
     @Transactional
-    @SuppressWarnings("null")
     public void cancelVisit(Long visitId, Long userId) {
         SiteVisit visit = siteVisitRepository.findById(visitId)
                 .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));

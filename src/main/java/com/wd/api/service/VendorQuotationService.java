@@ -26,7 +26,6 @@ public class VendorQuotationService {
         private final ProcurementService procurementService;
 
         @Transactional(readOnly = true)
-        @SuppressWarnings("null")
         public Page<VendorQuotation> searchVendorQuotations(VendorQuotationSearchFilter filter) {
                 Specification<VendorQuotation> spec = buildSpecification(filter);
                 return quotationRepository.findAll(spec, filter.toPageable());
@@ -91,7 +90,6 @@ public class VendorQuotationService {
         }
 
         @Transactional
-        @SuppressWarnings("null")
         public VendorQuotation createQuotation(Long indentId, Long vendorId, VendorQuotation quotation) {
                 MaterialIndent indent = indentRepository.findById(indentId)
                                 .orElseThrow(() -> new RuntimeException("Indent not found"));
@@ -112,7 +110,6 @@ public class VendorQuotationService {
         }
 
         @Transactional
-        @SuppressWarnings("null")
         public VendorQuotation approveQuotation(Long quotationId) {
                 VendorQuotation quotation = quotationRepository.findById(quotationId)
                                 .orElseThrow(() -> new RuntimeException("Quotation not found"));

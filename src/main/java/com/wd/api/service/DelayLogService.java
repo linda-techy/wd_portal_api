@@ -34,7 +34,6 @@ public class DelayLogService {
     private PortalUserRepository portalUserRepository;
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<DelayLog> searchDelayLogs(DelayLogSearchFilter filter) {
         Specification<DelayLog> spec = buildSpecification(filter);
         return delayLogRepository.findAll(spec, filter.toPageable());

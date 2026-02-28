@@ -40,7 +40,6 @@ public class View360Service {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public View360 getTour(Long id) {
         return view360Repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("360 View not found"));

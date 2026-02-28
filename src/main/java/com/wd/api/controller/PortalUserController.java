@@ -11,6 +11,10 @@ import com.wd.api.repository.PortalRoleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -61,7 +65,7 @@ public class PortalUserController {
      */
     @GetMapping("/paginated")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<PortalUserResponse>>> getPortalUsersPaginated(
+    public ResponseEntity<ApiResponse<Page<PortalUserResponse>>> getPortalUsersPaginated(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sort,
@@ -77,15 +81,14 @@ public class PortalUserController {
             }
 
             // Create pageable
-            org.springframework.data.domain.Sort.Direction sortDirection = direction.equalsIgnoreCase("desc")
-                    ? org.springframework.data.domain.Sort.Direction.DESC
-                    : org.springframework.data.domain.Sort.Direction.ASC;
+            Sort.Direction sortDirection = direction.equalsIgnoreCase("desc")
+                    ? Sort.Direction.DESC
+                    : Sort.Direction.ASC;
 
-            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page,
-                    size, sortDirection, sort);
+            Pageable pageable = PageRequest.of(page, size, sortDirection, sort);
 
             // Get paginated results with optional search
-            org.springframework.data.domain.Page<PortalUser> userPage;
+            Page<PortalUser> userPage;
             if (search != null && !search.trim().isEmpty()) {
                 userPage = portalUserRepository.searchUsers(search.trim(), pageable);
             } else {
@@ -93,7 +96,7 @@ public class PortalUserController {
             }
 
             // Convert to response DTOs
-            org.springframework.data.domain.Page<PortalUserResponse> responsePage = userPage
+            Page<PortalUserResponse> responsePage = userPage
                     .map(PortalUserResponse::new);
 
             return ResponseEntity
@@ -110,7 +113,6 @@ public class PortalUserController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PortalUserResponse>> getPortalUserById(@PathVariable Long id) {
         try {
-            @SuppressWarnings("null")
             Optional<PortalUser> userOpt = portalUserRepository.findById(id);
             if (!userOpt.isPresent()) {
                 return ResponseEntity.status(404).body(ApiResponse.error("User not found"));
@@ -160,7 +162,6 @@ public class PortalUserController {
 
             // Set role by looking up PortalRole entity
             if (request.getRoleId() != null) {
-                @SuppressWarnings("null")
                 Optional<com.wd.api.model.PortalRole> roleOpt = portalRoleRepository.findById(request.getRoleId());
                 roleOpt.ifPresent(user::setRole);
             }
@@ -234,7 +235,6 @@ public class PortalUserController {
             }
 
             if (request.getRoleId() != null) {
-                @SuppressWarnings("null")
                 Optional<com.wd.api.model.PortalRole> roleOpt = portalRoleRepository.findById(request.getRoleId());
                 roleOpt.ifPresent(user::setRole);
             }
@@ -243,7 +243,6 @@ public class PortalUserController {
                 user.setEnabled(request.getEnabled());
             }
 
-            @SuppressWarnings("null")
             PortalUser updatedUser = portalUserRepository.save(user);
             return ResponseEntity
                     .ok(ApiResponse.success("User updated successfully", new PortalUserResponse(updatedUser)));

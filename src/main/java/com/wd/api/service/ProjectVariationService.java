@@ -33,7 +33,6 @@ public class ProjectVariationService {
     private PortalUserRepository portalUserRepository;
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<ProjectVariation> searchProjectVariations(ProjectVariationSearchFilter filter) {
         Specification<ProjectVariation> spec = buildSpecification(filter);
         return variationRepository.findAll(spec, filter.toPageable());

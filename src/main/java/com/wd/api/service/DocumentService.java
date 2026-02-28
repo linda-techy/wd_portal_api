@@ -109,7 +109,6 @@ public class DocumentService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void deleteDocument(Long documentId) {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new RuntimeException("Document not found"));
@@ -117,7 +116,6 @@ public class DocumentService {
         documentRepository.save(document);
     }
 
-    @SuppressWarnings("null")
     public DocumentResponse toResponse(Document doc) {
         String uploaderName = "System";
         if (doc.getCreatedByUserId() != null) {

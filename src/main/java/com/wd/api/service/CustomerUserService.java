@@ -59,7 +59,6 @@ public class CustomerUserService {
      * Search customers with filters
      */
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<CustomerUser> searchCustomers(CustomerSearchFilter filter) {
         Specification<CustomerUser> spec = buildSpecification(filter);
         return customerUserRepository.findAll(spec, filter.toPageable());
@@ -298,7 +297,6 @@ public class CustomerUserService {
      * Delete customer
      * Checks for associated projects before deletion
      */
-    @SuppressWarnings("null")
     public void deleteCustomer(Long id) {
         if (id == null)
             throw new IllegalArgumentException("Customer ID cannot be null");

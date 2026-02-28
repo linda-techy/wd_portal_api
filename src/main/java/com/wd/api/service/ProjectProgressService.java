@@ -46,7 +46,6 @@ public class ProjectProgressService {
          * Calculate overall project progress using hybrid method
          * Formula: Overall = (Milestone × 0.40) + (Task × 0.30) + (Budget × 0.30)
          */
-        @SuppressWarnings("null")
         public ProjectProgressDTO calculateProjectProgress(Long projectId) {
                 logger.info("Calculating progress for project ID: {}", projectId);
 
@@ -177,7 +176,6 @@ public class ProjectProgressService {
          * Calculate progress based on budget utilization
          * Compares spent amount to total budget
          */
-        @SuppressWarnings("null")
         private BigDecimal calculateBudgetProgress(Long projectId) {
                 CustomerProject project = projectRepository.findById(projectId).orElse(null);
                 if (project == null || project.getBudget() == null
@@ -206,7 +204,6 @@ public class ProjectProgressService {
         /**
          * Update project progress in database and log the change
          */
-        @SuppressWarnings("null")
         public void updateProjectProgress(Long projectId, String changeType, String changeReason, Long changedBy) {
                 CustomerProject project = projectRepository.findById(projectId)
                                 .orElseThrow(() -> new RuntimeException("Project not found"));
@@ -272,7 +269,6 @@ public class ProjectProgressService {
         /**
          * Create default milestones for a project based on its type
          */
-        @SuppressWarnings("null")
         public void createMilestonesFromTemplate(Long projectId, String projectType) {
                 CustomerProject project = projectRepository.findById(projectId)
                                 .orElseThrow(() -> new RuntimeException("Project not found"));

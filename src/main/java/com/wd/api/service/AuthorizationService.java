@@ -55,7 +55,6 @@ public class AuthorizationService {
         logger.debug("Checking site report access for user {} on report {}", userEmail, reportId);
 
         // Fetch report
-        @SuppressWarnings("null") // reportId is validated as non-null by caller
         SiteReport report = siteReportRepository.findById(reportId)
             .orElseThrow(() -> {
                 logger.warn("Site report not found: {}", reportId);
@@ -70,7 +69,6 @@ public class AuthorizationService {
 
         // Check if user has permission based on role
         PortalUser user = getUserByEmail(userEmail);
-        @SuppressWarnings("null")
         Long projectId = report.getProject().getId();
         if (!hasProjectAccess(user, projectId)) {
             logger.warn("User {} unauthorized to {} site report {}", userEmail, action, reportId);
@@ -108,7 +106,6 @@ public class AuthorizationService {
             // Regular users can only access projects they're assigned to as members
             // PERFORMANCE: Limit to 10000 projects to prevent memory issues with large datasets
             // Note: For better performance, consider a custom repository query that filters by userId in SQL
-            @SuppressWarnings("null")
             Long userId = user.getId();
             Pageable pageable = PageRequest.of(0, 10000);
             projectIds = projectRepository.findAll(pageable)
@@ -139,7 +136,6 @@ public class AuthorizationService {
         logger.debug("Checking project access for user {} on project {}", userEmail, projectId);
 
         // Check if project exists
-        @SuppressWarnings("null") // projectId is validated as non-null by caller
         boolean projectExists = projectRepository.existsById(projectId);
         if (!projectExists) {
             logger.warn("Project not found: {}", projectId);
@@ -208,9 +204,7 @@ public class AuthorizationService {
         }
 
         // Check if user is assigned to the project as a project member
-        @SuppressWarnings("null") // user.getId() and projectId are validated as non-null
         Long userId = user.getId();
-        @SuppressWarnings("null") // projectId is validated as non-null by caller
         var hasAccess = projectRepository.findById(projectId)
             .map(project -> project.getProjectMembers().stream()
                 .anyMatch(member -> member.getPortalUser() != null && 

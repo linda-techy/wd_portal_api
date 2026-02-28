@@ -238,7 +238,6 @@ public class LeadQuotationService {
      * Accept quotation
      */
     @Transactional
-    @SuppressWarnings("null")
     public LeadQuotation acceptQuotation(Long id) {
         LeadQuotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
@@ -253,7 +252,6 @@ public class LeadQuotationService {
      * Reject quotation
      */
     @Transactional
-    @SuppressWarnings("null")
     public LeadQuotation rejectQuotation(Long id, String reason) {
         LeadQuotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
@@ -304,7 +302,6 @@ public class LeadQuotationService {
      * Delete quotation
      */
     @Transactional
-    @SuppressWarnings("null")
     public void deleteQuotation(Long id) {
         LeadQuotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
@@ -322,7 +319,6 @@ public class LeadQuotationService {
      * Enterprise-grade PDF generation with company branding and professional
      * formatting
      */
-    @SuppressWarnings("null")
     public byte[] generateQuotationPdf(Long quotationId) {
         LeadQuotation quotation = getQuotationById(quotationId);
 

@@ -27,7 +27,6 @@ public class CacheConfig {
      * Note: TTL is handled at the application level (5 minutes).
      */
     @Bean
-    @SuppressWarnings("null") // Spring's SimpleCacheManager.setCaches accepts non-null collections
     public CacheManager cacheManager() {
         SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(Arrays.asList(

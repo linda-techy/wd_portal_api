@@ -197,7 +197,6 @@ public class ActivityFeedService {
         // Get created by name
         String createdByName = null;
         if (interaction.getCreatedById() != null) {
-            @SuppressWarnings("null")
             Optional<PortalUser> userOpt = portalUserRepository.findById(interaction.getCreatedById());
             if (userOpt.isPresent()) {
                 createdByName = userOpt.get().getEmail();
@@ -240,7 +239,6 @@ public class ActivityFeedService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void linkLeadActivitiesToProject(Long leadId, CustomerProject project) {
         java.util.List<ActivityFeed> activities = activityFeedRepository
                 .findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(leadId, "LEAD");

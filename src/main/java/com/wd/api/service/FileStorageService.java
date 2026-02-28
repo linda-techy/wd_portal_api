@@ -44,7 +44,6 @@ public class FileStorageService {
         }
     }
 
-    @SuppressWarnings("null")
     public String storeFile(MultipartFile file, String subDirectory) {
         String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
 

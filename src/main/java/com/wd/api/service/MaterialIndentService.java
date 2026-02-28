@@ -29,7 +29,6 @@ public class MaterialIndentService {
     // passed IDs or SecurityContext
 
     @Transactional
-    @SuppressWarnings("null")
     public MaterialIndent createIndent(Long projectId, MaterialIndent indent, Long requestedById) {
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
@@ -64,7 +63,6 @@ public class MaterialIndentService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public MaterialIndent submitIndent(Long indentId) {
         MaterialIndent indent = indentRepository.findById(indentId)
                 .orElseThrow(() -> new RuntimeException("Indent not found"));
@@ -78,7 +76,6 @@ public class MaterialIndentService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public MaterialIndent approveIndent(Long indentId, Long approvedById) {
         MaterialIndent indent = indentRepository.findById(indentId)
                 .orElseThrow(() -> new RuntimeException("Indent not found"));
@@ -105,7 +102,6 @@ public class MaterialIndentService {
      * NEW: Standardized search method using MaterialIndentSearchFilter
      */
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<MaterialIndent> search(MaterialIndentSearchFilter filter) {
         Specification<MaterialIndent> spec = buildSearchSpecification(filter);
         return indentRepository.findAll(spec, filter.toPageable());
@@ -183,7 +179,6 @@ public class MaterialIndentService {
      */
     @Deprecated
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<MaterialIndent> searchIndents(Long projectId, String status, String searchTerm, Pageable pageable) {
         Specification<MaterialIndent> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -212,7 +207,6 @@ public class MaterialIndentService {
         return indentRepository.findAll(spec, pageable);
     }
 
-    @SuppressWarnings("null")
     public MaterialIndent getIndentById(Long id) {
         return indentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Indent not found"));

@@ -27,7 +27,6 @@ public class ProjectWarrantyService {
     private CustomerProjectRepository projectRepository;
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<ProjectWarranty> searchProjectWarranties(ProjectWarrantySearchFilter filter) {
         Specification<ProjectWarranty> spec = buildSpecification(filter);
         return warrantyRepository.findAll(spec, filter.toPageable());

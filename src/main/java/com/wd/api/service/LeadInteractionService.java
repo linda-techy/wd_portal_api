@@ -27,7 +27,6 @@ public class LeadInteractionService {
     private com.wd.api.repository.LeadRepository leadRepository;
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<LeadInteraction> searchLeadInteractions(LeadInteractionSearchFilter filter) {
         Specification<LeadInteraction> spec = buildSpecification(filter);
         return interactionRepository.findAll(spec, filter.toPageable());
@@ -121,7 +120,6 @@ public class LeadInteractionService {
      * Create a new interaction
      */
     @Transactional
-    @SuppressWarnings("null")
     public LeadInteraction createInteraction(LeadInteraction interaction, Long createdById) {
         interaction.setCreatedById(createdById);
 
@@ -154,7 +152,6 @@ public class LeadInteractionService {
      * Update an existing interaction
      */
     @Transactional
-    @SuppressWarnings("null")
     public LeadInteraction updateInteraction(Long id, LeadInteraction updatedInteraction) {
         LeadInteraction existing = interactionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Interaction not found"));
@@ -175,7 +172,6 @@ public class LeadInteractionService {
      * Delete an interaction
      */
     @Transactional
-    @SuppressWarnings("null")
     public void deleteInteraction(Long id) {
         if (!interactionRepository.existsById(id)) {
             throw new RuntimeException("Interaction not found");

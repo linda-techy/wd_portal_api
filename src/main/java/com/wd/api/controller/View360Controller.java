@@ -48,7 +48,6 @@ public class View360Controller {
             throw new RuntimeException("projectId is required");
         }
         Long projectId = Long.valueOf(projectIdObj.toString());
-        @SuppressWarnings("null")
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 

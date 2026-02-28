@@ -70,7 +70,6 @@ public class PurchaseOrderService {
      * NEW: Standardized search method using PurchaseOrderSearchFilter
      */
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<PurchaseOrder> search(PurchaseOrderSearchFilter filter) {
         Specification<PurchaseOrder> spec = buildSearchSpecification(filter);
         return poRepository.findAll(spec, filter.toPageable());

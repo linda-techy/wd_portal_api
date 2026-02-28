@@ -31,7 +31,6 @@ public class QualityCheckService {
     private PortalUserRepository portalUserRepository;
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<QualityCheck> searchQualityChecks(QualityCheckSearchFilter filter) {
         Specification<QualityCheck> spec = buildSpecification(filter);
         return qualityCheckRepository.findAll(spec, filter.toPageable());
@@ -94,14 +93,12 @@ public class QualityCheckService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public QualityCheck getCheckById(Long id) {
         return qualityCheckRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Quality check not found with id: " + id));
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public QualityCheck createCheck(QualityCheck check, Long projectId, Long conductedById) {
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
@@ -133,7 +130,6 @@ public class QualityCheckService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void deleteCheck(Long id) {
         qualityCheckRepository.deleteById(id);
     }

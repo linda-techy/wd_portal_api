@@ -15,8 +15,6 @@ import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.SiteVisitRepository;
 import com.wd.api.service.SiteReportService;
 import com.wd.api.service.AuthService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +30,6 @@ import java.util.Map;
 @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
 public class SiteReportController {
 
-    private static final Logger logger = LoggerFactory.getLogger(SiteReportController.class);
     private final SiteReportService siteReportService;
     private final CustomerProjectRepository projectRepository;
     private final SiteVisitRepository siteVisitRepository;
@@ -121,7 +118,6 @@ public class SiteReportController {
         report.setCreatedByUserId(currentUser.getId());
 
         Long projectId = Long.valueOf(reportData.get("projectId").toString());
-        @SuppressWarnings("null")
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
         report.setProject(project);
@@ -153,7 +149,6 @@ public class SiteReportController {
 
         if (reportData.containsKey("siteVisitId") && reportData.get("siteVisitId") != null) {
             Long visitId = Long.valueOf(reportData.get("siteVisitId").toString());
-            @SuppressWarnings("null")
             SiteVisit visit = siteVisitRepository.findById(visitId)
                     .orElseThrow(() -> new ResourceNotFoundException("SiteVisit", visitId));
             report.setSiteVisit(visit);

@@ -78,7 +78,6 @@ public class LeadScoreHistoryService {
      * @return List of score history entries, most recent first
      */
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public List<LeadScoreHistoryDTO> getScoreHistory(Long leadId) {
         List<LeadScoreHistory> historyList = scoreHistoryRepository.findByLeadIdOrderByScoredAtDesc(leadId);
 
@@ -107,7 +106,6 @@ public class LeadScoreHistoryService {
      * @return Page of score history entries
      */
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<LeadScoreHistoryDTO> getScoreHistoryPaginated(Long leadId, Pageable pageable) {
         Page<LeadScoreHistory> historyPage = scoreHistoryRepository.findByLeadIdOrderByScoredAtDesc(leadId, pageable);
 
@@ -133,7 +131,6 @@ public class LeadScoreHistoryService {
      * @return Latest score history entry or empty Optional if none exists
      */
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Optional<LeadScoreHistoryDTO> getLatestScoreHistory(Long leadId) {
         List<LeadScoreHistory> latest = scoreHistoryRepository.findLatestByLeadId(
                 leadId, org.springframework.data.domain.PageRequest.of(0, 1));

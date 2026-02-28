@@ -121,7 +121,6 @@ public class InventoryService {
                                 .collect(Collectors.toList());
         }
 
-        @SuppressWarnings("null")
         public MaterialDTO createMaterial(MaterialDTO dto) {
                 // Use String values directly (validated by DB constraints)
                 Material material = Material.builder()
@@ -138,7 +137,6 @@ public class InventoryService {
          * NEW: Standardized search method for materials with pagination
          */
         @Transactional(readOnly = true)
-        @SuppressWarnings("null")
         public Page<Material> searchMaterials(InventorySearchFilter filter) {
                 Specification<Material> spec = buildMaterialSearchSpecification(filter);
                 return materialRepository.findAll(spec, filter.toPageable());
@@ -175,7 +173,6 @@ public class InventoryService {
          * NEW: Standardized search method for stock with pagination
          */
         @Transactional(readOnly = true)
-        @SuppressWarnings("null")
         public Page<InventoryStock> searchStock(InventorySearchFilter filter) {
                 Specification<InventoryStock> spec = buildStockSearchSpecification(filter);
                 return stockRepository.findAll(spec, filter.toPageable());
@@ -225,7 +222,6 @@ public class InventoryService {
          * Update Material (enterprise feature - update name, unit, category)
          */
         @Transactional
-        @SuppressWarnings("null")
         public MaterialDTO updateMaterial(Long id, MaterialDTO dto) {
                 Material material = materialRepository.findById(id)
                                 .orElseThrow(() -> new RuntimeException("Material not found with ID: " + id));
@@ -246,7 +242,6 @@ public class InventoryService {
          * Materials can be deactivated even with stock history - maintains audit trail
          */
         @Transactional
-        @SuppressWarnings("null")
         public void deactivateMaterial(Long id) {
                 Material material = materialRepository.findById(id)
                                 .orElseThrow(() -> new RuntimeException("Material not found with ID: " + id));
@@ -276,7 +271,6 @@ public class InventoryService {
         }
 
         @Transactional
-        @SuppressWarnings("null")
         public void recordConsumption(Long projectId, Long materialId, BigDecimal quantity, Long userId) {
                 if (projectId == null || materialId == null)
                         return;

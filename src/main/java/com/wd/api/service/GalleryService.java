@@ -47,7 +47,6 @@ public class GalleryService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public Page<GalleryImageDto> searchGalleryImages(GallerySearchFilter filter) {
         Specification<GalleryImage> spec = buildSpecification(filter);
         Page<GalleryImage> images = galleryImageRepository.findAll(spec, filter.toPageable());
@@ -114,7 +113,6 @@ public class GalleryService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public GalleryImageDto getImageById(Long id) {
         GalleryImage image = galleryImageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Gallery image not found with id: " + id));
@@ -122,7 +120,6 @@ public class GalleryService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public GalleryImageDto uploadImage(Long projectId, MultipartFile file, String caption,
             String locationTag, String[] tags, LocalDate takenDate,
             PortalUser uploadedBy) {
@@ -150,7 +147,6 @@ public class GalleryService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public GalleryImageDto updateImage(Long id, String caption, String locationTag, String[] tags) {
         GalleryImage image = galleryImageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Gallery image not found with id: " + id));
@@ -170,7 +166,6 @@ public class GalleryService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void deleteImage(Long id) {
         GalleryImage image = galleryImageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Gallery image not found with id: " + id));
@@ -192,7 +187,6 @@ public class GalleryService {
      * Called automatically when a site report is created with photos.
      */
     @Transactional
-    @SuppressWarnings("null")
     public void createImagesFromSiteReport(Long siteReportId, PortalUser uploadedBy) {
         SiteReport siteReport = siteReportRepository.findById(siteReportId)
                 .orElseThrow(() -> new RuntimeException("Site report not found: " + siteReportId));
