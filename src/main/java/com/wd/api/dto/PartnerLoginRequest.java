@@ -4,19 +4,19 @@ import jakarta.validation.constraints.NotBlank;
 
 public class PartnerLoginRequest {
     
-    @NotBlank(message = "Phone number is required")
-    private String phone;
+    @NotBlank(message = "Email address is required")
+    private String email;
     
     @NotBlank(message = "Password is required")
     private String password;
     
     // Getters and Setters
-    public String getPhone() {
-        return phone;
+    public String getEmail() {
+        return email;
     }
     
-    public void setPhone(String phone) {
-        this.phone = phone;
+    public void setEmail(String email) {
+        this.email = email;
     }
     
     public String getPassword() {

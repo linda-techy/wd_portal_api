@@ -69,8 +69,8 @@ public class JwtService {
         return createToken(claims, prefixedSubject, expiration);
     }
     
-    public String generatePartnerToken(String phone, Map<String, Object> claims) {
-        return generateToken(phone, "PARTNER", claims, accessTokenExpiration);
+    public String generatePartnerToken(String email, Map<String, Object> claims) {
+        return generateToken(email, "PARTNER", claims, accessTokenExpiration);
     }
     
     public String extractTokenType(String token) {

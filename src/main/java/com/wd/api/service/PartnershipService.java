@@ -41,13 +41,13 @@ public class PartnershipService {
      * Partner Login
      */
     public PartnerLoginResponse login(PartnerLoginRequest request) {
-        // Find user by phone
-        PartnershipUser partner = partnershipUserRepository.findByPhone(request.getPhone())
-                .orElseThrow(() -> new RuntimeException("Invalid phone or password"));
+        // Find user by email
+        PartnershipUser partner = partnershipUserRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
         // Check password
         if (!passwordEncoder.matches(request.getPassword(), partner.getPasswordHash())) {
-            throw new RuntimeException("Invalid phone or password");
+            throw new RuntimeException("Invalid email or password");
         }
 
         // Check if account is active
@@ -68,7 +68,7 @@ public class PartnershipService {
         claims.put("partnershipType", partner.getPartnershipType());
         claims.put("status", partner.getStatus());
 
-        String token = jwtService.generatePartnerToken(partner.getPhone(), claims);
+        String token = jwtService.generatePartnerToken(partner.getEmail(), claims);
 
         // Create response
         return new PartnerLoginResponse(
@@ -171,10 +171,10 @@ public class PartnershipService {
     }
 
     /**
-     * Get partner by phone number
+     * Get partner by email
      */
-    public PartnershipUser getPartnerByPhone(String phone) {
-        return partnershipUserRepository.findByPhone(phone).orElse(null);
+    public PartnershipUser getPartnerByEmail(String email) {
+        return partnershipUserRepository.findByEmail(email).orElse(null);
     }
 
     /**

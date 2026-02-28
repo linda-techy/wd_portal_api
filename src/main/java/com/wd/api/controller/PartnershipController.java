@@ -113,10 +113,10 @@ public class PartnershipController {
                     .body(Map.of("error", "Invalid or expired token"));
             }
 
-            String phone = jwtService.extractActualSubject(token);
-            var partner = partnershipService.getPartnerByPhone(phone);
+            String email = jwtService.extractActualSubject(token);
+            var partner = partnershipService.getPartnerByEmail(email);
             if (partner == null) {
-                logger.warn("Partner not found for phone: {}", phone);
+                logger.warn("Partner not found for email: {}", email);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "Partner not found"));
             }
@@ -150,10 +150,10 @@ public class PartnershipController {
                     .body(Map.of("error", "Invalid or expired token"));
             }
 
-            String phone = jwtService.extractActualSubject(token);
-            var partner = partnershipService.getPartnerByPhone(phone);
+            String email = jwtService.extractActualSubject(token);
+            var partner = partnershipService.getPartnerByEmail(email);
             if (partner == null) {
-                logger.warn("Partner not found for phone: {}", phone);
+                logger.warn("Partner not found for email: {}", email);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "Partner not found"));
             }
@@ -189,10 +189,10 @@ public class PartnershipController {
                     .body(Map.of("error", "Invalid or expired token"));
             }
 
-            String phone = jwtService.extractActualSubject(token);
-            var partner = partnershipService.getPartnerByPhone(phone);
+            String email = jwtService.extractActualSubject(token);
+            var partner = partnershipService.getPartnerByEmail(email);
             if (partner == null) {
-                logger.warn("Partner not found for phone: {} during referral submission", phone);
+                logger.warn("Partner not found for email: {} during referral submission", email);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "Partner not found"));
             }
@@ -256,11 +256,11 @@ public class PartnershipController {
             }
 
             // Extract partner information from token
-            String phone = jwtService.extractActualSubject(token);
-            var partner = partnershipService.getPartnerByPhone(phone);
+            String email = jwtService.extractActualSubject(token);
+            var partner = partnershipService.getPartnerByEmail(email);
 
             if (partner == null) {
-                logger.warn("Partner not found for phone: {} during referral-as-lead submission", phone);
+                logger.warn("Partner not found for email: {} during referral-as-lead submission", email);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "Partner not found"));
             }
