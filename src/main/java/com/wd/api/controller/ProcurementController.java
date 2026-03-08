@@ -32,7 +32,7 @@ public class ProcurementController {
             return ResponseEntity.ok(ApiResponse.success("Vendor created successfully", created));
         } catch (Exception e) {
             logger.error("Error creating vendor", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to create vendor"));
         }
     }
 
@@ -43,39 +43,31 @@ public class ProcurementController {
             return ResponseEntity.ok(ApiResponse.success("Vendors retrieved successfully", vendors));
         } catch (Exception e) {
             logger.error("Error fetching vendors", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to retrieve vendors"));
         }
     }
 
-    /**
-     * Update Vendor
-     */
     @PutMapping("/vendors/{id}")
-    public ResponseEntity<ApiResponse<VendorDTO>> updateVendor(
-            @PathVariable Long id,
-            @RequestBody VendorDTO dto) {
+    public ResponseEntity<ApiResponse<VendorDTO>> updateVendor(@PathVariable Long id, @RequestBody VendorDTO dto) {
         try {
             VendorDTO updated = procurementService.updateVendor(id, dto);
             return ResponseEntity.ok(ApiResponse.success("Vendor updated successfully", updated));
         } catch (Exception e) {
-            logger.error("Error updating vendor", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            logger.error("Error updating vendor {}", id, e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to update vendor"));
         }
     }
 
-    /**
-     * Deactivate Vendor (soft delete - construction best practice)
-     */
     @DeleteMapping("/vendors/{id}")
     public ResponseEntity<ApiResponse<Void>> deactivateVendor(@PathVariable Long id) {
         try {
             procurementService.deactivateVendor(id);
             return ResponseEntity.ok(ApiResponse.success("Vendor deactivated successfully"));
         } catch (IllegalStateException e) {
-            return ResponseEntity.status(409).body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(409).body(ApiResponse.error(e.getMessage())); // domain msg — safe
         } catch (Exception e) {
-            logger.error("Error deactivating vendor", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            logger.error("Error deactivating vendor {}", id, e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to deactivate vendor"));
         }
     }
 
@@ -86,13 +78,10 @@ public class ProcurementController {
             return ResponseEntity.ok(ApiResponse.success("Purchase order created successfully", created));
         } catch (Exception e) {
             logger.error("Error creating purchase order", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to create purchase order"));
         }
     }
 
-    /**
-     * Search Purchase Orders (Enterprise-grade with pagination and filters)
-     */
     @GetMapping("/purchase-orders")
     public ResponseEntity<ApiResponse<Page<PurchaseOrderDTO>>> searchPurchaseOrders(
             @RequestParam(required = false) String search,
@@ -102,43 +91,34 @@ public class ProcurementController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
         try {
-            // Build Pageable with sorting
-            Sort.Direction direction = sort.length > 1 && sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC
-                    : Sort.Direction.DESC;
+            Sort.Direction direction = sort.length > 1 && sort[1].equalsIgnoreCase("asc")
+                    ? Sort.Direction.ASC : Sort.Direction.DESC;
             String sortField = sort.length > 0 ? sort[0] : "createdAt";
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
-
-            Page<PurchaseOrderDTO> orders = procurementService.searchPurchaseOrders(search, status, projectId,
-                    pageable);
+            Page<PurchaseOrderDTO> orders = procurementService.searchPurchaseOrders(search, status, projectId, pageable);
             return ResponseEntity.ok(ApiResponse.success("Purchase orders retrieved successfully", orders));
         } catch (Exception e) {
             logger.error("Error fetching purchase orders", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to retrieve purchase orders"));
         }
     }
 
-    /**
-     * Soft Delete Purchase Order (Enterprise-grade - preserves audit trail)
-     */
     @DeleteMapping("/purchase-orders/{id}")
     public ResponseEntity<ApiResponse<Void>> deletePurchaseOrder(
             @PathVariable Long id,
             @RequestParam(required = false) Long deletedBy) {
         try {
-            Long deletedByUserId = deletedBy != null ? deletedBy : 1L; // Default to system user
+            Long deletedByUserId = deletedBy != null ? deletedBy : 1L;
             procurementService.softDeletePurchaseOrder(id, deletedByUserId);
             return ResponseEntity.ok(ApiResponse.success("Purchase order deleted successfully"));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            logger.error("Error deleting purchase order", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            logger.error("Error deleting purchase order {}", id, e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to delete purchase order"));
         }
     }
 
-    /**
-     * Update Purchase Order
-     */
     @PutMapping("/purchase-orders/{id}")
     public ResponseEntity<ApiResponse<PurchaseOrderDTO>> updatePurchaseOrder(
             @PathVariable Long id,
@@ -149,14 +129,11 @@ public class ProcurementController {
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            logger.error("Error updating purchase order", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            logger.error("Error updating purchase order {}", id, e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to update purchase order"));
         }
     }
 
-    /**
-     * Cancel Purchase Order (Enterprise-grade - better than delete)
-     */
     @PostMapping("/purchase-orders/{id}/cancel")
     public ResponseEntity<ApiResponse<PurchaseOrderDTO>> cancelPurchaseOrder(
             @PathVariable Long id,
@@ -168,14 +145,11 @@ public class ProcurementController {
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            logger.error("Error cancelling purchase order", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            logger.error("Error cancelling purchase order {}", id, e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to cancel purchase order"));
         }
     }
 
-    /**
-     * Close Purchase Order (Construction workflow - after all goods received)
-     */
     @PostMapping("/purchase-orders/{id}/close")
     public ResponseEntity<ApiResponse<PurchaseOrderDTO>> closePurchaseOrder(@PathVariable Long id) {
         try {
@@ -184,8 +158,8 @@ public class ProcurementController {
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            logger.error("Error closing purchase order", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            logger.error("Error closing purchase order {}", id, e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to close purchase order"));
         }
     }
 
@@ -196,13 +170,10 @@ public class ProcurementController {
             return ResponseEntity.ok(ApiResponse.success("GRN recorded successfully", recorded));
         } catch (Exception e) {
             logger.error("Error recording GRN", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to record GRN"));
         }
     }
 
-    /**
-     * Get all GRNs (Goods Received Notes) - Enterprise centralized list view
-     */
     @GetMapping("/grns")
     public ResponseEntity<ApiResponse<List<GRNDTO>>> getAllGRNs() {
         try {
@@ -210,7 +181,7 @@ public class ProcurementController {
             return ResponseEntity.ok(ApiResponse.success("GRNs retrieved successfully", grns));
         } catch (Exception e) {
             logger.error("Error fetching GRNs", e);
-            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to retrieve GRNs"));
         }
     }
 }
