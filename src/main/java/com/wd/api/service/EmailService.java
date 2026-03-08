@@ -27,6 +27,10 @@ public class EmailService {
     @Value("${spring.mail.username:noreply@walldot.com}")
     private String fromEmail;
 
+    /** Alert recipient for HOT lead and system-level notifications. Configured per-environment. */
+    @Value("${app.admin.email:info@walldotbuilders.com}")
+    private String adminEmail;
+
     /**
      * Sends a welcome email to the newly created user with their credentials.
      * If email is disabled or mocked, it logs the content instead.
@@ -154,8 +158,6 @@ public class EmailService {
 
     @Async
     public void sendAdminScoreAlert(Lead lead) {
-        // Admin email could be configured, defaulting for simulation
-        String adminEmail = "admin@walldot.com";
         String subject = "HOT LEAD ALERT: " + lead.getName();
         String body = String.format("""
                 Admin,
@@ -212,11 +214,13 @@ public class EmailService {
         }
     }
 
+    /**
+     * Log that an email would have been sent (simulation mode).
+     * NOTE: Body is intentionally NOT logged to avoid leaking passwords or PII into logs.
+     * Only recipient and subject are safe to log.
+     */
     private void logEmailSimulation(String to, String subject, String body) {
-        logger.info("================ EMAIL SIMULATION ================");
-        logger.info("TO: {}", to);
-        logger.info("SUBJECT: {}", subject);
-        logger.info("BODY:\n{}", body);
-        logger.info("==================================================");
+        logger.info("[EMAIL SIMULATION] TO: {} | SUBJECT: {}", to, subject);
+        // body omitted intentionally — may contain plaintext passwords or customer PII
     }
 }

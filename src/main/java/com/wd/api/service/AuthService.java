@@ -9,7 +9,10 @@ import com.wd.api.model.PortalUser;
 import com.wd.api.model.PortalRole;
 import com.wd.api.repository.RefreshTokenRepository;
 import com.wd.api.repository.PortalUserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,6 +24,8 @@ import java.util.List;
 
 @Service
 public class AuthService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -153,6 +158,23 @@ public class AuthService {
         token.setRevoked(false);
 
         refreshTokenRepository.save(token);
+    }
+
+    /**
+     * Nightly cleanup: purge all expired or revoked refresh tokens.
+     * Without this, the refresh_tokens table grows unbounded — in a 100k user app it
+     * will contain millions of rows within weeks, making findByToken() a full table scan.
+     * Runs at 2:00 AM IST daily. Bulk deletion with @Modifying avoids OOM vs. deleteAll(List).
+     */
+    @Transactional
+    @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Kolkata")
+    public void cleanupExpiredRefreshTokens() {
+        try {
+            int deleted = refreshTokenRepository.deleteExpiredAndRevoked(LocalDateTime.now());
+            logger.info("Nightly refresh token cleanup: deleted {} expired/revoked entries", deleted);
+        } catch (Exception e) {
+            logger.error("Error during nightly refresh token cleanup", e);
+        }
     }
 
     @Autowired

@@ -787,30 +787,29 @@ public class LeadService {
         return leadRepository.findAll(spec, pageable);
     }
 
+    /**
+     * Returns lead analytics using single GROUP BY queries per dimension.
+     * Previously used 6 sequential countByLeadStatus() round-trips — now 3 total queries.
+     */
     public Map<String, Object> getLeadAnalytics() {
         Map<String, Object> analytics = new java.util.HashMap<>();
-        Map<String, Long> statusDist = new java.util.HashMap<>();
-        List<String> statuses = List.of("new", "contacted", "qualified", "proposal_sent", "won", "lost");
-        for (String status : statuses) {
-            statusDist.put(status, leadRepository.countByLeadStatus(status));
+
+        // Single GROUP BY query replaces 6 individual countByLeadStatus() calls
+        Map<String, Long> statusDist = new HashMap<>();
+        for (Object[] row : leadRepository.countLeadsByStatus()) {
+            statusDist.put(row[0] != null ? row[0].toString() : "unknown", (Long) row[1]);
         }
         analytics.put("statusDistribution", statusDist);
 
-        List<Object[]> sourceCounts = leadRepository.countLeadsBySource();
         Map<String, Long> sourceDist = new HashMap<>();
-        for (Object[] row : sourceCounts) {
-            String source = (String) row[0];
-            Long count = (Long) row[1];
-            sourceDist.put(source != null ? source : "unknown", count);
+        for (Object[] row : leadRepository.countLeadsBySource()) {
+            sourceDist.put(row[0] != null ? row[0].toString() : "unknown", (Long) row[1]);
         }
         analytics.put("sourceDistribution", sourceDist);
 
-        List<Object[]> priorityCounts = leadRepository.countLeadsByPriority();
         Map<String, Long> priorityDist = new HashMap<>();
-        for (Object[] row : priorityCounts) {
-            String priority = (String) row[0];
-            Long count = (Long) row[1];
-            priorityDist.put(priority != null ? priority : "unknown", count);
+        for (Object[] row : leadRepository.countLeadsByPriority()) {
+            priorityDist.put(row[0] != null ? row[0].toString() : "unknown", (Long) row[1]);
         }
         analytics.put("priorityDistribution", priorityDist);
 

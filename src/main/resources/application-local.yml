@@ -43,6 +43,8 @@ storageBasePath: "N:\\Projects\\wd projects git\\storage"
 app:
   cors:
     allowed-origins: http://localhost:3001,http://127.0.0.1:3001,http://localhost:3000
+  admin:
+    email: dev@walldotbuilders.com
 
 logging:
   level:

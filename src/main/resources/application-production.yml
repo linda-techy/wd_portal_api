@@ -5,6 +5,10 @@
 
 server:
   port: 8082
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/plain
+    min-response-size: 1024
   error:
     include-message: never
     include-stacktrace: never
@@ -15,8 +19,26 @@ spring:
     username: postgres
     password: Staygether@2025
     hikari:
-      maximumPoolSize: 15
-      minimumIdle: 5
+      maximum-pool-size: 50             # Tuned for 100k users — max = 80% of DB max_connections
+      minimum-idle: 10
+      connection-timeout: 30000         # 30s — fail fast rather than back-pressure
+      idle-timeout: 600000              # 10 min
+      max-lifetime: 1800000             # 30 min
+      leak-detection-threshold: 60000   # Log connections open > 60s
+
+  # ── Async thread pool (prevents unbounded thread creation by @Async) ──
+  task:
+    execution:
+      pool:
+        core-size: 20
+        max-size: 100
+        queue-capacity: 1000
+        keep-alive: 60s
+      thread-name-prefix: async-prod-
+    scheduling:
+      pool:
+        size: 5
+      thread-name-prefix: sched-prod-
   jpa:
     hibernate:
       ddl-auto: validate
@@ -43,6 +65,8 @@ storageBasePath: /home/ftpuser/var/www/app/walldotbuilders/storage
 app:
   cors:
     allowed-origins: https://portal.walldotbuilders.com,https://walldotbuilders.com,https://www.walldotbuilders.com
+  admin:
+    email: info@walldotbuilders.com
 
 logging:
   level:

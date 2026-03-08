@@ -577,10 +577,10 @@ public class CustomerProjectService {
         double completionRate = totalProjects > 0 ? (completedCount * 100.0 / totalProjects) : 0.0;
         stats.put("completion_rate", Math.round(completionRate * 10.0) / 10.0);
 
-        // Get overdue projects
-        List<CustomerProject> overdueProjects = customerProjectRepository.findOverdueProjects();
-        stats.put("delayed_count", (long) overdueProjects.size());
-        stats.put("on_track_count", activeCount - overdueProjects.size());
+        // Get overdue project count — use count-only query to avoid loading full entity graphs
+        long overdueCount = customerProjectRepository.countOverdueProjects();
+        stats.put("delayed_count", overdueCount);
+        stats.put("on_track_count", activeCount - overdueCount);
 
         return stats;
     }

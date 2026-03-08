@@ -169,6 +169,16 @@ public interface CustomerProjectRepository extends JpaRepository<CustomerProject
         List<CustomerProject> findOverdueProjects();
 
         /**
+         * Count-only version of findOverdueProjects().
+         * Use this for stats/dashboard to avoid loading full entity graphs into heap.
+         */
+        @Query("SELECT COUNT(p) FROM CustomerProject p " +
+                        "WHERE p.endDate < CURRENT_DATE " +
+                        "AND p.projectStatus != com.wd.api.model.enums.ProjectStatus.COMPLETED " +
+                        "AND p.deletedAt IS NULL")
+        long countOverdueProjects();
+
+        /**
          * Advanced search with multiple criteria (active projects only)
          */
         @Query("SELECT p FROM CustomerProject p " +
