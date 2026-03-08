@@ -1,7 +1,7 @@
-# ╔══════════════════════════════════════════════════════════════╗
-# ║  Portal API — STAGING Profile                                ║
-# ║  Pre-production testing on VPS                               ║
-# ╚══════════════════════════════════════════════════════════════╝
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  Portal API — STAGING Profile                                    ║
+# ║  🔑 SHARED STORAGE: same path as customer API for cross-app files║
+# ╚══════════════════════════════════════════════════════════════════╝
 
 server:
   port: 8082
@@ -14,14 +14,13 @@ spring:
     url: jdbc:postgresql://46.202.164.251:5432/wdTestDB
     username: postgres
     password: Staygether@2025
+    hikari:
+      maximumPoolSize: 10
+      minimumIdle: 3
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
-  datasource:
-    hikari:
-      maximumPoolSize: 10
-      minimumIdle: 3
 
   flyway:
     enabled: true
@@ -32,12 +31,14 @@ spring:
     username: info@walldotbuilders.com
     password: Staygether@2025
 
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+# ── Shared storage (SAME path as customer-api staging) ──────────────
+# storageBasePath at root level — matches customer API exactly
 file:
   upload-dir: /home/ftpuser/var/www/app/walldotbuilders/storage
 storageBasePath: /home/ftpuser/var/www/app/walldotbuilders/storage
-
-jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
 
 app:
   cors:

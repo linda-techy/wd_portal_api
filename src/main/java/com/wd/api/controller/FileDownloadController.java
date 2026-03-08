@@ -116,7 +116,7 @@ public class FileDownloadController {
                 headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"");
             }
 
-            headers.setCacheControl("public, max-age=31536000");
+            headers.setCacheControl("private, no-store, max-age=0");
 
             return ResponseEntity.ok()
                     .headers(headers)

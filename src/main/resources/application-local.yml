@@ -1,28 +1,26 @@
-# ╔══════════════════════════════════════════════════════════════╗
-# ║  Portal API — LOCAL Profile                                  ║
-# ║  For developer machines — verbose logging, dev DB            ║
-# ║  ⚠️  DO NOT commit real secrets; use local .env override     ║
-# ╚══════════════════════════════════════════════════════════════╝
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  Portal API — LOCAL Profile                                      ║
+# ║  🔑 SHARED STORAGE: same path as customer API for cross-app files║
+# ╚══════════════════════════════════════════════════════════════════╝
 
 server:
   port: 8082
   error:
     include-message: always
-    include-stacktrace: always  # OK for dev
+    include-stacktrace: always
 
 spring:
   datasource:
     url: jdbc:postgresql://46.202.164.251:5432/wdTestDB
     username: postgres
     password: Staygether@2025
+    hikari:
+      maximumPoolSize: 5
+      minimumIdle: 2
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-  datasource:
-    hikari:
-      maximumPoolSize: 5
-      minimumIdle: 2
 
   flyway:
     enabled: true
@@ -33,12 +31,14 @@ spring:
     username: info@walldotbuilders.com
     password: Staygether@2025
 
-file:
-  upload-dir: N:\Projects\wd projects git\storage
-  storageBasePath: N:\Projects\wd projects git\storage
-
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+# ── Shared storage (SAME path as customer-api local) ────────────────
+# storageBasePath MUST be root-level (not under file:)
+file:
+  upload-dir: "N:\\Projects\\wd projects git\\storage"
+storageBasePath: "N:\\Projects\\wd projects git\\storage"
 
 app:
   cors:
