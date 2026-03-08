@@ -28,7 +28,7 @@ public class FileDownloadController {
 
     private static final Logger logger = LoggerFactory.getLogger(FileDownloadController.class);
 
-    @Value("${storageBasePath:N:\\Projects\\wd projects git\\storage}")
+    @Value("${storageBasePath}")
     private String storageBasePath;
 
     /**

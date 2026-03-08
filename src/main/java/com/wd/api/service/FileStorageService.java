@@ -21,10 +21,8 @@ public class FileStorageService {
     private final Path fileStorageLocation;
 
     public FileStorageService(FileUploadConfig fileUploadConfig,
-            @org.springframework.beans.factory.annotation.Value("${storageBasePath:N:\\Projects\\wd projects git\\storage}") String storageBasePath) {
-        String uploadDir = storageBasePath != null && !storageBasePath.trim().isEmpty()
-                ? storageBasePath.trim()
-                : "N:\\Projects\\wd projects git\\storage";
+            @org.springframework.beans.factory.annotation.Value("${storageBasePath}") String storageBasePath) {
+        String uploadDir = storageBasePath.trim();
 
         logger.info("Initializing File Storage at: {}", uploadDir);
 
