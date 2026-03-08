@@ -1,6 +1,8 @@
 package com.wd.api.exception;
 
 import com.wd.api.dto.ApiError;
+import com.wd.api.logging.LoggingConstants;
+import com.wd.api.logging.SensitiveDataMasker;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -21,159 +25,101 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Global exception handler to catch all unhandled exceptions
- * and provide structured, consistent error responses with correlation IDs.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /**
-     * Get or generate correlation ID for request tracing
-     */
-    private String getCorrelationId() {
-        String correlationId = MDC.get("correlationId");
-        if (correlationId == null) {
-            correlationId = UUID.randomUUID().toString();
-        }
-        return correlationId;
+    private String getTraceId() {
+        String traceId = MDC.get(LoggingConstants.MDC_TRACE_ID);
+        return traceId != null ? traceId : ("FALLBACK-" + UUID.randomUUID().toString().substring(0, 8));
     }
 
-    // ===== AUTHENTICATION & AUTHORIZATION =====
+    private String resolveUserId() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                return auth.getName();
+            }
+        } catch (Exception ignored) {}
+        return "anonymous";
+    }
+
+    private void logWarn(String message, Exception ex, HttpServletRequest request) {
+        String traceId = getTraceId();
+        String userId = resolveUserId();
+        String path = request.getRequestURI();
+        String safeMsg = SensitiveDataMasker.mask(ex.getMessage() != null ? ex.getMessage() : "null");
+        logger.warn("[{}] User:{} Path:{} - {}: {}", traceId, userId, path, message, safeMsg);
+    }
+
+    private void logError(String message, Exception ex, HttpServletRequest request) {
+        String traceId = getTraceId();
+        String userId = resolveUserId();
+        String path = request.getRequestURI();
+        
+        MDC.put(LoggingConstants.MDC_USER_ID, userId);
+        MDC.put("requestPath", path);
+        try {
+            logger.error("[{}] User:{} Path:{} - {}", traceId, userId, path, message, ex);
+        } finally {
+            MDC.remove("requestPath");
+        }
+    }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiError> handleBadCredentials(
-            BadCredentialsException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.warn("[{}] Authentication failed: {}", correlationId, ex.getMessage());
-        
-        ApiError error = new ApiError(
-            "Invalid email or password",
-            "AUTHENTICATION_FAILED",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    public ResponseEntity<ApiError> handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
+        logWarn("Authentication failed", ex, request);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+            new ApiError("Invalid email or password", "AUTHENTICATION_FAILED", getTraceId(), request.getRequestURI()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiError> handleAccessDenied(
-            AccessDeniedException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.warn("[{}] Access denied: {}", correlationId, ex.getMessage());
-        
-        ApiError error = new ApiError(
-            "You do not have permission to perform this action",
-            "ACCESS_DENIED",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        logWarn("Access denied", ex, request);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+            new ApiError("You do not have permission to perform this action", "ACCESS_DENIED", getTraceId(), request.getRequestURI()));
     }
 
-    /**
-     * Handle custom UnauthorizedException (403)
-     */
     @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ApiError> handleUnauthorized(
-            UnauthorizedException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.warn("[{}] Unauthorized access attempt: {} on {}", 
-            correlationId, ex.getAction(), ex.getResource());
-
-        ApiError error = new ApiError(
-            "Access denied",  // Generic message for security
-            "ACCESS_DENIED",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    public ResponseEntity<ApiError> handleUnauthorized(UnauthorizedException ex, HttpServletRequest request) {
+        logWarn("Unauthorized access attempt: " + ex.getAction() + " on " + ex.getResource(), ex, request);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+            new ApiError("Access denied", "ACCESS_DENIED", getTraceId(), request.getRequestURI()));
     }
 
-    // ===== RESOURCE NOT FOUND =====
-
-    /**
-     * Handle custom ResourceNotFoundException (404)
-     */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiError> handleResourceNotFound(
-            ResourceNotFoundException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.warn("[{}] Resource not found: {} - {}", 
-            correlationId, ex.getResourceType(), ex.getResourceId());
-
-        ApiError error = new ApiError(
-            ex.getMessage(),
-            "RESOURCE_NOT_FOUND",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    public ResponseEntity<ApiError> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
+        logWarn("Resource not found", ex, request);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            new ApiError(ex.getMessage(), "RESOURCE_NOT_FOUND", getTraceId(), request.getRequestURI()));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ApiError> handleNoResourceFound(
-            NoResourceFoundException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.warn("[{}] No handler found: {} {}", correlationId, ex.getHttpMethod(), ex.getResourcePath());
-        
-        ApiError error = new ApiError(
-            "Resource not found: " + ex.getResourcePath(),
-            "RESOURCE_NOT_FOUND",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    public ResponseEntity<ApiError> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
+        logWarn("No handler found", ex, request);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            new ApiError("Resource not found: " + ex.getResourcePath(), "RESOURCE_NOT_FOUND", getTraceId(), request.getRequestURI()));
     }
 
-    // ===== BUSINESS LOGIC EXCEPTIONS =====
-
-    /**
-     * Handle custom BusinessException (configurable status)
-     */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiError> handleBusinessException(
-            BusinessException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.warn("[{}] Business exception: {}", correlationId, ex.getMessage());
-
-        ApiError error = new ApiError(
-            ex.getMessage(),
-            ex.getErrorCode(),
-            correlationId,
-            request.getRequestURI()
-        );
-        // ApiException always has a non-null status
-        var response = ResponseEntity.status(ex.getStatus()).body(error);
-        return response;
+    public ResponseEntity<ApiError> handleBusinessException(BusinessException ex, HttpServletRequest request) {
+        logWarn("Business exception", ex, request);
+        return ResponseEntity.status(ex.getStatus()).body(
+            new ApiError(ex.getMessage(), ex.getErrorCode(), getTraceId(), request.getRequestURI()));
     }
-
-    // ===== VALIDATION EXCEPTIONS =====
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationExceptions(
-            MethodArgumentNotValidException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.warn("[{}] Validation failed", correlationId);
-
+    public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        logWarn("Validation failed", ex, request);
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors()
-                .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+        ex.getBindingResult().getFieldErrors().forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
 
         Map<String, Object> errorDetails = new HashMap<>();
         errorDetails.put("success", false);
         errorDetails.put("message", "Input validation failed");
         errorDetails.put("errorCode", "VALIDATION_ERROR");
-        errorDetails.put("correlationId", correlationId);
+        errorDetails.put("correlationId", getTraceId());
         errorDetails.put("path", request.getRequestURI());
         errorDetails.put("timestamp", System.currentTimeMillis());
         errorDetails.put("validationErrors", errors);
@@ -182,140 +128,58 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ApiError> handleMissingParams(
-            MissingServletRequestParameterException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.warn("[{}] Missing required parameter: {}", correlationId, ex.getParameterName());
-
-        ApiError error = new ApiError(
-            "Missing required parameter: " + ex.getParameterName(),
-            "MISSING_PARAMETER",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    public ResponseEntity<ApiError> handleMissingParams(MissingServletRequestParameterException ex, HttpServletRequest request) {
+        logWarn("Missing parameter: " + ex.getParameterName(), ex, request);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            new ApiError("Missing required parameter: " + ex.getParameterName(), "MISSING_PARAMETER", getTraceId(), request.getRequestURI()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiError> handleIllegalArgumentException(
-            IllegalArgumentException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.warn("[{}] Invalid argument: {}", correlationId, ex.getMessage());
-
-        ApiError error = new ApiError(
-            ex.getMessage(),
-            "INVALID_ARGUMENT",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    public ResponseEntity<ApiError> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+        logWarn("Invalid argument", ex, request);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            new ApiError(ex.getMessage(), "INVALID_ARGUMENT", getTraceId(), request.getRequestURI()));
     }
-
-    // ===== HTTP METHOD EXCEPTIONS =====
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiError> handleMethodNotSupported(
-            HttpRequestMethodNotSupportedException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.warn("[{}] Method not supported: {}", correlationId, ex.getMethod());
-
-        ApiError error = new ApiError(
-            "HTTP method " + ex.getMethod() + " is not supported for this endpoint",
-            "METHOD_NOT_ALLOWED",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(error);
+    public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        logWarn("Method not supported: " + ex.getMethod(), ex, request);
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(
+            new ApiError("HTTP method " + ex.getMethod() + " is not supported", "METHOD_NOT_ALLOWED", getTraceId(), request.getRequestURI()));
     }
 
-    // ===== FILE/IO EXCEPTIONS =====
-
     @ExceptionHandler(IOException.class)
-    public ResponseEntity<ApiError> handleIOException(
-            IOException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.error("[{}] IO exception: {}", correlationId, ex.getMessage(), ex);
-
-        ApiError error = new ApiError(
-            "File access error occurred",
-            "FILE_ACCESS_ERROR",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    public ResponseEntity<ApiError> handleIOException(IOException ex, HttpServletRequest request) {
+        logError("IO exception", ex, request);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+            new ApiError("File access error occurred", "FILE_ACCESS_ERROR", getTraceId(), request.getRequestURI()));
     }
 
     @ExceptionHandler(java.nio.file.AccessDeniedException.class)
-    public ResponseEntity<ApiError> handleFileAccessDeniedException(
-            java.nio.file.AccessDeniedException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.error("[{}] File access denied: {}", correlationId, ex.getFile(), ex);
-
-        ApiError error = new ApiError(
-            "File permission denied",
-            "FILE_PERMISSION_DENIED",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    public ResponseEntity<ApiError> handleFileAccessDeniedException(java.nio.file.AccessDeniedException ex, HttpServletRequest request) {
+        logError("File access denied", ex, request);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+            new ApiError("File permission denied", "FILE_PERMISSION_DENIED", getTraceId(), request.getRequestURI()));
     }
-
-    // ===== NULL POINTER EXCEPTIONS =====
 
     @ExceptionHandler(NullPointerException.class)
-    public ResponseEntity<ApiError> handleNullPointerException(
-            NullPointerException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.error("[{}] Null pointer exception", correlationId, ex);
-
-        ApiError error = new ApiError(
-            "An unexpected error occurred",
-            "NULL_POINTER_ERROR",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    public ResponseEntity<ApiError> handleNullPointerException(NullPointerException ex, HttpServletRequest request) {
+        logError("Null pointer exception", ex, request);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+            new ApiError("An unexpected error occurred", "NULL_POINTER_ERROR", getTraceId(), request.getRequestURI()));
     }
 
-    // ===== CATCH-ALL HANDLERS =====
-
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiError> handleRuntimeException(
-            RuntimeException ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.error("[{}] Runtime exception: {} - {}", 
-            correlationId, ex.getClass().getName(), ex.getMessage(), ex);
-
-        ApiError error = new ApiError(
-            "An internal error occurred",
-            "INTERNAL_ERROR",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    public ResponseEntity<ApiError> handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
+        logError("Runtime exception", ex, request);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+            new ApiError("An internal error occurred", "INTERNAL_ERROR", getTraceId(), request.getRequestURI()));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> handleGenericException(
-            Exception ex,
-            HttpServletRequest request) {
-        String correlationId = getCorrelationId();
-        logger.error("[{}] Unhandled exception: {} - {}", 
-            correlationId, ex.getClass().getName(), ex.getMessage(), ex);
-
-        ApiError error = new ApiError(
-            "An unexpected error occurred",
-            "INTERNAL_ERROR",
-            correlationId,
-            request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    public ResponseEntity<ApiError> handleGenericException(Exception ex, HttpServletRequest request) {
+        logError("Unhandled exception", ex, request);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+            new ApiError("An unexpected error occurred", "INTERNAL_ERROR", getTraceId(), request.getRequestURI()));
     }
 }
