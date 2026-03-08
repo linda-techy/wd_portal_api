@@ -19,12 +19,7 @@ public class CacheConfig {
 
     /**
      * Configure cache manager with specific caches.
-     * - userProjects: Stores project IDs for each user
-     * - userPermissions: User role and permission cache
-     * - projectMetadata: Project metadata cache
-     * - commonData: Other common data
-     * 
-     * Note: TTL is handled at the application level (5 minutes).
+     * Note: TTL is handled by the scheduled task below (5 minutes).
      */
     @Bean
     public CacheManager cacheManager() {
@@ -36,5 +31,20 @@ public class CacheConfig {
             new ConcurrentMapCache("commonData")
         ));
         return cacheManager;
+    }
+
+    /**
+     * Evict all caches every 5 minutes to prevent out-of-memory errors.
+     * This acts as a global TTL for the SimpleCacheManager.
+     */
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 300000)
+    public void clearCaches() {
+        CacheManager manager = cacheManager();
+        manager.getCacheNames().forEach(cacheName -> {
+            org.springframework.cache.Cache cache = manager.getCache(cacheName);
+            if (cache != null) {
+                cache.clear();
+            }
+        });
     }
 }
