@@ -1,0 +1,51 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  Portal API — STAGING Profile                                ║
+# ║  Pre-production testing on VPS                               ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+server:
+  port: 8082
+  error:
+    include-message: never
+    include-stacktrace: never
+
+spring:
+  datasource:
+    url: jdbc:postgresql://46.202.164.251:5432/wdTestDB
+    username: postgres
+    password: Staygether@2025
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  datasource:
+    hikari:
+      maximumPoolSize: 10
+      minimumIdle: 3
+
+  flyway:
+    enabled: true
+
+  mail:
+    host: smtp.hostinger.com
+    port: 465
+    username: info@walldotbuilders.com
+    password: Staygether@2025
+
+file:
+  upload-dir: /home/ftpuser/var/www/app/walldotbuilders/storage
+storageBasePath: /home/ftpuser/var/www/app/walldotbuilders/storage
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+app:
+  cors:
+    allowed-origins: https://portal.walldotbuilders.com,https://app.walldotbuilders.com
+
+logging:
+  level:
+    root: INFO
+    com.wd.api: INFO
+    org.springframework: WARN
+    org.hibernate: WARN

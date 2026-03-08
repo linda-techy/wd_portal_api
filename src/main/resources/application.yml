@@ -1,0 +1,80 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  WD Portal API — Base Configuration (all profiles)          ║
+# ║  No secrets here — per-environment values in profile YAMLs  ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+spring:
+  application:
+    name: wd-portal-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  main:
+    banner-mode: off
+
+  # ── Database (connection details in profile YAMLs) ──────────────
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connectionTimeout: 60000
+      validationTimeout: 20000
+      initializationFailTimeout: 60000
+      idleTimeout: 300000
+      maxLifetime: 1200000
+
+  # ── JPA base ────────────────────────────────────────────────────
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        temp:
+          use_jdbc_metadata_defaults: false
+
+  # ── Flyway ──────────────────────────────────────────────────────
+  flyway:
+    baseline-on-migrate: true
+    out-of-order: true
+    baseline-version: 1
+    validate-on-migrate: true
+
+  # ── File upload limits ──────────────────────────────────────────
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+  # ── Mail base (auth settings only — credentials in profile YAMLs)
+  mail:
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# ── JWT base (expiry times — secret in profile YAMLs) ───────────
+jwt:
+  access-token-expiration: 3600000       # 1 hour
+  refresh-token-expiration: 604800000    # 7 days
+
+# ── Task Alerts ─────────────────────────────────────────────────
+task:
+  alerts:
+    enabled: true
+    cron: "0 0 9 * * *"
+    timezone: Asia/Kolkata
+
+# ── App feature flags ────────────────────────────────────────────
+app:
+  email:
+    enabled: true
+
+# ── Company Info (static — not sensitive) ────────────────────────
+company:
+  name: Walldot Builders LLP
+  address: Kerala, India
+  phone: "+91 9876543210"
+  email: info@walldotbuilders.com
+  website: www.walldotbuilders.com
+  gst: ""
+  pan: ""

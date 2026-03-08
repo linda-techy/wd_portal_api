@@ -1,0 +1,54 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  Portal API — LOCAL Profile                                  ║
+# ║  For developer machines — verbose logging, dev DB            ║
+# ║  ⚠️  DO NOT commit real secrets; use local .env override     ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+server:
+  port: 8082
+  error:
+    include-message: always
+    include-stacktrace: always  # OK for dev
+
+spring:
+  datasource:
+    url: jdbc:postgresql://46.202.164.251:5432/wdTestDB
+    username: postgres
+    password: Staygether@2025
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  datasource:
+    hikari:
+      maximumPoolSize: 5
+      minimumIdle: 2
+
+  flyway:
+    enabled: true
+
+  mail:
+    host: smtp.hostinger.com
+    port: 465
+    username: info@walldotbuilders.com
+    password: Staygether@2025
+
+file:
+  upload-dir: N:\Projects\wd projects git\storage
+  storageBasePath: N:\Projects\wd projects git\storage
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+app:
+  cors:
+    allowed-origins: http://localhost:3001,http://127.0.0.1:3001,http://localhost:3000
+
+logging:
+  level:
+    root: INFO
+    com.wd.api: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
