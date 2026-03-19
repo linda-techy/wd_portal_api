@@ -126,6 +126,38 @@ CORS is configured globally in `SecurityConfig`. Per-controller `@CrossOrigin` a
 
 ## Troubleshooting
 
+### PM2 Production Startup Checklist
+
+Use this checklist after deploying a new `wd_portal_api` jar to VPS.
+
+1. Ensure PM2 process has production profile:
+   - `pm2 env walldot-api | rg SPRING_PROFILES_ACTIVE`
+   - Expected value: `production`
+   - Optional safety guard:
+     - `pm2 env walldot-api | rg SPRING_JPA_HIBERNATE_DDL_AUTO`
+     - Expected value: `validate`
+2. Restart process:
+   - `pm2 restart walldot-api`
+3. Validate startup logs:
+   - `pm2 logs walldot-api --lines 120`
+   - Confirm there is no `Logback configuration error detected`
+   - Confirm there is no `relation "refresh_tokens" does not exist`
+   - Confirm there is no Hibernate startup DDL like `alter table if exists ...`
+   - Confirm there is no `This connection has been closed` during initialization
+4. Verify production JSON log files are created:
+   - `ls /home/backenduser/logs/portal-api`
+   - Expected files include `application.json.log` and `error.json.log`
+5. Confirm Flyway history includes latest migration and success:
+   - `psql <db> -c "SELECT version, success FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 20;"`
+   - Confirm `V1_74` (or later) is present with `success = t`
+6. Confirm app reaches healthy state:
+   - `curl -i http://127.0.0.1:8082/actuator/health`
+   - Expected HTTP `200` with status `UP`
+
+### Known Residual Risk (Not Part Of Startup Fix Acceptance)
+
+`ApiApplicationTests.contextLoads` can still fail in CI/local due to DB metadata/connection closure errors around `material_budgets` during Hibernate schema validation. This is separate from the original startup blockers (Logback appender collision and refresh token migration failure), and should be tracked as a follow-up reliability task.
+
 ### Database Connection Issues
 
 If you see connection errors:

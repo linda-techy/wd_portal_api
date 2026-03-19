@@ -1,0 +1,999 @@
+{
+  "info": {
+    "_postman_id": "8d0e5f3a-147f-456d-ac97-0bf1dd0be4ee",
+    "name": "Walldot Admin Portal Collection",
+    "description": "Postman collection for Walldot admin portal API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = {};",
+                  "try {",
+                  "    json = pm.response.json();",
+                  "} catch (e) {}",
+                  "",
+                  "var accessToken = json.accessToken || json.token || json.jwt || '';",
+                  "var refreshToken = json.refreshToken || '';",
+                  "",
+                  "if (accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', accessToken);",
+                  "}",
+                  "",
+                  "if (refreshToken) {",
+                  "    pm.collectionVariables.set('refreshToken', refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@walldotbuilders.com\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticate and store access/refresh token in collection variables."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh-token"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Health Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "test"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Portal Users",
+      "item": [
+        {
+          "name": "Get Users (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portal-users/paginated?page=0&size=10&sortBy=createdAt&sortDir=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal-users",
+                "paginated"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortDir",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portal-users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal-users",
+                "{{userId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Portal\",\n  \"lastName\": \"User\",\n  \"mobileNumber\": \"9999999999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portal-users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal-users",
+                "{{userId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portal-users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal-users",
+                "{{userId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portal-users/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal-users",
+                "roles"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Users By Role Codes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portal-users/by-role-codes?roleCodes=ADMIN,PROCUREMENT_MANAGER",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal-users",
+                "by-role-codes"
+              ],
+              "query": [
+                {
+                  "key": "roleCodes",
+                  "value": "ADMIN,PROCUREMENT_MANAGER"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"Old@123\",\n  \"newPassword\": \"New@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/portal-users/{{userId}}/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portal-users",
+                "{{userId}}",
+                "change-password"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Procurement",
+      "item": [
+        {
+          "name": "Create Vendor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ABC Suppliers\",\n  \"contactPerson\": \"John\",\n  \"phone\": \"9999999999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/vendors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "vendors"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Vendors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/vendors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "vendors"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Vendor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ABC Suppliers Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/vendors/{{vendorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "vendors",
+                "{{vendorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Vendor",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/vendors/{{vendorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "vendors",
+                "{{vendorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"poNumber\": \"PO-1001\",\n  \"projectId\": 1,\n  \"vendorId\": 1,\n  \"status\": \"DRAFT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/purchase-orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "purchase-orders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Purchase Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/purchase-orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "purchase-orders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Purchase Order",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/purchase-orders/{{purchaseOrderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "purchase-orders",
+                "{{purchaseOrderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Purchase Order",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/purchase-orders/{{purchaseOrderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "purchase-orders",
+                "{{purchaseOrderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/purchase-orders/{{purchaseOrderId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "purchase-orders",
+                "{{purchaseOrderId}}",
+                "cancel"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Close Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/purchase-orders/{{purchaseOrderId}}/close",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "purchase-orders",
+                "{{purchaseOrderId}}",
+                "close"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create GRN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purchaseOrderId\": 1,\n  \"remarks\": \"Received in good condition\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/grn",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "grn"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List GRNs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/procurement/grns",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "procurement",
+                "grns"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Site Reports",
+      "item": [
+        {
+          "name": "Search Site Reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/site-reports/search?query=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "site-reports",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "query",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Site Reports By Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/site-reports/project/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "site-reports",
+                "project",
+                "{{projectId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Site Reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/site-reports/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "site-reports",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Site Report By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/site-reports/{{siteReportId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "site-reports",
+                "{{siteReportId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Site Report (Multipart)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "reportData",
+                  "value": "{\"title\":\"Daily Report\",\"projectId\":1}",
+                  "type": "text"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/site-reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "site-reports"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Site Report",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Site Report\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/site-reports/{{siteReportId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "site-reports",
+                "{{siteReportId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Site Report",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/site-reports/{{siteReportId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "site-reports",
+                "{{siteReportId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Site Report Photo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "latitude",
+                  "value": "19.0760",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "72.8777",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/site-reports/{{siteReportId}}/photos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "site-reports",
+                "{{siteReportId}}",
+                "photos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Site Report Photo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/site-reports/{{siteReportId}}/photos/{{photoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "site-reports",
+                "{{siteReportId}}",
+                "photos",
+                "{{photoId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "View360",
+      "item": [
+        {
+          "name": "Get View360 By Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/view360/project/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "view360",
+                "project",
+                "{{projectId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create View360 (Multipart)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "projectId",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/view360",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "view360"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get View360 By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/view360/{{view360Id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "view360",
+                "{{view360Id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete View360",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/view360/{{view360Id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "view360",
+                "{{view360Id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Download File",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/download/{{filePath}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "files",
+                "download",
+                "{{filePath}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Storage File",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/storage/{{filePath}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "storage",
+                "{{filePath}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.walldotbuilders.com"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": "1"
+    },
+    {
+      "key": "projectId",
+      "value": "1"
+    },
+    {
+      "key": "vendorId",
+      "value": "1"
+    },
+    {
+      "key": "purchaseOrderId",
+      "value": "1"
+    },
+    {
+      "key": "siteReportId",
+      "value": "1"
+    },
+    {
+      "key": "photoId",
+      "value": "1"
+    },
+    {
+      "key": "view360Id",
+      "value": "1"
+    },
+    {
+      "key": "filePath",
+      "value": "uploads/sample.png"
+    }
+  ]
+}

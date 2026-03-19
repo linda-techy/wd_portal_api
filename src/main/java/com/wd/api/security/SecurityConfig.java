@@ -4,6 +4,7 @@ import com.wd.api.service.CustomUserDetailsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +25,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -43,6 +46,12 @@ public class SecurityConfig {
 
         @Autowired
         private CustomAccessDeniedHandler accessDeniedHandler;
+
+        @Value("${app.cors.allowed-origins:}")
+        private String configuredAllowedOrigins;
+
+        @Value("${spring.profiles.active:local}")
+        private String activeProfile;
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -86,31 +95,29 @@ public class SecurityConfig {
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
 
-                // Get allowed origins from environment or use defaults
-                String allowedOriginsEnv = System.getenv("CORS_ALLOWED_ORIGINS");
-                boolean isDevelopment = "dev".equalsIgnoreCase(System.getenv("SPRING_PROFILES_ACTIVE"))
-                                || System.getProperty("spring.profiles.active", "").equalsIgnoreCase("dev");
+                String envAllowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
+                String effectiveOrigins = !isBlank(envAllowedOrigins) ? envAllowedOrigins : configuredAllowedOrigins;
+                List<String> parsedOrigins = parseOrigins(effectiveOrigins);
+                boolean isLocalProfile = isLocalLikeProfile(activeProfile);
 
-                if (isDevelopment || allowedOriginsEnv == null) {
-                        // Development: Allow localhost and common dev ports
-                        logger.warn("CORS: Using permissive configuration for development. RESTRICT FOR PRODUCTION!");
+                if (!parsedOrigins.isEmpty()) {
+                        configuration.setAllowedOrigins(parsedOrigins);
+                        logger.info("CORS: Using configured origins for profile '{}': {}", activeProfile, parsedOrigins);
+                } else if (isLocalProfile) {
+                        // Local/dev fallback only when no explicit origins are configured.
                         configuration.setAllowedOriginPatterns(Arrays.asList(
                                         "http://localhost:*",
                                         "http://127.0.0.1:*"));
+                        logger.warn("CORS: No explicit origins configured; using localhost patterns for local/dev.");
                 } else {
-                        // Production: Use environment variable or default secure origins
-                        String[] origins = allowedOriginsEnv.split(",");
-                        configuration.setAllowedOrigins(Arrays.asList(origins));
-                        logger.info("CORS: Using restricted origins from environment: {}", Arrays.toString(origins));
-                }
-
-                // Fallback to secure defaults if environment variable not set in production
-                if (!isDevelopment && (allowedOriginsEnv == null || allowedOriginsEnv.isEmpty())) {
-                        configuration.setAllowedOrigins(Arrays.asList(
+                        // Production-safe fallback if misconfigured.
+                        List<String> fallbackOrigins = Arrays.asList(
                                         "https://portal.walldotbuilders.com",
-                                        "https://www.walldotbuilders.com"));
-                        logger.warn(
-                                        "CORS: Using default production origins. Consider setting CORS_ALLOWED_ORIGINS environment variable.");
+                                        "https://walldotbuilders.com",
+                                        "https://www.walldotbuilders.com");
+                        configuration.setAllowedOrigins(fallbackOrigins);
+                        logger.warn("CORS: No explicit origins configured; using production fallback origins: {}",
+                                        fallbackOrigins);
                 }
 
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
@@ -131,6 +138,28 @@ public class SecurityConfig {
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);
                 return source;
+        }
+
+        private List<String> parseOrigins(String rawOrigins) {
+                if (isBlank(rawOrigins)) {
+                        return List.of();
+                }
+                return Arrays.stream(rawOrigins.split(","))
+                                .map(String::trim)
+                                .filter(origin -> !origin.isEmpty())
+                                .collect(Collectors.toList());
+        }
+
+        private boolean isLocalLikeProfile(String profile) {
+                if (isBlank(profile)) {
+                        return true;
+                }
+                String normalized = profile.trim().toLowerCase();
+                return "local".equals(normalized) || "dev".equals(normalized) || "default".equals(normalized);
+        }
+
+        private boolean isBlank(String value) {
+                return value == null || value.trim().isEmpty();
         }
 
         @Bean

@@ -4,7 +4,7 @@
 # ╚══════════════════════════════════════════════════════════════════╝
 
 server:
-  port: 8082
+  port: 8080
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/plain
@@ -19,12 +19,22 @@ spring:
     username: postgres
     password: Staygether@2025
     hikari:
-      maximum-pool-size: 50             # Tuned for 100k users — max = 80% of DB max_connections
-      minimum-idle: 10
+      maximum-pool-size: 20             # Lower startup pressure on remote DB
+      minimum-idle: 5
       connection-timeout: 30000         # 30s — fail fast rather than back-pressure
-      idle-timeout: 600000              # 10 min
-      max-lifetime: 1800000             # 30 min
+      idle-timeout: 240000              # 4 min (must stay below max-lifetime)
+      max-lifetime: 300000              # 5 min, rotate connections before infra closes them
+      keepalive-time: 120000            # 2 min heartbeat to avoid stale idle sockets
       leak-detection-threshold: 60000   # Log connections open > 60s
+      validation-timeout: 10000
+      data-source-properties:
+        tcpKeepAlive: true
+        connectTimeout: 10
+        socketTimeout: 30
+        keepalives: 1
+        keepalives_idle: 30
+        keepalives_interval: 10
+        keepalives_count: 5
 
   # ── Async thread pool (prevents unbounded thread creation by @Async) ──
   task:
@@ -46,6 +56,7 @@ spring:
 
   flyway:
     enabled: true
+    validate-migration-naming: true
 
   mail:
     host: smtp.hostinger.com
