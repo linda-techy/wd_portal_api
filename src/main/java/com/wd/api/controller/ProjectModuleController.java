@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.security.core.Authentication;
 import com.wd.api.dto.ApiResponse;
 
 import java.util.List;
@@ -98,20 +97,4 @@ public class ProjectModuleController {
         }
     }
 
-    /**
-     * Extract user ID from authentication context.
-     * Throws AuthenticationCredentialsNotFoundException if authentication is unavailable or invalid.
-     */
-    private Long getUserIdFromAuth(Authentication auth) {
-        if (auth == null || auth.getPrincipal() == null
-                || "anonymousUser".equals(auth.getPrincipal())) {
-            throw new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException("Authentication required");
-        }
-
-        if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser portalUser) {
-            return portalUser.getId();
-        }
-
-        throw new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException("Unable to extract user ID from authentication context");
-    }
 }
