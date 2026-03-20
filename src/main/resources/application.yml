@@ -68,8 +68,8 @@ task:
 app:
   email:
     enabled: true
-  # Portal API's own public base URL — set per environment profile.
-  base-url: ""
+  # Customer app base URL — reset links in password-reset emails point here.
+  customer-app-base-url: "https://app.walldotbuilders.com"
 
 # ── Company Info (static — not sensitive) ────────────────────────
 company:
