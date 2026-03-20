@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -197,6 +198,126 @@ public class CustomerController {
             return ResponseEntity.internalServerError().body(
                     ApiResponse.error("Failed to send password reset email"));
         }
+    }
+
+    /**
+     * Serves the HTML password-reset form to the customer.
+     * Public — no authentication required (customer accesses from email link).
+     * Token and email arrive as URL query params.
+     */
+    @GetMapping(value = "/reset-password-page", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> showResetPasswordPage(
+            @RequestParam(required = false) String token,
+            @RequestParam(required = false) String email) {
+        return ResponseEntity.ok(buildResetPasswordHtml(token, email, null, false));
+    }
+
+    /**
+     * Processes the reset-password form submission.
+     * Public — no authentication required.
+     */
+    @PostMapping(value = "/reset-password-confirm",
+                 consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+                 produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> confirmResetPassword(
+            @RequestParam String token,
+            @RequestParam String email,
+            @RequestParam String newPassword,
+            @RequestParam String confirmPassword) {
+        try {
+            if (!newPassword.equals(confirmPassword)) {
+                return ResponseEntity.ok(
+                        buildResetPasswordHtml(token, email, "Passwords do not match.", false));
+            }
+            if (newPassword.length() < 8) {
+                return ResponseEntity.ok(
+                        buildResetPasswordHtml(token, email, "Password must be at least 8 characters.", false));
+            }
+            customerPasswordResetService.resetPassword(email, token, newPassword);
+            return ResponseEntity.ok(buildResetPasswordHtml(null, null, null, true));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Customer password reset failed: {}", e.getMessage());
+            return ResponseEntity.ok(buildResetPasswordHtml(token, email, e.getMessage(), false));
+        } catch (Exception e) {
+            logger.error("Unexpected error during customer password reset", e);
+            return ResponseEntity.ok(
+                    buildResetPasswordHtml(token, email, "An unexpected error occurred. Please try again.", false));
+        }
+    }
+
+    private String buildResetPasswordHtml(String token, String email, String error, boolean success) {
+        if (success) {
+            return """
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+                    <title>Password Reset - Walldot</title>
+                    <style>
+                      body{font-family:sans-serif;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+                      .card{background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.1);padding:40px;max-width:420px;width:90%;text-align:center}
+                      .icon{font-size:48px;margin-bottom:16px}
+                      h2{color:#2e7d32;margin:0 0 12px}
+                      p{color:#555;line-height:1.6}
+                    </style></head>
+                    <body>
+                    <div class="card">
+                      <div class="icon">✅</div>
+                      <h2>Password Reset Successful</h2>
+                      <p>Your password has been updated. You can now log in to the Walldot customer app with your new password.</p>
+                    </div>
+                    </body></html>
+                    """;
+        }
+
+        String errorHtml = error != null
+                ? "<div class=\"error\">" + escapeHtml(error) + "</div>"
+                : "";
+        String tokenVal = token != null ? escapeHtml(token) : "";
+        String emailVal = email != null ? escapeHtml(email) : "";
+
+        return """
+                <!DOCTYPE html>
+                <html lang="en">
+                <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+                <title>Reset Password - Walldot</title>
+                <style>
+                  body{font-family:sans-serif;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+                  .card{background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.1);padding:40px;max-width:420px;width:90%}
+                  .logo{text-align:center;margin-bottom:24px;font-size:22px;font-weight:700;color:#c62828}
+                  h2{margin:0 0 8px;font-size:20px;color:#212121}
+                  .sub{color:#777;font-size:14px;margin-bottom:24px}
+                  label{display:block;font-size:13px;color:#555;margin-bottom:4px;margin-top:16px}
+                  input[type=password]{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:15px;box-sizing:border-box}
+                  input[type=password]:focus{outline:none;border-color:#c62828}
+                  button{margin-top:24px;width:100%;padding:12px;background:#c62828;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer}
+                  button:hover{background:#b71c1c}
+                  .error{background:#fdecea;color:#c62828;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+                  .hint{font-size:12px;color:#999;margin-top:4px}
+                </style></head>
+                <body>
+                <div class="card">
+                  <div class="logo">Walldot Builders</div>
+                  <h2>Reset Your Password</h2>
+                  <p class="sub">Enter a new password for <strong>%s</strong>. This link expires in 15 minutes.</p>
+                  %s
+                  <form method="POST" action="/api/customers/reset-password-confirm">
+                    <input type="hidden" name="token" value="%s">
+                    <input type="hidden" name="email" value="%s">
+                    <label>New Password</label>
+                    <input type="password" name="newPassword" placeholder="Min. 8 characters" required>
+                    <label>Confirm Password</label>
+                    <input type="password" name="confirmPassword" placeholder="Re-enter password" required>
+                    <p class="hint">Password must be at least 8 characters.</p>
+                    <button type="submit">Reset Password</button>
+                  </form>
+                </div>
+                </body></html>
+                """.formatted(emailVal, errorHtml, tokenVal, emailVal);
+    }
+
+    private static String escapeHtml(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#39;");
     }
 
     /**

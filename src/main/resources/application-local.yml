@@ -45,7 +45,7 @@ app:
     allowed-origins: http://localhost:3001,http://127.0.0.1:3001,http://localhost:3000
   admin:
     email: dev@walldotbuilders.com
-  customer-portal-base-url: "http://localhost:3000"
+  base-url: "http://localhost:8080"
 
 logging:
   level:

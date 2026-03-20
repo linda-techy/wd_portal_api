@@ -71,6 +71,10 @@ public class SecurityConfig {
                                                 .requestMatchers("/leads/calculator/**").permitAll() // All calculator
                                                                                                      // types
 
+                                                // Customer password reset (unauthenticated — accessed from email link)
+                                                .requestMatchers("/customers/reset-password-page").permitAll()
+                                                .requestMatchers("/customers/reset-password-confirm").permitAll()
+
                                                 // Partnership endpoints (public)
                                                 .requestMatchers("/api/partnerships/login").permitAll()
                                                 .requestMatchers("/api/partnerships/apply").permitAll()

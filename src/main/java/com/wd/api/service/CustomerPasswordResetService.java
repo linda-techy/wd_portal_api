@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,25 +26,20 @@ import java.util.concurrent.ConcurrentHashMap;
  * Portal-side service that generates a password-reset link for a CustomerUser
  * and emails it to them.
  *
- * <p>The token is stored in the shared {@code customer_password_reset_tokens}
- * table so the customer API's own {@code /auth/reset-password} endpoint can
- * validate it when the customer clicks the link in their email.
+ * <p>The reset link points to the portal API itself
+ * ({@code GET /api/customers/reset-password-page}). The portal API serves a
+ * self-contained HTML form; on submission the portal API validates the token
+ * and updates the customer's password in the shared database.
  *
- * <p>Only the SHA-256 hash of the token is persisted; the raw token travels
- * only via the emailed link — never through the API response.
+ * <p>Only the SHA-256 hash of the token is persisted. The raw token travels
+ * only via the emailed link, never through any API response.
  */
 @Service
 public class CustomerPasswordResetService {
 
     private static final Logger log = LoggerFactory.getLogger(CustomerPasswordResetService.class);
 
-    /** Token validity window. */
     private static final int TOKEN_VALIDITY_MINUTES = 15;
-
-    /**
-     * Minimum seconds between successive reset emails for the same customer.
-     * Prevents portal staff (or an attacker with staff access) from bombing a customer's inbox.
-     */
     private static final long RESEND_COOLDOWN_SECONDS = 60;
 
     @Autowired
@@ -55,28 +51,26 @@ public class CustomerPasswordResetService {
     @Autowired
     private EmailService emailService;
 
-    /**
-     * Base URL of the customer-facing app — controls where the reset link points.
-     * Set in application-{local|staging|production}.yml.
-     */
-    @Value("${app.customer-portal-base-url:}")
-    private String customerPortalBaseUrl;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-    /** Per-customer cooldown tracking (customerId → last-send epoch-second). */
+    /** Portal API's own public base URL. Set per environment in application-{profile}.yml. */
+    @Value("${app.base-url:}")
+    private String portalBaseUrl;
+
+    /** Per-customer cooldown: customerId → last-send epoch-second. */
     private final Map<Long, Long> lastSentAt = new ConcurrentHashMap<>();
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Send reset email (triggered by portal staff)
+    // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Generates a password-reset token for the customer identified by {@code customerId}
-     * and sends a branded reset email.
-     *
-     * @param customerId  DB id of the CustomerUser
-     * @throws IllegalArgumentException  if customer not found or has no email
-     * @throws IllegalStateException     if a reset email was sent too recently
-     */
     @Transactional
     public void sendPasswordResetEmail(Long customerId) {
+        if (portalBaseUrl == null || portalBaseUrl.isBlank()) {
+            throw new IllegalStateException(
+                    "app.base-url is not configured for this environment");
+        }
 
         CustomerUser customer = customerUserRepository.findById(customerId)
                 .orElseThrow(() ->
@@ -88,12 +82,7 @@ public class CustomerPasswordResetService {
                     "Customer " + customerId + " has no email address on file");
         }
 
-        if (customerPortalBaseUrl == null || customerPortalBaseUrl.isBlank()) {
-            throw new IllegalStateException(
-                    "app.customer-portal-base-url is not configured for this environment");
-        }
-
-        // ── Cooldown check ────────────────────────────────────────────────────
+        // Cooldown check
         long nowEpoch = System.currentTimeMillis() / 1_000;
         Long last = lastSentAt.get(customerId);
         if (last != null && (nowEpoch - last) < RESEND_COOLDOWN_SECONDS) {
@@ -102,40 +91,61 @@ public class CustomerPasswordResetService {
                     "Password reset email already sent. Please wait " + remaining + " seconds before resending.");
         }
 
-        // ── Token generation ──────────────────────────────────────────────────
+        // Generate token
         String rawToken = UUID.randomUUID() + "." + UUID.randomUUID();
         String hashedToken = sha256Hex(rawToken);
 
-        // Invalidate any previous unused tokens for this email
         tokenRepository.deleteAllByEmail(email);
+        tokenRepository.save(new CustomerPasswordResetToken(
+                email, hashedToken, LocalDateTime.now().plusMinutes(TOKEN_VALIDITY_MINUTES)));
 
-        CustomerPasswordResetToken token = new CustomerPasswordResetToken(
-                email,
-                hashedToken,
-                LocalDateTime.now().plusMinutes(TOKEN_VALIDITY_MINUTES));
-        tokenRepository.save(token);
+        // Build reset link — points to portal API's own reset page endpoint
+        String resetLink = portalBaseUrl
+                + "/api/customers/reset-password-page"
+                + "?token=" + URLEncoder.encode(rawToken, StandardCharsets.UTF_8)
+                + "&email=" + URLEncoder.encode(email, StandardCharsets.UTF_8);
 
-        // ── Build reset link ──────────────────────────────────────────────────
-        String encodedToken = URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
-        String encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8);
-        String resetLink = customerPortalBaseUrl
-                + "/#/reset_password?token=" + encodedToken
-                + "&email=" + encodedEmail;
-
-        // ── Send email (async) ────────────────────────────────────────────────
         emailService.sendCustomerPasswordResetEmail(email, customer.getFirstName(), resetLink);
 
-        // ── Record send time ──────────────────────────────────────────────────
         lastSentAt.put(customerId, nowEpoch);
-
         log.info("Password reset email dispatched for customer {} ({})", customerId, email);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Validate token and update password (submitted from portal API's HTML form)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Transactional
+    public void resetPassword(String email, String rawToken, String newPassword) {
+        String hashedToken = sha256Hex(rawToken);
+
+        CustomerPasswordResetToken token = tokenRepository
+                .findByEmailAndResetCodeAndUsedFalse(email, hashedToken)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or already used reset link."));
+
+        if (token.isExpired()) {
+            throw new IllegalArgumentException("Reset link has expired. Please request a new one.");
+        }
+
+        // Atomically mark as used — prevents replay attacks
+        int updated = tokenRepository.markUsedById(token.getId());
+        if (updated == 0) {
+            throw new IllegalArgumentException("Reset link was already used.");
+        }
+
+        CustomerUser customer = customerUserRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Customer account not found."));
+
+        customer.setPassword(passwordEncoder.encode(newPassword));
+        customerUserRepository.save(customer);
+
+        log.info("Customer password reset completed for {}", email);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Maintenance
     // ─────────────────────────────────────────────────────────────────────────
 
-    /** Nightly cleanup — remove expired tokens at 2:05 AM IST. */
     @Scheduled(cron = "0 5 2 * * *", zone = "Asia/Kolkata")
     @Transactional
     public void cleanupExpiredTokens() {
@@ -143,12 +153,9 @@ public class CustomerPasswordResetService {
         if (deleted > 0) {
             log.info("Cleaned up {} expired customer password reset tokens", deleted);
         }
-        // Also clear the in-memory cooldown map periodically
         lastSentAt.clear();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
     private static String sha256Hex(String input) {
