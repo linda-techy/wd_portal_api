@@ -8,6 +8,7 @@ import com.wd.api.dto.CustomerRoleDTO;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.model.CustomerUser;
 import com.wd.api.service.CustomerUserService;
+import com.wd.api.service.CustomerPasswordResetService;
 import com.wd.api.repository.CustomerRoleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,9 @@ public class CustomerController {
 
     @Autowired
     private CustomerUserService customerUserService;
+
+    @Autowired
+    private CustomerPasswordResetService customerPasswordResetService;
 
     @Autowired
     private CustomerRoleRepository customerRoleRepository;
@@ -165,6 +169,33 @@ public class CustomerController {
         } catch (Exception e) {
             logger.error("Error deleting customer with ID: {}", id, e);
             return ResponseEntity.internalServerError().body("Error deleting customer");
+        }
+    }
+
+    /**
+     * Send a password-reset email to a customer.
+     * Portal staff triggers this; the customer resets their password via the customer app.
+     * Token is stored in the shared customer_password_reset_tokens table so the
+     * customer API can validate it when the customer submits their new password.
+     */
+    @PostMapping("/{id}/send-password-reset")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<ApiResponse<Void>> sendPasswordResetEmail(@PathVariable Long id) {
+        try {
+            customerPasswordResetService.sendPasswordResetEmail(id);
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Password reset email sent to customer successfully", null));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Cannot send password reset — {}", e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalStateException e) {
+            // Cooldown period active
+            logger.warn("Password reset cooldown active for customer {}: {}", id, e.getMessage());
+            return ResponseEntity.status(429).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error sending password reset for customer {}", id, e);
+            return ResponseEntity.internalServerError().body(
+                    ApiResponse.error("Failed to send password reset email"));
         }
     }
 

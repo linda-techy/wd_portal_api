@@ -68,6 +68,8 @@ task:
 app:
   email:
     enabled: true
+  # Base URL for customer app password-reset links. Set per environment profile.
+  customer-portal-base-url: ""
 
 # ── Company Info (static — not sensitive) ────────────────────────
 company:

@@ -78,6 +78,8 @@ app:
     allowed-origins: https://portal.walldotbuilders.com,https://walldotbuilders.com,https://www.walldotbuilders.com
   admin:
     email: info@walldotbuilders.com
+  # Set to your production customer app URL
+  customer-portal-base-url: ""
 
 logging:
   level:

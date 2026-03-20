@@ -72,6 +72,8 @@ app:
     allowed-origins: https://portal.walldotbuilders.com,https://app.walldotbuilders.com
   admin:
     email: info@walldotbuilders.com
+  # Set to your staging customer app URL
+  customer-portal-base-url: ""
 
 logging:
   level:

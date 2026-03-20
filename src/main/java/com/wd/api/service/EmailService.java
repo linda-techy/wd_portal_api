@@ -215,6 +215,55 @@ public class EmailService {
     }
 
     /**
+     * Sends a password-reset email to a CustomerUser.
+     * Called by portal staff when they trigger "Send Reset Password Email" from the portal app.
+     * The reset link routes to the customer-facing app (not the portal).
+     *
+     * @param to        Customer email address
+     * @param firstName Customer first name (for personalisation)
+     * @param resetLink Full URL with encoded token and email query params
+     */
+    @Async
+    public void sendCustomerPasswordResetEmail(String to, String firstName, String resetLink) {
+        String subject = "Reset Your Walldot Customer Password";
+        String body = buildCustomerPasswordResetEmailBody(firstName, resetLink);
+
+        if (emailEnabled && mailSender != null) {
+            try {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(fromEmail);
+                message.setTo(to);
+                message.setSubject(subject);
+                message.setText(body);
+                mailSender.send(message);
+                logger.info("Customer password reset email sent to {}", to);
+            } catch (Exception e) {
+                logger.error("Failed to send customer password reset email to {}. Simulation logged.", to, e);
+                logEmailSimulation(to, subject, body);
+            }
+        } else {
+            logEmailSimulation(to, subject, body);
+        }
+    }
+
+    private String buildCustomerPasswordResetEmailBody(String firstName, String resetLink) {
+        return String.format("""
+                Dear %s,
+
+                A password reset has been requested for your Walldot customer account by the Walldot team.
+
+                Click the link below to reset your password. This link is valid for 15 minutes.
+
+                Reset Password: %s
+
+                If you did not request this, please contact us immediately at %s.
+
+                Best regards,
+                The Walldot Team
+                """, firstName, resetLink, adminEmail);
+    }
+
+    /**
      * Log that an email would have been sent (simulation mode).
      * NOTE: Body is intentionally NOT logged to avoid leaking passwords or PII into logs.
      * Only recipient and subject are safe to log.
