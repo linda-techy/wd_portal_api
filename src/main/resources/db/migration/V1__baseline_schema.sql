@@ -1,0 +1,42 @@
+-- =============================================================================
+-- V1 — Baseline Schema
+-- =============================================================================
+-- This migration is a documentation-only baseline.
+--
+-- The initial schema was bootstrapped by Hibernate (spring.jpa.hibernate.ddl-auto)
+-- before Flyway was introduced to manage ongoing migrations.
+--
+-- Flyway is configured with:
+--   baseline-on-migrate: true
+--   baseline-version: 1
+--
+-- This means on an existing database, Flyway marks V1 as already applied
+-- (without running this file) and proceeds with V2, V3, etc.
+--
+-- For a FRESH installation:
+--   1. Start the app with spring.jpa.hibernate.ddl-auto=create (or create-drop)
+--      to let Hibernate generate all tables from entity definitions.
+--   2. Stop the app.
+--   3. Switch spring.jpa.hibernate.ddl-auto=validate (or none).
+--   4. Run Flyway migrations from V2 onwards (V1 is baseline, not re-run).
+--
+-- Tables managed by this codebase (created by Hibernate from entity classes):
+--   portal_users, portal_roles, permissions, role_permissions
+--   customer_users, customer_roles, refresh_tokens
+--   customer_projects, project_members, leads
+--   boq_items, boq_categories, boq_work_types, boq_audit_logs
+--   invoices, payments, design_package_payments, payment_schedule, payment_transactions,
+--   tax_invoices, challan_sequences
+--   labour_contracts, labour_attendance, labour_payroll
+--   inventory_stocks, goods_received_notes, grn_items
+--   material_indents, material_indent_items, materials, vendors,
+--   vendor_quotations, purchase_orders, purchase_order_items
+--   documents, document_categories, galleries, gallery_images
+--   quality_checks, project_variations, delay_logs
+--   approval_requests, approval_logs, activity_feeds
+--   tasks, task_comments, task_attachments
+--   site_reports, measurement_books, purchase_invoices, budget_items
+--   design_steps, notification_preferences
+-- =============================================================================
+
+-- (No DDL in this file — schema is created by Hibernate on first run)

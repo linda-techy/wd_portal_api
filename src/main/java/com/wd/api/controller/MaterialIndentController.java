@@ -80,6 +80,40 @@ public class MaterialIndentController {
         }
     }
 
+    @PutMapping("/{id}/reject")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
+    public ResponseEntity<ApiResponse<MaterialIndent>> rejectIndent(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> payload) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            String reason = payload != null ? payload.getOrDefault("reason", "No reason provided") : "No reason provided";
+            MaterialIndent rejected = indentService.rejectIndent(id, currentUserId, reason);
+            return ResponseEntity.ok(ApiResponse.success("Indent rejected", rejected));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to reject indent {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Failed to reject indent"));
+        }
+    }
+
+    @PutMapping("/{id}/close")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
+    public ResponseEntity<ApiResponse<MaterialIndent>> closeIndent(@PathVariable Long id) {
+        try {
+            MaterialIndent closed = indentService.closeIndent(id);
+            return ResponseEntity.ok(ApiResponse.success("Indent closed successfully", closed));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to close indent {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Failed to close indent"));
+        }
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'PROCUREMENT_MANAGER')")
     public ResponseEntity<ApiResponse<MaterialIndent>> getIndent(@PathVariable Long id) {
