@@ -157,13 +157,13 @@ public class PaymentController {
 
     private Long getUserIdFromAuth(Authentication auth) {
         if (auth == null || auth.getPrincipal() == null) {
-            throw new org.springframework.security.core.AuthenticationCredentialsNotFoundException("Authentication required");
+            throw new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException("Authentication required");
         }
 
         if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser portalUser) {
             return portalUser.getId();
         }
 
-        throw new org.springframework.security.core.AuthenticationCredentialsNotFoundException("Unable to extract user ID from authentication context");
+        throw new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException("Unable to extract user ID from authentication context");
     }
 }
