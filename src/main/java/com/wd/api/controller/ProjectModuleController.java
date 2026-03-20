@@ -100,25 +100,18 @@ public class ProjectModuleController {
 
     /**
      * Extract user ID from authentication context.
-     * Returns null only if authentication is genuinely unavailable
-     * (e.g., public endpoints). Callers should handle null appropriately.
+     * Throws AuthenticationCredentialsNotFoundException if authentication is unavailable or invalid.
      */
-    @SuppressWarnings("unused")
     private Long getUserIdFromAuth(Authentication auth) {
         if (auth == null || auth.getPrincipal() == null
                 || "anonymousUser".equals(auth.getPrincipal())) {
-            return null;
+            throw new org.springframework.security.core.AuthenticationCredentialsNotFoundException("Authentication required");
         }
 
-        if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser) {
-            return ((com.wd.api.model.PortalUser) auth.getPrincipal()).getId();
+        if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser portalUser) {
+            return portalUser.getId();
         }
 
-        try {
-            return Long.parseLong(auth.getName());
-        } catch (NumberFormatException e) {
-            logger.warn("Invalid user ID format in auth principal: {}", auth.getName());
-            return null;
-        }
+        throw new org.springframework.security.core.AuthenticationCredentialsNotFoundException("Unable to extract user ID from authentication context");
     }
 }

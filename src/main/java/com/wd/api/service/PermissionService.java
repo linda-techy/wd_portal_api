@@ -48,9 +48,9 @@ public class PermissionService {
             return Collections.emptyList();
         }
 
-        // ADMIN bypass: User is admin, so they have implicit access.
+        // ADMIN gets all permissions so the frontend can render the full navigation/UI.
         if (isAdmin(user)) {
-            return Collections.emptyList();
+            return getAllPermissions();
         }
 
         // Return permissions from role

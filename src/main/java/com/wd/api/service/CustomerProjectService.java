@@ -11,7 +11,11 @@ import com.wd.api.repository.ProjectMemberRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.LeadRepository;
 import com.wd.api.repository.ActivityFeedRepository;
+import com.wd.api.repository.QualityCheckRepository;
+import com.wd.api.repository.PaymentScheduleRepository;
 import com.wd.api.model.ActivityFeed;
+import com.wd.api.model.QualityCheck;
+import com.wd.api.model.PaymentSchedule;
 import com.wd.api.model.ProjectMember;
 import com.wd.api.util.SpecificationBuilder;
 
@@ -64,6 +68,12 @@ public class CustomerProjectService {
 
     @Autowired
     private ActivityFeedRepository activityFeedRepository;
+
+    @Autowired
+    private QualityCheckRepository qualityCheckRepository;
+
+    @Autowired
+    private PaymentScheduleRepository paymentScheduleRepository;
 
     /**
      * NEW: Standardized search method using ProjectSearchFilter
@@ -363,7 +373,33 @@ public class CustomerProjectService {
         if (request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()) {
             try {
                 String phaseValue = request.getProjectPhase().trim().toUpperCase().replace(' ', '_');
-                project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.valueOf(phaseValue));
+                com.wd.api.model.enums.ProjectPhase newPhase = com.wd.api.model.enums.ProjectPhase.valueOf(phaseValue);
+
+                // Gate checks: only run when the phase is actually changing
+                if (!newPhase.equals(project.getProjectPhase())) {
+                    // Quality check gate: block phase advance if any check is PENDING or FAILED
+                    List<QualityCheck> blockedChecks = qualityCheckRepository.findByProjectId(id).stream()
+                            .filter(qc -> "PENDING".equalsIgnoreCase(qc.getStatus()) || "FAILED".equalsIgnoreCase(qc.getResult()))
+                            .toList();
+                    if (!blockedChecks.isEmpty()) {
+                        throw new IllegalStateException(
+                                "Cannot advance project phase: " + blockedChecks.size() +
+                                " quality check(s) are PENDING or FAILED. Resolve all quality issues before advancing.");
+                    }
+
+                    // Payment milestone gate: block phase advance if any payment schedule is still PENDING
+                    List<PaymentSchedule> unpaidSchedules = paymentScheduleRepository
+                            .findByDesignPayment_Project_Id(id).stream()
+                            .filter(ps -> "PENDING".equalsIgnoreCase(ps.getStatus()) || "OVERDUE".equalsIgnoreCase(ps.getStatus()))
+                            .toList();
+                    if (!unpaidSchedules.isEmpty()) {
+                        throw new IllegalStateException(
+                                "Cannot advance project phase: " + unpaidSchedules.size() +
+                                " payment milestone(s) are unpaid. Clear all outstanding payments before advancing.");
+                    }
+                }
+
+                project.setProjectPhase(newPhase);
             } catch (IllegalArgumentException e) {
                 // Keep existing value if invalid enum provided
             }
