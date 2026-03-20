@@ -25,6 +25,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -98,23 +99,34 @@ public class SecurityConfig {
                 String envAllowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
                 String effectiveOrigins = !isBlank(envAllowedOrigins) ? envAllowedOrigins : configuredAllowedOrigins;
                 List<String> parsedOrigins = parseOrigins(effectiveOrigins);
+                List<String> localhostOrigins = Arrays.asList(
+                                "http://localhost:3001",
+                                "http://127.0.0.1:3001",
+                                "http://localhost:3000",
+                                "http://127.0.0.1:3000");
                 boolean isLocalProfile = isLocalLikeProfile(activeProfile);
 
                 if (!parsedOrigins.isEmpty()) {
-                        configuration.setAllowedOrigins(parsedOrigins);
-                        logger.info("CORS: Using configured origins for profile '{}': {}", activeProfile, parsedOrigins);
+                        List<String> allowedOrigins = new ArrayList<>(parsedOrigins);
+                        for (String localhostOrigin : localhostOrigins) {
+                                if (!allowedOrigins.contains(localhostOrigin)) {
+                                        allowedOrigins.add(localhostOrigin);
+                                }
+                        }
+                        configuration.setAllowedOrigins(allowedOrigins);
+                        logger.info("CORS: Using configured origins (+localhost dev origins) for profile '{}': {}",
+                                        activeProfile, allowedOrigins);
                 } else if (isLocalProfile) {
                         // Local/dev fallback only when no explicit origins are configured.
-                        configuration.setAllowedOriginPatterns(Arrays.asList(
-                                        "http://localhost:*",
-                                        "http://127.0.0.1:*"));
+                        configuration.setAllowedOrigins(localhostOrigins);
                         logger.warn("CORS: No explicit origins configured; using localhost patterns for local/dev.");
                 } else {
                         // Production-safe fallback if misconfigured.
-                        List<String> fallbackOrigins = Arrays.asList(
+                        List<String> fallbackOrigins = new ArrayList<>(Arrays.asList(
                                         "https://portal.walldotbuilders.com",
                                         "https://walldotbuilders.com",
-                                        "https://www.walldotbuilders.com");
+                                        "https://www.walldotbuilders.com"));
+                        fallbackOrigins.addAll(localhostOrigins);
                         configuration.setAllowedOrigins(fallbackOrigins);
                         logger.warn("CORS: No explicit origins configured; using production fallback origins: {}",
                                         fallbackOrigins);
