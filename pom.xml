@@ -108,10 +108,24 @@
         <artifactId>spring-boot-starter-mail</artifactId>
     </dependency>
 
+    <!-- Rate Limiting -->
+    <dependency>
+        <groupId>com.bucket4j</groupId>
+        <artifactId>bucket4j-core</artifactId>
+        <version>8.10.1</version>
+    </dependency>
+
     <!-- Test Starter -->
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- H2 in-memory database for tests -->
+    <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
         <scope>test</scope>
     </dependency>
 

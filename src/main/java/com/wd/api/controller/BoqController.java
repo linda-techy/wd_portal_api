@@ -3,6 +3,7 @@ package com.wd.api.controller;
 import com.wd.api.dto.*;
 import com.wd.api.model.BoqItem;
 import com.wd.api.model.BoqWorkType;
+import com.wd.api.model.PortalUser;
 import com.wd.api.service.BoqCategoryService;
 import com.wd.api.service.BoqService;
 import jakarta.persistence.OptimisticLockException;
@@ -293,24 +294,34 @@ public class BoqController {
     // ---- Helper Methods ----
 
     /**
-     * IMPROVED: Get current authenticated user ID from security context.
-     * Returns 1L (system user) as safe fallback for backward compatibility.
+     * Get current authenticated user ID from security context.
+     * The JwtAuthenticationFilter sets a PortalUser as the principal for portal users.
      */
     private Long getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new IllegalStateException("User not authenticated");
+        }
+        Object principal = auth.getPrincipal();
+        if (principal instanceof PortalUser portalUser) {
+            return portalUser.getId();
+        }
+        throw new IllegalStateException("Unable to extract user ID from authentication context");
+    }
+
+    @PostMapping("/{id}/correct-execution")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<BoqItemResponse>> correctExecution(
+            @PathVariable Long id,
+            @Valid @RequestBody CorrectionRequest request) {
         try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-                // Try to extract user ID from principal
-                if (auth.getPrincipal() instanceof Long) {
-                    return (Long) auth.getPrincipal();
-                }
-                // Log warning that user ID extraction needs implementation
-                System.out.println("INFO: Using default user ID. Implement custom UserDetails for actual user tracking.");
-            }
-            return 1L; // System user fallback (safe default)
+            Long userId = getCurrentUserId();
+            BoqItemResponse response = boqService.correctExecution(id, request, userId);
+            return ResponseEntity.ok(ApiResponse.success("Execution corrected successfully", response));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            System.err.println("WARN: Failed to extract user ID: " + e.getMessage());
-            return 1L; // Fallback
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to correct execution: " + e.getMessage()));
         }
     }
 }

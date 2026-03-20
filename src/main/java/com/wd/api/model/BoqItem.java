@@ -48,19 +48,19 @@ public class BoqItem extends BaseEntity {
     @Column(length = 50)
     private String unit;
 
-    @Column(precision = 15, scale = 4)
+    @Column(precision = 18, scale = 6)
     private BigDecimal quantity = BigDecimal.ZERO;
 
-    @Column(name = "unit_rate", precision = 15, scale = 4)
+    @Column(name = "unit_rate", precision = 18, scale = 6)
     private BigDecimal unitRate = BigDecimal.ZERO;
 
-    @Column(name = "total_amount", precision = 15, scale = 4)
+    @Column(name = "total_amount", precision = 18, scale = 6)
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
-    @Column(name = "executed_quantity", precision = 15, scale = 4, nullable = false)
+    @Column(name = "executed_quantity", precision = 18, scale = 6, nullable = false)
     private BigDecimal executedQuantity = BigDecimal.ZERO;
 
-    @Column(name = "billed_quantity", precision = 15, scale = 4, nullable = false)
+    @Column(name = "billed_quantity", precision = 18, scale = 6, nullable = false)
     private BigDecimal billedQuantity = BigDecimal.ZERO;
 
     @Column(nullable = false, length = 20)
@@ -95,7 +95,7 @@ public class BoqItem extends BaseEntity {
 
     private void calculateTotalAmount() {
         if (quantity != null && unitRate != null) {
-            totalAmount = quantity.multiply(unitRate).setScale(4, RoundingMode.HALF_UP);
+            totalAmount = quantity.multiply(unitRate).setScale(6, RoundingMode.HALF_UP);
         }
     }
 
@@ -121,7 +121,7 @@ public class BoqItem extends BaseEntity {
     @Transient
     public BigDecimal getTotalExecutedAmount() {
         if (executedQuantity != null && unitRate != null) {
-            return executedQuantity.multiply(unitRate).setScale(4, RoundingMode.HALF_UP);
+            return executedQuantity.multiply(unitRate).setScale(6, RoundingMode.HALF_UP);
         }
         return BigDecimal.ZERO;
     }
@@ -130,7 +130,7 @@ public class BoqItem extends BaseEntity {
     @Transient
     public BigDecimal getTotalBilledAmount() {
         if (billedQuantity != null && unitRate != null) {
-            return billedQuantity.multiply(unitRate).setScale(4, RoundingMode.HALF_UP);
+            return billedQuantity.multiply(unitRate).setScale(6, RoundingMode.HALF_UP);
         }
         return BigDecimal.ZERO;
     }
@@ -139,7 +139,7 @@ public class BoqItem extends BaseEntity {
     @Transient
     public BigDecimal getCostToComplete() {
         if (unitRate != null) {
-            return getRemainingQuantity().multiply(unitRate).setScale(4, RoundingMode.HALF_UP);
+            return getRemainingQuantity().multiply(unitRate).setScale(6, RoundingMode.HALF_UP);
         }
         return BigDecimal.ZERO;
     }

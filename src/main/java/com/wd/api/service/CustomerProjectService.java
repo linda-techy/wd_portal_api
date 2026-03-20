@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Locale;
 
 /**
  * Service layer for Customer Project business logic
@@ -252,6 +255,9 @@ public class CustomerProjectService {
                 : null);
 
         project.setSqfeet(request.getSqfeet());
+        project.setLatitude(request.getLatitude());
+        project.setLongitude(request.getLongitude());
+        project.setIsDesignAgreementSigned(Boolean.TRUE.equals(request.getIsDesignAgreementSigned()));
         project.setLeadId(request.getLeadId());
 
         // Initial dummy code, will be updated after save
@@ -260,8 +266,8 @@ public class CustomerProjectService {
         // Set customer if provided
         if (request.getCustomerId() != null) {
             Long customerId = request.getCustomerId();
-            customerUserRepository.findById(customerId)
-                    .ifPresent(project::setCustomer);
+            project.setCustomer(customerUserRepository.findById(customerId)
+                    .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + customerId + " not found")));
         }
 
         // Handle contract type
@@ -304,6 +310,8 @@ public class CustomerProjectService {
             savedProject.setProjectManagerId(request.getProjectManagerId());
             syncProjectManagerMember(savedProject, request.getProjectManagerId());
         }
+
+        syncTeamMembers(savedProject, request);
 
         return customerProjectRepository.save(savedProject);
     }
@@ -515,10 +523,17 @@ public class CustomerProjectService {
             // Update existing
             pmMember.setPortalUser(pmUser);
         } else {
+            Long customerId = project.getCustomerId();
+            if (customerId == null) {
+                logger.warn("Skipping project manager member sync for project {} because customer_id is missing.",
+                        project.getId());
+                return;
+            }
             // Create new
             pmMember = new ProjectMember();
             pmMember.setProject(project);
             pmMember.setPortalUser(pmUser);
+            pmMember.setCustomerId(customerId);
             pmMember.setRoleInProject("PROJECT_MANAGER");
 
             // Note: Since we are using CascadeType.ALL on project.getProjectMembers,
@@ -528,6 +543,71 @@ public class CustomerProjectService {
             // lazily?
             // Safer to use repository directly if we can, or just save member.
             projectMemberRepository.save(pmMember);
+        }
+    }
+
+    private void syncTeamMembers(CustomerProject project, CustomerProjectCreateRequest request) {
+        if (project == null || project.getId() == null || request == null || request.getTeamMembers() == null
+                || request.getTeamMembers().isEmpty()) {
+            return;
+        }
+
+        Long defaultCustomerId = project.getCustomerId();
+        if (defaultCustomerId == null) {
+            logger.warn("Skipping team member sync for project {} because customer_id is required but missing.",
+                    project.getId());
+            return;
+        }
+
+        Set<Long> existingPortalUserIds = new HashSet<>();
+        Set<Long> existingCustomerUserIds = new HashSet<>();
+        for (ProjectMember member : projectMemberRepository.findByProjectId(project.getId())) {
+            if (member.getPortalUser() != null) {
+                existingPortalUserIds.add(member.getPortalUser().getId());
+            }
+            if (member.getCustomerUser() != null) {
+                existingCustomerUserIds.add(member.getCustomerUser().getId());
+            }
+        }
+
+        for (com.wd.api.dto.TeamMemberSelectionDTO teamMember : request.getTeamMembers()) {
+            if (teamMember == null || teamMember.getId() == null || teamMember.getType() == null
+                    || teamMember.getType().trim().isEmpty()) {
+                continue;
+            }
+
+            Long memberId = teamMember.getId();
+            String memberType = teamMember.getType().trim().toUpperCase(Locale.ROOT);
+
+            if ("PORTAL".equals(memberType)) {
+                if (existingPortalUserIds.contains(memberId)) {
+                    continue;
+                }
+                portalUserRepository.findById(memberId).ifPresent(user -> {
+                    ProjectMember newMember = new ProjectMember();
+                    newMember.setProject(project);
+                    newMember.setPortalUser(user);
+                    newMember.setCustomerId(defaultCustomerId);
+                    newMember.setRoleInProject("TEAM_MEMBER");
+                    projectMemberRepository.save(newMember);
+                });
+                existingPortalUserIds.add(memberId);
+            } else if ("CUSTOMER".equals(memberType)) {
+                if (existingCustomerUserIds.contains(memberId)) {
+                    continue;
+                }
+                customerUserRepository.findById(memberId).ifPresent(user -> {
+                    ProjectMember newMember = new ProjectMember();
+                    newMember.setProject(project);
+                    newMember.setCustomerUser(user);
+                    newMember.setCustomerId(memberId);
+                    newMember.setRoleInProject("TEAM_MEMBER");
+                    projectMemberRepository.save(newMember);
+                });
+                existingCustomerUserIds.add(memberId);
+            } else {
+                logger.warn("Skipping unsupported team member type '{}' for id {}", teamMember.getType(), memberId);
+            }
         }
     }
 

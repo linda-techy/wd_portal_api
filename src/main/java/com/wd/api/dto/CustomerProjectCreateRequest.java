@@ -222,6 +222,9 @@ public class CustomerProjectCreateRequest {
     @JsonProperty("contract_type")
     private String contractType;
 
+    @JsonProperty("is_design_agreement_signed")
+    private Boolean isDesignAgreementSigned;
+
     private Double latitude;
     private Double longitude;
 
@@ -231,6 +234,14 @@ public class CustomerProjectCreateRequest {
 
     public void setContractType(String contractType) {
         this.contractType = contractType;
+    }
+
+    public Boolean getIsDesignAgreementSigned() {
+        return isDesignAgreementSigned;
+    }
+
+    public void setIsDesignAgreementSigned(Boolean isDesignAgreementSigned) {
+        this.isDesignAgreementSigned = isDesignAgreementSigned;
     }
 
     public Double getLatitude() {

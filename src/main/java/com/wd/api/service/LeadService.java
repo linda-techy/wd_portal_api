@@ -1178,6 +1178,7 @@ public class LeadService {
                     com.wd.api.model.ProjectMember pmMember = new com.wd.api.model.ProjectMember();
                     pmMember.setProject(savedProject);
                     pmMember.setPortalUser(pmUser);
+                    pmMember.setCustomerId(savedProject.getCustomerId());
                     pmMember.setRoleInProject("PROJECT_MANAGER");
                     projectMemberRepository.save(pmMember);
                 }
