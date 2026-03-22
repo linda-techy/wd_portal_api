@@ -4,7 +4,10 @@ import com.wd.api.dto.CustomerProjectCreateRequest;
 import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
 import com.wd.api.dto.ProjectSearchFilter;
+import com.wd.api.dto.ProjectMemberRequest;
+import com.wd.api.dto.ProjectMemberResponse;
 import com.wd.api.model.CustomerProject;
+import com.wd.api.model.CustomerUser;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.CustomerUserRepository;
 import com.wd.api.repository.ProjectMemberRepository;
@@ -38,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * Service layer for Customer Project business logic
@@ -254,9 +258,20 @@ public class CustomerProjectService {
         } else {
             project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.PLANNING);
         }
-        project.setProjectType(request.getProjectType() != null && !request.getProjectType().trim().isEmpty()
-                ? request.getProjectType().trim()
-                : "turnkey_project");
+        // Validate and normalise project type against the enum
+        String rawType = request.getProjectType() != null ? request.getProjectType().trim() : "";
+        if (com.wd.api.model.ProjectType.isValid(rawType)) {
+            String normalised = rawType.toUpperCase();
+            project.setProjectType(normalised);
+            // Apply per-type default progress weights
+            com.wd.api.model.ProjectType pt = com.wd.api.model.ProjectType.valueOf(normalised);
+            int[] w = pt.progressWeights();
+            project.setMilestoneWeight(new java.math.BigDecimal(w[0]).divide(new java.math.BigDecimal("100")));
+            project.setTaskWeight(new java.math.BigDecimal(w[1]).divide(new java.math.BigDecimal("100")));
+            project.setBudgetWeight(new java.math.BigDecimal(w[2]).divide(new java.math.BigDecimal("100")));
+        } else {
+            project.setProjectType("RESIDENTIAL"); // safe default
+        }
         project.setState(request.getState() != null && !request.getState().trim().isEmpty()
                 ? request.getState().trim()
                 : "Kerala");
@@ -404,9 +419,21 @@ public class CustomerProjectService {
                 // Keep existing value if invalid enum provided
             }
         }
-        project.setProjectType(request.getProjectType() != null && !request.getProjectType().trim().isEmpty()
-                ? request.getProjectType().trim()
-                : null);
+        // Validate and normalise project type against the enum on update
+        if (request.getProjectType() != null && !request.getProjectType().trim().isEmpty()) {
+            String rawType = request.getProjectType().trim();
+            if (com.wd.api.model.ProjectType.isValid(rawType)) {
+                String normalised = rawType.toUpperCase();
+                project.setProjectType(normalised);
+                // Re-apply per-type default weights if type changes
+                com.wd.api.model.ProjectType pt = com.wd.api.model.ProjectType.valueOf(normalised);
+                int[] w = pt.progressWeights();
+                project.setMilestoneWeight(new java.math.BigDecimal(w[0]).divide(new java.math.BigDecimal("100")));
+                project.setTaskWeight(new java.math.BigDecimal(w[1]).divide(new java.math.BigDecimal("100")));
+                project.setBudgetWeight(new java.math.BigDecimal(w[2]).divide(new java.math.BigDecimal("100")));
+            }
+            // else keep existing value — invalid type is silently ignored
+        }
         project.setState(request.getState() != null && !request.getState().trim().isEmpty()
                 ? request.getState().trim()
                 : null);
@@ -645,6 +672,54 @@ public class CustomerProjectService {
                 logger.warn("Skipping unsupported team member type '{}' for id {}", teamMember.getType(), memberId);
             }
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // External Project Member Management (architects, interior designers, etc.)
+    // -------------------------------------------------------------------------
+
+    @Transactional(readOnly = true)
+    public List<ProjectMemberResponse> getProjectMembers(Long projectId) {
+        return projectMemberRepository.findByProjectId(projectId).stream()
+                .filter(m -> m.getCustomerUser() != null)
+                .map(m -> toMemberResponse(m, m.getCustomerUser()))
+                .collect(Collectors.toList());
+    }
+
+    public ProjectMemberResponse addProjectMember(Long projectId, ProjectMemberRequest request) {
+        CustomerProject project = customerProjectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found: " + projectId));
+        CustomerUser user = customerUserRepository.findById(request.getCustomerUserId())
+                .orElseThrow(() -> new RuntimeException("CustomerUser not found: " + request.getCustomerUserId()));
+        if (projectMemberRepository.existsByProject_IdAndCustomerUser_Id(projectId, request.getCustomerUserId())) {
+            throw new IllegalStateException("User is already a member of this project");
+        }
+        ProjectMember member = new ProjectMember();
+        member.setProject(project);
+        member.setCustomerUser(user);
+        member.setCustomerId(user.getId());
+        member.setRoleInProject(request.getRoleInProject());
+        ProjectMember saved = projectMemberRepository.save(member);
+        return toMemberResponse(saved, user);
+    }
+
+    public void removeProjectMember(Long projectId, Long membershipId) {
+        ProjectMember member = projectMemberRepository.findById(membershipId)
+                .orElseThrow(() -> new RuntimeException("Membership not found: " + membershipId));
+        if (!member.getProject().getId().equals(projectId)) {
+            throw new IllegalArgumentException("Membership does not belong to project " + projectId);
+        }
+        projectMemberRepository.delete(member);
+    }
+
+    private ProjectMemberResponse toMemberResponse(ProjectMember m, CustomerUser u) {
+        ProjectMemberResponse r = new ProjectMemberResponse();
+        r.setId(m.getId());
+        r.setCustomerUserId(u.getId());
+        r.setFullName((u.getFirstName() != null ? u.getFirstName() : "") + " " + (u.getLastName() != null ? u.getLastName() : ""));
+        r.setEmail(u.getEmail());
+        r.setRoleInProject(m.getRoleInProject());
+        return r;
     }
 
     /**

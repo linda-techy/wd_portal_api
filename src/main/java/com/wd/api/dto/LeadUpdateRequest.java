@@ -49,8 +49,9 @@ public class LeadUpdateRequest {
     private String location;
     
     private String notes;
-    
-    
+
+    private String address;
+
     @JsonProperty("client_rating")
     private Integer clientRating;
     
@@ -142,6 +143,9 @@ public class LeadUpdateRequest {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
     
     
     public Integer getClientRating() { return clientRating; }

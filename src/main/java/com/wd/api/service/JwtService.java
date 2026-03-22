@@ -89,6 +89,11 @@ public class JwtService {
         return generateToken(email, "PARTNER", claims, accessTokenExpiration);
     }
 
+    /** Generate a JWT for a CustomerUser (primary client or 3rd-party like architect). */
+    public String generateCustomerToken(String email, Map<String, Object> claims) {
+        return generateToken(email, "CUSTOMER", claims, accessTokenExpiration);
+    }
+
     /**
      * Extract token type from the signed "tokenType" claim.
      * Previously used subject prefix ("PARTNER_user@example.com") — easily forged.

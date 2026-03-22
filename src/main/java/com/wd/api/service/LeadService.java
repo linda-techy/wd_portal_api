@@ -68,7 +68,13 @@ public class LeadService {
     private com.wd.api.repository.CustomerRoleRepository customerRoleRepository;
 
     @Autowired
+    private com.wd.api.repository.PartnershipUserRepository partnershipUserRepository;
+
+    @Autowired
     private com.wd.api.repository.LeadInteractionRepository leadInteractionRepository;
+
+    @Autowired
+    private PartnershipService partnershipService;
 
     @Autowired
     private com.wd.api.repository.ProjectMemberRepository projectMemberRepository;
@@ -304,7 +310,7 @@ public class LeadService {
         leadDetails.setState(request.getState() != null ? request.getState() : existing.getState());
         leadDetails.setDistrict(request.getDistrict() != null ? request.getDistrict() : existing.getDistrict());
         leadDetails.setLocation(request.getLocation() != null ? request.getLocation() : existing.getLocation());
-        leadDetails.setAddress(existing.getAddress()); // address not in DTO; keep existing
+        leadDetails.setAddress(request.getAddress() != null ? request.getAddress() : existing.getAddress());
 
         leadDetails.setNotes(request.getNotes() != null ? request.getNotes() : existing.getNotes());
         leadDetails.setClientRating(request.getClientRating() != null
@@ -865,6 +871,176 @@ public class LeadService {
                 query, query, query);
     }
 
+    /**
+     * Create a lead from a public website contact form submission.
+     * No authentication required — sets sensible server-side defaults.
+     */
+    public Lead createLeadFromContactForm(com.wd.api.dto.PublicContactRequest request) {
+        Lead lead = new Lead();
+        lead.setName(request.getName());
+        lead.setEmail(request.getEmail() != null ? request.getEmail() : "");
+        lead.setPhone(request.getPhone());
+        lead.setLeadSource("website");
+        lead.setLeadStatus("new_inquiry");
+        lead.setCustomerType("individual");
+        lead.setPriority("medium");
+        lead.setProjectType(request.getProjectType() != null ? request.getProjectType() : "");
+        lead.setState(request.getState() != null ? request.getState() : "");
+        lead.setDistrict(request.getDistrict() != null ? request.getDistrict() : "");
+        lead.setNotes(request.getMessage() != null ? request.getMessage() : "");
+        lead.setDateOfEnquiry(LocalDate.now());
+        return createLead(lead);
+    }
+
+    /**
+     * Map a budget range string (e.g. "15-25", "100+") to an average numeric value in rupees.
+     * Used for public referral forms where users pick a budget bracket.
+     */
+    private static java.math.BigDecimal parseBudgetRange(String budgetStr) {
+        if (budgetStr == null || budgetStr.isBlank()) return null;
+        String s = budgetStr.trim().toLowerCase();
+        // Range strings like "15-25", "25-50", "50-75", "75-100", "100+"
+        if (s.startsWith("100") || s.contains("100+") || s.contains("crore") || s.contains("above")) {
+            return new java.math.BigDecimal("15000000"); // avg 1.5 crore
+        }
+        if (s.contains("75") && (s.contains("100") || s.contains("1 crore") || s.contains("crore"))) {
+            return new java.math.BigDecimal("8750000"); // avg 87.5L
+        }
+        if (s.contains("50") && s.contains("75")) {
+            return new java.math.BigDecimal("6250000"); // avg 62.5L
+        }
+        if (s.contains("25") && s.contains("50")) {
+            return new java.math.BigDecimal("3750000"); // avg 37.5L
+        }
+        if (s.contains("15") && s.contains("25")) {
+            return new java.math.BigDecimal("2000000"); // avg 20L
+        }
+        // Fallback: try direct numeric parse (in case a number is sent directly)
+        try {
+            String digits = budgetStr.replaceAll("[^\\d.]", "");
+            if (!digits.isEmpty()) return new java.math.BigDecimal(digits);
+        } catch (NumberFormatException ignored) { }
+        return null;
+    }
+
+    /**
+     * Create a lead from a public referral submission (Next.js website or customer app).
+     * No authentication required — sets server-side defaults and appends referrer info to notes.
+     * When accountPassword is provided, also creates a PartnershipUser account so the referrer
+     * can log in and track their referral's status.
+     */
+    @Transactional
+    public Lead createLeadFromPublicReferral(com.wd.api.dto.PublicReferralRequest request) {
+        Lead lead = new Lead();
+        lead.setName(request.getReferralName());
+        lead.setEmail(request.getReferralEmail() != null ? request.getReferralEmail() : "");
+        lead.setPhone(request.getReferralPhone());
+        lead.setLeadSource("referral_client");
+        lead.setLeadStatus("new_inquiry");
+        lead.setCustomerType("individual");
+        lead.setPriority("medium");
+        lead.setProjectType(request.getProjectType() != null ? request.getProjectType() : "");
+        lead.setLocation(request.getLocation() != null ? request.getLocation() : "");
+        lead.setState(request.getState() != null ? request.getState() : "");
+        lead.setDistrict(request.getDistrict() != null ? request.getDistrict() : "");
+        lead.setDateOfEnquiry(LocalDate.now());
+
+        // Parse budget from range string (e.g. "15-25" → ₹20L average)
+        java.math.BigDecimal parsedBudget = parseBudgetRange(request.getEstimatedBudget());
+        if (parsedBudget != null) {
+            lead.setBudget(parsedBudget);
+        }
+
+        // Optionally create a PartnershipUser tracking account for the referrer
+        Long partnerAccountId = null;
+        String accountPassword = request.getAccountPassword();
+        String yourEmail = request.getYourEmail();
+        String yourPhone = request.getYourPhone();
+        if (accountPassword != null && !accountPassword.isBlank()
+                && yourEmail != null && !yourEmail.isBlank()) {
+            try {
+                // Check if account already exists by email OR phone
+                java.util.Optional<com.wd.api.model.PartnershipUser> existingUser = 
+                    partnershipUserRepository.findByEmail(yourEmail);
+                
+                if (existingUser.isPresent()) {
+                    // Account already exists by email
+                    partnerAccountId = existingUser.get().getId();
+                    logger.info("Referral account already exists for email: {}", yourEmail);
+                } else if (yourPhone != null && !yourPhone.isBlank() 
+                           && partnershipUserRepository.existsByPhone(yourPhone)) {
+                    // Account already exists by phone
+                    java.util.Optional<com.wd.api.model.PartnershipUser> byPhone = 
+                        partnershipUserRepository.findByPhone(yourPhone);
+                    if (byPhone.isPresent()) {
+                        partnerAccountId = byPhone.get().getId();
+                        logger.info("Referral account already exists for phone: {}", yourPhone);
+                    }
+                } else {
+                    // Create new partnership user
+                    com.wd.api.model.PartnershipUser partnerUser = new com.wd.api.model.PartnershipUser();
+                    partnerUser.setFullName(request.getYourName());
+                    partnerUser.setEmail(yourEmail);
+                    partnerUser.setPhone(yourPhone != null && !yourPhone.isBlank() ? yourPhone : yourEmail);
+                    partnerUser.setPasswordHash(passwordEncoder.encode(accountPassword));
+                    partnerUser.setPartnershipType("referral_client");
+                    partnerUser.setStatus("active");
+                    com.wd.api.model.PartnershipUser saved = partnershipUserRepository.save(partnerUser);
+                    partnerAccountId = saved.getId();
+                    logger.info("Created referral tracking account for: {} (phone: {})", yourEmail, yourPhone);
+                }
+            } catch (Exception e) {
+                logger.error("Could not create/find referral tracking account: {}", e.getMessage(), e);
+                // Continue with lead creation even if partnership user creation fails
+            }
+        }
+
+        // Build notes with referrer attribution (and partner ID for tracking)
+        StringBuilder notes = new StringBuilder();
+        if (request.getMessage() != null && !request.getMessage().isBlank()) {
+            notes.append(request.getMessage()).append("\n\n");
+        }
+        notes.append("Referred by: ").append(request.getYourName());
+        if (yourPhone != null && !yourPhone.isBlank()) notes.append(" | ").append(yourPhone);
+        if (yourEmail != null && !yourEmail.isBlank()) notes.append(" | ").append(yourEmail);
+        if (partnerAccountId != null) {
+            notes.append("\nPartner ID: ").append(partnerAccountId);
+        }
+        lead.setNotes(notes.toString());
+
+        Lead savedLead = createLead(lead);
+
+        // Invite the referred friend to track their inquiry status via the partner portal
+        String referralEmail = request.getReferralEmail();
+        if (referralEmail != null && !referralEmail.isBlank()) {
+            // Check if referral is trying to refer themselves
+            boolean isSelfReferralByEmail = yourEmail != null && 
+                                           referralEmail.trim().equalsIgnoreCase(yourEmail.trim());
+            boolean isSelfReferralByPhone = yourPhone != null && 
+                                           request.getReferralPhone() != null &&
+                                           yourPhone.replaceAll("\\s+", "").equals(
+                                               request.getReferralPhone().replaceAll("\\s+", ""));
+            
+            if (isSelfReferralByEmail || isSelfReferralByPhone) {
+                logger.warn("Self-referral detected: {} (email: {}, phone: {}) - skipping invite creation", 
+                           referralEmail, isSelfReferralByEmail, isSelfReferralByPhone);
+            } else {
+                try {
+                    partnershipService.createAndInviteReferredClient(
+                            request.getReferralName(),
+                            referralEmail,
+                            request.getReferralPhone(),
+                            request.getYourName()
+                    );
+                } catch (Exception e) {
+                    logger.warn("Could not create referred client invite account for {}: {}", referralEmail, e.getMessage());
+                }
+            }
+        }
+
+        return savedLead;
+    }
+
     public Lead createLeadFromPartnershipReferral(PartnershipReferralRequest request) {
         Lead lead = new Lead();
         lead.setName(request.getClientName());
@@ -971,15 +1147,25 @@ public class LeadService {
                 break;
 
             case "qualified":
-                // QUALIFIED can transition to PROPOSAL_SENT, or LOST
-                isValidTransition = (toNormalized.equals("proposal_sent"));
+                // QUALIFIED can transition to PROPOSAL_SENT, NEGOTIATION, or LOST
+                isValidTransition = (toNormalized.equals("proposal_sent") ||
+                        toNormalized.equals("negotiation"));
                 break;
 
             case "proposal_sent":
-                // PROPOSAL_SENT can transition to PROJECT_WON/CONVERTED, or LOST
-                isValidTransition = (toNormalized.equals("won") ||
+                // PROPOSAL_SENT can transition to NEGOTIATION, PROJECT_WON/CONVERTED, or LOST
+                isValidTransition = (toNormalized.equals("negotiation") ||
+                        toNormalized.equals("won") ||
                         toNormalized.equals("converted") ||
                         toNormalized.equals("projectwon"));
+                break;
+
+            case "negotiation":
+                // NEGOTIATION can transition to PROJECT_WON/CONVERTED, PROPOSAL_SENT (revised), or LOST
+                isValidTransition = (toNormalized.equals("won") ||
+                        toNormalized.equals("converted") ||
+                        toNormalized.equals("projectwon") ||
+                        toNormalized.equals("proposal_sent")); // Revised proposal after negotiation
                 break;
 
             default:
@@ -1111,20 +1297,19 @@ public class LeadService {
                 throw new IllegalStateException("This lead has already been converted to a project");
             }
 
-            // 1. Create or Find Customer User
-            // CustomerUser requires email (NOT NULL and UNIQUE), so validate lead has email
-            if (lead.getEmail() == null || lead.getEmail().trim().isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Cannot convert lead without email address. Please update lead with a valid email first.");
+            // 1. Create or Find Customer User (optional — leads may have no email e.g. walk-ins)
+            com.wd.api.model.CustomerUser customer = null;
+            if (lead.getEmail() != null && !lead.getEmail().trim().isEmpty()) {
+                customer = customerUserRepository.findByEmail(lead.getEmail())
+                        .orElseGet(() -> createCustomerFromLead(lead));
             }
-
-            com.wd.api.model.CustomerUser customer = customerUserRepository.findByEmail(lead.getEmail())
-                    .orElseGet(() -> createCustomerFromLead(lead));
 
             // 2. Create Project
             com.wd.api.model.CustomerProject project = new com.wd.api.model.CustomerProject();
             project.setName(request.getProjectName() != null ? request.getProjectName() : lead.getName() + " Project");
-            project.setCustomer(customer);
+            if (customer != null) {
+                project.setCustomer(customer);
+            }
             project.setLeadId(lead.getId());
             project.setStartDate(request.getStartDate() != null ? request.getStartDate() : java.time.LocalDate.now());
             project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.PLANNING);

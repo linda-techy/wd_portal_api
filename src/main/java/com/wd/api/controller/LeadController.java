@@ -8,11 +8,14 @@ import com.wd.api.dto.ActivityFeedDTO;
 import com.wd.api.dto.LeadCreateRequest;
 import com.wd.api.dto.LeadUpdateRequest;
 import com.wd.api.dto.LeadConversionRequest;
+import com.wd.api.dto.PublicContactRequest;
+import com.wd.api.dto.PublicReferralRequest;
 import com.wd.api.service.LeadService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,6 +36,69 @@ public class LeadController {
 
     @Autowired
     private LeadService leadService;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PUBLIC ENDPOINTS — no authentication required
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Public contact form submission from Next.js website / popup.
+     * Sets server-side defaults: source=website, status=new_inquiry, type=individual, priority=medium.
+     */
+    @PostMapping("/contact")
+    public ResponseEntity<ApiResponse<Long>> submitContactForm(
+            @Valid @RequestBody PublicContactRequest request) {
+        try {
+            Lead lead = leadService.createLeadFromContactForm(request);
+            return ResponseEntity.ok(ApiResponse.success("Your inquiry has been submitted successfully. We will contact you shortly.", lead.getId()));
+        } catch (Exception e) {
+            logger.error("Error processing contact form submission: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to submit inquiry. Please try again."));
+        }
+    }
+
+    /**
+     * Public referral submission from Next.js website or customer mobile app.
+     * The referred person becomes the lead; referrer info is recorded in notes.
+     * Sets server-side defaults: source=referral_client, status=new_inquiry, priority=medium.
+     */
+    @PostMapping("/referral")
+    public ResponseEntity<ApiResponse<Long>> submitReferral(
+            @Valid @RequestBody PublicReferralRequest request) {
+        try {
+            logger.info("Processing referral submission from: {} for: {}", 
+                request.getYourEmail(), request.getReferralEmail());
+            Lead lead = leadService.createLeadFromPublicReferral(request);
+            logger.info("Referral lead created successfully with ID: {}", lead.getId());
+            return ResponseEntity.ok(ApiResponse.success("Thank you for the referral! We will reach out to your friend shortly.", lead.getId()));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid referral data: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Invalid referral data: " + e.getMessage()));
+        } catch (DataIntegrityViolationException e) {
+            // Handle unique constraint violations (e.g., duplicate email or phone)
+            logger.error("Database constraint violation during referral submission: {}", e.getMessage());
+            String errorMessage = "This email or phone number is already registered. Please use different contact information.";
+            // Check for specific constraint violations
+            if (e.getMessage() != null) {
+                if (e.getMessage().contains("email")) {
+                    errorMessage = "This email address is already registered in our system.";
+                } else if (e.getMessage().contains("phone")) {
+                    errorMessage = "This phone number is already registered in our system.";
+                }
+            }
+            return ResponseEntity.status(409)
+                    .body(ApiResponse.error(errorMessage));
+        } catch (Exception e) {
+            logger.error("Error processing referral submission: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to submit referral. Please try again. Error: " + e.getMessage()));
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // AUTHENTICATED ENDPOINTS
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * Get paginated leads with filtering and sorting

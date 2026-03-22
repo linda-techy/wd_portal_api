@@ -54,4 +54,7 @@ public interface LeadRepository extends JpaRepository<Lead, Long>, JpaSpecificat
     List<Object[]> countLeadsByStatus();
 
     List<Lead> findByLeadSourceAndNotesContaining(String leadSource, String notesFragment);
+
+    /** Find referral leads by the referred person's email (for status tracking). */
+    List<Lead> findByEmailAndLeadSource(String email, String leadSource);
 }

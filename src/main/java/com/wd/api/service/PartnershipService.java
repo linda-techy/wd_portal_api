@@ -3,24 +3,39 @@ package com.wd.api.service;
 import com.wd.api.dto.PartnerLoginRequest;
 import com.wd.api.dto.PartnerLoginResponse;
 import com.wd.api.dto.PartnershipApplicationRequest;
+import com.wd.api.model.CustomerPasswordResetToken;
 import com.wd.api.model.Lead;
 import com.wd.api.model.PartnershipUser;
+import com.wd.api.repository.CustomerPasswordResetTokenRepository;
 import com.wd.api.repository.LeadRepository;
 import com.wd.api.repository.PartnershipUserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class PartnershipService {
+
+    private static final Logger logger = LoggerFactory.getLogger(PartnershipService.class);
 
     @Autowired
     private PartnershipUserRepository partnershipUserRepository;
@@ -36,6 +51,15 @@ public class PartnershipService {
 
     @Value("${jwt.secret}")
     private String jwtSecret;
+
+    @Autowired
+    private CustomerPasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Value("${app.website-base-url:https://walldotbuilders.com}")
+    private String websiteBaseUrl;
 
     /**
      * Partner Login
@@ -190,13 +214,31 @@ public class PartnershipService {
         }
 
         partnershipUserRepository.save(partner);
+
+        // Send notification emails asynchronously
+        if ("approved".equals(status)) {
+            emailService.sendPartnerApprovalEmail(
+                    partner.getEmail(),
+                    partner.getFullName(),
+                    partner.getPartnershipType() != null ? partner.getPartnershipType() : "Partner");
+        } else if ("rejected".equals(status)) {
+            emailService.sendPartnerRejectionEmail(partner.getEmail(), partner.getFullName());
+        }
     }
 
     /**
      * Get referral leads submitted by a specific partner.
-     * Leads created via partnership referral store "Referred by Partner: {name} (ID: {partnerId})" in notes.
+     * - Professional partners (architects, etc.): leadSource=referral_architect, notes contain "(ID: {partnerId})"
+     * - Individual referrers with tracking accounts: leadSource=referral_client, notes contain "Partner ID: {partnerId}"
      */
     public List<Lead> getReferralsByPartner(Long partnerId) {
+        PartnershipUser partner = partnershipUserRepository.findById(partnerId).orElse(null);
+        if (partner != null && "referral_client".equals(partner.getPartnershipType())) {
+            // Individual referrer tracking account
+            String fragment = "Partner ID: " + partnerId;
+            return leadRepository.findByLeadSourceAndNotesContaining("referral_client", fragment);
+        }
+        // Professional partner (architect, designer, etc.)
         String partnerIdFragment = "(ID: " + partnerId + ")";
         return leadRepository.findByLeadSourceAndNotesContaining("referral_architect", partnerIdFragment);
     }
@@ -255,6 +297,306 @@ public class PartnershipService {
         }
 
         return summaries;
+    }
+
+    // ── Password reset ──────────────────────────────────────────────────────
+
+    /**
+     * Generates a reset token and sends a reset-password email to the partner.
+     * Uses the shared customer_password_reset_tokens table (keyed by email).
+     * Reset link points to the website partnerships login page with mode=reset.
+     * Silent success even when email is not found (anti-enumeration).
+     */
+    @Transactional
+    public void sendForgotPasswordEmail(String email) {
+        PartnershipUser partner = partnershipUserRepository.findByEmail(email).orElse(null);
+        if (partner == null) {
+            // Don't reveal whether email exists
+            return;
+        }
+
+        // Invalidate any previous tokens for this email
+        passwordResetTokenRepository.deleteAllByEmail(email);
+
+        // Generate token
+        String rawToken = UUID.randomUUID().toString();
+        String tokenHash = sha256Hex(rawToken);
+
+        // Persist hashed token
+        CustomerPasswordResetToken token = new CustomerPasswordResetToken(
+                email, tokenHash, LocalDateTime.now().plusMinutes(15));
+        passwordResetTokenRepository.save(token);
+
+        // Build reset link → website partnerships login page
+        String encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8);
+        String encodedToken = URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
+        String resetLink = websiteBaseUrl + "/partnerships/login?mode=reset&token=" + encodedToken + "&email=" + encodedEmail;
+
+        emailService.sendPartnerPasswordResetEmail(email, partner.getFullName(), resetLink);
+    }
+
+    /**
+     * Validates the reset token and updates the partner's password.
+     */
+    @Transactional
+    public void resetPassword(String email, String rawToken, String newPassword) {
+        if (newPassword == null || newPassword.length() < 8) {
+            throw new RuntimeException("Password must be at least 8 characters");
+        }
+
+        String tokenHash = sha256Hex(rawToken);
+        CustomerPasswordResetToken token = passwordResetTokenRepository
+                .findByEmailAndResetCodeAndUsedFalse(email, tokenHash)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Reset token has expired. Please request a new one.");
+        }
+
+        // Mark token used
+        passwordResetTokenRepository.markUsedById(token.getId());
+
+        // Update partner password
+        PartnershipUser partner = partnershipUserRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        partner.setPasswordHash(passwordEncoder.encode(newPassword));
+        partnershipUserRepository.save(partner);
+    }
+
+    // ── Admin methods ─────────────────────────────────────────────────────────
+
+    /**
+     * Paginated search of all partners — for the portal admin view.
+     * @param status         filter by status (null = all)
+     * @param partnershipType filter by type (null = all)
+     * @param search         text search on name/email/phone/firm
+     * @param page           0-based page number
+     * @param size           page size
+     */
+    public Page<PartnershipUser> searchPartners(String status, String partnershipType,
+                                                 String search, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        String statusParam = (status == null || status.isBlank() || "all".equalsIgnoreCase(status)) ? null : status;
+        String typeParam = (partnershipType == null || partnershipType.isBlank() || "all".equalsIgnoreCase(partnershipType)) ? null : partnershipType;
+        String searchParam = (search == null || search.isBlank()) ? null : search.trim();
+        return partnershipUserRepository.searchPartners(statusParam, typeParam, searchParam, pageable);
+    }
+
+    /**
+     * Summary counts by status — for the admin dashboard badge counts.
+     */
+    public Map<String, Long> getPartnerStatusCounts() {
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("pending", partnershipUserRepository.countByStatus("pending"));
+        counts.put("approved", partnershipUserRepository.countByStatus("approved"));
+        counts.put("active", partnershipUserRepository.countByStatus("active"));
+        counts.put("rejected", partnershipUserRepository.countByStatus("rejected"));
+        counts.put("suspended", partnershipUserRepository.countByStatus("suspended"));
+        counts.put("total", partnershipUserRepository.count());
+        return counts;
+    }
+
+    /**
+     * Full partner detail DTO for the admin view — profile + stats.
+     */
+    public Map<String, Object> getPartnerAdminDetail(Long partnerId) {
+        PartnershipUser partner = getPartnerById(partnerId);
+        Map<String, Object> stats = getPartnerStats(partnerId);
+
+        Map<String, Object> detail = new HashMap<>();
+        // Identity
+        detail.put("id", partner.getId());
+        detail.put("fullName", partner.getFullName());
+        detail.put("email", partner.getEmail());
+        detail.put("phone", partner.getPhone());
+        detail.put("designation", partner.getDesignation());
+        detail.put("partnershipType", partner.getPartnershipType());
+        detail.put("status", partner.getStatus());
+        // Business
+        detail.put("firmName", partner.getFirmName());
+        detail.put("companyName", partner.getCompanyName());
+        detail.put("businessName", partner.getBusinessName());
+        detail.put("gstNumber", partner.getGstNumber());
+        detail.put("licenseNumber", partner.getLicenseNumber());
+        detail.put("reraNumber", partner.getReraNumber());
+        detail.put("cinNumber", partner.getCinNumber());
+        detail.put("ifscCode", partner.getIfscCode());
+        detail.put("employeeId", partner.getEmployeeId());
+        // Professional
+        detail.put("experience", partner.getExperience());
+        detail.put("yearsOfPractice", partner.getYearsOfPractice());
+        detail.put("specialization", partner.getSpecialization());
+        detail.put("portfolioLink", partner.getPortfolioLink());
+        detail.put("certifications", partner.getCertifications());
+        // Operational
+        detail.put("location", partner.getLocation());
+        detail.put("areaOfOperation", partner.getAreaOfOperation());
+        detail.put("areasCovered", partner.getAreasCovered());
+        detail.put("areaServed", partner.getAreaServed());
+        detail.put("landTypes", partner.getLandTypes());
+        detail.put("materialsSupplied", partner.getMaterialsSupplied());
+        detail.put("businessSize", partner.getBusinessSize());
+        detail.put("industry", partner.getIndustry());
+        detail.put("projectType", partner.getProjectType());
+        detail.put("projectScale", partner.getProjectScale());
+        detail.put("timeline", partner.getTimeline());
+        // Additional
+        detail.put("additionalContact", partner.getAdditionalContact());
+        detail.put("message", partner.getMessage());
+        // Timestamps
+        detail.put("createdAt", partner.getCreatedAt());
+        detail.put("updatedAt", partner.getUpdatedAt());
+        detail.put("approvedAt", partner.getApprovedAt());
+        detail.put("lastLogin", partner.getLastLogin());
+        detail.put("createdBy", partner.getCreatedBy());
+        detail.put("updatedBy", partner.getUpdatedBy());
+        // Stats
+        detail.put("stats", stats);
+
+        return detail;
+    }
+
+    /**
+     * Convert a PartnershipUser to a summary map for the admin list view.
+     */
+    public Map<String, Object> toAdminSummary(PartnershipUser partner) {
+        List<Lead> referrals = getReferralsByPartner(partner.getId());
+        long totalReferrals = referrals.size();
+        long convertedReferrals = referrals.stream()
+                .filter(l -> "project_won".equals(l.getLeadStatus()) || "converted".equals(l.getLeadStatus()))
+                .count();
+
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("id", partner.getId());
+        summary.put("fullName", partner.getFullName());
+        summary.put("email", partner.getEmail());
+        summary.put("phone", partner.getPhone());
+        summary.put("designation", partner.getDesignation());
+        summary.put("partnershipType", partner.getPartnershipType());
+        summary.put("status", partner.getStatus());
+        summary.put("firmName", partner.getFirmName() != null ? partner.getFirmName() : partner.getCompanyName());
+        summary.put("location", partner.getLocation());
+        summary.put("createdAt", partner.getCreatedAt());
+        summary.put("approvedAt", partner.getApprovedAt());
+        summary.put("lastLogin", partner.getLastLogin());
+        summary.put("totalReferrals", totalReferrals);
+        summary.put("convertedReferrals", convertedReferrals);
+        return summary;
+    }
+
+    /**
+     * Soft-delete (suspend) a partner. Keeps data for audit trail.
+     */
+    @Transactional
+    public void suspendPartner(Long partnerId, String updatedBy) {
+        updatePartnerStatus(partnerId, "suspended", updatedBy);
+    }
+
+    // ── Referred client (friend who was referred) ────────────────────────────
+
+    /**
+     * Creates a PartnershipUser account for the person who was referred (the friend),
+     * generates a 24-hour setup link, and emails them an invitation to track their inquiry.
+     * Called automatically when a public referral is submitted with the friend's email.
+     */
+    @Transactional
+    public void createAndInviteReferredClient(String name, String email, String phone, String referrerName) {
+        if (email == null || email.isBlank()) return;
+
+        // Don't create a duplicate account for an already-registered email
+        if (partnershipUserRepository.existsByEmail(email)) {
+            logger.info("Referred client account already exists for email: {}", email);
+            return;
+        }
+
+        // Create account with a random password — the friend must set their own via the invite link
+        PartnershipUser referredClient = new PartnershipUser();
+        referredClient.setFullName(name != null && !name.isBlank() ? name : "Guest");
+        referredClient.setEmail(email);
+        referredClient.setPhone(phone != null && !phone.isBlank() ? phone : email);
+        referredClient.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+        referredClient.setPartnershipType("referred_client");
+        referredClient.setStatus("active");
+        partnershipUserRepository.save(referredClient);
+
+        // Generate 24-hour setup token (reusing the password reset token infrastructure)
+        passwordResetTokenRepository.deleteAllByEmail(email);
+        String rawToken = UUID.randomUUID().toString();
+        String tokenHash = sha256Hex(rawToken);
+        CustomerPasswordResetToken token = new CustomerPasswordResetToken(
+                email, tokenHash, LocalDateTime.now().plusHours(24));
+        passwordResetTokenRepository.save(token);
+
+        // Build the setup link — same reset-password flow on the partnerships login page
+        String encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8);
+        String encodedToken = URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
+        String setupLink = websiteBaseUrl + "/partnerships/login?mode=reset&token=" + encodedToken + "&email=" + encodedEmail;
+
+        emailService.sendReferredClientInviteEmail(email, name, referrerName != null ? referrerName : "A friend", setupLink);
+        logger.info("Invited referred client {} to track inquiry via {}", email, setupLink);
+    }
+
+    /**
+     * Returns the inquiry status for a referred client — the lead that was created for them
+     * when someone submitted the public referral form with their email address.
+     */
+    public Map<String, Object> getMyInquiry(Long partnerId) {
+        PartnershipUser partner = partnershipUserRepository.findById(partnerId)
+                .orElseThrow(() -> new RuntimeException("Partner not found"));
+
+        if (!"referred_client".equals(partner.getPartnershipType())) {
+            throw new RuntimeException("This endpoint is only for referred clients");
+        }
+
+        List<Lead> leads = leadRepository.findByEmailAndLeadSource(partner.getEmail(), "referral_client");
+
+        if (leads.isEmpty()) {
+            Map<String, Object> empty = new HashMap<>();
+            empty.put("found", false);
+            empty.put("message", "No inquiry found yet. Please check back shortly.");
+            return empty;
+        }
+
+        // Return the most recent lead for this email
+        Lead lead = leads.stream()
+                .max(java.util.Comparator.comparing(l -> l.getCreatedAt() != null ? l.getCreatedAt() : LocalDateTime.MIN))
+                .orElse(leads.get(0));
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("found", true);
+        result.put("leadId", lead.getId());
+        result.put("clientName", lead.getName());
+        result.put("status", lead.getLeadStatus());
+        result.put("projectType", lead.getProjectType());
+        result.put("location", lead.getLocation());
+        result.put("state", lead.getState());
+        result.put("district", lead.getDistrict());
+        result.put("budget", lead.getBudget());
+        result.put("dateOfEnquiry", lead.getDateOfEnquiry());
+        result.put("createdAt", lead.getCreatedAt());
+
+        // Extract referrer name from lead notes ("Referred by: John Doe | ...")
+        String notes = lead.getNotes();
+        if (notes != null && notes.contains("Referred by:")) {
+            int start = notes.indexOf("Referred by:") + "Referred by:".length();
+            int end = notes.contains("|") ? notes.indexOf("|", start) : notes.length();
+            if (end < 0 || end > notes.length()) end = notes.length();
+            result.put("referredBy", notes.substring(start, Math.min(end, notes.length())).trim());
+        } else {
+            result.put("referredBy", null);
+        }
+
+        return result;
+    }
+
+    private static String sha256Hex(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (Exception e) {
+            throw new RuntimeException("SHA-256 unavailable", e);
+        }
     }
 
 }

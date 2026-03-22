@@ -30,6 +30,18 @@ spring:
     port: 465
     username: info@walldotbuilders.com
     password: Staygether@2025
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: true
+            required: false
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
@@ -46,6 +58,7 @@ app:
   admin:
     email: dev@walldotbuilders.com
   customer-app-base-url: "http://localhost:3000"
+  website-base-url: "http://localhost:3000"
 
 logging:
   level:

@@ -70,6 +70,8 @@ app:
     enabled: true
   # Customer app base URL — reset links in password-reset emails point here.
   customer-app-base-url: "https://app.walldotbuilders.com"
+  # Website base URL — partner password reset emails point here.
+  website-base-url: "https://walldotbuilders.com"
 
 # ── Company Info (static — not sensitive) ────────────────────────
 company:
