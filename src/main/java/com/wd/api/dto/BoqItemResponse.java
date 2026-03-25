@@ -78,7 +78,7 @@ public record BoqItemResponse(
                 item.getCostToComplete(),
                 item.getExecutionPercentage(),
                 item.getBillingPercentage(),
-                item.getStatus(),
+                item.getStatus() != null ? item.getStatus().name() : null,
                 item.getIsActive(),
                 item.getSpecifications(),
                 item.getNotes(),

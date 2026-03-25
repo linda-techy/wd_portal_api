@@ -11,9 +11,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://46.202.164.251:5432/wdTestDB
-    username: postgres
-    password: Staygether@2025
+    url: ${DB_URL:jdbc:postgresql://46.202.164.251:5432/wdTestDB}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 15
       minimum-idle: 3
@@ -55,8 +55,8 @@ spring:
   mail:
     host: smtp.hostinger.com
     port: 465
-    username: info@walldotbuilders.com
-    password: Staygether@2025
+    username: ${MAIL_USERNAME:info@walldotbuilders.com}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -71,7 +71,7 @@ spring:
           writetimeout: 5000
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  secret: ${JWT_SECRET}
 
 # ── Shared storage (SAME path as customer-api staging) ──────────────
 # storageBasePath at root level — matches customer API exactly

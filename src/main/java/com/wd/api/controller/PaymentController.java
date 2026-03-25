@@ -26,7 +26,7 @@ public class PaymentController {
      * Create a new design package payment agreement
      */
     @PostMapping("/design")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PAYMENT_CREATE', 'PAYMENT_EDIT')")
     public ResponseEntity<?> createDesignPayment(
             @RequestBody CreateDesignPaymentRequest request,
             Authentication auth) {
@@ -108,7 +108,7 @@ public class PaymentController {
      * Record a payment transaction against a schedule
      */
     @PostMapping("/schedule/{scheduleId}/transactions")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PAYMENT_CREATE', 'PAYMENT_EDIT')")
     public ResponseEntity<?> recordTransaction(
             @PathVariable Long scheduleId,
             @RequestBody RecordTransactionRequest request,

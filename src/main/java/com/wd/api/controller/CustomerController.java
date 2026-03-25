@@ -82,7 +82,7 @@ public class CustomerController {
      * Get all customers
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<ApiResponse<List<CustomerResponse>>> getAllCustomers() {
         try {
             List<CustomerResponse> customers = customerUserService.getAllCustomers();
@@ -112,7 +112,7 @@ public class CustomerController {
      * Create new customer
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_CREATE', 'CUSTOMER_EDIT')")
     public ResponseEntity<?> createCustomer(@RequestBody CustomerCreateRequest request) {
         try {
             CustomerUser savedCustomer = customerUserService.createCustomer(request);
@@ -130,7 +130,7 @@ public class CustomerController {
      * Update customer
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_EDIT', 'CUSTOMER_CREATE')")
     public ResponseEntity<?> updateCustomer(@PathVariable Long id, @RequestBody CustomerUpdateRequest request) {
         try {
             CustomerUser updatedCustomer = customerUserService.updateCustomer(id, request);
@@ -151,7 +151,7 @@ public class CustomerController {
      * Delete customer
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<?> deleteCustomer(@PathVariable Long id) {
         try {
             customerUserService.deleteCustomer(id);
@@ -179,7 +179,7 @@ public class CustomerController {
      * customer API can validate it when the customer submits their new password.
      */
     @PostMapping("/{id}/send-password-reset")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_EDIT', 'CUSTOMER_CREATE')")
     public ResponseEntity<ApiResponse<Void>> sendPasswordResetEmail(@PathVariable Long id) {
         try {
             customerPasswordResetService.sendPasswordResetEmail(id);

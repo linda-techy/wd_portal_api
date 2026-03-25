@@ -31,6 +31,7 @@ public class PaymentService {
     private final PaymentTransactionRepository transactionRepository;
     private final com.wd.api.repository.CustomerProjectRepository projectRepository;
     private final com.wd.api.repository.TaxInvoiceRepository taxInvoiceRepository;
+    private final CustomerNotificationFacade customerNotificationFacade;
 
     @Value("${company.gst:}")
     private String companyGstin;
@@ -40,12 +41,14 @@ public class PaymentService {
             PaymentScheduleRepository scheduleRepository,
             PaymentTransactionRepository transactionRepository,
             com.wd.api.repository.CustomerProjectRepository projectRepository,
-            com.wd.api.repository.TaxInvoiceRepository taxInvoiceRepository) {
+            com.wd.api.repository.TaxInvoiceRepository taxInvoiceRepository,
+            CustomerNotificationFacade customerNotificationFacade) {
         this.paymentRepository = paymentRepository;
         this.scheduleRepository = scheduleRepository;
         this.transactionRepository = transactionRepository;
         this.projectRepository = projectRepository;
         this.taxInvoiceRepository = taxInvoiceRepository;
+        this.customerNotificationFacade = customerNotificationFacade;
     }
 
     @Transactional
@@ -212,6 +215,18 @@ public class PaymentService {
         }
 
         scheduleRepository.save(schedule);
+
+        // Notify project customers about payment recorded
+        if (schedule.getDesignPayment() != null && schedule.getDesignPayment().getProjectId() != null) {
+            String installmentDesc = schedule.getDescription() != null ? schedule.getDescription() : "Installment " + schedule.getInstallmentNumber();
+            customerNotificationFacade.notifyOwners(
+                    schedule.getDesignPayment().getProjectId(),
+                    "Payment Recorded",
+                    "A payment has been recorded for " + installmentDesc + ".",
+                    "PAYMENT",
+                    schedule.getId()
+            );
+        }
 
         // Update parent payment status
         updatePaymentStatus(schedule.getDesignPayment());

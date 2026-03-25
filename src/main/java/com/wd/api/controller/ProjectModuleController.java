@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/customer-projects/{projectId}")
-@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+@PreAuthorize("isAuthenticated()")
 public class ProjectModuleController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectModuleController.class);

@@ -2,6 +2,7 @@ package com.wd.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.wd.api.model.enums.ReportType;
+import com.wd.api.model.enums.SiteReportStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -29,8 +30,9 @@ public class SiteReport extends BaseEntity {
     @Column(name = "report_date")
     private LocalDateTime reportDate;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 50)
-    private String status;
+    private SiteReportStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "submitted_by")
@@ -128,11 +130,11 @@ public class SiteReport extends BaseEntity {
         this.reportDate = reportDate;
     }
 
-    public String getStatus() {
+    public SiteReportStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(SiteReportStatus status) {
         this.status = status;
     }
 

@@ -4,6 +4,8 @@ import com.wd.api.dto.ApprovalRequestDTO;
 import com.wd.api.dto.ApprovalSearchFilter;
 import com.wd.api.model.ApprovalRequest;
 import com.wd.api.model.PortalUser;
+import com.wd.api.model.enums.ApprovalTargetType;
+import com.wd.api.model.enums.InvoiceStatus;
 import com.wd.api.repository.ApprovalRequestRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.PurchaseOrderRepository;
@@ -104,7 +106,7 @@ public class ApprovalService {
                                 : null;
 
                 ApprovalRequest request = ApprovalRequest.builder()
-                                .targetType(dto.getTargetType())
+                                .targetType(ApprovalTargetType.valueOf(dto.getTargetType()))
                                 .targetId(dto.getTargetId())
                                 .requestedBy(requester)
                                 .approver(approver)
@@ -135,7 +137,8 @@ public class ApprovalService {
 
                 // Update the target object status
                 Long targetId = Objects.requireNonNull(request.getTargetId(), "Target ID is required");
-                if ("PO".equals(request.getTargetType())) {
+                ApprovalTargetType targetType = request.getTargetType();
+                if (ApprovalTargetType.PURCHASE_ORDER.equals(targetType)) {
                         PurchaseOrder po = poRepository.findById(targetId).orElse(null);
                         if (po != null) {
                                 if ("APPROVED".equals(status)) {
@@ -145,16 +148,16 @@ public class ApprovalService {
                                 }
                                 poRepository.save(po);
                         }
-                } else if ("INVOICE".equals(request.getTargetType())) {
+                } else if (ApprovalTargetType.INVOICE.equals(targetType)) {
                         ProjectInvoice inv = invoiceRepository.findById(targetId).orElse(null);
                         if (inv != null) {
                                 inv.setStatus(
-                                                "APPROVED".equals(status) ? "ISSUED"
-                                                                : ("REJECTED".equals(status) ? "DRAFT"
+                                                "APPROVED".equals(status) ? InvoiceStatus.ISSUED
+                                                                : ("REJECTED".equals(status) ? InvoiceStatus.DRAFT
                                                                                 : inv.getStatus()));
                                 invoiceRepository.save(inv);
                         }
-                } else if ("CHALLAN".equals(request.getTargetType())) {
+                } else if (ApprovalTargetType.CHALLAN.equals(targetType)) {
                         PaymentChallan challan = challanRepository.findById(targetId).orElse(null);
                         if (challan != null) {
                                 challan.setStatus(
@@ -177,7 +180,7 @@ public class ApprovalService {
         private ApprovalRequestDTO mapToDTO(ApprovalRequest req) {
                 return ApprovalRequestDTO.builder()
                                 .id(req.getId())
-                                .targetType(req.getTargetType())
+                                .targetType(req.getTargetType().name())
                                 .targetId(req.getTargetId())
                                 .requestedById(req.getRequestedBy().getId())
                                 .requestedByName(req.getRequestedBy().getFirstName() + " "

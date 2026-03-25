@@ -1,5 +1,6 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.ApprovalTargetType;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -11,8 +12,9 @@ public class ApprovalRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "target_type", nullable = false)
-    private String targetType; // PO, INVOICE, MB, CHALLAN
+    private ApprovalTargetType targetType;
 
     @Column(name = "target_id", nullable = false)
     private Long targetId;
@@ -47,7 +49,7 @@ public class ApprovalRequest {
     public ApprovalRequest() {
     }
 
-    public ApprovalRequest(Long id, String targetType, Long targetId, PortalUser requestedBy, PortalUser approver,
+    public ApprovalRequest(Long id, ApprovalTargetType targetType, Long targetId, PortalUser requestedBy, PortalUser approver,
             String status, String comments, LocalDateTime requestedAt, LocalDateTime decidedAt) {
         this.id = id;
         this.targetType = targetType;
@@ -66,7 +68,7 @@ public class ApprovalRequest {
 
     public static class ApprovalRequestBuilder {
         private Long id;
-        private String targetType;
+        private ApprovalTargetType targetType;
         private Long targetId;
         private PortalUser requestedBy;
         private PortalUser approver;
@@ -80,7 +82,7 @@ public class ApprovalRequest {
             return this;
         }
 
-        public ApprovalRequestBuilder targetType(String targetType) {
+        public ApprovalRequestBuilder targetType(ApprovalTargetType targetType) {
             this.targetType = targetType;
             return this;
         }
@@ -130,7 +132,7 @@ public class ApprovalRequest {
         return id;
     }
 
-    public String getTargetType() {
+    public ApprovalTargetType getTargetType() {
         return targetType;
     }
 
@@ -162,7 +164,7 @@ public class ApprovalRequest {
         return decidedAt;
     }
 
-    public void setTargetType(String targetType) {
+    public void setTargetType(ApprovalTargetType targetType) {
         this.targetType = targetType;
     }
 

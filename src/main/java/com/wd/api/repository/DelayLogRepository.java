@@ -13,4 +13,14 @@ public interface DelayLogRepository extends JpaRepository<DelayLog, Long>, JpaSp
     List<DelayLog> findByProjectIdAndDelayType(Long projectId, String delayType);
 
     List<DelayLog> findByProjectId(Long projectId);
+
+    /** Count of active delays: those with no end date (still ongoing). */
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT COUNT(d) FROM DelayLog d WHERE d.toDate IS NULL")
+    long countActive();
+
+    /** Count active delays for a specific project. */
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT COUNT(d) FROM DelayLog d WHERE d.project.id = :projectId AND d.toDate IS NULL")
+    int countActiveByProjectId(@org.springframework.data.repository.query.Param("projectId") Long projectId);
 }

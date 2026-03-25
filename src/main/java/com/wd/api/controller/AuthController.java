@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -92,19 +93,32 @@ public class AuthController {
         }
     }
 
+    /**
+     * Register or update the FCM device token for the authenticated portal user.
+     * Called by the portal Flutter app immediately after login.
+     * POST /auth/fcm-token   body: { "fcmToken": "..." }
+     */
+    @PostMapping("/fcm-token")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> registerFcmToken(@RequestBody Map<String, String> body,
+                                               Authentication authentication) {
+        try {
+            String fcmToken = body.get("fcmToken");
+            if (fcmToken == null || fcmToken.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "fcmToken is required"));
+            }
+            authService.registerFcmToken(authentication.getName(), fcmToken);
+            return ResponseEntity.ok(Map.of("message", "FCM token registered"));
+        } catch (Exception e) {
+            logger.error("Failed to register FCM token for {}: {}", authentication.getName(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to register FCM token"));
+        }
+    }
+
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("Auth controller is working!");
     }
 
-    @PostMapping("/create-test-user")
-    public ResponseEntity<String> createTestUser() {
-        try {
-            authService.createTestUser();
-            return ResponseEntity.ok("Test user created successfully (admin@test.com / password)");
-        } catch (Exception e) {
-            logger.error("Failed to create test user: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
-        }
-    }
 }

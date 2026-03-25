@@ -129,7 +129,7 @@ public class LeadController {
      * @return Paginated list of leads
      */
     @GetMapping("/paginated")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<Page<Lead>>> getLeadsPaginated(
             @ModelAttribute LeadSearchFilter filter,
             // Legacy parameter support for backward compatibility
@@ -233,7 +233,7 @@ public class LeadController {
      * @return Lead details
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<Lead>> getLeadById(@PathVariable Long id) {
         try {
             Lead lead = leadService.getLeadById(id);
@@ -262,7 +262,7 @@ public class LeadController {
      * @return Created lead
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
     public ResponseEntity<ApiResponse<Lead>> createLead(@Valid @RequestBody LeadCreateRequest request) {
         try {
             Lead createdLead = leadService.createLead(request);
@@ -287,7 +287,7 @@ public class LeadController {
      * @return Updated lead
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'LEAD_CREATE')")
     public ResponseEntity<ApiResponse<Lead>> updateLead(
             @PathVariable Long id,
             @Valid @RequestBody LeadUpdateRequest request) {
@@ -326,7 +326,7 @@ public class LeadController {
      * @return Success message
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteLead(@PathVariable Long id) {
         try {
             boolean deleted = leadService.deleteLead(id);
@@ -351,7 +351,7 @@ public class LeadController {
      * @return List of activities sorted by date (most recent first)
      */
     @GetMapping("/{leadId}/activities")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<List<ActivityFeedDTO>>> getLeadActivities(@PathVariable Long leadId) {
         try {
             List<ActivityFeedDTO> activities = leadService.getLeadActivities(leadId);
@@ -375,7 +375,7 @@ public class LeadController {
      * @return The created project
      */
     @PostMapping("/{id}/convert")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'LEAD_CREATE')")
     public ResponseEntity<ApiResponse<CustomerProject>> convertLead(
             @PathVariable Long id,
             @Valid @RequestBody LeadConversionRequest request) {

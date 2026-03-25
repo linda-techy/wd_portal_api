@@ -83,4 +83,18 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
         int countOverdueByProjectId(
                         @org.springframework.data.repository.query.Param("projectId") Long projectId,
                         @org.springframework.data.repository.query.Param("date") java.time.LocalDate date);
+
+        // ===== Dashboard Global Aggregations =====
+
+        /** Count all overdue tasks across every project (for dashboard KPI). */
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(t) FROM Task t " +
+                        "WHERE t.dueDate < CURRENT_DATE " +
+                        "AND t.status NOT IN ('COMPLETED', 'CANCELLED')")
+        long countAllOverdue();
+
+        /** Count tasks due today across all projects (for dashboard KPI). */
+        @org.springframework.data.jpa.repository.Query("SELECT COUNT(t) FROM Task t " +
+                        "WHERE t.dueDate = CURRENT_DATE " +
+                        "AND t.status NOT IN ('COMPLETED', 'CANCELLED')")
+        long countDueToday();
 }

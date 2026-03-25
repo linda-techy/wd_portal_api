@@ -55,6 +55,10 @@ public class PaymentTransaction {
     @Column(name = "payment_category", length = 50, nullable = false)
     private String paymentCategory = "PROGRESS";
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_invoice_id")
+    private ProjectInvoice projectInvoice;
+
     @OneToOne(mappedBy = "transaction", fetch = FetchType.LAZY)
     private PaymentChallan challan;
 
@@ -215,6 +219,14 @@ public class PaymentTransaction {
 
     public void setPaymentCategory(String paymentCategory) {
         this.paymentCategory = paymentCategory;
+    }
+
+    public ProjectInvoice getProjectInvoice() {
+        return projectInvoice;
+    }
+
+    public void setProjectInvoice(ProjectInvoice projectInvoice) {
+        this.projectInvoice = projectInvoice;
     }
 
     public PaymentChallan getChallan() {

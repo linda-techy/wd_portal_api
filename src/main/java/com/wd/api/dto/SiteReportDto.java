@@ -36,7 +36,7 @@ public class SiteReportDto {
         this.title = report.getTitle();
         this.description = report.getDescription();
         this.reportDate = report.getReportDate();
-        this.status = report.getStatus();
+        this.status = report.getStatus() != null ? report.getStatus().name() : null;
 
         if (report.getSubmittedBy() != null) {
             this.submittedByName = report.getSubmittedBy().getFirstName() + " " + report.getSubmittedBy().getLastName();

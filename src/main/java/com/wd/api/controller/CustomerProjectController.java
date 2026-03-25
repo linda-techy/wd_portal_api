@@ -117,7 +117,7 @@ public class CustomerProjectController {
      * Create customer project
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_CREATE', 'PROJECT_EDIT')")
     public ResponseEntity<ApiResponse<CustomerProjectResponse>> createCustomerProject(
             @RequestBody CustomerProjectCreateRequest request) {
         try {
@@ -141,7 +141,7 @@ public class CustomerProjectController {
      * Update customer project
     */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<ApiResponse<CustomerProjectResponse>> updateCustomerProject(@PathVariable Long id,
             @RequestBody CustomerProjectUpdateRequest request) {
         try {
@@ -162,7 +162,7 @@ public class CustomerProjectController {
      * Delete customer project
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PROJECT_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteCustomerProject(@PathVariable Long id) {
         try {
             customerProjectService.deleteProject(id);
@@ -331,7 +331,7 @@ public class CustomerProjectController {
     // ==================== Project Member Management ====================
 
     @GetMapping("/{id}/members")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PROJECT_VIEW')")
     public ResponseEntity<ApiResponse<List<ProjectMemberResponse>>> getProjectMembers(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(ApiResponse.success("Project members retrieved successfully", customerProjectService.getProjectMembers(id)));
@@ -342,7 +342,7 @@ public class CustomerProjectController {
     }
 
     @PostMapping("/{id}/members")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<ApiResponse<ProjectMemberResponse>> addProjectMember(
             @PathVariable Long id, @RequestBody ProjectMemberRequest request) {
         try {
@@ -356,7 +356,7 @@ public class CustomerProjectController {
     }
 
     @DeleteMapping("/{id}/members/{membershipId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_DELETE')")
     public ResponseEntity<ApiResponse<String>> removeProjectMember(
             @PathVariable Long id, @PathVariable Long membershipId) {
         try {

@@ -26,20 +26,20 @@ public class ProjectVariationController {
     private PortalUserRepository portalUserRepository;
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PROJECT_VIEW')")
     public ResponseEntity<Page<ProjectVariation>> searchProjectVariations(@ModelAttribute ProjectVariationSearchFilter filter) {
         return ResponseEntity.ok(variationService.searchProjectVariations(filter));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PROJECT_VIEW')")
     @Deprecated
     public ResponseEntity<List<ProjectVariation>> getVariations(@PathVariable Long projectId) {
         return ResponseEntity.ok(variationService.getVariationsByProject(projectId));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<ProjectVariation> createVariation(
             @PathVariable Long projectId,
             @RequestBody ProjectVariation variation,
@@ -49,7 +49,7 @@ public class ProjectVariationController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<ProjectVariation> updateVariation(
             @PathVariable Long projectId,
             @PathVariable Long id,
@@ -58,7 +58,7 @@ public class ProjectVariationController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PROJECT_DELETE')")
     public ResponseEntity<Void> deleteVariation(
             @PathVariable Long projectId,
             @PathVariable Long id) {
@@ -67,7 +67,7 @@ public class ProjectVariationController {
     }
 
     @PostMapping("/{id}/submit")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<ProjectVariation> submitVariation(
             @PathVariable Long projectId,
             @PathVariable Long id) {
@@ -75,7 +75,7 @@ public class ProjectVariationController {
     }
 
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('BOQ_APPROVE')")
     public ResponseEntity<ProjectVariation> approveVariation(
             @PathVariable Long projectId,
             @PathVariable Long id,
@@ -85,7 +85,7 @@ public class ProjectVariationController {
     }
 
     @PostMapping("/{id}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('BOQ_APPROVE')")
     public ResponseEntity<ProjectVariation> rejectVariation(
             @PathVariable Long projectId,
             @PathVariable Long id,

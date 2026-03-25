@@ -42,7 +42,7 @@ public class ObservationDto {
         dto.setLocation(entity.getLocation());
         dto.setPriority(entity.getPriority());
         dto.setSeverity(entity.getSeverity());
-        dto.setStatus(entity.getStatus());
+        dto.setStatus(entity.getStatus() != null ? entity.getStatus().name() : null);
         dto.setImagePath(entity.getImagePath());
         dto.setReportedDate(entity.getReportedDate());
         dto.setResolutionNotes(entity.getResolutionNotes());

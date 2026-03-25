@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/payments")
-@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+@PreAuthorize("isAuthenticated()")
 public class RetentionInvoiceController {
 
     private static final Logger logger = LoggerFactory.getLogger(RetentionInvoiceController.class);

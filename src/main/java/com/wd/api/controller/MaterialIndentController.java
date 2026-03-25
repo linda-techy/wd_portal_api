@@ -29,7 +29,7 @@ public class MaterialIndentController {
     private final MaterialIndentService indentService;
 
     @PostMapping("/project/{projectId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER')")
+    @PreAuthorize("hasAnyAuthority('PROCUREMENT_CREATE', 'PROCUREMENT_EDIT')")
     public ResponseEntity<ApiResponse<MaterialIndent>> createIndent(
             @PathVariable Long projectId,
             @RequestBody MaterialIndent indent) {
@@ -48,7 +48,7 @@ public class MaterialIndentController {
     }
 
     @PutMapping("/{id}/submit")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER')")
+    @PreAuthorize("hasAnyAuthority('PROCUREMENT_CREATE', 'PROCUREMENT_EDIT')")
     public ResponseEntity<ApiResponse<MaterialIndent>> submitIndent(@PathVariable Long id) {
         try {
             MaterialIndent updated = indentService.submitIndent(id);
@@ -64,7 +64,7 @@ public class MaterialIndentController {
     }
 
     @PutMapping("/{id}/approve")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
+    @PreAuthorize("hasAuthority('PROCUREMENT_APPROVE')")
     public ResponseEntity<ApiResponse<MaterialIndent>> approveIndent(@PathVariable Long id) {
         try {
             Long currentUserId = getCurrentUserId();
@@ -81,7 +81,7 @@ public class MaterialIndentController {
     }
 
     @PutMapping("/{id}/reject")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
+    @PreAuthorize("hasAuthority('PROCUREMENT_APPROVE')")
     public ResponseEntity<ApiResponse<MaterialIndent>> rejectIndent(
             @PathVariable Long id,
             @RequestBody(required = false) java.util.Map<String, String> payload) {
@@ -100,7 +100,7 @@ public class MaterialIndentController {
     }
 
     @PutMapping("/{id}/close")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER')")
+    @PreAuthorize("hasAuthority('PROCUREMENT_APPROVE')")
     public ResponseEntity<ApiResponse<MaterialIndent>> closeIndent(@PathVariable Long id) {
         try {
             MaterialIndent closed = indentService.closeIndent(id);
@@ -115,7 +115,7 @@ public class MaterialIndentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'PROCUREMENT_MANAGER')")
+    @PreAuthorize("hasAuthority('PROCUREMENT_VIEW')")
     public ResponseEntity<ApiResponse<MaterialIndent>> getIndent(@PathVariable Long id) {
         try {
             MaterialIndent indent = indentService.getIndentById(id);
@@ -135,7 +135,7 @@ public class MaterialIndentController {
      * NEW: Standardized search endpoint using MaterialIndentSearchFilter
      */
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'PROCUREMENT_MANAGER')")
+    @PreAuthorize("hasAuthority('PROCUREMENT_VIEW')")
     public ResponseEntity<?> searchIndents(@ModelAttribute MaterialIndentSearchFilter filter) {
         try {
             Page<MaterialIndent> results = indentService.search(filter);
@@ -154,7 +154,7 @@ public class MaterialIndentController {
      * DEPRECATED: Use /search endpoint instead
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'PROCUREMENT_MANAGER')")
+    @PreAuthorize("hasAuthority('PROCUREMENT_VIEW')")
     @Deprecated
     public ResponseEntity<ApiResponse<Page<MaterialIndent>>> searchIndentsOld(
             @RequestParam(required = false) Long projectId,

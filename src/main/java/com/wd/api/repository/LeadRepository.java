@@ -57,4 +57,30 @@ public interface LeadRepository extends JpaRepository<Lead, Long>, JpaSpecificat
 
     /** Find referral leads by the referred person's email (for status tracking). */
     List<Lead> findByEmailAndLeadSource(String email, String leadSource);
+
+    // ===== Dashboard Aggregations =====
+
+    /** Monthly new lead count trend — last 12 months (native query for date truncation). */
+    @Query(value = "SELECT TO_CHAR(l.date_of_enquiry, 'YYYY-MM') AS month, COUNT(*) AS cnt " +
+                   "FROM leads l WHERE l.date_of_enquiry >= :fromDate " +
+                   "GROUP BY TO_CHAR(l.date_of_enquiry, 'YYYY-MM') ORDER BY month",
+           nativeQuery = true)
+    List<Object[]> monthlyLeadCount(@org.springframework.data.repository.query.Param("fromDate") java.time.LocalDate fromDate);
+
+    /** Total pipeline value — sum of budget for leads likely to convert. */
+    @Query("SELECT COALESCE(SUM(l.budget), 0) FROM Lead l " +
+           "WHERE l.leadStatus IN ('qualified', 'proposal_sent')")
+    java.math.BigDecimal pipelineValue();
+
+    /** Count HOT leads (high score category). */
+    @Query("SELECT COUNT(l) FROM Lead l WHERE l.scoreCategory = 'HOT'")
+    long countHotLeads();
+
+    /** Count new leads since a given date. */
+    @Query("SELECT COUNT(l) FROM Lead l WHERE l.dateOfEnquiry >= :fromDate")
+    long countSince(@org.springframework.data.repository.query.Param("fromDate") java.time.LocalDate fromDate);
+
+    /** Count open leads (not converted or lost). */
+    @Query("SELECT COUNT(l) FROM Lead l WHERE l.leadStatus NOT IN ('converted', 'lost')")
+    long countOpen();
 }

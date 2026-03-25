@@ -6,9 +6,9 @@ import com.wd.api.dto.RefreshTokenRequest;
 import com.wd.api.dto.RefreshTokenResponse;
 import com.wd.api.model.RefreshToken;
 import com.wd.api.model.PortalUser;
-import com.wd.api.model.PortalRole;
 import com.wd.api.repository.RefreshTokenRepository;
 import com.wd.api.repository.PortalUserRepository;
+import com.wd.api.util.TokenHashUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,8 +81,9 @@ public class AuthService {
             throw new RuntimeException("Invalid refresh token format");
         }
 
-        // 2. Retrieve token from DB
-        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshTokenStr)
+        // 2. Retrieve token from DB (stored as SHA-256 hash)
+        String tokenHash = TokenHashUtil.hash(refreshTokenStr);
+        RefreshToken storedToken = refreshTokenRepository.findByToken(tokenHash)
                 .orElseThrow(() -> new RuntimeException("Refresh token not found"));
 
         PortalUser user = storedToken.getUser();
@@ -115,7 +116,20 @@ public class AuthService {
     }
 
     public void logout(String refreshToken) {
-        refreshTokenRepository.deleteByToken(refreshToken);
+        // Hash before lookup — tokens are stored as SHA-256 hashes
+        refreshTokenRepository.deleteByToken(TokenHashUtil.hash(refreshToken));
+    }
+
+    /**
+     * Store or update the FCM device token for a portal user.
+     * One active token per user (latest device wins).
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public void registerFcmToken(String email, String fcmToken) {
+        PortalUser user = portalUserRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
+        user.setFcmToken(fcmToken);
+        portalUserRepository.save(user);
     }
 
     public LoginResponse.UserInfo getCurrentUser(String email) {
@@ -150,10 +164,11 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
     }
 
-    private void saveRefreshToken(PortalUser user, String refreshToken) {
+    private void saveRefreshToken(PortalUser user, String rawRefreshToken) {
         RefreshToken token = new RefreshToken();
         token.setUser(user);
-        token.setToken(refreshToken);
+        // Store only the SHA-256 hash — the raw JWT is never persisted to DB
+        token.setToken(TokenHashUtil.hash(rawRefreshToken));
         token.setExpiryDate(LocalDateTime.now().plusDays(7)); // 7 days
         token.setRevoked(false);
 
@@ -177,50 +192,4 @@ public class AuthService {
         }
     }
 
-    @Autowired
-    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private com.wd.api.repository.PortalRoleRepository portalRoleRepository;
-
-    @Transactional
-    public void createTestUser() {
-        if (portalUserRepository.findByEmail("admin@test.com").isPresent()) {
-            return;
-        }
-
-        PortalRole adminRole = portalRoleRepository.findAll().stream()
-                .filter(r -> "ADMIN".equalsIgnoreCase(r.getName()) || "ADMIN".equalsIgnoreCase(r.getCode()))
-                .findFirst()
-                .orElse(portalRoleRepository.findById(1L).orElse(portalRoleRepository.findById(5L).orElse(null)));
-
-        if (adminRole == null) {
-            // Fallback: This might fail if sequence is out of sync, but we have no choice
-            // if table is empty
-            try {
-                PortalRole role = new PortalRole();
-                role.setName("ADMIN");
-                role.setCode("ADMIN");
-                role.setDescription("Administrator Role");
-                adminRole = portalRoleRepository.save(role);
-            } catch (Exception e) {
-                // Ignore if duplicate
-                adminRole = portalRoleRepository.findByName("ADMIN").orElse(null);
-            }
-        }
-
-        if (adminRole == null) {
-            throw new RuntimeException("Could not find or create a Role for test user.");
-        }
-
-        PortalUser user = new PortalUser();
-        user.setEmail("admin@test.com");
-        user.setPassword(passwordEncoder.encode("password"));
-        user.setFirstName("Test");
-        user.setLastName("Admin");
-        user.setRole(adminRole);
-        user.setEnabled(true);
-
-        portalUserRepository.save(user);
-    }
 }

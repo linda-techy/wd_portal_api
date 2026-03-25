@@ -45,7 +45,7 @@ public class PortalUserController {
      * Get all portal users
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PORTAL_USER_VIEW')")
     // verifying role names in database
     public ResponseEntity<ApiResponse<List<PortalUserResponse>>> getAllPortalUsers() {
         try {
@@ -64,7 +64,7 @@ public class PortalUserController {
      * Get paginated portal users
      */
     @GetMapping("/paginated")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PORTAL_USER_VIEW')")
     public ResponseEntity<ApiResponse<Page<PortalUserResponse>>> getPortalUsersPaginated(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -129,7 +129,7 @@ public class PortalUserController {
      * Create portal user
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PORTAL_USER_CREATE')")
     // names in database
     public ResponseEntity<ApiResponse<PortalUserResponse>> createPortalUser(
             @Valid @RequestBody PortalUserCreateRequest request) {
@@ -182,7 +182,7 @@ public class PortalUserController {
      * Update portal user
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PORTAL_USER_EDIT', 'PORTAL_USER_CREATE')")
     // verifying role names in database
     public ResponseEntity<ApiResponse<PortalUserResponse>> updatePortalUser(@PathVariable Long id,
             @Valid @RequestBody PortalUserUpdateRequest request) {
@@ -257,7 +257,7 @@ public class PortalUserController {
      * Delete portal user
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PORTAL_USER_DELETE')")
     // names in database
     public ResponseEntity<ApiResponse<Void>> deletePortalUser(@PathVariable Long id) {
         try {
@@ -298,7 +298,7 @@ public class PortalUserController {
      * Get portal users filtered by role codes (for lead assignment)
      */
     @GetMapping("/by-role-codes")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PORTAL_USER_VIEW')")
     public ResponseEntity<ApiResponse<List<PortalUserResponse>>> getPortalUsersByRoleCodes(
             @RequestParam List<String> roleCodes) {
         try {
@@ -327,7 +327,7 @@ public class PortalUserController {
      * Change password
      */
     @PostMapping("/{id}/change-password")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("isAuthenticated()")
     // verifying role names
     public ResponseEntity<ApiResponse<String>> changePassword(@PathVariable Long id,
             @Valid @RequestBody com.wd.api.dto.ChangePasswordRequest request) {

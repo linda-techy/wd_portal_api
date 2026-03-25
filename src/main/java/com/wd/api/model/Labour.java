@@ -3,9 +3,13 @@ package com.wd.api.model;
 import com.wd.api.model.enums.IdProofType;
 import com.wd.api.model.enums.LabourTradeType;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 import lombok.*;
 import java.math.BigDecimal;
 
+@SQLDelete(sql = "UPDATE labour SET deleted_at = NOW() WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "labour")
 @Getter

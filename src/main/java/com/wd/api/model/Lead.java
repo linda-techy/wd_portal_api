@@ -2,6 +2,8 @@ package com.wd.api.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,6 +19,8 @@ import org.hibernate.type.SqlTypes;
  * - Integrates with Lead Scoring system (COLD, WARM, HOT)
  * - Managed by Portal Users for assignment and conversion
  */
+@SQLDelete(sql = "UPDATE leads SET deleted_at = NOW() WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "leads")
 public class Lead extends BaseEntity {

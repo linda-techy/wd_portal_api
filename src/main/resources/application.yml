@@ -7,7 +7,7 @@ spring:
   application:
     name: wd-portal-api
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:production}
+    active: ${SPRING_PROFILES_ACTIVE:local}
   main:
     banner-mode: off
 
@@ -72,6 +72,16 @@ app:
   customer-app-base-url: "https://app.walldotbuilders.com"
   # Website base URL — partner password reset emails point here.
   website-base-url: "https://walldotbuilders.com"
+
+# ── OpenAPI / Swagger UI ─────────────────────────────────────────
+# Override per profile: swagger-ui.enabled: true in local/staging, false in production
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui
+    enabled: ${SWAGGER_ENABLED:false}
+  show-actuator: false
 
 # ── Company Info (static — not sensitive) ────────────────────────
 company:

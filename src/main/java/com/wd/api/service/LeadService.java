@@ -85,6 +85,9 @@ public class LeadService {
     @Autowired
     private com.wd.api.repository.BoqItemRepository boqItemRepository;
 
+    @Autowired
+    private PortalNotificationService portalNotificationService;
+
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LeadService.class);
     // Thread-safe ObjectMapper instance for JSON serialization
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -131,6 +134,18 @@ public class LeadService {
         calculateLeadScore(lead);
 
         Lead savedLead = leadRepository.save(lead);
+        try {
+            // Notify all portal users with LEAD_VIEW permission about the new lead
+            portalNotificationService.notifyUsersWithPermission(
+                    "LEAD_VIEW",
+                    "New Lead: " + savedLead.getName(),
+                    "A new lead has been created for " + savedLead.getName() + ".",
+                    "LEAD_NEW",
+                    savedLead.getId()
+            );
+        } catch (Exception e) {
+            logger.warn("Failed to send new lead notifications: {}", e.getMessage());
+        }
         try {
             // Log initial score in history (previous score/category is null for new leads)
             leadScoreHistoryService.logScoreChange(

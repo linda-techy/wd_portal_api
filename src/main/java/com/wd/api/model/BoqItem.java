@@ -1,6 +1,9 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.BoqItemStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -15,6 +18,8 @@ import java.math.RoundingMode;
  * - Optimistic locking via @Version
  * - Audit trail via BaseEntity
  */
+@SQLDelete(sql = "UPDATE boq_items SET deleted_at = NOW() WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "boq_items")
 public class BoqItem extends BaseEntity {
@@ -63,8 +68,9 @@ public class BoqItem extends BaseEntity {
     @Column(name = "billed_quantity", precision = 18, scale = 6, nullable = false)
     private BigDecimal billedQuantity = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String status = "DRAFT";
+    private BoqItemStatus status = BoqItemStatus.DRAFT;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -80,7 +86,7 @@ public class BoqItem extends BaseEntity {
     protected void onCreate() {
         super.onCreate();
         calculateTotalAmount();
-        if (status == null) status = "DRAFT";
+        if (status == null) status = BoqItemStatus.DRAFT;
         if (isActive == null) isActive = true;
         if (executedQuantity == null) executedQuantity = BigDecimal.ZERO;
         if (billedQuantity == null) billedQuantity = BigDecimal.ZERO;
@@ -166,16 +172,16 @@ public class BoqItem extends BaseEntity {
 
     // ---- Status helpers ----
     @Transient
-    public boolean isDraft() { return "DRAFT".equals(status); }
-    
+    public boolean isDraft() { return BoqItemStatus.DRAFT == status; }
+
     @Transient
-    public boolean isApproved() { return "APPROVED".equals(status); }
-    
+    public boolean isApproved() { return BoqItemStatus.APPROVED == status; }
+
     @Transient
-    public boolean isLocked() { return "LOCKED".equals(status); }
-    
+    public boolean isLocked() { return BoqItemStatus.LOCKED == status; }
+
     @Transient
-    public boolean isCompleted() { return "COMPLETED".equals(status); }
+    public boolean isCompleted() { return BoqItemStatus.COMPLETED == status; }
     
     @Transient
     public boolean isEditable() { return isDraft() && !isDeleted(); }
@@ -230,8 +236,8 @@ public class BoqItem extends BaseEntity {
     public BigDecimal getBilledQuantity() { return billedQuantity; }
     public void setBilledQuantity(BigDecimal billedQuantity) { this.billedQuantity = billedQuantity; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public BoqItemStatus getStatus() { return status; }
+    public void setStatus(BoqItemStatus status) { this.status = status; }
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }

@@ -11,12 +11,14 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://46.202.164.251:5432/wdTestDB
-    username: postgres
-    password: Staygether@2025
+    url: ${DB_URL:jdbc:postgresql://46.202.164.251:5432/wdTestDB}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     hikari:
       maximumPoolSize: 5
       minimumIdle: 2
+      connection-timeout: 30000
+      validation-timeout: 10000
   jpa:
     hibernate:
       ddl-auto: update
@@ -28,8 +30,8 @@ spring:
   mail:
     host: smtp.hostinger.com
     port: 465
-    username: info@walldotbuilders.com
-    password: Staygether@2025
+    username: ${MAIL_USERNAME:info@walldotbuilders.com}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -44,7 +46,7 @@ spring:
           writetimeout: 5000
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  secret: ${JWT_SECRET:6c6f63616c2d6465762d6a77742d7365637265742d6b65792d6e6f742d666f72-production-000000000000}
 
 # ── Shared storage (SAME path as customer-api local) ────────────────
 # storageBasePath MUST be root-level (not under file:)
@@ -59,6 +61,10 @@ app:
     email: dev@walldotbuilders.com
   customer-app-base-url: "http://localhost:3000"
   website-base-url: "http://localhost:3000"
+
+springdoc:
+  swagger-ui:
+    enabled: true
 
 logging:
   level:

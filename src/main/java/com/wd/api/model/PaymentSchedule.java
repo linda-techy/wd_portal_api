@@ -1,12 +1,16 @@
 package com.wd.api.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@SQLDelete(sql = "UPDATE payment_schedule SET deleted_at = NOW() WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "payment_schedule")
 public class PaymentSchedule {

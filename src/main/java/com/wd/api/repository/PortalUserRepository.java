@@ -21,6 +21,12 @@ public interface PortalUserRepository extends JpaRepository<PortalUser, Long> {
     @Query("SELECT u FROM PortalUser u WHERE u.role.id = :roleId")
     List<PortalUser> findByRoleId(@Param("roleId") Long roleId);
 
+    // Find all enabled users whose role has a specific permission — used for targeted notifications
+    @Query("SELECT DISTINCT u FROM PortalUser u " +
+            "JOIN u.role r JOIN r.permissions p " +
+            "WHERE p.name = :permissionName AND u.enabled = true")
+    List<PortalUser> findByPermissionName(@Param("permissionName") String permissionName);
+
     @Query("SELECT u FROM PortalUser u WHERE " +
             "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +

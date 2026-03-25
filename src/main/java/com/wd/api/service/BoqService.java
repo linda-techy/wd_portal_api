@@ -2,6 +2,7 @@ package com.wd.api.service;
 
 import com.wd.api.dto.*;
 import com.wd.api.model.*;
+import com.wd.api.model.enums.BoqItemStatus;
 import com.wd.api.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
@@ -66,7 +67,7 @@ public class BoqService {
         item.setUnitRate(request.unitRate());
         item.setSpecifications(request.specifications());
         item.setNotes(request.notes());
-        item.setStatus("DRAFT");
+        item.setStatus(BoqItemStatus.DRAFT);
         item.setIsActive(true);
         item.setExecutedQuantity(BigDecimal.ZERO);
         item.setBilledQuantity(BigDecimal.ZERO);
@@ -191,7 +192,7 @@ public class BoqService {
             throw new IllegalStateException("Item cannot be approved. Current status: " + item.getStatus());
         }
 
-        item.setStatus("APPROVED");
+        item.setStatus(BoqItemStatus.APPROVED);
         item = boqItemRepository.save(item);
 
         auditService.logApprove("BOQ_ITEM", id, item.getProject().getId(), userId);
@@ -206,7 +207,7 @@ public class BoqService {
             throw new IllegalStateException("Only APPROVED items can be locked. Current status: " + item.getStatus());
         }
 
-        item.setStatus("LOCKED");
+        item.setStatus(BoqItemStatus.LOCKED);
         item = boqItemRepository.save(item);
 
         auditService.logLock("BOQ_ITEM", id, item.getProject().getId(), userId);
@@ -222,7 +223,7 @@ public class BoqService {
             throw new IllegalStateException("Item cannot be marked completed. Remaining quantity: " + item.getRemainingQuantity());
         }
 
-        item.setStatus("COMPLETED");
+        item.setStatus(BoqItemStatus.COMPLETED);
         item = boqItemRepository.save(item);
 
         auditService.logUpdate("BOQ_ITEM", id, item.getProject().getId(), userId, null, Map.of("status", "COMPLETED"));

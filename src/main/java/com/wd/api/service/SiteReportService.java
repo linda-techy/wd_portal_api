@@ -32,15 +32,18 @@ public class SiteReportService {
     private final SiteReportPhotoRepository siteReportPhotoRepository;
     private final FileStorageService fileStorageService;
     private final GalleryService galleryService;
+    private final CustomerNotificationFacade customerNotificationFacade;
 
     public SiteReportService(SiteReportRepository siteReportRepository,
             SiteReportPhotoRepository siteReportPhotoRepository,
             FileStorageService fileStorageService,
-            GalleryService galleryService) {
+            GalleryService galleryService,
+            CustomerNotificationFacade customerNotificationFacade) {
         this.siteReportRepository = siteReportRepository;
         this.siteReportPhotoRepository = siteReportPhotoRepository;
         this.fileStorageService = fileStorageService;
         this.galleryService = galleryService;
+        this.customerNotificationFacade = customerNotificationFacade;
     }
 
     @Transactional(readOnly = true)
@@ -156,6 +159,18 @@ public class SiteReportService {
                 logger.error("Failed to sync site report photos to gallery: {}", e.getMessage(), e);
                 // Don't fail the entire operation if gallery sync fails
             }
+        }
+
+        // Notify project customers (CUSTOMER + CUSTOMER_ADMIN) about the new site report
+        if (savedReport.getProject() != null) {
+            String reportTitle = savedReport.getTitle() != null ? savedReport.getTitle() : "Site Report";
+            customerNotificationFacade.notifyOwners(
+                    savedReport.getProject().getId(),
+                    "New Site Report: " + reportTitle,
+                    submittedBy.getFirstName() + " " + submittedBy.getLastName() + " submitted a new site report.",
+                    "SITE_REPORT",
+                    savedReport.getId()
+            );
         }
 
         return savedReport;

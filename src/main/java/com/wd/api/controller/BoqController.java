@@ -24,7 +24,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/boq")
-@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+@PreAuthorize("isAuthenticated()")
 public class BoqController {
 
     private final BoqService boqService;
@@ -105,7 +105,7 @@ public class BoqController {
     // ---- Status Workflow ----
 
     @PatchMapping("/{id}/approve")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority('BOQ_APPROVE')")
     public ResponseEntity<ApiResponse<BoqItemResponse>> approveBoqItem(@PathVariable Long id) {
         try {
             Long userId = getCurrentUserId();
@@ -121,7 +121,7 @@ public class BoqController {
     }
 
     @PatchMapping("/{id}/lock")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority('BOQ_APPROVE')")
     public ResponseEntity<ApiResponse<BoqItemResponse>> lockBoqItem(@PathVariable Long id) {
         try {
             Long userId = getCurrentUserId();
@@ -137,7 +137,7 @@ public class BoqController {
     }
 
     @PatchMapping("/{id}/complete")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority('BOQ_APPROVE')")
     public ResponseEntity<ApiResponse<BoqItemResponse>> markAsCompleted(@PathVariable Long id) {
         try {
             Long userId = getCurrentUserId();
@@ -310,7 +310,7 @@ public class BoqController {
     }
 
     @PostMapping("/{id}/correct-execution")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('BOQ_APPROVE')")
     public ResponseEntity<ApiResponse<BoqItemResponse>> correctExecution(
             @PathVariable Long id,
             @Valid @RequestBody CorrectionRequest request) {

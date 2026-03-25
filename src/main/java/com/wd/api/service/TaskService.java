@@ -54,6 +54,9 @@ public class TaskService {
     @Autowired
     private TaskAuthorizationService authService;
 
+    @Autowired
+    private PortalNotificationService portalNotificationService;
+
     /**
      * NEW: Standardized search method using TaskSearchFilter
      */
@@ -330,6 +333,25 @@ public class TaskService {
 
         // Record in history
         recordAssignment(taskId, previousAssignee, newAssignee, assignedBy, notes);
+
+        // Notify the newly assigned user
+        if (newAssignee != null) {
+            try {
+                String taskTitle = task.getTitle() != null ? task.getTitle() : "a task";
+                String assignerName = assignedBy.getFirstName() + " " + assignedBy.getLastName();
+                portalNotificationService.createAndPush(
+                        newAssignee.getId(),
+                        "Task Assigned: " + taskTitle,
+                        assignerName + " assigned you a task: " + taskTitle,
+                        "TASK_ASSIGNED",
+                        taskId,
+                        task.getProject() != null ? task.getProject().getId() : null,
+                        task.getLead() != null ? task.getLead().getId() : null
+                );
+            } catch (Exception e) {
+                logger.warn("Failed to send task assignment notification for task {}: {}", taskId, e.getMessage());
+            }
+        }
 
         logger.info("Task {} assigned successfully", taskId);
         return updated;

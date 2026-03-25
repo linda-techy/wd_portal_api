@@ -13,7 +13,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // BOQ financial write operations — 10 per minute per user
         registry.addInterceptor(new RateLimitInterceptor(rateLimiterConfig))
                 .addPathPatterns("/api/boq/**");
+
+        // Auth endpoints — brute force protection per IP
+        registry.addInterceptor(new AuthRateLimitInterceptor(rateLimiterConfig))
+                .addPathPatterns("/auth/**", "/api/partnerships/**", "/api/customer/**");
     }
 }

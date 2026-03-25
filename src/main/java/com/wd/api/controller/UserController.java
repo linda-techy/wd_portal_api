@@ -30,7 +30,7 @@ public class UserController {
      * type
      */
     @GetMapping("/team-members")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<TeamMemberDTO>>> getTeamMembers() {
         try {
             List<TeamMemberDTO> teamMembers = new java.util.ArrayList<>();

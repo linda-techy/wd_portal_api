@@ -37,4 +37,8 @@ public interface ObservationRepository extends JpaRepository<Observation, Long>,
     long countResolvedByProjectId(@Param("projectId") Long projectId);
 
     long countByProjectId(Long projectId);
+
+    /** Count all open/in-progress observations across all projects (dashboard KPI). */
+    @Query("SELECT COUNT(o) FROM Observation o WHERE o.status IN ('OPEN', 'IN_PROGRESS')")
+    long countOpenAll();
 }

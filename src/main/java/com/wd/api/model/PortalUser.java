@@ -34,6 +34,9 @@ public class PortalUser extends BaseEntity implements UserDetails {
     @Column(nullable = false)
     private Boolean enabled = true;
 
+    @Column(name = "fcm_token", length = 512)
+    private String fcmToken;
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -89,6 +92,14 @@ public class PortalUser extends BaseEntity implements UserDetails {
 
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getFcmToken() {
+        return fcmToken;
+    }
+
+    public void setFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 
     // UserDetails implementation

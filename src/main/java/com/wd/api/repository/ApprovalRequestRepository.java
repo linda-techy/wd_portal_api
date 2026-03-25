@@ -13,4 +13,9 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
     List<ApprovalRequest> findByRequestedById(Long requestedById);
 
     List<ApprovalRequest> findByTargetTypeAndTargetId(String targetType, Long targetId);
+
+    /** Count all pending approval requests across all projects (dashboard KPI). */
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT COUNT(a) FROM ApprovalRequest a WHERE a.status = 'PENDING'")
+    long countPendingAll();
 }

@@ -18,6 +18,13 @@ public interface PaymentTransactionRepository
 
     Optional<PaymentTransaction> findTopByOrderByIdDesc();
 
+    List<PaymentTransaction> findByProjectInvoiceId(Long projectInvoiceId);
+
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT COALESCE(SUM(t.amount), 0) FROM PaymentTransaction t WHERE t.projectInvoice.id = :invoiceId")
+    java.math.BigDecimal sumAmountByInvoiceId(
+            @org.springframework.data.repository.query.Param("invoiceId") Long invoiceId);
+
     // Database function for safe receipt number generation (fixes race condition)
     @org.springframework.data.jpa.repository.Query(value = "SELECT generate_receipt_number()", nativeQuery = true)
     String generateReceiptNumber();
