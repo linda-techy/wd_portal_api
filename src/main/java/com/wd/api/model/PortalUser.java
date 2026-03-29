@@ -146,6 +146,8 @@ public class PortalUser extends BaseEntity implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return enabled != null ? enabled : false;
+        // Treat NULL as enabled=true (column added after initial data seed;
+        // existing rows may have NULL until the next DB migration runs)
+        return enabled == null || enabled;
     }
 }

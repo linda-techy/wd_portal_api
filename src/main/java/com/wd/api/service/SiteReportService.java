@@ -33,17 +33,20 @@ public class SiteReportService {
     private final FileStorageService fileStorageService;
     private final GalleryService galleryService;
     private final CustomerNotificationFacade customerNotificationFacade;
+    private final WebhookPublisherService webhookPublisherService;
 
     public SiteReportService(SiteReportRepository siteReportRepository,
             SiteReportPhotoRepository siteReportPhotoRepository,
             FileStorageService fileStorageService,
             GalleryService galleryService,
-            CustomerNotificationFacade customerNotificationFacade) {
+            CustomerNotificationFacade customerNotificationFacade,
+            WebhookPublisherService webhookPublisherService) {
         this.siteReportRepository = siteReportRepository;
         this.siteReportPhotoRepository = siteReportPhotoRepository;
         this.fileStorageService = fileStorageService;
         this.galleryService = galleryService;
         this.customerNotificationFacade = customerNotificationFacade;
+        this.webhookPublisherService = webhookPublisherService;
     }
 
     @Transactional(readOnly = true)
@@ -171,6 +174,11 @@ public class SiteReportService {
                     "SITE_REPORT",
                     savedReport.getId()
             );
+            // Webhook: notify Customer API so it can persist the notification in its own store
+            webhookPublisherService.publishSiteReportSubmitted(
+                    savedReport.getProject().getId(),
+                    savedReport.getId(),
+                    reportTitle);
         }
 
         return savedReport;

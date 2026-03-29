@@ -35,6 +35,7 @@ spring:
     out-of-order: true
     baseline-version: 1
     validate-on-migrate: true
+    table: portal_flyway_schema_history   # Prevents collision with Customer API's Flyway history on shared DB
 
   # ── File upload limits ──────────────────────────────────────────
   servlet:
@@ -43,14 +44,28 @@ spring:
       max-file-size: 10MB
       max-request-size: 20MB
 
-  # ── Mail base (auth settings only — credentials in profile YAMLs)
+  # ── Mail (full config here — identical across all environments)
+  # Host: smtp.hostinger.com:465 uses IMPLICIT SSL (not STARTTLS).
+  # starttls.enable MUST be false on port 465 — STARTTLS is for port 587 only.
+  # ssl.trust prevents certificate errors on VPS JVMs that lack the Hostinger CA.
   mail:
+    host: smtp.hostinger.com
+    port: 465
+    username: ${MAIL_USERNAME:info@walldotbuilders.com}
+    # password: override per profile — never hardcoded here
     properties:
       mail:
         smtp:
           auth: true
-          starttls:
+          ssl:
             enable: true
+            trust: smtp.hostinger.com
+          starttls:
+            enable: false
+            required: false
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 # ── JWT base (expiry times — secret in profile YAMLs) ───────────
 jwt:
@@ -68,6 +83,8 @@ task:
 app:
   email:
     enabled: true
+  # Portal app base URL — portal password reset links point here.
+  portal-app-base-url: "https://portal.walldotbuilders.com"
   # Customer app base URL — reset links in password-reset emails point here.
   customer-app-base-url: "https://app.walldotbuilders.com"
   # Website base URL — partner password reset emails point here.
@@ -92,3 +109,9 @@ company:
   website: www.walldotbuilders.com
   gst: ""
   pan: ""
+
+# ── Customer API webhook integration ─────────────────────────────
+# Portal notifies Customer API on key events (site reports, invoices, payments, etc.)
+customer-api:
+  webhook-url: ${CUSTOMER_API_WEBHOOK_URL:http://localhost:8081/internal/portal-events}
+  webhook-secret: ${PORTAL_WEBHOOK_SECRET:}

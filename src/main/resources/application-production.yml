@@ -59,22 +59,9 @@ spring:
     validate-migration-naming: true
 
   mail:
-    host: smtp.hostinger.com
-    port: 465
-    username: ${MAIL_USERNAME:info@walldotbuilders.com}
+    # SSL host/port/properties are in application.yml (base).
+    # MAIL_PASSWORD must be set as an environment variable on the VPS.
     password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          ssl:
-            enable: true
-          starttls:
-            enable: true
-            required: false
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
 
 jwt:
   secret: ${JWT_SECRET}
@@ -90,6 +77,10 @@ app:
     allowed-origins: https://portal.walldotbuilders.com,https://walldotbuilders.com,https://www.walldotbuilders.com
   admin:
     email: info@walldotbuilders.com
+    # Seed credentials for DataInitializer — only used on first boot if no admin user exists.
+    # Override via environment variables ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD for production.
+    seed-email: ${ADMIN_SEED_EMAIL:admin@walldotbuilders.com}
+    seed-password: ${ADMIN_SEED_PASSWORD:Admin@2025}
   # Portal API's own public base URL (e.g. https://api.walldotbuilders.com)
   base-url: ""
 

@@ -4,23 +4,28 @@ import com.wd.api.dto.LoginRequest;
 import com.wd.api.dto.LoginResponse;
 import com.wd.api.dto.RefreshTokenRequest;
 import com.wd.api.dto.RefreshTokenResponse;
+import com.wd.api.model.PortalPasswordResetToken;
 import com.wd.api.model.RefreshToken;
 import com.wd.api.model.PortalUser;
+import com.wd.api.repository.PortalPasswordResetTokenRepository;
 import com.wd.api.repository.RefreshTokenRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.util.TokenHashUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -41,6 +46,18 @@ public class AuthService {
 
     @Autowired
     private PermissionService permissionService;
+
+    @Autowired
+    private PortalPasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Value("${app.portal-app-base-url:http://localhost:3001}")
+    private String portalAppBaseUrl;
 
     public LoginResponse login(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
@@ -173,6 +190,70 @@ public class AuthService {
         token.setRevoked(false);
 
         refreshTokenRepository.save(token);
+    }
+
+    // ── Password Reset ────────────────────────────────────────────────────────
+
+    /**
+     * Initiates the forgot-password flow for a portal user.
+     * Always returns without error — even if email is unknown — to prevent
+     * user enumeration attacks.
+     */
+    @Transactional
+    public void forgotPassword(String email) {
+        portalUserRepository.findByEmail(email.toLowerCase().trim()).ifPresent(user -> {
+            // Invalidate any existing tokens for this email
+            passwordResetTokenRepository.invalidateTokensForEmail(user.getEmail());
+
+            // Generate a raw UUID token (only sent via email, never stored)
+            String rawToken = UUID.randomUUID().toString();
+            String tokenHash = TokenHashUtil.hash(rawToken);
+
+            PortalPasswordResetToken resetToken = new PortalPasswordResetToken();
+            resetToken.setEmail(user.getEmail());
+            resetToken.setTokenHash(tokenHash);
+            resetToken.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+            passwordResetTokenRepository.save(resetToken);
+
+            String resetLink = portalAppBaseUrl + "/reset-password?token=" + rawToken;
+            emailService.sendPortalPasswordResetEmail(user.getEmail(), user.getFirstName(), resetLink);
+
+            logger.info("Password reset email sent (or simulated) for portal user: {}", user.getEmail());
+        });
+        // No logging if email not found — prevents enumeration
+    }
+
+    /**
+     * Validates a password-reset token and updates the user's password.
+     *
+     * @throws IllegalArgumentException if token is invalid, expired, or already used
+     */
+    @Transactional
+    public void resetPassword(String rawToken, String newPassword) {
+        String tokenHash = TokenHashUtil.hash(rawToken);
+
+        PortalPasswordResetToken resetToken = passwordResetTokenRepository
+                .findByTokenHashAndUsedFalse(tokenHash)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Invalid or already-used password reset link. Please request a new one."));
+
+        if (resetToken.isExpired()) {
+            throw new IllegalArgumentException(
+                    "This password reset link has expired. Please request a new one.");
+        }
+
+        PortalUser user = portalUserRepository.findByEmail(resetToken.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("Account not found."));
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        portalUserRepository.save(user);
+
+        // Consume token
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+
+        logger.info("Password successfully reset for portal user: {}", user.getEmail());
     }
 
     /**

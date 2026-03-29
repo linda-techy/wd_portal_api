@@ -8,11 +8,56 @@
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- STEP 1 — Seed 27 portal roles (safe: skips rows whose code already exists)
+-- STEP 0 — Fix constraints: drop name constraint, ensure code constraint exists
 -- -----------------------------------------------------------------------------
+-- Drop the unique constraint on name if it exists (name is just a display value, code is the key)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'portal_roles_name_key' 
+        AND conrelid = 'portal_roles'::regclass
+    ) THEN
+        ALTER TABLE portal_roles DROP CONSTRAINT portal_roles_name_key;
+    END IF;
+END $$;
+
+-- Ensure unique constraint exists on portal_roles.code
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'portal_roles_code_unique' 
+        AND conrelid = 'portal_roles'::regclass
+    ) THEN
+        ALTER TABLE portal_roles ADD CONSTRAINT portal_roles_code_unique UNIQUE (code);
+    END IF;
+END $$;
+
+-- Ensure unique constraint exists on portal_permissions.name
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'portal_permissions_name_unique' 
+        AND conrelid = 'portal_permissions'::regclass
+    ) THEN
+        ALTER TABLE portal_permissions ADD CONSTRAINT portal_permissions_name_unique UNIQUE (name);
+    END IF;
+END $$;
+
+-- Reset sequences BEFORE inserts to prevent conflicts with existing IDs
+SELECT setval('portal_roles_id_seq', COALESCE((SELECT MAX(id) FROM portal_roles), 0) + 1, false);
+SELECT setval('portal_permissions_id_seq', COALESCE((SELECT MAX(id) FROM portal_permissions), 0) + 1, false);
+
+-- -----------------------------------------------------------------------------
+-- STEP 1 — Seed 27 portal roles (idempotent with ON CONFLICT)
+-- -----------------------------------------------------------------------------
+-- Use DO UPDATE SET to handle conflicts on both code and name constraints
+-- If a role with the same code exists, update its name and description
+-- This handles the case where both code and name may have unique constraints
 INSERT INTO portal_roles (name, description, code)
-SELECT v.name, v.description, v.code
-FROM (VALUES
+VALUES
     ('Administrator',               'Full system access — all modules, all actions',                                          'ADMIN'),
     ('Project Manager',             'Manages project lifecycle, team, BOQ, progress and quality',                             'PROJECT_MANAGER'),
     ('Site Engineer',               'On-site technical supervision, site reports, observations, attendance',                  'SITE_ENGINEER'),
@@ -40,10 +85,9 @@ FROM (VALUES
     ('Foreman',                     'Field team management, labour attendance, task execution',                               'FOREMAN'),
     ('MEP Supervisor',              'MEP systems oversight, site reports, QC, task management',                              'MEP_SUPERVISOR'),
     ('Intern / Trainee',            'Read-only access to dashboard, documents and gallery',                                  'INTERN')
-) AS v(name, description, code)
-WHERE NOT EXISTS (
-    SELECT 1 FROM portal_roles pr WHERE pr.code = v.code
-);
+ON CONFLICT (code) DO UPDATE SET
+    name = EXCLUDED.name,
+    description = EXCLUDED.description;
 
 -- -----------------------------------------------------------------------------
 -- STEP 2 — Seed all portal permissions (ON CONFLICT DO NOTHING = idempotent)

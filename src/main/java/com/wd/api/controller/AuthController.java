@@ -116,6 +116,57 @@ public class AuthController {
         }
     }
 
+    // ── Password Reset ────────────────────────────────────────────────────────
+
+    /**
+     * POST /auth/forgot-password
+     * Sends a password-reset email to the given address (if a portal account exists).
+     * Always returns 200 OK — never reveals whether the email exists.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.getOrDefault("email", "").trim();
+        if (email.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
+        }
+        try {
+            authService.forgotPassword(email);
+        } catch (Exception e) {
+            // Swallow all errors — never leak whether the email exists
+            logger.warn("Forgot-password error (suppressed) for email {}: {}", email, e.getMessage());
+        }
+        return ResponseEntity.ok(Map.of(
+                "message", "If that email is registered, a reset link has been sent."));
+    }
+
+    /**
+     * POST /auth/reset-password
+     * Validates the reset token and updates the user's password.
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String token = body.getOrDefault("token", "").trim();
+        String newPassword = body.getOrDefault("newPassword", "");
+
+        if (token.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Reset token is required"));
+        }
+        if (newPassword.length() < 8) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", "Password must be at least 8 characters"));
+        }
+        try {
+            authService.resetPassword(token, newPassword);
+            return ResponseEntity.ok(Map.of("message", "Password has been reset successfully. You can now log in."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Reset password failed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Password reset failed. Please try again."));
+        }
+    }
+
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("Auth controller is working!");

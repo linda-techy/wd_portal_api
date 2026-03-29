@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -430,6 +431,149 @@ public class EmailService {
         } else {
             logEmailSimulation(to, subject, body);
         }
+    }
+
+    // ── Portal Password Reset ─────────────────────────────────────────────────
+
+    /**
+     * Sends an HTML password-reset email to a portal user.
+     *
+     * @param to        Recipient email address
+     * @param name      Recipient first name (for personalisation)
+     * @param resetLink Full URL including token, e.g. https://portal.../reset-password?token=XXX
+     */
+    @Async
+    public void sendPortalPasswordResetEmail(String to, String name, String resetLink) {
+        String subject = "Reset Your Walldot Portal Password";
+        String html = buildPortalPasswordResetHtml(name, resetLink);
+
+        if (emailEnabled && mailSender != null) {
+            try {
+                jakarta.mail.internet.MimeMessage mimeMessage = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+                helper.setFrom(fromEmail, "Walldot Builders Portal");
+                helper.setTo(to);
+                helper.setSubject(subject);
+                helper.setText(html, true); // true = HTML
+
+                mailSender.send(mimeMessage);
+                logger.info("Portal password reset email sent to {}", to);
+            } catch (Exception e) {
+                logger.error("Failed to send portal password reset email to {}", to, e);
+                logEmailSimulation(to, subject, "[HTML email — body omitted]");
+            }
+        } else {
+            logger.info("[EMAIL SIMULATION] Portal password reset link for {}: {}", to, resetLink);
+            logEmailSimulation(to, subject, "[HTML email — body omitted]");
+        }
+    }
+
+    private String buildPortalPasswordResetHtml(String name, String resetLink) {
+        return """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Reset Your Password</title>
+            </head>
+            <body style="margin:0;padding:0;background:#F4F5F7;font-family:'Segoe UI',Arial,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0" style="background:#F4F5F7;padding:40px 0;">
+                <tr>
+                  <td align="center">
+                    <table width="580" cellpadding="0" cellspacing="0"
+                           style="background:#ffffff;border-radius:12px;overflow:hidden;
+                                  box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+
+                      <!-- Header -->
+                      <tr>
+                        <td style="background:linear-gradient(135deg,#E84545,#2A2A3A);
+                                   padding:36px 40px;text-align:center;">
+                          <h1 style="margin:0;color:#ffffff;font-size:24px;
+                                     font-weight:700;letter-spacing:-0.5px;">
+                            Walldot Builders
+                          </h1>
+                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">
+                            Portal Administration
+                          </p>
+                        </td>
+                      </tr>
+
+                      <!-- Body -->
+                      <tr>
+                        <td style="padding:40px 48px;">
+                          <h2 style="margin:0 0 16px;color:#2A2A3A;font-size:22px;font-weight:700;">
+                            Reset Your Password
+                          </h2>
+                          <p style="margin:0 0 12px;color:#555;font-size:15px;line-height:1.6;">
+                            Hi <strong>%s</strong>,
+                          </p>
+                          <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6;">
+                            We received a request to reset the password for your Walldot Builders
+                            portal account. Click the button below to choose a new password.
+                          </p>
+
+                          <!-- CTA Button -->
+                          <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;">
+                            <tr>
+                              <td align="center"
+                                  style="background:#E84545;border-radius:8px;">
+                                <a href="%s"
+                                   style="display:inline-block;padding:14px 36px;
+                                          color:#ffffff;font-size:15px;font-weight:600;
+                                          text-decoration:none;letter-spacing:0.3px;">
+                                  Reset Password
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <!-- Expiry notice -->
+                          <div style="background:#FFF8F0;border:1px solid #FFD9A0;
+                                      border-radius:8px;padding:14px 18px;margin-bottom:24px;">
+                            <p style="margin:0;color:#7A4A00;font-size:13px;line-height:1.5;">
+                              ⏱ <strong>This link expires in 30 minutes.</strong>
+                              If it expires, you can request a new one from the login screen.
+                            </p>
+                          </div>
+
+                          <!-- Fallback link -->
+                          <p style="margin:0 0 8px;color:#888;font-size:13px;">
+                            If the button doesn't work, copy and paste this URL into your browser:
+                          </p>
+                          <p style="margin:0 0 24px;font-size:12px;
+                                    word-break:break-all;color:#E84545;">
+                            %s
+                          </p>
+
+                          <!-- Security notice -->
+                          <div style="border-top:1px solid #EEEEEE;padding-top:20px;">
+                            <p style="margin:0;color:#AAA;font-size:12px;line-height:1.6;">
+                              🔒 If you did not request this password reset, please ignore this
+                              email. Your password will remain unchanged. For security concerns,
+                              contact your system administrator.
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <!-- Footer -->
+                      <tr>
+                        <td style="background:#F8F9FA;padding:20px 48px;
+                                   border-top:1px solid #EEEEEE;text-align:center;">
+                          <p style="margin:0;color:#AAA;font-size:12px;">
+                            © 2025 Walldot Builders LLP · Kerala, India
+                          </p>
+                        </td>
+                      </tr>
+
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+            """.formatted(name, resetLink, resetLink);
     }
 
     /**
