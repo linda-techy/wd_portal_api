@@ -18,7 +18,7 @@ import java.math.RoundingMode;
  * - Optimistic locking via @Version
  * - Audit trail via BaseEntity
  */
-@SQLDelete(sql = "UPDATE boq_items SET deleted_at = NOW() WHERE id = ?")
+@SQLDelete(sql = "UPDATE boq_items SET deleted_at = NOW() WHERE id = ? AND version = ?")
 @Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "boq_items")

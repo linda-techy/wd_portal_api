@@ -7,7 +7,7 @@ import org.hibernate.annotations.Where;
 
 import java.time.LocalDate;
 
-@SQLDelete(sql = "UPDATE tasks SET deleted_at = NOW() WHERE id = ?")
+@SQLDelete(sql = "UPDATE tasks SET deleted_at = NOW() WHERE id = ? AND version = ?")
 @Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "tasks")

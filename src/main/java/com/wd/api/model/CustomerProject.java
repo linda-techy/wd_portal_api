@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-@SQLDelete(sql = "UPDATE customer_projects SET deleted_at = NOW() WHERE id = ?")
+@SQLDelete(sql = "UPDATE customer_projects SET deleted_at = NOW() WHERE id = ? AND version = ?")
 @Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "customer_projects")

@@ -19,7 +19,7 @@ import org.hibernate.type.SqlTypes;
  * - Integrates with Lead Scoring system (COLD, WARM, HOT)
  * - Managed by Portal Users for assignment and conversion
  */
-@SQLDelete(sql = "UPDATE leads SET deleted_at = NOW() WHERE id = ?")
+@SQLDelete(sql = "UPDATE leads SET deleted_at = NOW() WHERE lead_id = ? AND version = ?")
 @Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "leads")

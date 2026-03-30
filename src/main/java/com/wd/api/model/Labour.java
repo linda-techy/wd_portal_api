@@ -8,7 +8,7 @@ import org.hibernate.annotations.Where;
 import lombok.*;
 import java.math.BigDecimal;
 
-@SQLDelete(sql = "UPDATE labour SET deleted_at = NOW() WHERE id = ?")
+@SQLDelete(sql = "UPDATE labour SET deleted_at = NOW() WHERE id = ? AND version = ?")
 @Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "labour")
