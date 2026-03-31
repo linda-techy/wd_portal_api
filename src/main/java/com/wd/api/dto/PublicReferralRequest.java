@@ -51,12 +51,6 @@ public class PublicReferralRequest {
     /** Additional notes from the referrer. */
     private String message;
 
-    /**
-     * Optional password — when provided, a PartnershipUser tracking account is created
-     * so the referrer can log in to see their referral's lead status.
-     */
-    private String accountPassword;
-
     // Getters & setters
     public String getReferralName() { return referralName; }
     public void setReferralName(String referralName) { this.referralName = referralName; }
@@ -94,6 +88,4 @@ public class PublicReferralRequest {
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
 
-    public String getAccountPassword() { return accountPassword; }
-    public void setAccountPassword(String accountPassword) { this.accountPassword = accountPassword; }
 }

@@ -219,31 +219,6 @@ public class PartnershipController {
     }
 
     /**
-     * Get My Inquiry Status (For referred clients only)
-     * GET /api/partnerships/my-inquiry
-     * Returns the referred person's own lead status so they can track their inquiry progress.
-     */
-    @GetMapping("/my-inquiry")
-    public ResponseEntity<?> getMyInquiry(@RequestHeader("Authorization") String authHeader) {
-        try {
-            String token = extractToken(authHeader);
-            if (!jwtService.validateToken(token)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid or expired token"));
-            }
-            String email = jwtService.extractActualSubject(token);
-            var partner = partnershipService.getPartnerByEmail(email);
-            if (partner == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Account not found"));
-            }
-            Map<String, Object> inquiry = partnershipService.getMyInquiry(partner.getId());
-            return ResponseEntity.ok(inquiry);
-        } catch (RuntimeException e) {
-            logger.error("Failed to get my inquiry: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
      * Submit New Referral (Protected Route)
      * POST /api/partnerships/referrals
      * Creates a lead with lead_source = "referral_architect"

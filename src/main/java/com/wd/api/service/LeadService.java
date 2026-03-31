@@ -173,8 +173,13 @@ public class LeadService {
                         "LEAD");
             }
 
-            // Send Welcome Email
-            emailService.sendLeadWelcomeEmail(savedLead);
+            // Send appropriate email — referral leads get a different template
+            // since they didn't contact us directly; they were referred by someone else
+            if ("referral_client".equals(savedLead.getLeadSource())) {
+                emailService.sendReferralLeadNotificationEmail(savedLead);
+            } else {
+                emailService.sendLeadWelcomeEmail(savedLead);
+            }
         } catch (Exception e) {
             // Log but don't fail lead creation if activity/email logging fails
             logger.error("Error in post-creation activities for lead {}: {}", savedLead.getId(), e.getMessage(), e);
@@ -941,8 +946,6 @@ public class LeadService {
     /**
      * Create a lead from a public referral submission (Next.js website or customer app).
      * No authentication required — sets server-side defaults and appends referrer info to notes.
-     * When accountPassword is provided, also creates a PartnershipUser account so the referrer
-     * can log in and track their referral's status.
      */
     @Transactional
     public Lead createLeadFromPublicReferral(com.wd.api.dto.PublicReferralRequest request) {
@@ -966,51 +969,9 @@ public class LeadService {
             lead.setBudget(parsedBudget);
         }
 
-        // Optionally create a PartnershipUser tracking account for the referrer
-        Long partnerAccountId = null;
-        String accountPassword = request.getAccountPassword();
+        // Build notes with referrer attribution
         String yourEmail = request.getYourEmail();
         String yourPhone = request.getYourPhone();
-        if (accountPassword != null && !accountPassword.isBlank()
-                && yourEmail != null && !yourEmail.isBlank()) {
-            try {
-                // Check if account already exists by email OR phone
-                java.util.Optional<com.wd.api.model.PartnershipUser> existingUser = 
-                    partnershipUserRepository.findByEmail(yourEmail);
-                
-                if (existingUser.isPresent()) {
-                    // Account already exists by email
-                    partnerAccountId = existingUser.get().getId();
-                    logger.info("Referral account already exists for email: {}", yourEmail);
-                } else if (yourPhone != null && !yourPhone.isBlank() 
-                           && partnershipUserRepository.existsByPhone(yourPhone)) {
-                    // Account already exists by phone
-                    java.util.Optional<com.wd.api.model.PartnershipUser> byPhone = 
-                        partnershipUserRepository.findByPhone(yourPhone);
-                    if (byPhone.isPresent()) {
-                        partnerAccountId = byPhone.get().getId();
-                        logger.info("Referral account already exists for phone: {}", yourPhone);
-                    }
-                } else {
-                    // Create new partnership user
-                    com.wd.api.model.PartnershipUser partnerUser = new com.wd.api.model.PartnershipUser();
-                    partnerUser.setFullName(request.getYourName());
-                    partnerUser.setEmail(yourEmail);
-                    partnerUser.setPhone(yourPhone != null && !yourPhone.isBlank() ? yourPhone : yourEmail);
-                    partnerUser.setPasswordHash(passwordEncoder.encode(accountPassword));
-                    partnerUser.setPartnershipType("referral_client");
-                    partnerUser.setStatus("active");
-                    com.wd.api.model.PartnershipUser saved = partnershipUserRepository.save(partnerUser);
-                    partnerAccountId = saved.getId();
-                    logger.info("Created referral tracking account for: {} (phone: {})", yourEmail, yourPhone);
-                }
-            } catch (Exception e) {
-                logger.error("Could not create/find referral tracking account: {}", e.getMessage(), e);
-                // Continue with lead creation even if partnership user creation fails
-            }
-        }
-
-        // Build notes with referrer attribution (and partner ID for tracking)
         StringBuilder notes = new StringBuilder();
         if (request.getMessage() != null && !request.getMessage().isBlank()) {
             notes.append(request.getMessage()).append("\n\n");
@@ -1018,42 +979,9 @@ public class LeadService {
         notes.append("Referred by: ").append(request.getYourName());
         if (yourPhone != null && !yourPhone.isBlank()) notes.append(" | ").append(yourPhone);
         if (yourEmail != null && !yourEmail.isBlank()) notes.append(" | ").append(yourEmail);
-        if (partnerAccountId != null) {
-            notes.append("\nPartner ID: ").append(partnerAccountId);
-        }
         lead.setNotes(notes.toString());
 
-        Lead savedLead = createLead(lead);
-
-        // Invite the referred friend to track their inquiry status via the partner portal
-        String referralEmail = request.getReferralEmail();
-        if (referralEmail != null && !referralEmail.isBlank()) {
-            // Check if referral is trying to refer themselves
-            boolean isSelfReferralByEmail = yourEmail != null && 
-                                           referralEmail.trim().equalsIgnoreCase(yourEmail.trim());
-            boolean isSelfReferralByPhone = yourPhone != null && 
-                                           request.getReferralPhone() != null &&
-                                           yourPhone.replaceAll("\\s+", "").equals(
-                                               request.getReferralPhone().replaceAll("\\s+", ""));
-            
-            if (isSelfReferralByEmail || isSelfReferralByPhone) {
-                logger.warn("Self-referral detected: {} (email: {}, phone: {}) - skipping invite creation", 
-                           referralEmail, isSelfReferralByEmail, isSelfReferralByPhone);
-            } else {
-                try {
-                    partnershipService.createAndInviteReferredClient(
-                            request.getReferralName(),
-                            referralEmail,
-                            request.getReferralPhone(),
-                            request.getYourName()
-                    );
-                } catch (Exception e) {
-                    logger.warn("Could not create referred client invite account for {}: {}", referralEmail, e.getMessage());
-                }
-            }
-        }
-
-        return savedLead;
+        return createLead(lead);
     }
 
     public Lead createLeadFromPartnershipReferral(PartnershipReferralRequest request) {

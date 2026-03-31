@@ -349,6 +349,59 @@ public class EmailService {
     }
 
     /**
+     * Sends a notification email to a referred friend when someone submits a referral on their behalf.
+     * Does NOT say "thank you for contacting us" — they didn't initiate contact.
+     * Informs them that Walldot's team will reach out and they should expect a call.
+     */
+    @Async
+    public void sendReferralLeadNotificationEmail(Lead lead) {
+        if (lead.getEmail() == null || lead.getEmail().isEmpty())
+            return;
+
+        String subject = "Walldot Builders Will Be in Touch With You";
+        String body = String.format("""
+                Dear %s,
+
+                Someone who cares about your future home has referred you to Walldot Builders!
+
+                We have received your details for a %s project and our team will reach out to you shortly to understand your requirements and answer any questions you may have.
+
+                There is no obligation — we are happy to have a friendly conversation about your plans.
+
+                If you have any questions in the meantime, feel free to contact us:
+                  Phone: +91 9074 9548 74
+                  Email: hello@walldotbuilders.com
+                  Website: https://walldotbuilders.com
+
+                Looking forward to speaking with you!
+
+                Best regards,
+                The Walldot Builders Team
+                Thrissur, Kerala
+                """,
+                lead.getName(),
+                lead.getProjectType() != null && !lead.getProjectType().isEmpty()
+                        ? lead.getProjectType() : "construction");
+
+        if (emailEnabled && mailSender != null) {
+            try {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(fromEmail);
+                message.setTo(lead.getEmail());
+                message.setSubject(subject);
+                message.setText(body);
+                mailSender.send(message);
+                logger.info("Referral lead notification email sent to {}", lead.getEmail());
+            } catch (Exception e) {
+                logger.error("Failed to send referral lead notification email to {}. Simulation logged.", lead.getEmail(), e);
+                logEmailSimulation(lead.getEmail(), subject, body);
+            }
+        } else {
+            logEmailSimulation(lead.getEmail(), subject, body);
+        }
+    }
+
+    /**
      * Sends an invite email to a person who was referred by someone.
      * They click the setup link to set a password and login to track their inquiry status.
      */
