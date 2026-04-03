@@ -64,6 +64,9 @@ public class SecurityConfig {
                                                 .requestMatchers("/auth/**").permitAll()
                                                 .requestMatchers("/tools/**").permitAll()
 
+                                                // Public brochure download (marketing asset, no auth required)
+                                                .requestMatchers("/api/brochure/**").permitAll()
+
                                                 // Public lead submission endpoints (contact form, client referral,
                                                 // calculators)
                                                 .requestMatchers("/leads/contact").permitAll()

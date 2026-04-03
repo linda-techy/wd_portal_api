@@ -54,7 +54,7 @@ app:
   cors:
     allowed-origins: http://localhost:3000,http://localhost:3001,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002
   admin:
-    email: dev@walldotbuilders.com
+    email: info@walldotbuilders.com
     # Initial admin user seeded by DataInitializer on first startup (if no admin exists).
     # Override here or set as env vars in production.
     seed-email: admin@walldotbuilders.com
