@@ -370,7 +370,7 @@ public class EmailService {
 
                 If you have any questions in the meantime, feel free to contact us:
                   Phone: +91 9074 9548 74
-                  Email: hello@walldotbuilders.com
+                  Email: info@walldotbuilders.com
                   Website: https://walldotbuilders.com
 
                 Looking forward to speaking with you!
