@@ -251,16 +251,22 @@ public class PartnershipService {
 
         long totalReferrals = referrals.size();
         long pendingReferrals = referrals.stream()
-                .filter(l -> "new_inquiry".equals(l.getLeadStatus()) || "contacted".equals(l.getLeadStatus()))
+                .filter(l -> {
+                    String status = normalizeLeadStatus(l.getLeadStatus());
+                    return "new_inquiry".equals(status) || "contacted".equals(status);
+                })
                 .count();
         long qualifiedReferrals = referrals.stream()
-                .filter(l -> "qualified".equals(l.getLeadStatus()) || "proposal_sent".equals(l.getLeadStatus()))
+                .filter(l -> {
+                    String status = normalizeLeadStatus(l.getLeadStatus());
+                    return "qualified".equals(status) || "proposal_sent".equals(status) || "negotiation".equals(status);
+                })
                 .count();
         long convertedReferrals = referrals.stream()
-                .filter(l -> "project_won".equals(l.getLeadStatus()) || "converted".equals(l.getLeadStatus()))
+                .filter(l -> "project_won".equals(normalizeLeadStatus(l.getLeadStatus())))
                 .count();
         long lostReferrals = referrals.stream()
-                .filter(l -> "lost".equals(l.getLeadStatus()))
+                .filter(l -> "lost".equals(normalizeLeadStatus(l.getLeadStatus())))
                 .count();
 
         Map<String, Object> stats = new HashMap<>();
@@ -287,7 +293,7 @@ public class PartnershipService {
             summary.put("clientPhone", lead.getPhone());
             summary.put("clientEmail", lead.getEmail());
             summary.put("projectType", lead.getProjectType());
-            summary.put("status", lead.getLeadStatus());
+            summary.put("status", normalizeLeadStatus(lead.getLeadStatus()));
             summary.put("priority", lead.getPriority());
             summary.put("location", lead.getLocation());
             summary.put("budget", lead.getBudget());
@@ -463,7 +469,7 @@ public class PartnershipService {
         List<Lead> referrals = getReferralsByPartner(partner.getId());
         long totalReferrals = referrals.size();
         long convertedReferrals = referrals.stream()
-                .filter(l -> "project_won".equals(l.getLeadStatus()) || "converted".equals(l.getLeadStatus()))
+                .filter(l -> "project_won".equals(normalizeLeadStatus(l.getLeadStatus())))
                 .count();
 
         Map<String, Object> summary = new HashMap<>();
@@ -482,6 +488,30 @@ public class PartnershipService {
         summary.put("totalReferrals", totalReferrals);
         summary.put("convertedReferrals", convertedReferrals);
         return summary;
+    }
+
+    /**
+     * Normalize legacy lead status variants to canonical values used by dashboards.
+     */
+    private String normalizeLeadStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return "";
+        }
+
+        String cleaned = status.toLowerCase().trim().replaceAll("[\\s_]", "");
+        if ("new".equals(cleaned) || "newinquiry".equals(cleaned)) {
+            return "new_inquiry";
+        }
+        if ("qualified".equals(cleaned) || "qualifiedlead".equals(cleaned)) {
+            return "qualified";
+        }
+        if ("proposalsent".equals(cleaned)) {
+            return "proposal_sent";
+        }
+        if ("projectwon".equals(cleaned) || "won".equals(cleaned) || "converted".equals(cleaned)) {
+            return "project_won";
+        }
+        return status.toLowerCase().trim();
     }
 
     /**

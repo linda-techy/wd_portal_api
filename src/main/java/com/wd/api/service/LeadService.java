@@ -1227,11 +1227,12 @@ public class LeadService {
             com.wd.api.model.PortalUser convertedBy = portalUserRepository.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
 
-            // Validate Status
-            if ("WON".equalsIgnoreCase(lead.getLeadStatus()) || "converted".equalsIgnoreCase(lead.getLeadStatus())) {
+            // Validate Status using normalized values so legacy variants are handled consistently
+            String normalizedStatus = normalizeStatusForComparison(lead.getLeadStatus());
+            if ("won".equals(normalizedStatus)) {
                 throw new IllegalStateException("Lead is already converted to a project");
             }
-            if ("LOST".equalsIgnoreCase(lead.getLeadStatus()) || "lost".equalsIgnoreCase(lead.getLeadStatus())) {
+            if ("lost".equals(normalizedStatus)) {
                 throw new IllegalArgumentException("Cannot convert a lost lead. Please update lead status first.");
             }
 
@@ -1319,10 +1320,11 @@ public class LeadService {
             documentService.migrateLeadDocumentsToProject(lead.getId(), savedProject.getId());
             activityFeedService.linkLeadActivitiesToProject(lead.getId(), savedProject);
 
-            // 6. Finalize Lead
-            lead.setLeadStatus("WON");
+            // 6. Finalize Lead (DB-canonical status)
+            lead.setLeadStatus("project_won");
             lead.setConvertedById(convertedBy.getId());
             lead.setConvertedAt(java.time.LocalDateTime.now());
+            lead.setUpdatedAt(java.time.LocalDateTime.now());
             leadRepository.save(lead);
 
             try {
