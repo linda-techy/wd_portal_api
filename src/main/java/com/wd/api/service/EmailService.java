@@ -65,7 +65,7 @@ public class EmailService {
         return String.format("""
                 Dear %s,
 
-                Welcome to Walldot! Your customer account has been successfully created.
+                Welcome to Walldot Builders! Your customer account has been successfully created.
 
                 Here are your login credentials:
                 Username: %s
@@ -84,11 +84,11 @@ public class EmailService {
         if (lead.getEmail() == null || lead.getEmail().isEmpty())
             return;
 
-        String subject = "Welcome to Walldot - We Received Your Inquiry";
+        String subject = "Welcome to Walldot Builders - We Received Your Inquiry";
         String body = String.format("""
                 Dear %s,
 
-                Thank you for contacting Walldot! We have received your inquiry regarding %s.
+                Thank you for contacting Walldot Builders! We have received your inquiry regarding %s.
 
                 Our team has been assigned and will reach out to you shortly to discuss your requirements.
 
