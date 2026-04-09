@@ -60,7 +60,7 @@ app:
     seed-email: admin@walldotbuilders.com
     seed-password: Admin@2025
   portal-app-base-url: "http://localhost:3001"
-  customer-app-base-url: "http://localhost:3000"
+  customer-app-base-url: "http://localhost:3002"
   website-base-url: "http://localhost:3000"
 
 springdoc:
