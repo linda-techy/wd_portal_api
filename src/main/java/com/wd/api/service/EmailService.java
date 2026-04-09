@@ -119,43 +119,11 @@ public class EmailService {
         }
     }
 
-    @Async
-    public void sendLeadStatusUpdateEmail(Lead lead, String oldStatus, String newStatus) {
-        if (lead.getEmail() == null || lead.getEmail().isEmpty())
-            return;
-
-        String subject = "Update on Your Walldot Project Inquiry";
-        String body = String.format("""
-                Dear %s,
-
-                The status of your inquiry has been updated.
-
-                Previous Status: %s
-                New Status: %s
-
-                We are making progress!
-
-                Best regards,
-                The Walldot Team
-                """, lead.getName(), oldStatus, newStatus);
-
-        if (emailEnabled && mailSender != null) {
-            try {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(fromEmail);
-                message.setTo(lead.getEmail());
-                message.setSubject(subject);
-                message.setText(body);
-                mailSender.send(message);
-                logger.info("Lead status update email sent to {}", lead.getEmail());
-            } catch (Exception e) {
-                logger.error("Failed to send status update to {}. Simulation logged.", lead.getEmail(), e);
-                logEmailSimulation(lead.getEmail(), subject, body);
-            }
-        } else {
-            logEmailSimulation(lead.getEmail(), subject, body);
-        }
-    }
+    // sendLeadStatusUpdateEmail — PERMANENTLY REMOVED (2026-04).
+    // Lead status changes are internal CRM pipeline operations; customers must not
+    // receive status-change emails.  If you need to notify a customer of something
+    // lead-related, add a dedicated, explicitly-named method here and document its
+    // audience clearly.  Do NOT resurrect a generic status-update email.
 
     @Async
     public void sendAdminScoreAlert(Lead lead) {

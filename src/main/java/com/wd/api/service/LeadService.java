@@ -513,8 +513,10 @@ public class LeadService {
                             savedLead.getId(),
                             "LEAD");
 
-                    // Send Status Update Email
-                    emailService.sendLeadStatusUpdateEmail(savedLead, oldStatus, savedLead.getLeadStatus());
+                    // Lead status changes are internal CRM pipeline operations.
+                    // Customers are NOT notified of internal status movements.
+                    logger.info("[EMAIL-SKIP] Lead {} status changed {} → {} — no customer email sent (internal update)",
+                            savedLead.getId(), oldStatus, savedLead.getLeadStatus());
                 }
 
                 // Check if Lead became HOT
