@@ -71,6 +71,7 @@ public class BoqService {
         item.setIsActive(true);
         item.setExecutedQuantity(BigDecimal.ZERO);
         item.setBilledQuantity(BigDecimal.ZERO);
+        item.setItemKind(request.itemKind());
 
         // Link optional relationships
         if (request.categoryId() != null) {
@@ -138,6 +139,7 @@ public class BoqService {
         }
         if (request.specifications() != null) item.setSpecifications(request.specifications());
         if (request.notes() != null) item.setNotes(request.notes());
+        if (request.itemKind() != null) item.setItemKind(request.itemKind());
 
         // Update optional relationships
         if (request.categoryId() != null) {
@@ -218,6 +220,13 @@ public class BoqService {
     public BoqItemResponse markAsCompleted(Long id, Long userId) {
         BoqItem item = findActiveById(id);
 
+        // Only LOCKED items can be completed (must progress through full workflow)
+        if (!item.isLocked()) {
+            throw new IllegalStateException(
+                "Only LOCKED items can be marked completed. Current status: " + item.getStatus() +
+                ". Items must be APPROVED then LOCKED before completing.");
+        }
+
         // Verify execution is complete
         if (item.getRemainingQuantity().compareTo(BigDecimal.ZERO) > 0) {
             throw new IllegalStateException("Item cannot be marked completed. Remaining quantity: " + item.getRemainingQuantity());
@@ -263,6 +272,10 @@ public class BoqService {
     public BoqItemResponse recordBilling(Long id, RecordExecutionRequest request, Long userId) {
         BoqItem item = boqItemRepository.findByIdWithLock(id)
                 .orElseThrow(() -> new IllegalArgumentException("BOQ item not found: " + id));
+
+        if (!item.canExecute()) {
+            throw new IllegalStateException("Item must be APPROVED or LOCKED to record billing. Current status: " + item.getStatus());
+        }
 
         BigDecimal newBilled = item.getBilledQuantity().add(request.quantity());
 
@@ -338,14 +351,15 @@ public class BoqService {
     // ---- Queries ----
 
     @Transactional(readOnly = true)
-    public Page<BoqItem> searchBoqItems(BoqSearchFilter filter) {
+    public Page<BoqItemResponse> searchBoqItems(BoqSearchFilter filter) {
         Specification<BoqItem> spec = buildSpecification(filter);
-        return boqItemRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()));
+        return boqItemRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()))
+                .map(BoqItemResponse::fromEntity);
     }
 
     @Transactional(readOnly = true)
     public List<BoqItemResponse> getProjectBoq(Long projectId) {
-        List<BoqItem> items = boqItemRepository.findByProjectIdAndDeletedAtIsNull(projectId);
+        List<BoqItem> items = boqItemRepository.findByProjectIdWithAssociations(projectId);
         return items.stream()
                 .map(BoqItemResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -359,28 +373,18 @@ public class BoqService {
 
     @Transactional(readOnly = true)
     public BoqFinancialSummary getFinancialSummary(Long projectId) {
-        List<BoqItem> items = boqItemRepository.findByProjectIdAndDeletedAtIsNull(projectId);
         CustomerProject project = customerProjectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
-        int totalItems = items.size();
-        int activeItems = (int) items.stream().filter(i -> i.getIsActive()).count();
-
-        BigDecimal totalPlannedCost = items.stream()
-                .map(BoqItem::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalExecutedCost = items.stream()
-                .map(BoqItem::getTotalExecutedAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalBilledCost = items.stream()
-                .map(BoqItem::getTotalBilledAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalCostToComplete = items.stream()
-                .map(BoqItem::getCostToComplete)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Use SQL aggregation — avoids loading all BOQ entities into memory
+        List<Object[]> totalRows = boqItemRepository.getFinancialTotals(projectId);
+        Object[] totals = (totalRows != null && !totalRows.isEmpty()) ? totalRows.get(0) : new Object[6];
+        long totalItems = totals[0] != null ? ((Number) totals[0]).longValue() : 0L;
+        long activeItems = totals[1] != null ? ((Number) totals[1]).longValue() : 0L;
+        BigDecimal totalPlannedCost  = toBD(totals[2]);
+        BigDecimal totalExecutedCost = toBD(totals[3]);
+        BigDecimal totalBilledCost   = toBD(totals[4]);
+        BigDecimal totalCostToComplete = toBD(totals[5]);
 
         BigDecimal overallExecutionPercentage = totalPlannedCost.compareTo(BigDecimal.ZERO) > 0
                 ? totalExecutedCost.divide(totalPlannedCost, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"))
@@ -390,49 +394,31 @@ public class BoqService {
                 ? totalBilledCost.divide(totalExecutedCost, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"))
                 : BigDecimal.ZERO;
 
-        // Category breakdown
-        List<BoqFinancialSummary.CategoryFinancialBreakdown> categoryBreakdown = items.stream()
-                .filter(i -> i.getCategory() != null)
-                .collect(Collectors.groupingBy(BoqItem::getCategory))
-                .entrySet().stream()
-                .map(e -> {
-                    List<BoqItem> catItems = e.getValue();
-                    return new BoqFinancialSummary.CategoryFinancialBreakdown(
-                            e.getKey().getId(),
-                            e.getKey().getName(),
-                            catItems.size(),
-                            catItems.stream().map(BoqItem::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            catItems.stream().map(BoqItem::getTotalExecutedAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            catItems.stream().map(BoqItem::getTotalBilledAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            catItems.stream().map(BoqItem::getCostToComplete).reduce(BigDecimal.ZERO, BigDecimal::add)
-                    );
-                })
-                .collect(Collectors.toList());
+        List<BoqFinancialSummary.CategoryFinancialBreakdown> categoryBreakdown =
+                boqItemRepository.getFinancialCategoryBreakdown(projectId).stream()
+                        .map(r -> new BoqFinancialSummary.CategoryFinancialBreakdown(
+                                ((Number) r[0]).longValue(),
+                                (String) r[1],
+                                ((Number) r[2]).intValue(),
+                                toBD(r[3]), toBD(r[4]), toBD(r[5]), toBD(r[6])
+                        ))
+                        .collect(Collectors.toList());
 
-        // Work type breakdown
-        List<BoqFinancialSummary.WorkTypeFinancialBreakdown> workTypeBreakdown = items.stream()
-                .filter(i -> i.getWorkType() != null)
-                .collect(Collectors.groupingBy(BoqItem::getWorkType))
-                .entrySet().stream()
-                .map(e -> {
-                    List<BoqItem> wtItems = e.getValue();
-                    return new BoqFinancialSummary.WorkTypeFinancialBreakdown(
-                            e.getKey().getId(),
-                            e.getKey().getName(),
-                            wtItems.size(),
-                            wtItems.stream().map(BoqItem::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            wtItems.stream().map(BoqItem::getTotalExecutedAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            wtItems.stream().map(BoqItem::getTotalBilledAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            wtItems.stream().map(BoqItem::getCostToComplete).reduce(BigDecimal.ZERO, BigDecimal::add)
-                    );
-                })
-                .collect(Collectors.toList());
+        List<BoqFinancialSummary.WorkTypeFinancialBreakdown> workTypeBreakdown =
+                boqItemRepository.getFinancialWorkTypeBreakdown(projectId).stream()
+                        .map(r -> new BoqFinancialSummary.WorkTypeFinancialBreakdown(
+                                ((Number) r[0]).longValue(),
+                                (String) r[1],
+                                ((Number) r[2]).intValue(),
+                                toBD(r[3]), toBD(r[4]), toBD(r[5]), toBD(r[6])
+                        ))
+                        .collect(Collectors.toList());
 
         return new BoqFinancialSummary(
                 projectId,
                 project.getName(),
-                totalItems,
-                activeItems,
+                (int) totalItems,
+                (int) activeItems,
                 totalPlannedCost,
                 totalExecutedCost,
                 totalBilledCost,
@@ -442,6 +428,17 @@ public class BoqService {
                 categoryBreakdown,
                 workTypeBreakdown
         );
+    }
+
+    private static BigDecimal toBD(Object value) {
+        if (value == null) return BigDecimal.ZERO;
+        if (value instanceof BigDecimal bd) return bd;
+        return new BigDecimal(value.toString());
+    }
+
+    @Transactional(readOnly = true)
+    public List<BoqAuditLog> getAuditLog(Long itemId) {
+        return auditService.getAuditLogForItem(itemId);
     }
 
     @Transactional(readOnly = true)
@@ -519,6 +516,15 @@ public class BoqService {
 
             if (filter.getWorkTypeId() != null) {
                 predicates.add(cb.equal(root.get("workType").get("id"), filter.getWorkTypeId()));
+            }
+
+            if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                try {
+                    predicates.add(cb.equal(root.get("status"),
+                            com.wd.api.model.enums.BoqItemStatus.valueOf(filter.getStatus().toUpperCase())));
+                } catch (IllegalArgumentException ignored) {
+                    // Invalid status value — skip filter rather than crash
+                }
             }
 
             if (filter.getItemCode() != null && !filter.getItemCode().isEmpty()) {

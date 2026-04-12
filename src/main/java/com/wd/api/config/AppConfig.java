@@ -1,5 +1,7 @@
 package com.wd.api.config;
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -8,6 +10,15 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class AppConfig {
+
+    @Bean
+    public FilterRegistrationBean<IdempotencyFilter> idempotencyFilter() {
+        FilterRegistrationBean<IdempotencyFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new IdempotencyFilter());
+        registration.addUrlPatterns("/api/boq/*");
+        registration.setOrder(10);
+        return registration;
+    }
     
     // Application-specific constants
     public static final String CONTEXT_PATH = "/api";

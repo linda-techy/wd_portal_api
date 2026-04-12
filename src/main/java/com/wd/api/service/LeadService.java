@@ -86,6 +86,9 @@ public class LeadService {
     private com.wd.api.repository.BoqItemRepository boqItemRepository;
 
     @Autowired
+    private BoqAuditService boqAuditService;
+
+    @Autowired
     private PortalNotificationService portalNotificationService;
 
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LeadService.class);
@@ -1361,9 +1364,14 @@ public class LeadService {
                 boqItem.setDescription(quoteItem.getDescription());
                 boqItem.setQuantity(quoteItem.getQuantity());
                 boqItem.setUnitRate(quoteItem.getUnitPrice());
-                boqItem.setTotalAmount(quoteItem.getTotalPrice());
                 boqItem.setUnit("LS");
-                boqItemRepository.save(boqItem);
+                boqItem = boqItemRepository.save(boqItem);
+
+                try {
+                    boqAuditService.logCreate("BOQ_ITEM", boqItem.getId(), project.getId(), null, boqItem);
+                } catch (Exception e) {
+                    logger.warn("Failed to log audit for migrated BOQ item {}: {}", boqItem.getId(), e.getMessage());
+                }
             }
         }
     }

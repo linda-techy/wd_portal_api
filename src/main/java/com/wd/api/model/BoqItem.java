@@ -81,6 +81,16 @@ public class BoqItem extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /**
+     * Scope classification of this line item.
+     * BASE       — always included in the contract.
+     * ADDON      — charged extra if selected; shown separately to customer.
+     * OPTIONAL   — customer may choose; not included in base total.
+     * EXCLUSION  — explicitly out of scope; listed for transparency only.
+     */
+    @Column(name = "item_kind", nullable = false, length = 20)
+    private String itemKind = "BASE";
+
     @Override
     @PrePersist
     protected void onCreate() {
@@ -187,13 +197,13 @@ public class BoqItem extends BaseEntity {
     public boolean isEditable() { return isDraft() && !isDeleted(); }
     
     @Transient
-    public boolean canApprove() { return isDraft(); }
-    
+    public boolean canApprove() { return isDraft() && !isCompleted(); }
+
     @Transient
-    public boolean canLock() { return isApproved(); }
-    
+    public boolean canLock() { return isApproved() && !isCompleted(); }
+
     @Transient
-    public boolean canExecute() { return isApproved() || isLocked(); }
+    public boolean canExecute() { return (isApproved() || isLocked()) && !isCompleted(); }
 
     // ---- Getters and Setters ----
 
@@ -247,4 +257,7 @@ public class BoqItem extends BaseEntity {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getItemKind() { return itemKind != null ? itemKind : "BASE"; }
+    public void setItemKind(String itemKind) { this.itemKind = itemKind != null ? itemKind : "BASE"; }
 }

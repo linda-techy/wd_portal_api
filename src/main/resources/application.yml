@@ -11,6 +11,11 @@ spring:
   main:
     banner-mode: off
 
+  # ── Jackson (global serialization) ─────────────────────────────
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
   # ── Database (connection details in profile YAMLs) ──────────────
   datasource:
     driver-class-name: org.postgresql.Driver

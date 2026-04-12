@@ -124,13 +124,15 @@ public class SecurityConfig {
 
                 if (!parsedOrigins.isEmpty()) {
                         List<String> allowedOrigins = new ArrayList<>(parsedOrigins);
-                        for (String localhostOrigin : localhostOrigins) {
-                                if (!allowedOrigins.contains(localhostOrigin)) {
-                                        allowedOrigins.add(localhostOrigin);
+                        if (isLocalProfile) {
+                                for (String localhostOrigin : localhostOrigins) {
+                                        if (!allowedOrigins.contains(localhostOrigin)) {
+                                                allowedOrigins.add(localhostOrigin);
+                                        }
                                 }
                         }
                         configuration.setAllowedOrigins(allowedOrigins);
-                        logger.info("CORS: Using configured origins (+localhost dev origins) for profile '{}': {}",
+                        logger.info("CORS: Using configured origins for profile '{}': {}",
                                         activeProfile, allowedOrigins);
                 } else if (isLocalProfile) {
                         // Local/dev fallback only when no explicit origins are configured.
@@ -206,6 +208,7 @@ public class SecurityConfig {
 
         @Bean
         public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
+                // Strength 12 per OWASP 2025 recommendation (default 10 is too weak for modern hardware)
+                return new BCryptPasswordEncoder(12);
         }
 }

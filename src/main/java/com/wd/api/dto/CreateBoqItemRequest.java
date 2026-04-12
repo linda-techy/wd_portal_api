@@ -36,6 +36,9 @@ public record CreateBoqItemRequest(
         String specifications,
 
         @Size(max = 2000, message = "Notes must not exceed 2000 characters")
-        String notes
+        String notes,
+
+        // BASE | ADDON | OPTIONAL | EXCLUSION  (defaults to BASE when null)
+        String itemKind
 ) {
 }

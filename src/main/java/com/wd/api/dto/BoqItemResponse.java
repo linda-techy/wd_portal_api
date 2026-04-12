@@ -38,7 +38,8 @@ public record BoqItemResponse(
         Long createdByUserId,
         String createdByName,
         Long updatedByUserId,
-        String updatedByName
+        String updatedByName,
+        String itemKind
 ) {
 
     public static BoqItemResponse fromEntity(BoqItem item) {
@@ -87,7 +88,8 @@ public record BoqItemResponse(
                 item.getCreatedByUserId(),
                 createdByName,
                 item.getUpdatedByUserId(),
-                updatedByName
+                updatedByName,
+                item.getItemKind()
         );
     }
 }
