@@ -17,4 +17,7 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
     /** Check if a CustomerUser is already a member of a specific project. */
     boolean existsByProject_IdAndCustomerUser_Id(Long projectId, Long customerUserId);
+
+    /** Check if a PortalUser is a member of a specific project. */
+    boolean existsByProject_IdAndPortalUser_Id(Long projectId, Long portalUserId);
 }
