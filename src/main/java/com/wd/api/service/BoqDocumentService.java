@@ -66,6 +66,13 @@ public class BoqDocumentService {
     }
 
     @Transactional(readOnly = true)
+    public BoqDocument getDocument(Long documentId, Long userId) {
+        BoqDocument doc = getDocument(documentId);
+        projectAccessGuard.verifyPortalAccess(userId, doc.getProject().getId());
+        return doc;
+    }
+
+    @Transactional(readOnly = true)
     public BoqDocument getApprovedDocument(Long projectId, Long userId) {
         projectAccessGuard.verifyPortalAccess(userId, projectId);
         return boqDocumentRepository.findApprovedByProjectId(projectId)

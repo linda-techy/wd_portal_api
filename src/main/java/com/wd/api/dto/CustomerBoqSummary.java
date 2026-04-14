@@ -26,7 +26,7 @@ public record CustomerBoqSummary(
         List<CustomerPaymentStageView> paymentStages
 ) {
     public static CustomerBoqSummary from(BoqDocument doc, List<CustomerPaymentStageView> stages) {
-        boolean pending = doc.isPendingApproval() && doc.getCustomerAcknowledgedAt() == null;
+        boolean pending = doc.isApproved() && doc.getCustomerAcknowledgedAt() == null;
         return new CustomerBoqSummary(
                 doc.getId(),
                 doc.getProject().getId(),

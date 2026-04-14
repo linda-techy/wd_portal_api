@@ -63,9 +63,11 @@ public class BoqDocumentController {
     public ResponseEntity<ApiResponse<BoqDocumentResponse>> getDocument(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(ApiResponse.success("OK",
-                    BoqDocumentResponse.from(boqDocumentService.getDocument(id))));
+                    BoqDocumentResponse.from(boqDocumentService.getDocument(id, getCurrentUserId()))));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(403).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to fetch BOQ document {}", id, e);
             return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
@@ -80,6 +82,8 @@ public class BoqDocumentController {
             List<BoqDocumentResponse> docs = boqDocumentService.getProjectDocuments(projectId, getCurrentUserId())
                     .stream().map(BoqDocumentResponse::from).toList();
             return ResponseEntity.ok(ApiResponse.success("OK", docs));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(403).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to fetch BOQ documents for project {}", projectId, e);
             return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
@@ -94,6 +98,8 @@ public class BoqDocumentController {
                     BoqDocumentResponse.from(boqDocumentService.getApprovedDocument(projectId, getCurrentUserId()))));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(403).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to fetch approved BOQ for project {}", projectId, e);
             return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
