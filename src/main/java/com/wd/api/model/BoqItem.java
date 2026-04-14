@@ -1,6 +1,7 @@
 package com.wd.api.model;
 
 import com.wd.api.model.enums.BoqItemStatus;
+import com.wd.api.model.enums.ItemKind;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
@@ -88,8 +89,9 @@ public class BoqItem extends BaseEntity {
      * OPTIONAL   — customer may choose; not included in base total.
      * EXCLUSION  — explicitly out of scope; listed for transparency only.
      */
+    @Enumerated(EnumType.STRING)
     @Column(name = "item_kind", nullable = false, length = 20)
-    private String itemKind = "BASE";
+    private ItemKind itemKind = ItemKind.BASE;
 
     @Override
     @PrePersist
@@ -258,6 +260,6 @@ public class BoqItem extends BaseEntity {
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
 
-    public String getItemKind() { return itemKind != null ? itemKind : "BASE"; }
-    public void setItemKind(String itemKind) { this.itemKind = itemKind != null ? itemKind : "BASE"; }
+    public ItemKind getItemKind() { return itemKind != null ? itemKind : ItemKind.BASE; }
+    public void setItemKind(ItemKind itemKind) { this.itemKind = itemKind != null ? itemKind : ItemKind.BASE; }
 }

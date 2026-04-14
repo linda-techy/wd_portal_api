@@ -89,7 +89,7 @@ public record BoqItemResponse(
                 createdByName,
                 item.getUpdatedByUserId(),
                 updatedByName,
-                item.getItemKind()
+                item.getItemKind() != null ? item.getItemKind().name() : "BASE"
         );
     }
 }
