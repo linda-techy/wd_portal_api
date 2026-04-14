@@ -4,6 +4,8 @@ import com.wd.api.model.*;
 import com.wd.api.model.enums.BoqDocumentStatus;
 import com.wd.api.model.enums.PaymentStageStatus;
 import com.wd.api.repository.*;
+import com.wd.api.repository.CustomerUserRepository;
+import com.wd.api.security.ProjectAccessGuard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,17 +36,23 @@ public class BoqDocumentService {
     private final PaymentStageRepository paymentStageRepository;
     private final CustomerProjectRepository projectRepository;
     private final PortalUserRepository portalUserRepository;
+    private final ProjectAccessGuard projectAccessGuard;
+    private final CustomerUserRepository customerUserRepository;
 
     public BoqDocumentService(BoqDocumentRepository boqDocumentRepository,
                                BoqItemRepository boqItemRepository,
                                PaymentStageRepository paymentStageRepository,
                                CustomerProjectRepository projectRepository,
-                               PortalUserRepository portalUserRepository) {
+                               PortalUserRepository portalUserRepository,
+                               ProjectAccessGuard projectAccessGuard,
+                               CustomerUserRepository customerUserRepository) {
         this.boqDocumentRepository = boqDocumentRepository;
         this.boqItemRepository = boqItemRepository;
         this.paymentStageRepository = paymentStageRepository;
         this.projectRepository = projectRepository;
         this.portalUserRepository = portalUserRepository;
+        this.projectAccessGuard = projectAccessGuard;
+        this.customerUserRepository = customerUserRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -58,13 +66,16 @@ public class BoqDocumentService {
     }
 
     @Transactional(readOnly = true)
-    public BoqDocument getApprovedDocument(Long projectId) {
+    public BoqDocument getApprovedDocument(Long projectId, Long userId) {
+        projectAccessGuard.verifyPortalAccess(userId, projectId);
         return boqDocumentRepository.findApprovedByProjectId(projectId)
-                .orElseThrow(() -> new IllegalStateException("No approved BOQ document found for project " + projectId));
+                .orElseThrow(() -> new IllegalStateException(
+                    "No approved BOQ document found for project " + projectId));
     }
 
     @Transactional(readOnly = true)
-    public List<BoqDocument> getProjectDocuments(Long projectId) {
+    public List<BoqDocument> getProjectDocuments(Long projectId, Long userId) {
+        projectAccessGuard.verifyPortalAccess(userId, projectId);
         return boqDocumentRepository.findActiveByProjectId(projectId);
     }
 
@@ -80,6 +91,8 @@ public class BoqDocumentService {
     public BoqDocument createDocument(Long projectId, BigDecimal gstRate, Long userId) {
         CustomerProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
+
+        projectAccessGuard.verifyPortalAccess(userId, projectId);
 
         if (boqDocumentRepository.existsByProjectIdAndStatus(projectId, BoqDocumentStatus.APPROVED)) {
             throw new IllegalStateException(
@@ -109,6 +122,8 @@ public class BoqDocumentService {
      */
     public BoqDocument submitForApproval(Long documentId, Long userId) {
         BoqDocument doc = getDocument(documentId);
+
+        projectAccessGuard.verifyPortalAccess(userId, doc.getProject().getId());
 
         if (!doc.isDraft()) {
             throw new IllegalStateException("Only a DRAFT BOQ document can be submitted. Current status: " + doc.getStatus());
@@ -145,6 +160,8 @@ public class BoqDocumentService {
     public BoqDocument approveInternally(Long documentId, Long userId) {
         BoqDocument doc = getDocument(documentId);
 
+        projectAccessGuard.verifyPortalAccess(userId, doc.getProject().getId());
+
         if (!doc.isPendingApproval()) {
             throw new IllegalStateException("BOQ must be PENDING_APPROVAL to approve internally. Current: " + doc.getStatus());
         }
@@ -167,32 +184,59 @@ public class BoqDocumentService {
      * Records customer approval and locks the BOQ permanently.
      * Auto-generates PaymentStage records with immutable frozen amounts.
      *
-     * @param stageConfigs  list of (stageName, percentage) pairs summing to 1.0
+     * @param customerSignedById  the customer user who signed the BOQ (required)
+     * @param stageConfigs        list of (stageName, percentage) pairs summing to 1.0
      */
     public BoqDocument recordCustomerApproval(Long documentId,
-                                               Long customerUserId,
+                                               Long portalUserId,
+                                               Long customerSignedById,
                                                List<StageConfig> stageConfigs) {
         BoqDocument doc = getDocument(documentId);
 
+        projectAccessGuard.verifyPortalAccess(portalUserId, doc.getProject().getId());
+
         if (doc.getStatus() != BoqDocumentStatus.PENDING_APPROVAL) {
-            throw new IllegalStateException("BOQ must be PENDING_APPROVAL for customer approval. Current: " + doc.getStatus());
+            throw new IllegalStateException(
+                "BOQ must be PENDING_APPROVAL for customer approval. Current: " + doc.getStatus());
         }
+
+        // Validate customerSignedById
+        if (customerSignedById == null) {
+            throw new IllegalArgumentException("customerSignedById is required");
+        }
+        customerUserRepository.findById(customerSignedById)
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "Customer user not found: " + customerSignedById));
+        // Verify they are a member of the project
+        projectAccessGuard.verifyCustomerAccess(customerSignedById, doc.getProject().getId());
 
         validateStagePercentages(stageConfigs);
 
-        // R-001: lock permanently
         doc.setStatus(BoqDocumentStatus.APPROVED);
         doc.setCustomerApprovedAt(LocalDateTime.now());
-        doc.setCustomerApprovedBy(customerUserId);
+        doc.setCustomerApprovedBy(customerSignedById);   // now always non-null
         BoqDocument saved = boqDocumentRepository.save(doc);
 
-        // R-002: generate immutable payment stages
         generatePaymentStages(saved, stageConfigs);
 
-        logger.info("BOQ document {} approved for project {}. {} payment stages generated.",
-                documentId, doc.getProject().getId(), stageConfigs.size());
+        logger.info("BOQ document {} approved for project {}. Signed by customer user {}. {} payment stages generated.",
+                documentId, doc.getProject().getId(), customerSignedById, stageConfigs.size());
 
         return saved;
+    }
+
+    /**
+     * Records the customer's digital acknowledgement of the BOQ.
+     * Idempotent — safe to call multiple times; overwrites with latest timestamp.
+     * Does not change the document status.
+     */
+    public BoqDocument acknowledgeDocument(Long documentId, Long customerUserId) {
+        BoqDocument doc = getDocument(documentId);
+        projectAccessGuard.verifyCustomerAccess(customerUserId, doc.getProject().getId());
+
+        doc.setCustomerAcknowledgedAt(LocalDateTime.now());
+        doc.setCustomerAcknowledgedBy(customerUserId);
+        return boqDocumentRepository.save(doc);
     }
 
     // -------------------------------------------------------------------------
@@ -201,6 +245,8 @@ public class BoqDocumentService {
 
     public BoqDocument reject(Long documentId, Long rejectorId, String reason) {
         BoqDocument doc = getDocument(documentId);
+
+        projectAccessGuard.verifyPortalAccess(rejectorId, doc.getProject().getId());
 
         if (!doc.isPendingApproval()) {
             throw new IllegalStateException("Only PENDING_APPROVAL BOQ can be rejected. Current: " + doc.getStatus());

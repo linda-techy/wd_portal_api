@@ -18,7 +18,9 @@ public record BoqDocumentResponse(
         LocalDateTime customerApprovedAt,
         LocalDateTime rejectedAt,
         String rejectionReason,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime customerAcknowledgedAt,
+        Long customerAcknowledgedBy
 ) {
     public static BoqDocumentResponse from(BoqDocument d) {
         return new BoqDocumentResponse(
@@ -35,7 +37,9 @@ public record BoqDocumentResponse(
                 d.getCustomerApprovedAt(),
                 d.getRejectedAt(),
                 d.getRejectionReason(),
-                d.getCreatedAt()
+                d.getCreatedAt(),
+                d.getCustomerAcknowledgedAt(),
+                d.getCustomerAcknowledgedBy()
         );
     }
 }

@@ -77,7 +77,7 @@ public class BoqDocumentController {
     public ResponseEntity<ApiResponse<List<BoqDocumentResponse>>> getProjectDocuments(
             @PathVariable Long projectId) {
         try {
-            List<BoqDocumentResponse> docs = boqDocumentService.getProjectDocuments(projectId)
+            List<BoqDocumentResponse> docs = boqDocumentService.getProjectDocuments(projectId, getCurrentUserId())
                     .stream().map(BoqDocumentResponse::from).toList();
             return ResponseEntity.ok(ApiResponse.success("OK", docs));
         } catch (Exception e) {
@@ -91,7 +91,7 @@ public class BoqDocumentController {
     public ResponseEntity<ApiResponse<BoqDocumentResponse>> getApproved(@PathVariable Long projectId) {
         try {
             return ResponseEntity.ok(ApiResponse.success("OK",
-                    BoqDocumentResponse.from(boqDocumentService.getApprovedDocument(projectId))));
+                    BoqDocumentResponse.from(boqDocumentService.getApprovedDocument(projectId, getCurrentUserId()))));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
@@ -144,11 +144,11 @@ public class BoqDocumentController {
             @PathVariable Long id,
             @Valid @RequestBody CustomerApproveBoqRequest request) {
         try {
-            Long userId = getCurrentUserId();
             List<BoqDocumentService.StageConfig> stages = request.stages().stream()
-                    .map(s -> new BoqDocumentService.StageConfig(s.name(), s.percentage()))
+                    .map(s -> new BoqDocumentService.StageConfig(s.name, s.percentage))
                     .toList();
-            BoqDocument doc = boqDocumentService.recordCustomerApproval(id, userId, stages);
+            BoqDocument doc = boqDocumentService.recordCustomerApproval(
+                    id, getCurrentUserId(), request.customerSignedById(), stages);
             return ResponseEntity.ok(ApiResponse.success("BOQ approved. Payment schedule generated.",
                     BoqDocumentResponse.from(doc)));
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -223,14 +223,17 @@ public class BoqDocumentController {
             BigDecimal gstRate
     ) {}
 
-    public record CustomerApproveBoqRequest(
-            @NotNull @Size(min = 1) List<StageConfigDto> stages
-    ) {
-        public record StageConfigDto(
-                @NotBlank String name,
-                @NotNull @DecimalMin("0.001") @DecimalMax("1.0") BigDecimal percentage
-        ) {}
+    public static class StageConfigDto {
+        @NotBlank public String name;
+        @NotNull @DecimalMin("0.001") @DecimalMax("1.0") public BigDecimal percentage;
+        public StageConfigDto() {}
+        public StageConfigDto(String name, BigDecimal percentage) { this.name = name; this.percentage = percentage; }
     }
+
+    public record CustomerApproveBoqRequest(
+            @NotNull(message = "customerSignedById is required") Long customerSignedById,
+            @NotNull @Size(min = 1) List<StageConfigDto> stages
+    ) {}
 
     public record RejectBoqRequest(
             @NotBlank @Size(max = 1000) String reason

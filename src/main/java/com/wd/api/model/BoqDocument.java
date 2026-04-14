@@ -77,6 +77,13 @@ public class BoqDocument extends BaseEntity {
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
+    // Customer digital acknowledgement (optional — set by customer app)
+    @Column(name = "customer_acknowledged_at")
+    private LocalDateTime customerAcknowledgedAt;
+
+    @Column(name = "customer_acknowledged_by")
+    private Long customerAcknowledgedBy;
+
     @Column(name = "revision_number", nullable = false)
     private Integer revisionNumber = 1;
 
@@ -162,4 +169,10 @@ public class BoqDocument extends BaseEntity {
 
     public Integer getRevisionNumber() { return revisionNumber; }
     public void setRevisionNumber(Integer revisionNumber) { this.revisionNumber = revisionNumber; }
+
+    public LocalDateTime getCustomerAcknowledgedAt() { return customerAcknowledgedAt; }
+    public void setCustomerAcknowledgedAt(LocalDateTime customerAcknowledgedAt) { this.customerAcknowledgedAt = customerAcknowledgedAt; }
+
+    public Long getCustomerAcknowledgedBy() { return customerAcknowledgedBy; }
+    public void setCustomerAcknowledgedBy(Long customerAcknowledgedBy) { this.customerAcknowledgedBy = customerAcknowledgedBy; }
 }
