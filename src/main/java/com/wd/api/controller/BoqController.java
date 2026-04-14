@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
@@ -21,6 +23,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.DeferredResult;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -39,12 +42,15 @@ public class BoqController {
     private final BoqService boqService;
     private final BoqCategoryService categoryService;
     private final BoqExportService exportService;
+    private final TaskExecutor taskExecutor;
 
     public BoqController(BoqService boqService, BoqCategoryService categoryService,
-                         BoqExportService exportService) {
+                         BoqExportService exportService,
+                         @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor) {
         this.boqService = boqService;
         this.categoryService = categoryService;
         this.exportService = exportService;
+        this.taskExecutor = taskExecutor;
     }
 
     // ---- CRUD Operations ----
@@ -110,7 +116,8 @@ public class BoqController {
     @PreAuthorize("hasAuthority('BOQ_VIEW')")
     public ResponseEntity<ApiResponse<BoqItemResponse>> getBoqItem(@PathVariable Long id) {
         try {
-            BoqItemResponse response = boqService.getBoqItemById(id);
+            Long userId = getCurrentUserId();
+            BoqItemResponse response = boqService.getBoqItemById(id, userId);
             return ResponseEntity.ok(ApiResponse.success("BOQ item retrieved successfully", response));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(404)
@@ -235,9 +242,17 @@ public class BoqController {
 
     @GetMapping("/project/{projectId}")
     @PreAuthorize("hasAuthority('BOQ_VIEW')")
-    public ResponseEntity<ApiResponse<List<BoqItemResponse>>> getProjectBoq(@PathVariable Long projectId) {
+    public ResponseEntity<ApiResponse<Page<BoqItemResponse>>> getProjectBoq(
+            @PathVariable Long projectId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) Long workTypeId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String status) {
         try {
-            List<BoqItemResponse> items = boqService.getProjectBoq(projectId);
+            Long userId = getCurrentUserId();
+            Page<BoqItemResponse> items = boqService.getProjectBoqPaged(
+                    userId, projectId, page, size, workTypeId, categoryId, status);
             return ResponseEntity.ok(ApiResponse.success("BOQ items retrieved successfully", items));
         } catch (Exception e) {
             logger.error("Failed to fetch BOQ items for project {}", projectId, e);
@@ -250,7 +265,8 @@ public class BoqController {
     @PreAuthorize("hasAuthority('BOQ_VIEW')")
     public ResponseEntity<ApiResponse<BoqFinancialSummary>> getFinancialSummary(@PathVariable Long projectId) {
         try {
-            BoqFinancialSummary summary = boqService.getFinancialSummary(projectId);
+            Long userId = getCurrentUserId();
+            BoqFinancialSummary summary = boqService.getFinancialSummary(userId, projectId);
             return ResponseEntity.ok(ApiResponse.success("Financial summary retrieved successfully", summary));
         } catch (Exception e) {
             logger.error("Failed to fetch financial summary for project {}", projectId, e);
@@ -261,20 +277,33 @@ public class BoqController {
 
     @GetMapping("/project/{projectId}/export")
     @PreAuthorize("hasAuthority('BOQ_EXPORT')")
-    public ResponseEntity<byte[]> exportBoqExcel(@PathVariable Long projectId) {
-        try {
-            byte[] bytes = exportService.generateExcel(projectId);
-            String filename = "boq_project_" + projectId + "_" + LocalDate.now() + ".xlsx";
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.parseMediaType(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-            headers.setContentDisposition(
-                ContentDisposition.attachment().filename(filename).build());
-            return ResponseEntity.ok().headers(headers).body(bytes);
-        } catch (Exception e) {
-            logger.error("Failed to export BOQ for project {}: {}", projectId, e.getMessage(), e);
-            return ResponseEntity.status(500).build();
-        }
+    public DeferredResult<ResponseEntity<byte[]>> exportBoqExcel(@PathVariable Long projectId) {
+        // 90-second timeout — releases the Tomcat thread while the export runs on a worker thread.
+        DeferredResult<ResponseEntity<byte[]>> result = new DeferredResult<>(90_000L);
+        result.onTimeout(() -> {
+            logger.warn("BOQ export timed out for project {}", projectId);
+            result.setErrorResult(ResponseEntity.status(503).build());
+        });
+
+        // Capture userId on the request thread before handing off to worker thread
+        final Long exportUserId = getCurrentUserId();
+        taskExecutor.execute(() -> {
+            try {
+                byte[] bytes = exportService.generateExcel(projectId, exportUserId);
+                String filename = "boq_project_" + projectId + "_" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(
+                    ContentDisposition.attachment().filename(filename).build());
+                result.setResult(ResponseEntity.ok().headers(headers).body(bytes));
+            } catch (Exception e) {
+                logger.error("Failed to export BOQ for project {}: {}", projectId, e.getMessage(), e);
+                result.setErrorResult(ResponseEntity.status(500).build());
+            }
+        });
+
+        return result;
     }
 
     @GetMapping("/work-types")

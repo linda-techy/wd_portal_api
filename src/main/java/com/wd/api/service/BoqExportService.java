@@ -34,9 +34,9 @@ public class BoqExportService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] generateExcel(Long projectId) {
-        List<BoqItemResponse> items = boqService.getProjectBoq(projectId);
-        BoqFinancialSummary summary = boqService.getFinancialSummary(projectId);
+    public byte[] generateExcel(Long projectId, Long userId) {
+        List<BoqItemResponse> items = boqService.getProjectBoq(projectId, userId);
+        BoqFinancialSummary summary = boqService.getFinancialSummary(userId, projectId);
 
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
             buildItemSheet(wb, items);
