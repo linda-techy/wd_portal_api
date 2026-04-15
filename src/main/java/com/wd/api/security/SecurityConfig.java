@@ -84,15 +84,6 @@ public class SecurityConfig {
                                                 // Partnership endpoints (protected - requires ROLE_PARTNER)
                                                 .requestMatchers("/api/partnerships/**").hasRole("PARTNER")
 
-                                                // Customer portal endpoints (public auth)
-                                                .requestMatchers("/api/customer/login").permitAll()
-                                                .requestMatchers("/api/customer/logout").permitAll()
-                                                .requestMatchers("/api/customer/forgot-password").permitAll()
-                                                .requestMatchers("/api/customer/reset-password").permitAll()
-
-                                                // Customer portal endpoints (protected - requires ROLE_CUSTOMER)
-                                                .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
-
                                                 // All other requests require authentication
                                                 .anyRequest().authenticated())
                                 .sessionManagement(session -> session
