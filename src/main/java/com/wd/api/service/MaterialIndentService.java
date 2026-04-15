@@ -98,6 +98,56 @@ public class MaterialIndentService {
         return indentRepository.save(indent);
     }
 
+    @Transactional
+    public MaterialIndent rejectIndent(Long indentId, Long rejectedById, String reason) {
+        MaterialIndent indent = indentRepository.findById(indentId)
+                .orElseThrow(() -> new RuntimeException("Indent not found"));
+
+        if (indent.getStatus() != MaterialIndent.IndentStatus.SUBMITTED) {
+            throw new IllegalStateException("Only SUBMITTED indents can be rejected");
+        }
+
+        indent.setStatus(MaterialIndent.IndentStatus.REJECTED);
+        indent.setApprovedById(rejectedById);
+        indent.setApprovedAt(LocalDateTime.now());
+        indent.setRejectionReason(reason);
+
+        return indentRepository.save(indent);
+    }
+
+    /**
+     * Called when a Purchase Order is raised against this indent.
+     * Moves indent from APPROVED → PO_CREATED so it shows up correctly in tracking.
+     */
+    @Transactional
+    public MaterialIndent markPOCreated(Long indentId) {
+        MaterialIndent indent = indentRepository.findById(indentId)
+                .orElseThrow(() -> new RuntimeException("Indent not found"));
+
+        if (indent.getStatus() != MaterialIndent.IndentStatus.APPROVED) {
+            throw new IllegalStateException("Only APPROVED indents can be moved to PO_CREATED");
+        }
+
+        indent.setStatus(MaterialIndent.IndentStatus.PO_CREATED);
+        return indentRepository.save(indent);
+    }
+
+    /**
+     * Closes an indent once all ordered materials have been received (GRN complete).
+     */
+    @Transactional
+    public MaterialIndent closeIndent(Long indentId) {
+        MaterialIndent indent = indentRepository.findById(indentId)
+                .orElseThrow(() -> new RuntimeException("Indent not found"));
+
+        if (indent.getStatus() != MaterialIndent.IndentStatus.PO_CREATED) {
+            throw new IllegalStateException("Only PO_CREATED indents can be closed");
+        }
+
+        indent.setStatus(MaterialIndent.IndentStatus.CLOSED);
+        return indentRepository.save(indent);
+    }
+
     /**
      * NEW: Standardized search method using MaterialIndentSearchFilter
      */

@@ -64,6 +64,9 @@ public class SecurityConfig {
                                                 .requestMatchers("/auth/**").permitAll()
                                                 .requestMatchers("/tools/**").permitAll()
 
+                                                // Public brochure download (marketing asset, no auth required)
+                                                .requestMatchers("/api/brochure/**").permitAll()
+
                                                 // Public lead submission endpoints (contact form, client referral,
                                                 // calculators)
                                                 .requestMatchers("/leads/contact").permitAll()
@@ -75,6 +78,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/partnerships/login").permitAll()
                                                 .requestMatchers("/api/partnerships/apply").permitAll()
                                                 .requestMatchers("/api/partnerships/logout").permitAll()
+                                                .requestMatchers("/api/partnerships/forgot-password").permitAll()
+                                                .requestMatchers("/api/partnerships/reset-password").permitAll()
 
                                                 // Partnership endpoints (protected - requires ROLE_PARTNER)
                                                 .requestMatchers("/api/partnerships/**").hasRole("PARTNER")
@@ -103,18 +108,22 @@ public class SecurityConfig {
                                 "http://localhost:3001",
                                 "http://127.0.0.1:3001",
                                 "http://localhost:3000",
-                                "http://127.0.0.1:3000");
+                                "http://127.0.0.1:3000",
+                                "http://localhost:3002",
+                                "http://127.0.0.1:3002");
                 boolean isLocalProfile = isLocalLikeProfile(activeProfile);
 
                 if (!parsedOrigins.isEmpty()) {
                         List<String> allowedOrigins = new ArrayList<>(parsedOrigins);
-                        for (String localhostOrigin : localhostOrigins) {
-                                if (!allowedOrigins.contains(localhostOrigin)) {
-                                        allowedOrigins.add(localhostOrigin);
+                        if (isLocalProfile) {
+                                for (String localhostOrigin : localhostOrigins) {
+                                        if (!allowedOrigins.contains(localhostOrigin)) {
+                                                allowedOrigins.add(localhostOrigin);
+                                        }
                                 }
                         }
                         configuration.setAllowedOrigins(allowedOrigins);
-                        logger.info("CORS: Using configured origins (+localhost dev origins) for profile '{}': {}",
+                        logger.info("CORS: Using configured origins for profile '{}': {}",
                                         activeProfile, allowedOrigins);
                 } else if (isLocalProfile) {
                         // Local/dev fallback only when no explicit origins are configured.
@@ -190,6 +199,7 @@ public class SecurityConfig {
 
         @Bean
         public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
+                // Strength 12 per OWASP 2025 recommendation (default 10 is too weak for modern hardware)
+                return new BCryptPasswordEncoder(12);
         }
 }

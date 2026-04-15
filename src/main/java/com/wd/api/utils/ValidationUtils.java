@@ -16,9 +16,9 @@ public class ValidationUtils {
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
-    // SQL injection prevention patterns
-    private static final Pattern SQL_INJECTION_PATTERN = Pattern.compile(
-            "(?i)(union|select|insert|update|delete|drop|create|alter|exec|execute|script|javascript|onerror|onload)");
+    // Password complexity pattern: uppercase + lowercase + digit + special char
+    private static final Pattern PASSWORD_COMPLEXITY = Pattern.compile(
+            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).+$");
 
     /**
      * Validate and sanitize email address
@@ -39,29 +39,20 @@ public class ValidationUtils {
     }
 
     /**
-     * Sanitize string input to prevent SQL injection and XSS
+     * Sanitize string input by trimming and removing control characters.
+     * SQL injection is handled by JPA parameterized queries — blocklist patterns
+     * cause false positives on legitimate words (e.g. "SELECT spreadsheet").
+     * XSS encoding belongs at output time, not input time.
      */
     public static String sanitizeInput(String input) {
         if (input == null) {
             return null;
         }
 
-        String sanitized = input.trim();
-
-        // Check for SQL injection patterns
-        if (SQL_INJECTION_PATTERN.matcher(sanitized).find()) {
-            logger.warn("Potential SQL injection attempt detected: {}", sanitized);
-            throw new IllegalArgumentException("Invalid input detected");
-        }
-
-        // Remove XSS dangerous characters (but allow for legitimate use cases)
-        // This is a basic check - consider using OWASP Java Encoder for production
-        sanitized = sanitized.replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#x27;");
-
-        return sanitized;
+        // Trim and remove null bytes and control characters only
+        return input.trim()
+                .replace("\0", "")
+                .replaceAll("[\u0000-\u001F\u007F-\u009F]", "");
     }
 
     /**
@@ -89,7 +80,8 @@ public class ValidationUtils {
     }
 
     /**
-     * Validate password strength
+     * Validate password strength.
+     * Requires: 12+ chars, uppercase, lowercase, digit, and special character.
      */
     public static void validatePassword(String password) {
         if (password == null || password.trim().isEmpty()) {
@@ -98,19 +90,18 @@ public class ValidationUtils {
 
         String pwd = password.trim();
 
-        if (pwd.length() < 6) {
-            throw new IllegalArgumentException("Password must be at least 6 characters");
+        if (pwd.length() < 12) {
+            throw new IllegalArgumentException("Password must be at least 12 characters");
         }
 
         if (pwd.length() > 128) {
             throw new IllegalArgumentException("Password must not exceed 128 characters");
         }
 
-        // Optional: Add more password strength requirements
-        // - At least one uppercase letter
-        // - At least one lowercase letter
-        // - At least one number
-        // - At least one special character
+        if (!PASSWORD_COMPLEXITY.matcher(pwd).matches()) {
+            throw new IllegalArgumentException(
+                    "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character");
+        }
     }
 
     /**

@@ -28,7 +28,13 @@ public class CacheConfig {
             new ConcurrentMapCache("userProjects"),
             new ConcurrentMapCache("userPermissions"),
             new ConcurrentMapCache("projectMetadata"),
-            new ConcurrentMapCache("commonData")
+            new ConcurrentMapCache("commonData"),
+            // Dashboard caches — evicted every 5 min by clearCaches()
+            new ConcurrentMapCache("dashboardOverview"),
+            new ConcurrentMapCache("dashboardProjects"),
+            new ConcurrentMapCache("dashboardLeads"),
+            new ConcurrentMapCache("dashboardFinance"),
+            new ConcurrentMapCache("dashboardOperations")
         ));
         return cacheManager;
     }

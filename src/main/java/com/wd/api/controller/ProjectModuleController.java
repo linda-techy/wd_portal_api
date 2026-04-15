@@ -10,14 +10,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.security.core.Authentication;
 import com.wd.api.dto.ApiResponse;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/customer-projects/{projectId}")
-@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+@PreAuthorize("isAuthenticated()")
 public class ProjectModuleController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectModuleController.class);
@@ -98,27 +97,4 @@ public class ProjectModuleController {
         }
     }
 
-    /**
-     * Extract user ID from authentication context.
-     * Returns null only if authentication is genuinely unavailable
-     * (e.g., public endpoints). Callers should handle null appropriately.
-     */
-    @SuppressWarnings("unused")
-    private Long getUserIdFromAuth(Authentication auth) {
-        if (auth == null || auth.getPrincipal() == null
-                || "anonymousUser".equals(auth.getPrincipal())) {
-            return null;
-        }
-
-        if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser) {
-            return ((com.wd.api.model.PortalUser) auth.getPrincipal()).getId();
-        }
-
-        try {
-            return Long.parseLong(auth.getName());
-        } catch (NumberFormatException e) {
-            logger.warn("Invalid user ID format in auth principal: {}", auth.getName());
-            return null;
-        }
-    }
 }

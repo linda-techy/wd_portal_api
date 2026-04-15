@@ -22,8 +22,8 @@ public class ProjectAggregationService {
         private final TaskRepository taskRepository;
         private final ActivityFeedService activityFeedService;
         private final DelayLogRepository delayLogRepository;
-        // Finance repositories would be injected here (e.g.,
-        // PaymentTransactionRepository)
+        private final ProjectInvoiceRepository projectInvoiceRepository;
+        private final PaymentScheduleRepository paymentScheduleRepository;
 
         @Transactional(readOnly = true)
         public ProjectSummaryDTO getProjectSummary(Long projectId) {
@@ -61,7 +61,7 @@ public class ProjectAggregationService {
                 int totalTasks = taskRepository.countByProjectId(projectId);
                 int completedTasks = taskRepository.countByProjectIdAndStatus(projectId, "COMPLETED");
                 int overdueTasks = taskRepository.countOverdueByProjectId(projectId, LocalDate.now());
-                int activeDelays = delayLogRepository.findByProjectId(projectId).size();
+                int activeDelays = delayLogRepository.countActiveByProjectId(projectId);
 
                 ProjectSummaryDTO.ProjectExecutionStats stats = ProjectSummaryDTO.ProjectExecutionStats.builder()
                                 .totalTasks(totalTasks)
@@ -70,12 +70,21 @@ public class ProjectAggregationService {
                                 .activeDelays(activeDelays)
                                 .build();
 
-                // 4. Financial Snapshot (Mocked for now until Finance module is fully linked)
+                // 4. Financial Snapshot — real data from ProjectInvoice and PaymentSchedule
+                BigDecimal totalBudget = project.getBudget() != null ? project.getBudget() : BigDecimal.ZERO;
+                BigDecimal totalInvoiced = projectInvoiceRepository.sumByProjectId(projectId);
+                BigDecimal totalPaid = paymentScheduleRepository
+                                .findByDesignPayment_Project_Id(projectId).stream()
+                                .filter(ps -> "PAID".equals(ps.getStatus()))
+                                .map(ps -> ps.getPaidAmount() != null ? ps.getPaidAmount() : BigDecimal.ZERO)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal pendingPayments = totalInvoiced.subtract(totalPaid).max(BigDecimal.ZERO);
+
                 ProjectSummaryDTO.FinancialSnapshot finance = ProjectSummaryDTO.FinancialSnapshot.builder()
-                                .totalBudget(BigDecimal.ZERO)
-                                .totalInvoiced(BigDecimal.ZERO)
-                                .totalPaid(BigDecimal.ZERO)
-                                .pendingPayments(BigDecimal.ZERO)
+                                .totalBudget(totalBudget)
+                                .totalInvoiced(totalInvoiced)
+                                .totalPaid(totalPaid)
+                                .pendingPayments(pendingPayments)
                                 .build();
 
                 // 5. Recent Activity

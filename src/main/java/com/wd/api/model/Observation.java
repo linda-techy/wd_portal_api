@@ -1,5 +1,6 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.ObservationStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -30,8 +31,9 @@ public class Observation {
     @Column(length = 50)
     private String severity;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 50)
-    private String status;
+    private ObservationStatus status;
 
     @Column(name = "image_path", length = 500)
     private String imagePath;
@@ -71,7 +73,7 @@ public class Observation {
             reportedDate = LocalDateTime.now();
         }
         if (status == null) {
-            status = "OPEN";
+            status = ObservationStatus.OPEN;
         }
     }
 
@@ -137,11 +139,11 @@ public class Observation {
         this.severity = severity;
     }
 
-    public String getStatus() {
+    public ObservationStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ObservationStatus status) {
         this.status = status;
     }
 

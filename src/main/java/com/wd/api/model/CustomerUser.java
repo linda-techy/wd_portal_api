@@ -45,6 +45,9 @@ public class CustomerUser {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "fcm_token", length = 512)
+    private String fcmToken;
+
     @Column(nullable = false)
     private Boolean enabled = true;
 
@@ -164,6 +167,14 @@ public class CustomerUser {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getFcmToken() {
+        return fcmToken;
+    }
+
+    public void setFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 
     public Boolean getEnabled() {

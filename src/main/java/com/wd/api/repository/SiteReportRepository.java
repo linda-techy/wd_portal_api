@@ -19,4 +19,9 @@ public interface SiteReportRepository extends JpaRepository<SiteReport, Long>, J
      * Used by customer portal to fetch reports for all customer's projects.
      */
     Page<SiteReport> findByProjectIdIn(List<Long> projectIds, Pageable pageable);
+
+    /** Count all site reports submitted since a given timestamp (for dashboard KPI). */
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT COUNT(sr) FROM SiteReport sr WHERE sr.reportDate >= :fromDate")
+    long countSince(@org.springframework.data.repository.query.Param("fromDate") java.time.LocalDateTime fromDate);
 }

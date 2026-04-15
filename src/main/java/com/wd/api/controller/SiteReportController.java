@@ -11,6 +11,7 @@ import com.wd.api.model.PortalUser;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.SiteVisit;
 import com.wd.api.model.enums.ReportType;
+import com.wd.api.model.enums.SiteReportStatus;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.SiteVisitRepository;
 import com.wd.api.service.SiteReportService;
@@ -27,7 +28,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/site-reports")
-@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+@PreAuthorize("isAuthenticated()")
 public class SiteReportController {
 
     private final SiteReportService siteReportService;
@@ -103,7 +104,7 @@ public class SiteReportController {
         SiteReport report = new SiteReport();
         report.setTitle((String) reportData.get("title"));
         report.setDescription((String) reportData.get("description"));
-        report.setStatus("SUBMITTED");
+        report.setStatus(SiteReportStatus.SUBMITTED);
         report.setSubmittedBy(currentUser);
 
         if (reportData.containsKey("reportType") && reportData.get("reportType") != null) {

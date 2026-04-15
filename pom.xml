@@ -108,10 +108,24 @@
         <artifactId>spring-boot-starter-mail</artifactId>
     </dependency>
 
+    <!-- Rate Limiting -->
+    <dependency>
+        <groupId>com.bucket4j</groupId>
+        <artifactId>bucket4j-core</artifactId>
+        <version>8.10.1</version>
+    </dependency>
+
     <!-- Test Starter -->
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- H2 in-memory database for tests -->
+    <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
         <scope>test</scope>
     </dependency>
 
@@ -148,6 +162,20 @@
         <artifactId>lombok</artifactId>
         <version>1.18.30</version>
         <scope>provided</scope>
+    </dependency>
+
+    <!-- Firebase Admin SDK — push notifications via FCM -->
+    <dependency>
+        <groupId>com.google.firebase</groupId>
+        <artifactId>firebase-admin</artifactId>
+        <version>9.3.0</version>
+    </dependency>
+
+    <!-- OpenAPI / Swagger UI — disabled in production via springdoc.swagger-ui.enabled -->
+    <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>2.3.0</version>
     </dependency>
 </dependencies>
 

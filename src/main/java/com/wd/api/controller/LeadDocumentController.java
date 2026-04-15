@@ -24,7 +24,7 @@ public class LeadDocumentController {
     private DocumentService documentService;
 
     @GetMapping("/{leadId}/documents")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<List<DocumentResponse>>> getDocuments(@PathVariable Long leadId) {
         try {
             List<DocumentResponse> docs = documentService.getDocuments(leadId, "LEAD");
@@ -41,7 +41,7 @@ public class LeadDocumentController {
     }
 
     @PostMapping("/{leadId}/documents")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('DOCUMENT_CREATE')")
     public ResponseEntity<ApiResponse<DocumentResponse>> uploadDocument(
             @PathVariable Long leadId,
             @RequestParam("file") MultipartFile file,
@@ -67,7 +67,7 @@ public class LeadDocumentController {
     }
 
     @DeleteMapping("/documents/{documentId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('DOCUMENT_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteDocument(@PathVariable Long documentId) {
         try {
             documentService.deleteDocument(documentId);
@@ -88,7 +88,7 @@ public class LeadDocumentController {
      * Returns only LEAD-specific and BOTH categories
      */
     @GetMapping("/documents/categories")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto>>> getDocumentCategories() {
         try {
             List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService.getAllCategories("LEAD");

@@ -20,15 +20,18 @@ public class DocumentService {
     private final DocumentCategoryRepository categoryRepository;
     private final PortalUserRepository portalUserRepository;
     private final FileStorageService fileStorageService;
+    private final CustomerNotificationFacade customerNotificationFacade;
 
     public DocumentService(DocumentRepository documentRepository,
             DocumentCategoryRepository categoryRepository,
             PortalUserRepository portalUserRepository,
-            FileStorageService fileStorageService) {
+            FileStorageService fileStorageService,
+            CustomerNotificationFacade customerNotificationFacade) {
         this.documentRepository = documentRepository;
         this.categoryRepository = categoryRepository;
         this.portalUserRepository = portalUserRepository;
         this.fileStorageService = fileStorageService;
+        this.customerNotificationFacade = customerNotificationFacade;
     }
 
     /**
@@ -96,6 +99,18 @@ public class DocumentService {
         document.setIsActive(true);
 
         document = documentRepository.save(document);
+
+        // Notify all project customer members when a document is uploaded to a project
+        if ("PROJECT".equals(document.getReferenceType())) {
+            String fileName = document.getFilename() != null ? document.getFilename() : "a document";
+            customerNotificationFacade.notifyAll(
+                    document.getReferenceId(),
+                    "New Document Added",
+                    "A new document (" + fileName + ") has been added to your project.",
+                    "DOCUMENT",
+                    document.getId()
+            );
+        }
 
         return toResponse(document);
     }

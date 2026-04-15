@@ -25,7 +25,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/site-visits")
-@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+@PreAuthorize("isAuthenticated()")
 public class SiteVisitController {
 
     private final SiteVisitService siteVisitService;
@@ -97,7 +97,7 @@ public class SiteVisitController {
      * GET /api/site-visits/all-active
      */
     @GetMapping("/all-active")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('SITE_REPORT_VIEW')")
     public ResponseEntity<ApiResponse<List<SiteVisitDTO>>> getAllActiveVisits() {
         return ResponseEntity
                 .ok(ApiResponse.success("All active visits retrieved", siteVisitService.getAllActiveVisits()));

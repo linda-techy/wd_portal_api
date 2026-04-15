@@ -43,7 +43,7 @@ public class LeadQuotationController {
      * Get quotation by ID with items
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<?> getQuotationById(@PathVariable Long id) {
         try {
             LeadQuotation quotation = quotationService.getQuotationById(id);
@@ -61,7 +61,7 @@ public class LeadQuotationController {
      * Get all quotations for a lead
      */
     @GetMapping("/lead/{leadId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<List<LeadQuotation>> getQuotationsByLead(@PathVariable Long leadId) {
         try {
             List<LeadQuotation> quotations = quotationService.getQuotationsByLeadId(leadId);
@@ -75,7 +75,7 @@ public class LeadQuotationController {
      * Get quotations by status
      */
     @GetMapping("/status/{status}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<List<LeadQuotation>> getQuotationsByStatus(@PathVariable String status) {
         try {
             List<LeadQuotation> quotations = quotationService.getQuotationsByStatus(status);
@@ -89,7 +89,7 @@ public class LeadQuotationController {
      * Create a new quotation
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
     public ResponseEntity<?> createQuotation(
             @RequestBody LeadQuotation quotation,
             Authentication authentication) {
@@ -110,7 +110,7 @@ public class LeadQuotationController {
      * Update a quotation
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'LEAD_CREATE')")
     public ResponseEntity<?> updateQuotation(
             @PathVariable Long id,
             @RequestBody LeadQuotation quotation) {
@@ -130,7 +130,7 @@ public class LeadQuotationController {
      * Send quotation to lead
      */
     @PostMapping("/{id}/send")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'LEAD_CREATE')")
     public ResponseEntity<?> sendQuotation(@PathVariable Long id) {
         try {
             LeadQuotation sent = quotationService.sendQuotation(id);
@@ -148,7 +148,7 @@ public class LeadQuotationController {
      * Accept quotation
      */
     @PostMapping("/{id}/accept")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'LEAD_CREATE')")
     public ResponseEntity<?> acceptQuotation(@PathVariable Long id) {
         try {
             LeadQuotation accepted = quotationService.acceptQuotation(id);
@@ -163,7 +163,7 @@ public class LeadQuotationController {
      * Reject quotation
      */
     @PostMapping("/{id}/reject")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'LEAD_CREATE')")
     public ResponseEntity<?> rejectQuotation(
             @PathVariable Long id,
             @RequestBody(required = false) Map<String, String> body) {
@@ -181,7 +181,7 @@ public class LeadQuotationController {
      * Delete quotation
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER')")
+    @PreAuthorize("hasAuthority('LEAD_DELETE')")
     public ResponseEntity<?> deleteQuotation(@PathVariable Long id) {
         try {
             quotationService.deleteQuotation(id);
@@ -199,7 +199,7 @@ public class LeadQuotationController {
      * Download quotation PDF for client presentation
      */
     @GetMapping("/{id}/pdf")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<?> downloadQuotationPdf(@PathVariable Long id) {
         try {
             // First verify quotation exists

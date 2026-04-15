@@ -12,4 +12,10 @@ public interface PurchaseOrderRepository
     List<PurchaseOrder> findByProjectId(Long projectId);
 
     List<PurchaseOrder> findByVendorId(Long vendorId);
+
+    /** Total procurement cost across all non-cancelled purchase orders. */
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT COALESCE(SUM(po.totalAmount), 0) FROM PurchaseOrder po " +
+            "WHERE po.status != com.wd.api.model.enums.PurchaseOrderStatus.CANCELLED")
+    java.math.BigDecimal sumTotalProcurementCost();
 }

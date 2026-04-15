@@ -2,9 +2,13 @@ package com.wd.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
 import java.time.LocalDate;
 
+@SQLDelete(sql = "UPDATE tasks SET deleted_at = NOW() WHERE id = ? AND version = ?")
+@Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "tasks")
 public class Task extends BaseEntity {

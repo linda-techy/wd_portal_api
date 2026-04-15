@@ -22,6 +22,7 @@ public class PurchaseOrderService {
     private final PurchaseOrderRepository poRepository;
     private final CustomerProjectRepository projectRepository;
     private final VendorRepository vendorRepository;
+    private final MaterialIndentRepository indentRepository;
 
     @Transactional
     public PurchaseOrder createPurchaseOrder(Long projectId, Long vendorId, PurchaseOrder po) {
@@ -52,7 +53,19 @@ public class PurchaseOrderService {
             po.setPoNumber("PO-" + System.currentTimeMillis());
         }
 
-        return poRepository.save(po);
+        PurchaseOrder saved = poRepository.save(po);
+
+        // Advance the linked indent to PO_CREATED so the indent tracking reflects
+        // that a PO has been raised against it.
+        if (saved.getIndent() != null && saved.getIndent().getId() != null) {
+            MaterialIndent indent = indentRepository.findById(saved.getIndent().getId()).orElse(null);
+            if (indent != null && indent.getStatus() == MaterialIndent.IndentStatus.APPROVED) {
+                indent.setStatus(MaterialIndent.IndentStatus.PO_CREATED);
+                indentRepository.save(indent);
+            }
+        }
+
+        return saved;
     }
 
     private void validateItemBudget(CustomerProject project, PurchaseOrderItem item) {

@@ -4,6 +4,7 @@ import com.wd.api.dto.LabourPaymentDTO;
 import com.wd.api.dto.ProjectInvoiceDTO;
 import com.wd.api.dto.PurchaseInvoiceDTO;
 import com.wd.api.model.*;
+import com.wd.api.model.enums.InvoiceStatus;
 import com.wd.api.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,8 @@ public class FinanceService {
         private final GoodsReceivedNoteRepository grnRepository;
         private final ProjectMilestoneRepository milestoneRepository;
         private final ReceiptRepository receiptRepository;
+        private final PaymentTransactionRepository paymentTransactionRepository;
+        private final CustomerNotificationFacade customerNotificationFacade;
 
         @Transactional
         public ProjectInvoiceDTO createProjectInvoice(ProjectInvoiceDTO dto) {
@@ -51,7 +54,7 @@ public class FinanceService {
                                 .gstPercentage(gstRate)
                                 .gstAmount(gstAmount)
                                 .totalAmount(totalAmount)
-                                .status("ISSUED")
+                                .status(InvoiceStatus.ISSUED)
                                 .notes(dto.getNotes())
                                 .build();
 
@@ -147,7 +150,7 @@ public class FinanceService {
                                 .gstPercentage(inv.getGstPercentage())
                                 .gstAmount(inv.getGstAmount())
                                 .totalAmount(inv.getTotalAmount())
-                                .status(inv.getStatus())
+                                .status(inv.getStatus() != null ? inv.getStatus().name() : null)
                                 .notes(inv.getNotes())
                                 .build();
         }
@@ -199,6 +202,7 @@ public class FinanceService {
                 milestone.setAmount(details.getAmount());
                 milestone.setDueDate(details.getDueDate());
 
+                boolean wasCompleted = "COMPLETED".equals(milestone.getStatus());
                 if (details.getStatus() != null) {
                         milestone.setStatus(details.getStatus());
                         if ("COMPLETED".equals(details.getStatus()) && milestone.getCompletedDate() == null) {
@@ -206,7 +210,21 @@ public class FinanceService {
                         }
                 }
 
-                return milestoneRepository.save(milestone);
+                ProjectMilestone saved = milestoneRepository.save(milestone);
+
+                // Notify all project customer members when a milestone is newly completed
+                if (!wasCompleted && "COMPLETED".equals(saved.getStatus()) && saved.getProject() != null) {
+                        String milestoneName = saved.getName() != null ? saved.getName() : "A milestone";
+                        customerNotificationFacade.notifyAll(
+                                saved.getProject().getId(),
+                                "Milestone Completed",
+                                milestoneName + " has been completed.",
+                                "MILESTONE",
+                                saved.getId()
+                        );
+                }
+
+                return saved;
         }
 
         @Transactional
@@ -214,8 +232,12 @@ public class FinanceService {
                 ProjectMilestone milestone = milestoneRepository.findById(java.util.Objects.requireNonNull(milestoneId))
                                 .orElseThrow(() -> new RuntimeException("Milestone not found"));
 
+                if (!"COMPLETED".equals(milestone.getStatus())) {
+                        throw new IllegalStateException("Invoice can only be generated for a COMPLETED milestone");
+                }
+
                 if (milestone.getInvoice() != null) {
-                        throw new RuntimeException("Invoice already exists for this milestone");
+                        throw new IllegalStateException("Invoice already exists for this milestone");
                 }
 
                 CustomerProject project = milestone.getProject();
@@ -233,7 +255,7 @@ public class FinanceService {
                                 .gstPercentage(gstRate)
                                 .gstAmount(gstAmount)
                                 .totalAmount(totalAmount)
-                                .status("ISSUED")
+                                .status(InvoiceStatus.ISSUED)
                                 .notes("Invoice for milestone: " + milestone.getName())
                                 .build();
 
@@ -273,5 +295,35 @@ public class FinanceService {
 
         public List<Receipt> getReceiptsByProject(Long projectId) {
                 return receiptRepository.findByProjectId(projectId);
+        }
+
+        // ─── Payment Reconciliation ─────────────────────────────────────────────
+
+        @Transactional
+        public ProjectInvoiceDTO reconcilePayment(Long paymentTransactionId, Long projectInvoiceId) {
+                PaymentTransaction transaction = paymentTransactionRepository.findById(paymentTransactionId)
+                                .orElseThrow(() -> new RuntimeException("Payment transaction not found: " + paymentTransactionId));
+
+                ProjectInvoice invoice = projectInvoiceRepository.findById(projectInvoiceId)
+                                .orElseThrow(() -> new RuntimeException("Invoice not found: " + projectInvoiceId));
+
+                if (invoice.getStatus() == InvoiceStatus.CANCELLED) {
+                        throw new IllegalStateException("Cannot reconcile payment against a CANCELLED invoice");
+                }
+                if (invoice.getStatus() == InvoiceStatus.PAID) {
+                        throw new IllegalStateException("Invoice is already PAID");
+                }
+
+                transaction.setProjectInvoice(invoice);
+                paymentTransactionRepository.save(transaction);
+
+                // Sum all payments linked to this invoice
+                BigDecimal totalPaid = paymentTransactionRepository.sumAmountByInvoiceId(projectInvoiceId);
+                if (totalPaid.compareTo(invoice.getTotalAmount()) >= 0) {
+                        invoice.setStatus(InvoiceStatus.PAID);
+                        projectInvoiceRepository.save(invoice);
+                }
+
+                return mapToProjectInvoiceDTO(invoice);
         }
 }

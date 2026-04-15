@@ -6,6 +6,7 @@ import com.wd.api.model.CustomerProject;
 import com.wd.api.model.Observation;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.StaffRole;
+import com.wd.api.model.enums.ObservationStatus;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.ObservationRepository;
 import com.wd.api.repository.StaffRoleRepository;
@@ -143,7 +144,7 @@ public class ObservationService {
         observation.setLocation(location);
         observation.setPriority(priority != null ? priority : "MEDIUM");
         observation.setSeverity(severity != null ? severity : "MEDIUM");
-        observation.setStatus("OPEN");
+        observation.setStatus(ObservationStatus.OPEN);
         observation.setReportedBy(reportedBy);
         observation.setReportedDate(LocalDateTime.now());
 
@@ -182,7 +183,7 @@ public class ObservationService {
         if (severity != null)
             observation.setSeverity(severity);
         if (status != null)
-            observation.setStatus(status);
+            observation.setStatus(ObservationStatus.valueOf(status));
 
         if (image != null && !image.isEmpty()) {
             // Delete old image if exists
@@ -203,7 +204,7 @@ public class ObservationService {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
 
-        observation.setStatus("RESOLVED");
+        observation.setStatus(ObservationStatus.RESOLVED);
         observation.setResolutionNotes(resolutionNotes);
         observation.setResolvedDate(LocalDateTime.now());
         observation.setResolvedBy(resolvedBy);
@@ -219,7 +220,7 @@ public class ObservationService {
         Observation observation = observationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
 
-        observation.setStatus(status);
+        observation.setStatus(ObservationStatus.valueOf(status));
         Observation updatedObservation = observationRepository.save(observation);
         return ObservationDto.fromEntity(updatedObservation);
     }

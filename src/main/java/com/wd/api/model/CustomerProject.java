@@ -1,6 +1,8 @@
 package com.wd.api.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 import com.wd.api.model.enums.ProjectPhase;
 import com.wd.api.model.enums.PermitStatus;
 import com.wd.api.model.enums.ProjectStatus;
@@ -12,6 +14,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+@SQLDelete(sql = "UPDATE customer_projects SET deleted_at = NOW() WHERE id = ? AND version = ?")
+@Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "customer_projects")
 public class CustomerProject extends BaseEntity {

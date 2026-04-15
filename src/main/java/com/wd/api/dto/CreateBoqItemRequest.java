@@ -1,5 +1,6 @@
 package com.wd.api.dto;
 
+import com.wd.api.model.enums.ItemKind;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
@@ -23,11 +24,11 @@ public record CreateBoqItemRequest(
         String unit,
 
         @NotNull(message = "Quantity is required")
-        @DecimalMin(value = "0.0001", message = "Quantity must be greater than 0")
+        @DecimalMin(value = "0.0", message = "Quantity cannot be negative")
         BigDecimal quantity,
 
         @NotNull(message = "Unit rate is required")
-        @DecimalMin(value = "0.01", message = "Unit rate must be greater than 0")
+        @DecimalMin(value = "0.0", message = "Unit rate cannot be negative")
         BigDecimal unitRate,
 
         Long materialId,
@@ -36,6 +37,8 @@ public record CreateBoqItemRequest(
         String specifications,
 
         @Size(max = 2000, message = "Notes must not exceed 2000 characters")
-        String notes
-) {
-}
+        String notes,
+
+        // Defaults to BASE when null
+        ItemKind itemKind
+) {}

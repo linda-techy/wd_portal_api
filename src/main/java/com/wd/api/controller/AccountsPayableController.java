@@ -24,7 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/accounts-payable")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+@PreAuthorize("isAuthenticated()")
 public class AccountsPayableController {
 
     private final VendorPaymentService vendorPaymentService;

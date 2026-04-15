@@ -28,20 +28,20 @@ public class DelayLogController {
     private PortalUserRepository portalUserRepository;
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PROJECT_VIEW')")
     public ResponseEntity<Page<DelayLog>> searchDelayLogs(@ModelAttribute DelayLogSearchFilter filter) {
         return ResponseEntity.ok(delayLogService.searchDelayLogs(filter));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PROJECT_VIEW')")
     @Deprecated
     public ResponseEntity<List<DelayLog>> getDelays(@PathVariable Long projectId) {
         return ResponseEntity.ok(delayLogService.getDelaysByProject(projectId));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<DelayLog> logDelay(
             @PathVariable Long projectId,
             @RequestBody DelayLog delay,
@@ -51,7 +51,7 @@ public class DelayLogController {
     }
 
     @PutMapping("/{id}/close")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<DelayLog> closeDelay(
             @PathVariable Long projectId,
             @PathVariable Long id,
@@ -60,7 +60,7 @@ public class DelayLogController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PROJECT_DELETE')")
     public ResponseEntity<Void> deleteDelay(
             @PathVariable Long projectId,
             @PathVariable Long id) {
@@ -69,7 +69,7 @@ public class DelayLogController {
     }
 
     @GetMapping("/impact")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('PROJECT_VIEW')")
     public ResponseEntity<Map<String, Long>> getImpactAnalysis(@PathVariable Long projectId) {
         return ResponseEntity.ok(delayLogService.getDelayImpactAnalysis(projectId));
     }

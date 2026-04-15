@@ -64,7 +64,7 @@ public class TaskController {
      * Get alert statistics (Dashboard)
      */
     @GetMapping("/alerts/stats")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
     public ResponseEntity<ApiResponse<com.wd.api.service.TaskAlertService.AlertStats>> getAlertStats(
             @RequestParam(defaultValue = "7") int days) {
         try {
@@ -77,7 +77,7 @@ public class TaskController {
     }
 
     @GetMapping("/alerts/recent")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
     public ResponseEntity<ApiResponse<List<com.wd.api.model.TaskAlert>>> getRecentAlerts() {
         try {
             List<com.wd.api.model.TaskAlert> alerts = taskAlertService.getRecentAlerts();
@@ -92,7 +92,7 @@ public class TaskController {
      * NEW: Standardized search endpoint with pagination
      */
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
     public ResponseEntity<Page<Task>> searchTasks(@ModelAttribute TaskSearchFilter filter, Authentication auth) {
         try {
             PortalUser user = getCurrentUser(auth);
@@ -114,7 +114,7 @@ public class TaskController {
      * DEPRECATED: Get all tasks - use /search instead
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
     @Deprecated
     public ResponseEntity<ApiResponse<List<Task>>> getAllTasks(Authentication auth) {
         try {
@@ -140,7 +140,7 @@ public class TaskController {
      * Get task by ID with permission check
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
     public ResponseEntity<ApiResponse<Task>> getTaskById(@PathVariable Long id, Authentication auth) {
         try {
             PortalUser user = getCurrentUser(auth);
@@ -167,7 +167,7 @@ public class TaskController {
      * Get tasks assigned to current user
      */
     @GetMapping("/my-tasks")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
     public ResponseEntity<ApiResponse<List<Task>>> getMyTasks(Authentication auth) {
         try {
             PortalUser user = getCurrentUser(auth);
@@ -183,7 +183,7 @@ public class TaskController {
      * Get tasks by status
      */
     @GetMapping("/by-status/{status}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
     public ResponseEntity<ApiResponse<List<Task>>> getTasksByStatus(@PathVariable String status) {
         try {
             Task.TaskStatus taskStatus = Task.TaskStatus.valueOf(status.toUpperCase());
@@ -201,7 +201,7 @@ public class TaskController {
      * Get tasks by project
      */
     @GetMapping("/by-project/{projectId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
     public ResponseEntity<ApiResponse<List<Task>>> getTasksByProject(@PathVariable Long projectId) {
         try {
             return ResponseEntity
@@ -216,7 +216,7 @@ public class TaskController {
      * Get tasks for a specific lead
      */
     @GetMapping("/by-lead/{leadId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
     public ResponseEntity<ApiResponse<List<Task>>> getTasksByLead(@PathVariable Long leadId) {
         try {
             logger.info("Fetching tasks for lead ID: {}", leadId);
@@ -235,7 +235,7 @@ public class TaskController {
      * Get assignment history for a task
      */
     @GetMapping("/{id}/assignment-history")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
     public ResponseEntity<ApiResponse<List<TaskAssignmentHistory>>> getAssignmentHistory(
             @PathVariable Long id, Authentication auth) {
         try {
@@ -265,7 +265,7 @@ public class TaskController {
      * - Business rule: due_date must be >= task creation date
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // ✅ Changed from ADMIN-only
+    @PreAuthorize("hasAnyAuthority('TASK_CREATE', 'TASK_EDIT')")
     public ResponseEntity<ApiResponse<Task>> createTask(@jakarta.validation.Valid @RequestBody Task task,
             Authentication auth) {
         try {
@@ -296,7 +296,7 @@ public class TaskController {
      * Update task with RBAC enforcement
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('TASK_EDIT', 'TASK_CREATE')")
     public ResponseEntity<ApiResponse<Task>> updateTask(
             @PathVariable Long id,
             @RequestBody Task task,
@@ -329,7 +329,7 @@ public class TaskController {
      * Assignment history is automatically recorded
      */
     @PutMapping("/{id}/assign")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // ✅ Changed from ADMIN-only
+    @PreAuthorize("hasAnyAuthority('TASK_EDIT', 'TASK_CREATE')")
     public ResponseEntity<ApiResponse<Task>> assignTask(
             @PathVariable Long id,
             @RequestBody Map<String, Object> request,
@@ -366,7 +366,7 @@ public class TaskController {
      * Delete task with RBAC enforcement
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // ✅ Changed from ADMIN-only
+    @PreAuthorize("hasAuthority('TASK_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id, Authentication auth) {
         try {
             PortalUser user = getCurrentUser(auth);

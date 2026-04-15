@@ -2,14 +2,22 @@ package com.wd.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wd.api.model.CustomerProject;
+import com.wd.api.model.CustomerUser;
+import com.wd.api.model.PortalUser;
+import com.wd.api.model.ProjectMember;
+import org.hibernate.Hibernate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class CustomerProjectResponse {
     private Long id;
     private String name;
     private String location;
+
+    @JsonProperty("project_uuid")
+    private UUID projectUuid;
 
     @JsonProperty("start_date")
     private LocalDate startDate;
@@ -69,7 +77,7 @@ public class CustomerProjectResponse {
         this.createdAt = project.getCreatedAt();
         this.updatedAt = project.getUpdatedAt();
 
-        if (project.getCreatedByUser() != null) {
+        if (Hibernate.isInitialized(project.getCreatedByUser()) && project.getCreatedByUser() != null) {
             this.createdBy = project.getCreatedByUser().getFirstName() + " " + project.getCreatedByUser().getLastName();
         } else if (project.getCreatedByUserId() != null) {
             this.createdBy = "User ID: " + project.getCreatedByUserId();
@@ -86,30 +94,43 @@ public class CustomerProjectResponse {
         this.isDesignAgreementSigned = project.getIsDesignAgreementSigned();
         this.latitude = project.getLatitude();
         this.longitude = project.getLongitude();
+        this.projectUuid = project.getProjectUuid();
 
-        if (project.getProjectMembers() != null && !project.getProjectMembers().isEmpty()) {
+        if (Hibernate.isInitialized(project.getProjectMembers()) && project.getProjectMembers() != null
+                && !project.getProjectMembers().isEmpty()) {
             this.teamMembers = project.getProjectMembers().stream()
-                    .map(pm -> {
-                        if (pm.getPortalUser() != null) {
-                            return new TeamMemberDTO(
-                                    pm.getPortalUser().getId(),
-                                    pm.getPortalUser().getFirstName(),
-                                    pm.getPortalUser().getLastName(),
-                                    pm.getPortalUser().getEmail(),
-                                    "PORTAL");
-                        } else if (pm.getCustomerUser() != null) {
-                            return new TeamMemberDTO(
-                                    pm.getCustomerUser().getId(),
-                                    pm.getCustomerUser().getFirstName(),
-                                    pm.getCustomerUser().getLastName(),
-                                    pm.getCustomerUser().getEmail(),
-                                    "CUSTOMER");
-                        }
-                        return null;
-                    })
+                    .map(this::toTeamMemberDtoSafe)
                     .filter(java.util.Objects::nonNull)
                     .collect(java.util.stream.Collectors.toList());
         }
+    }
+
+    private TeamMemberDTO toTeamMemberDtoSafe(ProjectMember projectMember) {
+        if (projectMember == null) {
+            return null;
+        }
+
+        PortalUser portalUser = projectMember.getPortalUser();
+        if (portalUser != null && Hibernate.isInitialized(portalUser)) {
+            return new TeamMemberDTO(
+                    portalUser.getId(),
+                    portalUser.getFirstName(),
+                    portalUser.getLastName(),
+                    portalUser.getEmail(),
+                    "PORTAL");
+        }
+
+        CustomerUser customerUser = projectMember.getCustomerUser();
+        if (customerUser != null && Hibernate.isInitialized(customerUser)) {
+            return new TeamMemberDTO(
+                    customerUser.getId(),
+                    customerUser.getFirstName(),
+                    customerUser.getLastName(),
+                    customerUser.getEmail(),
+                    "CUSTOMER");
+        }
+
+        return null;
     }
 
     // Getters and Setters
@@ -279,6 +300,14 @@ public class CustomerProjectResponse {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public UUID getProjectUuid() {
+        return projectUuid;
+    }
+
+    public void setProjectUuid(UUID projectUuid) {
+        this.projectUuid = projectUuid;
     }
 
 }

@@ -17,22 +17,32 @@ spring:
     hikari:
       maximumPoolSize: 5
       minimumIdle: 2
+      connection-timeout: 30000
+      validation-timeout: 10000
   jpa:
     hibernate:
-      ddl-auto: update
+      # none — Flyway manages all schema changes (see flyway config above).
+      # ddl-auto: update was disabled because a PostgreSQL trigger on leads.budget
+      # caused Hibernate to generate invalid DDL during schema reconciliation.
+      ddl-auto: none
     show-sql: true
 
   flyway:
+    # Local dev: Flyway enabled so new migrations are applied to the shared test DB.
+    # baseline-version: 10 — tells Flyway to assume V1–V10 are already applied
+    # (the shared test DB was bootstrapped manually before Flyway was introduced here).
+    # On first run, Flyway creates portal_flyway_schema_history, baselines at V10,
+    # and then runs V11+ to bring the DB up to date.
     enabled: true
+    baseline-version: 10
 
   mail:
-    host: smtp.hostinger.com
-    port: 465
-    username: info@walldotbuilders.com
-    password: Staygether@2025
+    # SSL host/port/properties are in application.yml (base).
+    # Only the password is local-specific. Default allows local dev without env vars.
+    password: ${MAIL_PASSWORD:Wall.builders2018}
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  secret: ${JWT_SECRET:6c6f63616c2d6465762d6a77742d7365637265742d6b65792d6e6f742d666f72-production-000000000000}
 
 # ── Shared storage (SAME path as customer-api local) ────────────────
 # storageBasePath MUST be root-level (not under file:)
@@ -42,9 +52,20 @@ storageBasePath: "N:\\Projects\\wd projects git\\storage"
 
 app:
   cors:
-    allowed-origins: http://localhost:3001,http://127.0.0.1:3001,http://localhost:3000
+    allowed-origins: http://localhost:3000,http://localhost:3001,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002
   admin:
-    email: dev@walldotbuilders.com
+    email: info@walldotbuilders.com
+    # Initial admin user seeded by DataInitializer on first startup (if no admin exists).
+    # Override here or set as env vars in production.
+    seed-email: admin@walldotbuilders.com
+    seed-password: Admin@2025
+  portal-app-base-url: "http://localhost:3001"
+  customer-app-base-url: "http://localhost:3002"
+  website-base-url: "http://localhost:3000"
+
+springdoc:
+  swagger-ui:
+    enabled: true
 
 logging:
   level:

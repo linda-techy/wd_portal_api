@@ -7,6 +7,8 @@ import com.wd.api.dto.CustomerProjectUpdateRequest;
 import com.wd.api.dto.ProjectProgressDTO;
 import com.wd.api.dto.ProjectTypeTemplateDTO;
 import com.wd.api.dto.ProjectSearchFilter;
+import com.wd.api.dto.ProjectMemberRequest;
+import com.wd.api.dto.ProjectMemberResponse;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.ProjectProgressLog;
 import com.wd.api.service.CustomerProjectService;
@@ -115,7 +117,7 @@ public class CustomerProjectController {
      * Create customer project
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_CREATE', 'PROJECT_EDIT')")
     public ResponseEntity<ApiResponse<CustomerProjectResponse>> createCustomerProject(
             @RequestBody CustomerProjectCreateRequest request) {
         try {
@@ -139,7 +141,7 @@ public class CustomerProjectController {
      * Update customer project
     */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<ApiResponse<CustomerProjectResponse>> updateCustomerProject(@PathVariable Long id,
             @RequestBody CustomerProjectUpdateRequest request) {
         try {
@@ -160,7 +162,7 @@ public class CustomerProjectController {
      * Delete customer project
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PROJECT_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteCustomerProject(@PathVariable Long id) {
         try {
             customerProjectService.deleteProject(id);
@@ -323,6 +325,46 @@ public class CustomerProjectController {
             logger.error("Error creating milestones from template for project ID: {}", id, e);
             return ResponseEntity.status(500)
                     .body(ApiResponse.error("Error creating milestones: " + e.getMessage()));
+        }
+    }
+
+    // ==================== Project Member Management ====================
+
+    @GetMapping("/{id}/members")
+    @PreAuthorize("hasAuthority('PROJECT_VIEW')")
+    public ResponseEntity<ApiResponse<List<ProjectMemberResponse>>> getProjectMembers(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Project members retrieved successfully", customerProjectService.getProjectMembers(id)));
+        } catch (Exception e) {
+            logger.error("Error fetching members for project {}: {}", id, e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponse.error("Error fetching members: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/members")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
+    public ResponseEntity<ApiResponse<ProjectMemberResponse>> addProjectMember(
+            @PathVariable Long id, @RequestBody ProjectMemberRequest request) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Project member added successfully", customerProjectService.addProjectMember(id, request)));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error adding member to project {}: {}", id, e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponse.error("Error adding member: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}/members/{membershipId}")
+    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_DELETE')")
+    public ResponseEntity<ApiResponse<String>> removeProjectMember(
+            @PathVariable Long id, @PathVariable Long membershipId) {
+        try {
+            customerProjectService.removeProjectMember(id, membershipId);
+            return ResponseEntity.ok(ApiResponse.success("Member removed successfully"));
+        } catch (Exception e) {
+            logger.error("Error removing member {} from project {}: {}", membershipId, id, e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponse.error("Error removing member: " + e.getMessage()));
         }
     }
 

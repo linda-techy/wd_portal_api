@@ -37,7 +37,7 @@ public class FileDownloadController {
      * GET /api/files/download/site-reports/10/file.png (legacy path)
      */
     @GetMapping({"/api/storage/**", "/api/files/download/**"})
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('DOCUMENT_VIEW')")
     public ResponseEntity<Resource> serveFile(HttpServletRequest request,
             @RequestParam(required = false) String download,
             @RequestHeader(value = "Range", required = false) String rangeHeader) {

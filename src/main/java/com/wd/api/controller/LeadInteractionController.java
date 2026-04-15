@@ -29,7 +29,7 @@ public class LeadInteractionController {
     private com.wd.api.repository.PortalUserRepository portalUserRepository;
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<Page<LeadInteraction>> searchLeadInteractions(@ModelAttribute LeadInteractionSearchFilter filter) {
         return ResponseEntity.ok(interactionService.searchLeadInteractions(filter));
     }
@@ -38,7 +38,7 @@ public class LeadInteractionController {
      * Get all interactions for a lead
      */
     @GetMapping("/lead/{leadId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<List<LeadInteraction>> getInteractionsByLead(@PathVariable Long leadId) {
         try {
             List<LeadInteraction> interactions = interactionService.getInteractionsByLeadId(leadId);
@@ -52,7 +52,7 @@ public class LeadInteractionController {
      * Get upcoming actions
      */
     @GetMapping("/upcoming")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<List<LeadInteraction>> getUpcomingActions(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
@@ -68,7 +68,7 @@ public class LeadInteractionController {
      * Get overdue actions
      */
     @GetMapping("/overdue")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<List<LeadInteraction>> getOverdueActions() {
         try {
             List<LeadInteraction> interactions = interactionService.getOverdueActions();
@@ -82,7 +82,7 @@ public class LeadInteractionController {
      * Get interaction statistics for a lead
      */
     @GetMapping("/lead/{leadId}/stats")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<Map<String, Object>> getInteractionStats(@PathVariable Long leadId) {
         try {
             Map<String, Object> stats = interactionService.getInteractionStats(leadId);
@@ -96,7 +96,7 @@ public class LeadInteractionController {
      * Create a new interaction
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
     public ResponseEntity<?> createInteraction(
             @RequestBody LeadInteraction interaction,
             Authentication authentication) {
@@ -120,7 +120,7 @@ public class LeadInteractionController {
      * Log a quick interaction
      */
     @PostMapping("/quick")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
     public ResponseEntity<?> logQuickInteraction(
             @RequestBody Map<String, Object> body,
             Authentication authentication) {
@@ -145,7 +145,7 @@ public class LeadInteractionController {
      * Schedule a follow-up
      */
     @PostMapping("/followup")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
     public ResponseEntity<?> scheduleFollowUp(
             @RequestBody Map<String, Object> body,
             Authentication authentication) {
@@ -171,7 +171,7 @@ public class LeadInteractionController {
      * Update an interaction
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER', 'USER')")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'LEAD_CREATE')")
     public ResponseEntity<?> updateInteraction(
             @PathVariable Long id,
             @RequestBody LeadInteraction interaction) {
@@ -188,7 +188,7 @@ public class LeadInteractionController {
      * Delete an interaction
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SALES_MANAGER')")
+    @PreAuthorize("hasAuthority('LEAD_DELETE')")
     public ResponseEntity<?> deleteInteraction(@PathVariable Long id) {
         try {
             interactionService.deleteInteraction(id);

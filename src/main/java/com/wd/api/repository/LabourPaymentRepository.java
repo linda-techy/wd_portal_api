@@ -10,4 +10,8 @@ public interface LabourPaymentRepository extends JpaRepository<LabourPayment, Lo
     List<LabourPayment> findByProjectId(Long projectId);
 
     List<LabourPayment> findByLabourId(Long labourId);
+
+    /** Total labour cost paid across all projects (for dashboard finance KPI). */
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(lp.amount), 0) FROM LabourPayment lp")
+    java.math.BigDecimal sumTotalLabourCost();
 }

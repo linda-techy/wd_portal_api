@@ -15,9 +15,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://46.202.164.251:5432/wdTestDB
-    username: postgres
-    password: Staygether@2025
+    url: ${DB_URL}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 20             # Lower startup pressure on remote DB
       minimum-idle: 5
@@ -59,13 +59,12 @@ spring:
     validate-migration-naming: true
 
   mail:
-    host: smtp.hostinger.com
-    port: 465
-    username: info@walldotbuilders.com
-    password: Staygether@2025
+    # SSL host/port/properties are in application.yml (base).
+    # MAIL_PASSWORD must be set as an environment variable on the VPS.
+    password: ${MAIL_PASSWORD}
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  secret: ${JWT_SECRET}
 
 # ── Shared storage (SAME path as customer-api production) ───────────
 # storageBasePath at root level — matches customer API exactly
@@ -78,6 +77,12 @@ app:
     allowed-origins: https://portal.walldotbuilders.com,https://walldotbuilders.com,https://www.walldotbuilders.com
   admin:
     email: info@walldotbuilders.com
+    # Seed credentials for DataInitializer — only used on first boot if no admin user exists.
+    # Override via environment variables ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD for production.
+    seed-email: ${ADMIN_SEED_EMAIL:admin@walldotbuilders.com}
+    seed-password: ${ADMIN_SEED_PASSWORD:Admin@2025}
+  # Portal API's own public base URL (e.g. https://api.walldotbuilders.com)
+  base-url: ""
 
 logging:
   level:

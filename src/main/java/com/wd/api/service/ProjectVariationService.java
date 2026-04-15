@@ -162,18 +162,14 @@ public class ProjectVariationService {
     }
 
     @Transactional
-    public ProjectVariation submitForApproval(Long id) {
-        ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
-                .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
-
-        existing.setStatus(VariationStatus.PENDING_APPROVAL);
-        return variationRepository.save(existing);
-    }
-
-    @Transactional
     public ProjectVariation approveVariation(Long id, Long approverId) {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
+
+        if (existing.getStatus() != VariationStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException(
+                    "Variation must be in PENDING_APPROVAL status to approve. Current status: " + existing.getStatus());
+        }
 
         PortalUser approver = portalUserRepository
                 .findById(Objects.requireNonNull(approverId, "Approver ID is required"))
@@ -192,10 +188,30 @@ public class ProjectVariationService {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
 
+        if (existing.getStatus() != VariationStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException(
+                    "Variation must be in PENDING_APPROVAL status to reject. Current status: " + existing.getStatus());
+        }
+
         existing.setStatus(VariationStatus.REJECTED);
         existing.setClientApproved(false);
-        existing.setNotes(existing.getNotes() + "\nRejection Reason: " + reason);
+        String existingNotes = existing.getNotes() != null ? existing.getNotes() : "";
+        existing.setNotes(existingNotes + (existingNotes.isEmpty() ? "" : "\n") + "Rejection Reason: " + reason);
 
+        return variationRepository.save(existing);
+    }
+
+    @Transactional
+    public ProjectVariation submitForApproval(Long id) {
+        ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
+                .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
+
+        if (existing.getStatus() != VariationStatus.DRAFT) {
+            throw new IllegalStateException(
+                    "Only DRAFT variations can be submitted for approval. Current status: " + existing.getStatus());
+        }
+
+        existing.setStatus(VariationStatus.PENDING_APPROVAL);
         return variationRepository.save(existing);
     }
 }

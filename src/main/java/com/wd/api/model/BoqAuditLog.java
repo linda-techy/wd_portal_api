@@ -1,6 +1,8 @@
 package com.wd.api.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 
 /**
@@ -28,9 +30,11 @@ public class BoqAuditLog {
     @Column(name = "action_type", nullable = false, length = 20)
     private String actionType;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "old_value", columnDefinition = "JSONB")
     private String oldValue;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "new_value", columnDefinition = "JSONB")
     private String newValue;
 

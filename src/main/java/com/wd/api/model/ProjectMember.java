@@ -24,6 +24,9 @@ public class ProjectMember {
 
     private CustomerUser customerUser;
 
+    @Column(name = "customer_id", nullable = false)
+    private Long customerId;
+
     @Column(name = "role_in_project", length = 50)
     private String roleInProject;
 
@@ -66,6 +69,14 @@ public class ProjectMember {
 
     public void setCustomerUser(CustomerUser customerUser) {
         this.customerUser = customerUser;
+    }
+
+    public Long getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
     }
 
     public String getRoleInProject() {

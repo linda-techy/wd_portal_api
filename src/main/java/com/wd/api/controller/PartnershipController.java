@@ -95,6 +95,57 @@ public class PartnershipController {
     }
 
     /**
+     * Forgot Password — send a reset link to the partner's email.
+     * POST /api/partnerships/forgot-password
+     * Public endpoint — always returns success to prevent email enumeration.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
+        }
+        try {
+            partnershipService.sendForgotPasswordEmail(email.trim().toLowerCase());
+        } catch (Exception e) {
+            logger.error("Error processing partner forgot-password: {}", e.getMessage());
+        }
+        // Always return success to prevent email enumeration
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "If an account with that email exists, a reset link has been sent."
+        ));
+    }
+
+    /**
+     * Reset Password — validate token and set new password.
+     * POST /api/partnerships/reset-password
+     * Public endpoint.
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String token = body.get("token");
+        String newPassword = body.get("newPassword");
+
+        if (email == null || token == null || newPassword == null
+                || email.isBlank() || token.isBlank() || newPassword.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "email, token, and newPassword are required"));
+        }
+
+        try {
+            partnershipService.resetPassword(email.trim().toLowerCase(), token.trim(), newPassword);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Password reset successfully. You can now log in with your new password."
+            ));
+        } catch (RuntimeException e) {
+            logger.warn("Partner password reset failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * Get Partner Dashboard Stats (Protected Route)
      * GET /api/partnerships/stats
      */

@@ -34,6 +34,9 @@ public class PortalUser extends BaseEntity implements UserDetails {
     @Column(nullable = false)
     private Boolean enabled = true;
 
+    @Column(name = "fcm_token", length = 512)
+    private String fcmToken;
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -91,6 +94,14 @@ public class PortalUser extends BaseEntity implements UserDetails {
         this.enabled = enabled;
     }
 
+    public String getFcmToken() {
+        return fcmToken;
+    }
+
+    public void setFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
+
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -135,6 +146,8 @@ public class PortalUser extends BaseEntity implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return enabled != null ? enabled : false;
+        // Treat NULL as enabled=true (column added after initial data seed;
+        // existing rows may have NULL until the next DB migration runs)
+        return enabled == null || enabled;
     }
 }

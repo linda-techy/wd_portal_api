@@ -1,9 +1,9 @@
 package com.wd.api.config;
 
-import org.flywaydb.core.Flyway;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 /**
  * Ensures that if a previous Flyway migration failed (e.g., due to a syntax error
@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
  * locked out of booting after a bad migration.
  */
 @Configuration
+@Profile({"local", "staging", "production"})
 public class FlywayRepairConfig {
 
     @Bean

@@ -2,7 +2,10 @@ package com.wd.api.service;
 
 import com.wd.api.dto.*;
 import com.wd.api.model.*;
+import com.wd.api.model.enums.BoqItemStatus;
+import com.wd.api.model.enums.ItemKind;
 import com.wd.api.repository.*;
+import com.wd.api.security.ProjectAccessGuard;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -30,19 +33,22 @@ public class BoqService {
     private final BoqCategoryRepository categoryRepository;
     private final MaterialRepository materialRepository;
     private final BoqAuditService auditService;
+    private final ProjectAccessGuard projectAccessGuard;
 
     public BoqService(BoqItemRepository boqItemRepository,
                       BoqWorkTypeRepository boqWorkTypeRepository,
                       CustomerProjectRepository customerProjectRepository,
                       BoqCategoryRepository categoryRepository,
                       MaterialRepository materialRepository,
-                      BoqAuditService auditService) {
+                      BoqAuditService auditService,
+                      ProjectAccessGuard projectAccessGuard) {
         this.boqItemRepository = boqItemRepository;
         this.boqWorkTypeRepository = boqWorkTypeRepository;
         this.customerProjectRepository = customerProjectRepository;
         this.categoryRepository = categoryRepository;
         this.materialRepository = materialRepository;
         this.auditService = auditService;
+        this.projectAccessGuard = projectAccessGuard;
     }
 
     // ---- CRUD Operations ----
@@ -52,10 +58,15 @@ public class BoqService {
         CustomerProject project = customerProjectRepository.findById(request.projectId())
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + request.projectId()));
 
+        projectAccessGuard.verifyPortalAccess(userId, request.projectId());
+
         // Validate item_code uniqueness if provided
         if (request.itemCode() != null && !request.itemCode().trim().isEmpty()) {
             validateItemCodeUnique(request.projectId(), request.itemCode(), null);
         }
+
+        ItemKind kind = request.itemKind() != null ? request.itemKind() : ItemKind.BASE;
+        validateQuantityForKind(request.quantity(), kind);
 
         BoqItem item = new BoqItem();
         item.setProject(project);
@@ -66,10 +77,11 @@ public class BoqService {
         item.setUnitRate(request.unitRate());
         item.setSpecifications(request.specifications());
         item.setNotes(request.notes());
-        item.setStatus("DRAFT");
+        item.setStatus(BoqItemStatus.DRAFT);
         item.setIsActive(true);
         item.setExecutedQuantity(BigDecimal.ZERO);
         item.setBilledQuantity(BigDecimal.ZERO);
+        item.setItemKind(kind);
 
         // Link optional relationships
         if (request.categoryId() != null) {
@@ -100,6 +112,8 @@ public class BoqService {
     public BoqItemResponse updateBoqItem(Long id, UpdateBoqItemRequest request, Long userId) {
         BoqItem item = findActiveById(id);
 
+        projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
+
         // Enforce status workflow: only DRAFT items can be edited
         if (!item.isDraft()) {
             throw new IllegalStateException("Only DRAFT items can be edited. Current status: " + item.getStatus());
@@ -118,13 +132,14 @@ public class BoqService {
         if (request.description() != null) item.setDescription(request.description());
         if (request.unit() != null) item.setUnit(request.unit());
         if (request.quantity() != null) {
-            validateQuantity(request.quantity());
-            
+            ItemKind resolvedKind = request.itemKind() != null ? request.itemKind() : item.getItemKind();
+            validateQuantityForKind(request.quantity(), resolvedKind);
+
             // CRITICAL FIX: Prevent reducing quantity below executed
             if (request.quantity().compareTo(item.getExecutedQuantity()) < 0) {
                 throw new IllegalArgumentException(
-                    String.format("Cannot reduce planned quantity to %.4f. " +
-                        "Already executed: %.4f. Planned quantity must be >= executed quantity.",
+                    String.format("Cannot reduce planned quantity to %.6f. " +
+                        "Already executed: %.6f. Planned quantity must be >= executed quantity.",
                         request.quantity(), item.getExecutedQuantity())
                 );
             }
@@ -137,6 +152,11 @@ public class BoqService {
         }
         if (request.specifications() != null) item.setSpecifications(request.specifications());
         if (request.notes() != null) item.setNotes(request.notes());
+        if (request.quantity() == null && request.itemKind() != null && request.itemKind() != item.getItemKind()) {
+            // Kind is changing without a new quantity — validate existing quantity against new kind
+            validateQuantityForKind(item.getQuantity(), request.itemKind());
+        }
+        if (request.itemKind() != null) item.setItemKind(request.itemKind());
 
         // Update optional relationships
         if (request.categoryId() != null) {
@@ -168,6 +188,8 @@ public class BoqService {
     public void softDeleteBoqItem(Long id, Long userId) {
         BoqItem item = findActiveById(id);
 
+        projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
+
         // Enforce: only DRAFT items can be deleted
         if (!item.isDraft()) {
             throw new IllegalStateException("Only DRAFT items can be deleted. Current status: " + item.getStatus());
@@ -187,11 +209,13 @@ public class BoqService {
     public BoqItemResponse approveBoqItem(Long id, Long userId) {
         BoqItem item = findActiveById(id);
 
+        projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
+
         if (!item.canApprove()) {
             throw new IllegalStateException("Item cannot be approved. Current status: " + item.getStatus());
         }
 
-        item.setStatus("APPROVED");
+        item.setStatus(BoqItemStatus.APPROVED);
         item = boqItemRepository.save(item);
 
         auditService.logApprove("BOQ_ITEM", id, item.getProject().getId(), userId);
@@ -202,11 +226,13 @@ public class BoqService {
     public BoqItemResponse lockBoqItem(Long id, Long userId) {
         BoqItem item = findActiveById(id);
 
+        projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
+
         if (!item.canLock()) {
             throw new IllegalStateException("Only APPROVED items can be locked. Current status: " + item.getStatus());
         }
 
-        item.setStatus("LOCKED");
+        item.setStatus(BoqItemStatus.LOCKED);
         item = boqItemRepository.save(item);
 
         auditService.logLock("BOQ_ITEM", id, item.getProject().getId(), userId);
@@ -217,12 +243,21 @@ public class BoqService {
     public BoqItemResponse markAsCompleted(Long id, Long userId) {
         BoqItem item = findActiveById(id);
 
+        projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
+
+        // Only LOCKED items can be completed (must progress through full workflow)
+        if (!item.isLocked()) {
+            throw new IllegalStateException(
+                "Only LOCKED items can be marked completed. Current status: " + item.getStatus() +
+                ". Items must be APPROVED then LOCKED before completing.");
+        }
+
         // Verify execution is complete
         if (item.getRemainingQuantity().compareTo(BigDecimal.ZERO) > 0) {
             throw new IllegalStateException("Item cannot be marked completed. Remaining quantity: " + item.getRemainingQuantity());
         }
 
-        item.setStatus("COMPLETED");
+        item.setStatus(BoqItemStatus.COMPLETED);
         item = boqItemRepository.save(item);
 
         auditService.logUpdate("BOQ_ITEM", id, item.getProject().getId(), userId, null, Map.of("status", "COMPLETED"));
@@ -233,106 +268,179 @@ public class BoqService {
     // ---- Execution & Billing ----
 
     public BoqItemResponse recordExecution(Long id, RecordExecutionRequest request, Long userId) {
-        // CRITICAL FIX: Use synchronized block for simple concurrency protection
-        // This prevents race conditions without complex locking mechanisms
-        synchronized (this) {
-            BoqItem item = findActiveById(id);
+        BoqItem item = boqItemRepository.findByIdWithLock(id)
+                .orElseThrow(() -> new IllegalArgumentException("BOQ item not found: " + id));
 
-            if (!item.canExecute()) {
-                throw new IllegalStateException("Execution can only be recorded for APPROVED/LOCKED items. Current status: " + item.getStatus());
-            }
+        projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
 
-            BigDecimal newExecuted = item.getExecutedQuantity().add(request.quantity());
-
-            // Validate: executed <= planned (with clear error message)
-            if (newExecuted.compareTo(item.getQuantity()) > 0) {
-                throw new IllegalArgumentException(
-                        String.format("OVER-EXECUTION PREVENTED: Cannot execute %.4f. " +
-                            "Planned: %.4f, Already executed: %.4f, Remaining: %.4f",
-                            request.quantity(), item.getQuantity(), item.getExecutedQuantity(),
-                            item.getRemainingQuantity()));
-            }
-
-            item.setExecutedQuantity(newExecuted);
-            item = boqItemRepository.save(item);
-
-            auditService.logExecute("BOQ_ITEM", id, item.getProject().getId(), userId, request.quantity());
-
-            return BoqItemResponse.fromEntity(item);
+        if (!item.canExecute()) {
+            throw new IllegalStateException("Execution can only be recorded for APPROVED/LOCKED items. Current status: " + item.getStatus());
         }
+
+        BigDecimal newExecuted = item.getExecutedQuantity().add(request.quantity());
+
+        // Validate: executed <= planned (with clear error message)
+        if (newExecuted.compareTo(item.getQuantity()) > 0) {
+            throw new IllegalArgumentException(
+                    String.format("OVER-EXECUTION PREVENTED: Cannot execute %.6f. " +
+                        "Planned: %.6f, Already executed: %.6f, Remaining: %.6f",
+                        request.quantity(), item.getQuantity(), item.getExecutedQuantity(),
+                        item.getRemainingQuantity()));
+        }
+
+        item.setExecutedQuantity(newExecuted);
+        item = boqItemRepository.saveAndFlush(item);
+
+        auditService.logExecute("BOQ_ITEM", id, item.getProject().getId(), userId, request.quantity());
+
+        return BoqItemResponse.fromEntity(item);
     }
 
     public BoqItemResponse recordBilling(Long id, RecordExecutionRequest request, Long userId) {
-        // CRITICAL FIX: Simple concurrency protection for billing
-        synchronized (this) {
-            BoqItem item = findActiveById(id);
+        BoqItem item = boqItemRepository.findByIdWithLock(id)
+                .orElseThrow(() -> new IllegalArgumentException("BOQ item not found: " + id));
 
-            BigDecimal newBilled = item.getBilledQuantity().add(request.quantity());
+        projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
 
-            // Validate: billed <= executed (with clear error message)
-            if (newBilled.compareTo(item.getExecutedQuantity()) > 0) {
+        if (!item.canExecute()) {
+            throw new IllegalStateException("Item must be APPROVED or LOCKED to record billing. Current status: " + item.getStatus());
+        }
+
+        BigDecimal newBilled = item.getBilledQuantity().add(request.quantity());
+
+        // Validate: billed <= executed (with clear error message)
+        if (newBilled.compareTo(item.getExecutedQuantity()) > 0) {
+            throw new IllegalArgumentException(
+                    String.format("OVER-BILLING PREVENTED: Cannot bill %.6f. " +
+                        "Executed: %.6f, Already billed: %.6f, Remaining billable: %.6f",
+                        request.quantity(), item.getExecutedQuantity(), item.getBilledQuantity(),
+                        item.getRemainingBillableQuantity()));
+        }
+
+        item.setBilledQuantity(newBilled);
+        item = boqItemRepository.saveAndFlush(item);
+
+        auditService.logBill("BOQ_ITEM", id, item.getProject().getId(), userId, request.quantity());
+
+        return BoqItemResponse.fromEntity(item);
+    }
+
+    public BoqItemResponse correctExecution(Long id, CorrectionRequest request, Long userId) {
+        BoqItem item = boqItemRepository.findByIdWithLock(id)
+                .orElseThrow(() -> new IllegalArgumentException("BOQ item not found: " + id));
+
+        projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
+
+        BigDecimal currentValue;
+        BigDecimal newValue;
+
+        if (request.type() == CorrectionRequest.CorrectionType.REDUCE_EXECUTION) {
+            currentValue = item.getExecutedQuantity();
+            newValue = currentValue.subtract(request.amount());
+
+            if (newValue.compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalArgumentException("Executed quantity cannot be reduced below zero");
+            }
+            if (newValue.compareTo(item.getBilledQuantity()) < 0) {
                 throw new IllegalArgumentException(
-                        String.format("OVER-BILLING PREVENTED: Cannot bill %.4f. " +
-                            "Executed: %.4f, Already billed: %.4f, Remaining billable: %.4f",
-                            request.quantity(), item.getExecutedQuantity(), item.getBilledQuantity(),
-                            item.getRemainingBillableQuantity()));
+                    String.format("Cannot reduce executed quantity to %.6f. Already billed: %.6f.",
+                        newValue, item.getBilledQuantity())
+                );
             }
 
-            item.setBilledQuantity(newBilled);
-            item = boqItemRepository.save(item);
+            item.setExecutedQuantity(newValue);
 
-            auditService.logBill("BOQ_ITEM", id, item.getProject().getId(), userId, request.quantity());
+        } else { // REDUCE_BILLING
+            currentValue = item.getBilledQuantity();
+            newValue = currentValue.subtract(request.amount());
 
-            return BoqItemResponse.fromEntity(item);
+            if (newValue.compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalArgumentException("Billed quantity cannot be reduced below zero");
+            }
+
+            item.setBilledQuantity(newValue);
         }
+
+        item = boqItemRepository.saveAndFlush(item);
+
+        Map<String, Object> correctionDetails = new HashMap<>();
+        correctionDetails.put("type", request.type().name());
+        correctionDetails.put("oldValue", currentValue);
+        correctionDetails.put("newValue", newValue);
+        correctionDetails.put("correctionAmount", request.amount());
+        correctionDetails.put("reason", request.reason());
+        correctionDetails.put("reference", request.referenceNumber() != null ? request.referenceNumber() : "N/A");
+
+        auditService.logUpdate("BOQ_ITEM", id, item.getProject().getId(), userId,
+            Map.of(request.type().name(), currentValue),
+            correctionDetails
+        );
+
+        return BoqItemResponse.fromEntity(item);
     }
 
     // ---- Queries ----
 
     @Transactional(readOnly = true)
-    public Page<BoqItem> searchBoqItems(BoqSearchFilter filter) {
+    public Page<BoqItemResponse> searchBoqItems(BoqSearchFilter filter) {
         Specification<BoqItem> spec = buildSpecification(filter);
-        return boqItemRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()));
+        return boqItemRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()))
+                .map(BoqItemResponse::fromEntity);
     }
 
     @Transactional(readOnly = true)
-    public List<BoqItemResponse> getProjectBoq(Long projectId) {
-        List<BoqItem> items = boqItemRepository.findByProjectIdAndDeletedAtIsNull(projectId);
+    public List<BoqItemResponse> getProjectBoq(Long projectId, Long userId) {
+        projectAccessGuard.verifyPortalAccess(userId, projectId);
+        List<BoqItem> items = boqItemRepository.findByProjectIdWithAssociations(projectId);
         return items.stream()
                 .map(BoqItemResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Paginated project BOQ — used by Portal UI (replaces full-list load).
+     * Filters are optional; page/size default to 0/50 if not supplied.
+     */
     @Transactional(readOnly = true)
-    public BoqItemResponse getBoqItemById(Long id) {
+    public Page<BoqItemResponse> getProjectBoqPaged(Long userId, Long projectId, int page, int size,
+                                                     Long workTypeId, Long categoryId, String status) {
+        projectAccessGuard.verifyPortalAccess(userId, projectId);
+        BoqSearchFilter filter = new BoqSearchFilter();
+        filter.setProjectId(projectId);
+        filter.setWorkTypeId(workTypeId);
+        filter.setCategoryId(categoryId);
+        filter.setStatus(status);
+        filter.setPage(page);
+        filter.setSize(Math.min(Math.max(size, 1), 200));
+        filter.setSortBy("id");
+        filter.setSortDirection("asc");
+        Specification<BoqItem> spec = buildSpecification(filter);
+        return boqItemRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()))
+                .map(BoqItemResponse::fromEntity);
+    }
+
+    @Transactional(readOnly = true)
+    public BoqItemResponse getBoqItemById(Long id, Long userId) {
         BoqItem item = findActiveById(id);
+        projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
         return BoqItemResponse.fromEntity(item);
     }
 
     @Transactional(readOnly = true)
-    public BoqFinancialSummary getFinancialSummary(Long projectId) {
-        List<BoqItem> items = boqItemRepository.findByProjectIdAndDeletedAtIsNull(projectId);
+    public BoqFinancialSummary getFinancialSummary(Long userId, Long projectId) {
+        projectAccessGuard.verifyPortalAccess(userId, projectId);
         CustomerProject project = customerProjectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
-        int totalItems = items.size();
-        int activeItems = (int) items.stream().filter(i -> i.getIsActive()).count();
-
-        BigDecimal totalPlannedCost = items.stream()
-                .map(BoqItem::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalExecutedCost = items.stream()
-                .map(BoqItem::getTotalExecutedAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalBilledCost = items.stream()
-                .map(BoqItem::getTotalBilledAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalCostToComplete = items.stream()
-                .map(BoqItem::getCostToComplete)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Use SQL aggregation — avoids loading all BOQ entities into memory
+        List<Object[]> totalRows = boqItemRepository.getFinancialTotals(projectId);
+        Object[] totals = (totalRows != null && !totalRows.isEmpty()) ? totalRows.get(0) : new Object[6];
+        long totalItems = totals[0] != null ? ((Number) totals[0]).longValue() : 0L;
+        long activeItems = totals[1] != null ? ((Number) totals[1]).longValue() : 0L;
+        BigDecimal totalPlannedCost  = toBD(totals[2]);
+        BigDecimal totalExecutedCost = toBD(totals[3]);
+        BigDecimal totalBilledCost   = toBD(totals[4]);
+        BigDecimal totalCostToComplete = toBD(totals[5]);
 
         BigDecimal overallExecutionPercentage = totalPlannedCost.compareTo(BigDecimal.ZERO) > 0
                 ? totalExecutedCost.divide(totalPlannedCost, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"))
@@ -342,49 +450,31 @@ public class BoqService {
                 ? totalBilledCost.divide(totalExecutedCost, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"))
                 : BigDecimal.ZERO;
 
-        // Category breakdown
-        List<BoqFinancialSummary.CategoryFinancialBreakdown> categoryBreakdown = items.stream()
-                .filter(i -> i.getCategory() != null)
-                .collect(Collectors.groupingBy(BoqItem::getCategory))
-                .entrySet().stream()
-                .map(e -> {
-                    List<BoqItem> catItems = e.getValue();
-                    return new BoqFinancialSummary.CategoryFinancialBreakdown(
-                            e.getKey().getId(),
-                            e.getKey().getName(),
-                            catItems.size(),
-                            catItems.stream().map(BoqItem::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            catItems.stream().map(BoqItem::getTotalExecutedAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            catItems.stream().map(BoqItem::getTotalBilledAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            catItems.stream().map(BoqItem::getCostToComplete).reduce(BigDecimal.ZERO, BigDecimal::add)
-                    );
-                })
-                .collect(Collectors.toList());
+        List<BoqFinancialSummary.CategoryFinancialBreakdown> categoryBreakdown =
+                boqItemRepository.getFinancialCategoryBreakdown(projectId).stream()
+                        .map(r -> new BoqFinancialSummary.CategoryFinancialBreakdown(
+                                ((Number) r[0]).longValue(),
+                                (String) r[1],
+                                ((Number) r[2]).intValue(),
+                                toBD(r[3]), toBD(r[4]), toBD(r[5]), toBD(r[6])
+                        ))
+                        .collect(Collectors.toList());
 
-        // Work type breakdown
-        List<BoqFinancialSummary.WorkTypeFinancialBreakdown> workTypeBreakdown = items.stream()
-                .filter(i -> i.getWorkType() != null)
-                .collect(Collectors.groupingBy(BoqItem::getWorkType))
-                .entrySet().stream()
-                .map(e -> {
-                    List<BoqItem> wtItems = e.getValue();
-                    return new BoqFinancialSummary.WorkTypeFinancialBreakdown(
-                            e.getKey().getId(),
-                            e.getKey().getName(),
-                            wtItems.size(),
-                            wtItems.stream().map(BoqItem::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            wtItems.stream().map(BoqItem::getTotalExecutedAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            wtItems.stream().map(BoqItem::getTotalBilledAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
-                            wtItems.stream().map(BoqItem::getCostToComplete).reduce(BigDecimal.ZERO, BigDecimal::add)
-                    );
-                })
-                .collect(Collectors.toList());
+        List<BoqFinancialSummary.WorkTypeFinancialBreakdown> workTypeBreakdown =
+                boqItemRepository.getFinancialWorkTypeBreakdown(projectId).stream()
+                        .map(r -> new BoqFinancialSummary.WorkTypeFinancialBreakdown(
+                                ((Number) r[0]).longValue(),
+                                (String) r[1],
+                                ((Number) r[2]).intValue(),
+                                toBD(r[3]), toBD(r[4]), toBD(r[5]), toBD(r[6])
+                        ))
+                        .collect(Collectors.toList());
 
         return new BoqFinancialSummary(
                 projectId,
                 project.getName(),
-                totalItems,
-                activeItems,
+                (int) totalItems,
+                (int) activeItems,
                 totalPlannedCost,
                 totalExecutedCost,
                 totalBilledCost,
@@ -394,6 +484,17 @@ public class BoqService {
                 categoryBreakdown,
                 workTypeBreakdown
         );
+    }
+
+    private static BigDecimal toBD(Object value) {
+        if (value == null) return BigDecimal.ZERO;
+        if (value instanceof BigDecimal bd) return bd;
+        return new BigDecimal(value.toString());
+    }
+
+    @Transactional(readOnly = true)
+    public List<BoqAuditLog> getAuditLog(Long itemId) {
+        return auditService.getAuditLogForItem(itemId);
     }
 
     @Transactional(readOnly = true)
@@ -427,9 +528,15 @@ public class BoqService {
         }
     }
 
-    private void validateQuantity(BigDecimal quantity) {
-        if (quantity.compareTo(BigDecimal.ZERO) < 0) {
+    private void validateQuantityForKind(BigDecimal quantity, ItemKind kind) {
+        if (quantity == null || quantity.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative");
+        }
+        if ((ItemKind.BASE == kind || ItemKind.ADDON == kind)
+                && quantity.compareTo(BigDecimal.ZERO) == 0) {
+            throw new IllegalArgumentException(
+                kind.name() + " items must have quantity > 0. " +
+                "Use OPTIONAL or EXCLUSION for zero-quantity scope items.");
         }
     }
 
@@ -471,6 +578,19 @@ public class BoqService {
 
             if (filter.getWorkTypeId() != null) {
                 predicates.add(cb.equal(root.get("workType").get("id"), filter.getWorkTypeId()));
+            }
+
+            if (filter.getCategoryId() != null) {
+                predicates.add(cb.equal(root.get("category").get("id"), filter.getCategoryId()));
+            }
+
+            if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
+                try {
+                    predicates.add(cb.equal(root.get("status"),
+                            com.wd.api.model.enums.BoqItemStatus.valueOf(filter.getStatus().toUpperCase())));
+                } catch (IllegalArgumentException ignored) {
+                    // Invalid status value — skip filter rather than crash
+                }
             }
 
             if (filter.getItemCode() != null && !filter.getItemCode().isEmpty()) {

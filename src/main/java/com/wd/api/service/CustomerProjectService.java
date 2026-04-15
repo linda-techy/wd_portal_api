@@ -4,14 +4,21 @@ import com.wd.api.dto.CustomerProjectCreateRequest;
 import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
 import com.wd.api.dto.ProjectSearchFilter;
+import com.wd.api.dto.ProjectMemberRequest;
+import com.wd.api.dto.ProjectMemberResponse;
 import com.wd.api.model.CustomerProject;
+import com.wd.api.model.CustomerUser;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.CustomerUserRepository;
 import com.wd.api.repository.ProjectMemberRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.LeadRepository;
 import com.wd.api.repository.ActivityFeedRepository;
+import com.wd.api.repository.QualityCheckRepository;
+import com.wd.api.repository.PaymentScheduleRepository;
 import com.wd.api.model.ActivityFeed;
+import com.wd.api.model.QualityCheck;
+import com.wd.api.model.PaymentSchedule;
 import com.wd.api.model.ProjectMember;
 import com.wd.api.util.SpecificationBuilder;
 
@@ -31,6 +38,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * Service layer for Customer Project business logic
@@ -61,6 +72,12 @@ public class CustomerProjectService {
 
     @Autowired
     private ActivityFeedRepository activityFeedRepository;
+
+    @Autowired
+    private QualityCheckRepository qualityCheckRepository;
+
+    @Autowired
+    private PaymentScheduleRepository paymentScheduleRepository;
 
     /**
      * NEW: Standardized search method using ProjectSearchFilter
@@ -241,9 +258,20 @@ public class CustomerProjectService {
         } else {
             project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.PLANNING);
         }
-        project.setProjectType(request.getProjectType() != null && !request.getProjectType().trim().isEmpty()
-                ? request.getProjectType().trim()
-                : "turnkey_project");
+        // Validate and normalise project type against the enum
+        String rawType = request.getProjectType() != null ? request.getProjectType().trim() : "";
+        if (com.wd.api.model.ProjectType.isValid(rawType)) {
+            String normalised = rawType.toUpperCase();
+            project.setProjectType(normalised);
+            // Apply per-type default progress weights
+            com.wd.api.model.ProjectType pt = com.wd.api.model.ProjectType.valueOf(normalised);
+            int[] w = pt.progressWeights();
+            project.setMilestoneWeight(new java.math.BigDecimal(w[0]).divide(new java.math.BigDecimal("100")));
+            project.setTaskWeight(new java.math.BigDecimal(w[1]).divide(new java.math.BigDecimal("100")));
+            project.setBudgetWeight(new java.math.BigDecimal(w[2]).divide(new java.math.BigDecimal("100")));
+        } else {
+            project.setProjectType("RESIDENTIAL"); // safe default
+        }
         project.setState(request.getState() != null && !request.getState().trim().isEmpty()
                 ? request.getState().trim()
                 : "Kerala");
@@ -252,6 +280,9 @@ public class CustomerProjectService {
                 : null);
 
         project.setSqfeet(request.getSqfeet());
+        project.setLatitude(request.getLatitude());
+        project.setLongitude(request.getLongitude());
+        project.setIsDesignAgreementSigned(Boolean.TRUE.equals(request.getIsDesignAgreementSigned()));
         project.setLeadId(request.getLeadId());
 
         // Initial dummy code, will be updated after save
@@ -260,8 +291,8 @@ public class CustomerProjectService {
         // Set customer if provided
         if (request.getCustomerId() != null) {
             Long customerId = request.getCustomerId();
-            customerUserRepository.findById(customerId)
-                    .ifPresent(project::setCustomer);
+            project.setCustomer(customerUserRepository.findById(customerId)
+                    .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + customerId + " not found")));
         }
 
         // Handle contract type
@@ -304,6 +335,8 @@ public class CustomerProjectService {
             savedProject.setProjectManagerId(request.getProjectManagerId());
             syncProjectManagerMember(savedProject, request.getProjectManagerId());
         }
+
+        syncTeamMembers(savedProject, request);
 
         return customerProjectRepository.save(savedProject);
     }
@@ -355,14 +388,52 @@ public class CustomerProjectService {
         if (request.getProjectPhase() != null && !request.getProjectPhase().trim().isEmpty()) {
             try {
                 String phaseValue = request.getProjectPhase().trim().toUpperCase().replace(' ', '_');
-                project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.valueOf(phaseValue));
+                com.wd.api.model.enums.ProjectPhase newPhase = com.wd.api.model.enums.ProjectPhase.valueOf(phaseValue);
+
+                // Gate checks: only run when the phase is actually changing
+                if (!newPhase.equals(project.getProjectPhase())) {
+                    // Quality check gate: block phase advance if any check is PENDING or FAILED
+                    List<QualityCheck> blockedChecks = qualityCheckRepository.findByProjectId(id).stream()
+                            .filter(qc -> "PENDING".equalsIgnoreCase(qc.getStatus()) || "FAILED".equalsIgnoreCase(qc.getResult()))
+                            .toList();
+                    if (!blockedChecks.isEmpty()) {
+                        throw new IllegalStateException(
+                                "Cannot advance project phase: " + blockedChecks.size() +
+                                " quality check(s) are PENDING or FAILED. Resolve all quality issues before advancing.");
+                    }
+
+                    // Payment milestone gate: block phase advance if any payment schedule is still PENDING
+                    List<PaymentSchedule> unpaidSchedules = paymentScheduleRepository
+                            .findByDesignPayment_Project_Id(id).stream()
+                            .filter(ps -> "PENDING".equalsIgnoreCase(ps.getStatus()) || "OVERDUE".equalsIgnoreCase(ps.getStatus()))
+                            .toList();
+                    if (!unpaidSchedules.isEmpty()) {
+                        throw new IllegalStateException(
+                                "Cannot advance project phase: " + unpaidSchedules.size() +
+                                " payment milestone(s) are unpaid. Clear all outstanding payments before advancing.");
+                    }
+                }
+
+                project.setProjectPhase(newPhase);
             } catch (IllegalArgumentException e) {
                 // Keep existing value if invalid enum provided
             }
         }
-        project.setProjectType(request.getProjectType() != null && !request.getProjectType().trim().isEmpty()
-                ? request.getProjectType().trim()
-                : null);
+        // Validate and normalise project type against the enum on update
+        if (request.getProjectType() != null && !request.getProjectType().trim().isEmpty()) {
+            String rawType = request.getProjectType().trim();
+            if (com.wd.api.model.ProjectType.isValid(rawType)) {
+                String normalised = rawType.toUpperCase();
+                project.setProjectType(normalised);
+                // Re-apply per-type default weights if type changes
+                com.wd.api.model.ProjectType pt = com.wd.api.model.ProjectType.valueOf(normalised);
+                int[] w = pt.progressWeights();
+                project.setMilestoneWeight(new java.math.BigDecimal(w[0]).divide(new java.math.BigDecimal("100")));
+                project.setTaskWeight(new java.math.BigDecimal(w[1]).divide(new java.math.BigDecimal("100")));
+                project.setBudgetWeight(new java.math.BigDecimal(w[2]).divide(new java.math.BigDecimal("100")));
+            }
+            // else keep existing value — invalid type is silently ignored
+        }
         project.setState(request.getState() != null && !request.getState().trim().isEmpty()
                 ? request.getState().trim()
                 : null);
@@ -515,10 +586,17 @@ public class CustomerProjectService {
             // Update existing
             pmMember.setPortalUser(pmUser);
         } else {
+            Long customerId = project.getCustomerId();
+            if (customerId == null) {
+                logger.warn("Skipping project manager member sync for project {} because customer_id is missing.",
+                        project.getId());
+                return;
+            }
             // Create new
             pmMember = new ProjectMember();
             pmMember.setProject(project);
             pmMember.setPortalUser(pmUser);
+            pmMember.setCustomerId(customerId);
             pmMember.setRoleInProject("PROJECT_MANAGER");
 
             // Note: Since we are using CascadeType.ALL on project.getProjectMembers,
@@ -529,6 +607,119 @@ public class CustomerProjectService {
             // Safer to use repository directly if we can, or just save member.
             projectMemberRepository.save(pmMember);
         }
+    }
+
+    private void syncTeamMembers(CustomerProject project, CustomerProjectCreateRequest request) {
+        if (project == null || project.getId() == null || request == null || request.getTeamMembers() == null
+                || request.getTeamMembers().isEmpty()) {
+            return;
+        }
+
+        Long defaultCustomerId = project.getCustomerId();
+        if (defaultCustomerId == null) {
+            logger.warn("Skipping team member sync for project {} because customer_id is required but missing.",
+                    project.getId());
+            return;
+        }
+
+        Set<Long> existingPortalUserIds = new HashSet<>();
+        Set<Long> existingCustomerUserIds = new HashSet<>();
+        for (ProjectMember member : projectMemberRepository.findByProjectId(project.getId())) {
+            if (member.getPortalUser() != null) {
+                existingPortalUserIds.add(member.getPortalUser().getId());
+            }
+            if (member.getCustomerUser() != null) {
+                existingCustomerUserIds.add(member.getCustomerUser().getId());
+            }
+        }
+
+        for (com.wd.api.dto.TeamMemberSelectionDTO teamMember : request.getTeamMembers()) {
+            if (teamMember == null || teamMember.getId() == null || teamMember.getType() == null
+                    || teamMember.getType().trim().isEmpty()) {
+                continue;
+            }
+
+            Long memberId = teamMember.getId();
+            String memberType = teamMember.getType().trim().toUpperCase(Locale.ROOT);
+
+            if ("PORTAL".equals(memberType)) {
+                if (existingPortalUserIds.contains(memberId)) {
+                    continue;
+                }
+                portalUserRepository.findById(memberId).ifPresent(user -> {
+                    ProjectMember newMember = new ProjectMember();
+                    newMember.setProject(project);
+                    newMember.setPortalUser(user);
+                    newMember.setCustomerId(defaultCustomerId);
+                    newMember.setRoleInProject("TEAM_MEMBER");
+                    projectMemberRepository.save(newMember);
+                });
+                existingPortalUserIds.add(memberId);
+            } else if ("CUSTOMER".equals(memberType)) {
+                if (existingCustomerUserIds.contains(memberId)) {
+                    continue;
+                }
+                customerUserRepository.findById(memberId).ifPresent(user -> {
+                    ProjectMember newMember = new ProjectMember();
+                    newMember.setProject(project);
+                    newMember.setCustomerUser(user);
+                    newMember.setCustomerId(memberId);
+                    newMember.setRoleInProject("TEAM_MEMBER");
+                    projectMemberRepository.save(newMember);
+                });
+                existingCustomerUserIds.add(memberId);
+            } else {
+                logger.warn("Skipping unsupported team member type '{}' for id {}", teamMember.getType(), memberId);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // External Project Member Management (architects, interior designers, etc.)
+    // -------------------------------------------------------------------------
+
+    @Transactional(readOnly = true)
+    public List<ProjectMemberResponse> getProjectMembers(Long projectId) {
+        return projectMemberRepository.findByProjectId(projectId).stream()
+                .filter(m -> m.getCustomerUser() != null)
+                .map(m -> toMemberResponse(m, m.getCustomerUser()))
+                .collect(Collectors.toList());
+    }
+
+    public ProjectMemberResponse addProjectMember(Long projectId, ProjectMemberRequest request) {
+        CustomerProject project = customerProjectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found: " + projectId));
+        CustomerUser user = customerUserRepository.findById(request.getCustomerUserId())
+                .orElseThrow(() -> new RuntimeException("CustomerUser not found: " + request.getCustomerUserId()));
+        if (projectMemberRepository.existsByProject_IdAndCustomerUser_Id(projectId, request.getCustomerUserId())) {
+            throw new IllegalStateException("User is already a member of this project");
+        }
+        ProjectMember member = new ProjectMember();
+        member.setProject(project);
+        member.setCustomerUser(user);
+        member.setCustomerId(user.getId());
+        member.setRoleInProject(request.getRoleInProject());
+        ProjectMember saved = projectMemberRepository.save(member);
+        return toMemberResponse(saved, user);
+    }
+
+    public void removeProjectMember(Long projectId, Long membershipId) {
+        ProjectMember member = projectMemberRepository.findById(membershipId)
+                .orElseThrow(() -> new RuntimeException("Membership not found: " + membershipId));
+        if (!member.getProject().getId().equals(projectId)) {
+            throw new IllegalArgumentException("Membership does not belong to project " + projectId);
+        }
+        projectMemberRepository.delete(member);
+    }
+
+    private ProjectMemberResponse toMemberResponse(ProjectMember m, CustomerUser u) {
+        ProjectMemberResponse r = new ProjectMemberResponse();
+        r.setId(m.getId());
+        r.setCustomerUserId(u.getId());
+        r.setFullName((u.getFirstName() != null ? u.getFirstName() : "") + " " + (u.getLastName() != null ? u.getLastName() : ""));
+        r.setEmail(u.getEmail());
+        r.setRoleInProject(m.getRoleInProject());
+        return r;
     }
 
     /**

@@ -26,7 +26,7 @@ public class PaymentController {
      * Create a new design package payment agreement
      */
     @PostMapping("/design")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PAYMENT_CREATE', 'PAYMENT_EDIT')")
     public ResponseEntity<?> createDesignPayment(
             @RequestBody CreateDesignPaymentRequest request,
             Authentication auth) {
@@ -108,7 +108,7 @@ public class PaymentController {
      * Record a payment transaction against a schedule
      */
     @PostMapping("/schedule/{scheduleId}/transactions")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyAuthority('PAYMENT_CREATE', 'PAYMENT_EDIT')")
     public ResponseEntity<?> recordTransaction(
             @PathVariable Long scheduleId,
             @RequestBody RecordTransactionRequest request,
@@ -157,18 +157,13 @@ public class PaymentController {
 
     private Long getUserIdFromAuth(Authentication auth) {
         if (auth == null || auth.getPrincipal() == null) {
-            return null;
+            throw new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException("Authentication required");
         }
 
-        try {
-            if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser) {
-                return ((com.wd.api.model.PortalUser) auth.getPrincipal()).getId();
-            }
-            // Fallback to name if it's a number (for legacy or specific auth types)
-            return Long.parseLong(auth.getName());
-        } catch (Exception e) {
-            logger.warn("Could not extract user ID from auth: {}", auth.getName());
-            return null;
+        if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser portalUser) {
+            return portalUser.getId();
         }
+
+        throw new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException("Unable to extract user ID from authentication context");
     }
 }

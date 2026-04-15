@@ -39,7 +39,7 @@ public class LeadScoreHistoryController {
      * @return List of score history entries, most recent first
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<List<LeadScoreHistoryDTO>>> getScoreHistory(
             @PathVariable String leadId) {
         try {
@@ -66,7 +66,7 @@ public class LeadScoreHistoryController {
      * @return Page of score history entries
      */
     @GetMapping("/paginated")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<Page<LeadScoreHistoryDTO>>> getScoreHistoryPaginated(
             @PathVariable String leadId,
             @RequestParam(defaultValue = "0") int page,
@@ -94,7 +94,7 @@ public class LeadScoreHistoryController {
      * @return Latest score history entry or null if none exists
      */
     @GetMapping("/latest")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<LeadScoreHistoryDTO>> getLatestScoreHistory(
             @PathVariable String leadId) {
         try {
@@ -123,7 +123,7 @@ public class LeadScoreHistoryController {
      * @return Total count of score changes
      */
     @GetMapping("/count")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<Long>> getScoreHistoryCount(
             @PathVariable String leadId) {
         try {
