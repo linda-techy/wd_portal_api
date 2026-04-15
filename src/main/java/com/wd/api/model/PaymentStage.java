@@ -90,6 +90,20 @@ public class PaymentStage {
     @JoinColumn(name = "boq_invoice_id")
     private BoqInvoice invoice;
 
+    // ---- Certification / retention (added V25) ----
+
+    @Column(name = "certified_by", length = 100)
+    private String certifiedBy;
+
+    @Column(name = "retention_pct", precision = 5, scale = 4, nullable = false)
+    private BigDecimal retentionPct = new BigDecimal("0.0500");
+
+    @Column(name = "retention_held", precision = 18, scale = 6, nullable = false)
+    private BigDecimal retentionHeld = BigDecimal.ZERO;
+
+    @Column(name = "certified_at")
+    private LocalDateTime certifiedAt;
+
     // ---- Audit ----
 
     @Column(name = "created_at", updatable = false)
@@ -116,6 +130,8 @@ public class PaymentStage {
         if (appliedCreditAmount == null) appliedCreditAmount = BigDecimal.ZERO;
         if (paidAmount == null) paidAmount = BigDecimal.ZERO;
         if (netPayableAmount == null) netPayableAmount = stageAmountInclGst != null ? stageAmountInclGst : BigDecimal.ZERO;
+        if (retentionPct == null) retentionPct = new BigDecimal("0.0500");
+        if (retentionHeld == null) retentionHeld = BigDecimal.ZERO;
     }
 
     @PreUpdate
@@ -198,4 +214,23 @@ public class PaymentStage {
     public Long getUpdatedByUserId() { return updatedByUserId; }
     public void setUpdatedByUserId(Long updatedByUserId) { this.updatedByUserId = updatedByUserId; }
     public Long getVersion() { return version; }
+
+    public String getCertifiedBy() { return certifiedBy; }
+    public void setCertifiedBy(String certifiedBy) { this.certifiedBy = certifiedBy; }
+
+    public BigDecimal getRetentionPct() { return retentionPct; }
+    public void setRetentionPct(BigDecimal retentionPct) { this.retentionPct = retentionPct; }
+
+    public BigDecimal getRetentionHeld() { return retentionHeld; }
+    public void setRetentionHeld(BigDecimal retentionHeld) { this.retentionHeld = retentionHeld; }
+
+    public LocalDateTime getCertifiedAt() { return certifiedAt; }
+    public void setCertifiedAt(LocalDateTime certifiedAt) { this.certifiedAt = certifiedAt; }
+
+    /** Computes and stores retention_held = stage_amount_excl_gst * retention_pct */
+    public void computeRetention() {
+        BigDecimal pct = retentionPct != null ? retentionPct : new BigDecimal("0.0500");
+        BigDecimal base = stageAmountExGst != null ? stageAmountExGst : BigDecimal.ZERO;
+        this.retentionHeld = base.multiply(pct).setScale(6, java.math.RoundingMode.HALF_UP);
+    }
 }

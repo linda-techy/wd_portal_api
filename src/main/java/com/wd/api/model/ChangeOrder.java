@@ -2,7 +2,10 @@ package com.wd.api.model;
 
 import com.wd.api.model.enums.ChangeOrderStatus;
 import com.wd.api.model.enums.ChangeOrderType;
+import com.wd.api.model.enums.VOCategory;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -104,6 +107,33 @@ public class ChangeOrder extends BaseEntity {
 
     @Column(name = "review_deadline")
     private LocalDate reviewDeadline;
+
+    // ---- VO classification / approval fields (added V25) ----
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vo_category", length = 30)
+    private VOCategory voCategory;
+
+    /** For REVISION type: the CO being superseded by this one. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "revises_co_id")
+    private ChangeOrder revisesChangeOrder;
+
+    @Column(name = "scope_notes", columnDefinition = "TEXT")
+    private String scopeNotes;
+
+    /** JSON array of payment_stage IDs this VO spans, stored as JSONB. E.g. "[1,2,3]" */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "mapped_stage_ids", columnDefinition = "jsonb")
+    private String mappedStageIds;
+
+    /** Final approved amount after multi-level approval (may differ from netAmountInclGst). */
+    @Column(name = "approved_cost", precision = 18, scale = 6)
+    private BigDecimal approvedCost;
+
+    /** True once the advance invoice for this VO has been paid. */
+    @Column(name = "advance_collected", nullable = false)
+    private boolean advanceCollected = false;
 
     @OneToMany(mappedBy = "changeOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ChangeOrderLineItem> lineItems = new ArrayList<>();
@@ -216,4 +246,22 @@ public class ChangeOrder extends BaseEntity {
 
     public List<ChangeOrderMilestone> getMilestones() { return milestones; }
     public void setMilestones(List<ChangeOrderMilestone> milestones) { this.milestones = milestones; }
+
+    public VOCategory getVoCategory() { return voCategory; }
+    public void setVoCategory(VOCategory voCategory) { this.voCategory = voCategory; }
+
+    public ChangeOrder getRevisesChangeOrder() { return revisesChangeOrder; }
+    public void setRevisesChangeOrder(ChangeOrder revisesChangeOrder) { this.revisesChangeOrder = revisesChangeOrder; }
+
+    public String getScopeNotes() { return scopeNotes; }
+    public void setScopeNotes(String scopeNotes) { this.scopeNotes = scopeNotes; }
+
+    public String getMappedStageIds() { return mappedStageIds; }
+    public void setMappedStageIds(String mappedStageIds) { this.mappedStageIds = mappedStageIds; }
+
+    public BigDecimal getApprovedCost() { return approvedCost; }
+    public void setApprovedCost(BigDecimal approvedCost) { this.approvedCost = approvedCost; }
+
+    public boolean isAdvanceCollected() { return advanceCollected; }
+    public void setAdvanceCollected(boolean advanceCollected) { this.advanceCollected = advanceCollected; }
 }
