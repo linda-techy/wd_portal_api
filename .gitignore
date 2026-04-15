@@ -46,3 +46,6 @@ application-local.properties
 application-prod.properties
 *-secret.properties
 secrets/
+
+firebase-service-account.json
+**/firebase-service-account.json
