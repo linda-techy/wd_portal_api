@@ -215,7 +215,7 @@ public class BoqDocumentService {
                 .orElseThrow(() -> new IllegalArgumentException(
                     "Customer user not found: " + customerSignedById));
         // Verify they are a member of the project
-        projectAccessGuard.verifyCustomerAccess(customerSignedById, doc.getProject().getId());
+        projectAccessGuard.verifyCustomerMembership(customerSignedById, doc.getProject().getId());
 
         validateStagePercentages(stageConfigs);
 
@@ -230,20 +230,6 @@ public class BoqDocumentService {
                 documentId, doc.getProject().getId(), customerSignedById, stageConfigs.size());
 
         return saved;
-    }
-
-    /**
-     * Records the customer's digital acknowledgement of the BOQ.
-     * Idempotent — safe to call multiple times; overwrites with latest timestamp.
-     * Does not change the document status.
-     */
-    public BoqDocument acknowledgeDocument(Long documentId, Long customerUserId) {
-        BoqDocument doc = getDocument(documentId);
-        projectAccessGuard.verifyCustomerAccess(customerUserId, doc.getProject().getId());
-
-        doc.setCustomerAcknowledgedAt(LocalDateTime.now());
-        doc.setCustomerAcknowledgedBy(customerUserId);
-        return boqDocumentRepository.save(doc);
     }
 
     // -------------------------------------------------------------------------

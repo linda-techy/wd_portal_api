@@ -51,13 +51,16 @@ public class ProjectAccessGuard {
     }
 
     /**
-     * Verifies that the given customer user may access the given project.
+     * Verifies that the given customer user is a member of the given project.
+     * Used by portal-side operations that reference a customer (e.g. recording customer approval).
+     * This is a pure DB membership check — no JWT involved.
      *
      * @throws AccessDeniedException (HTTP 403) if not a project member
      */
-    public void verifyCustomerAccess(Long customerUserId, Long projectId) {
+    public void verifyCustomerMembership(Long customerUserId, Long projectId) {
         if (!projectMemberRepository.existsByProject_IdAndCustomerUser_Id(projectId, customerUserId)) {
-            throw new AccessDeniedException("You do not have access to project " + projectId);
+            throw new AccessDeniedException("Customer user " + customerUserId
+                    + " is not a member of project " + projectId);
         }
     }
 
