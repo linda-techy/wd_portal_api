@@ -3,7 +3,8 @@
     "allow": [
       "Read(//n/Projects/wd projects git/storage/brochure/**)",
       "Bash(node generate-brochure.js)",
-      "Bash(echo \"Exit: $?\")"
+      "Bash(echo \"Exit: $?\")",
+      "Skill(gsd:resume-work)"
     ]
   }
 }

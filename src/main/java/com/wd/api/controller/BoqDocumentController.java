@@ -11,6 +11,7 @@ import jakarta.validation.constraints.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -157,6 +158,8 @@ public class BoqDocumentController {
                     id, getCurrentUserId(), request.customerSignedById(), stages);
             return ResponseEntity.ok(ApiResponse.success("BOQ approved. Payment schedule generated.",
                     BoqDocumentResponse.from(doc)));
+        } catch (AccessDeniedException e) {
+            throw e; // Let GlobalExceptionHandler return 403
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {

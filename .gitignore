@@ -49,3 +49,11 @@ secrets/
 
 firebase-service-account.json
 **/firebase-service-account.json
+
+### Logs ###
+*.log
+server_logs.txt
+
+### Generated schema artifacts ###
+database_scheme.json
+schema_extract.json
