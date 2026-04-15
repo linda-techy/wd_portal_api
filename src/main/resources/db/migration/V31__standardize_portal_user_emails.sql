@@ -18,11 +18,10 @@
 --   returns the expected zero-row / 27-count results.
 --
 -- Idempotency
---   Every statement is safe to re-run.
---     * Role INSERT uses ON CONFLICT (code) DO UPDATE.
---     * Orphan fix is a conditional UPDATE (no-op when no orphans).
---     * Email rewrite uses IS DISTINCT FROM so compliant rows are skipped.
---     * Index uses CREATE INDEX IF NOT EXISTS.
+--   Flyway only runs a successful migration once; V31 does not need to be
+--   a no-op on a DB where it has already applied. Within a single run,
+--   Steps 0/1/3 are trivially re-safe; Step 2 overwrites every email
+--   unconditionally via a temp-value pass before writing final targets.
 --
 -- Impact warning
 --   This migration CHANGES LOGIN EMAILS for portal_users. Password hashes
@@ -85,7 +84,7 @@ WHERE pu.role_id IS NULL
 
 
 -- -----------------------------------------------------------------------------
--- STEP 2 — Standardize email addresses
+-- STEP 2 — Standardize email addresses (two-phase to avoid UNIQUE swap trap)
 -- -----------------------------------------------------------------------------
 -- Prefix rule:
 --   lower(replace(portal_roles.code, '_', ''))
@@ -93,11 +92,26 @@ WHERE pu.role_id IS NULL
 --
 -- Uniqueness rule:
 --   ROW_NUMBER() OVER (PARTITION BY portal_roles.code ORDER BY portal_users.id)
---   First user in a role → no suffix.
---   Second → '2', third → '3', …
+--   First user in a role → no suffix.  Second → '2', third → '3', …
 --
--- Idempotency:
---   IS DISTINCT FROM leaves already-compliant rows untouched.
+-- Why two phases:
+--   portal_users_email_key is a non-deferrable UNIQUE constraint. A single
+--   UPDATE that swaps emails between rows (e.g. user A currently holds what
+--   user B's target email would be) fails mid-statement because Postgres
+--   checks uniqueness per row modification.
+--
+--   Phase A rewrites every email to a disjoint temp value derived from the
+--   user id (guaranteed unique via id). Phase B then writes the final
+--   targets — safe because every "before" value now starts with 'v31tmp_'
+--   and every "after" value ends with 'walldot@outlook.com', so the before
+--   and after value-sets cannot overlap.
+
+-- Phase A — temp values, guaranteed unique (id is unique) and disjoint
+--          from any value Phase B will write.
+UPDATE portal_users
+SET email = 'v31tmp_' || id::text;
+
+-- Phase B — apply the final target emails.
 WITH ranked AS (
     SELECT pu.id,
            LOWER(REPLACE(pr.code, '_', '')) AS base,
@@ -107,19 +121,13 @@ WITH ranked AS (
            ) AS rn
     FROM portal_users pu
     JOIN portal_roles pr ON pr.id = pu.role_id
-),
-target AS (
-    SELECT id,
-           base
-             || CASE WHEN rn = 1 THEN '' ELSE rn::text END
-             || 'walldot@outlook.com' AS new_email
-    FROM ranked
 )
 UPDATE portal_users pu
-SET email = t.new_email
-FROM target t
-WHERE pu.id = t.id
-  AND pu.email IS DISTINCT FROM t.new_email;
+SET email = r.base
+              || CASE WHEN r.rn = 1 THEN '' ELSE r.rn::text END
+              || 'walldot@outlook.com'
+FROM ranked r
+WHERE pu.id = r.id;
 
 
 -- -----------------------------------------------------------------------------
