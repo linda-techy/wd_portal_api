@@ -9,11 +9,15 @@ import org.hibernate.Hibernate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class CustomerProjectResponse {
     private Long id;
     private String name;
     private String location;
+
+    @JsonProperty("project_uuid")
+    private UUID projectUuid;
 
     @JsonProperty("start_date")
     private LocalDate startDate;
@@ -90,6 +94,7 @@ public class CustomerProjectResponse {
         this.isDesignAgreementSigned = project.getIsDesignAgreementSigned();
         this.latitude = project.getLatitude();
         this.longitude = project.getLongitude();
+        this.projectUuid = project.getProjectUuid();
 
         if (Hibernate.isInitialized(project.getProjectMembers()) && project.getProjectMembers() != null
                 && !project.getProjectMembers().isEmpty()) {
@@ -295,6 +300,14 @@ public class CustomerProjectResponse {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public UUID getProjectUuid() {
+        return projectUuid;
+    }
+
+    public void setProjectUuid(UUID projectUuid) {
+        this.projectUuid = projectUuid;
     }
 
 }

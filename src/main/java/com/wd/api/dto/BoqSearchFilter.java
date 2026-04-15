@@ -15,6 +15,7 @@ public class BoqSearchFilter extends SearchFilterRequest {
     // BOQ-specific filters
     private Long projectId;          // Project ID
     private Long workTypeId;         // Work type ID
+    private Long categoryId;         // Category ID
     private String itemCode;         // Item code (partial match)
     private String status;           // Status filter (DRAFT, APPROVED, LOCKED, COMPLETED)
     private Boolean active;          // Active/Inactive items
