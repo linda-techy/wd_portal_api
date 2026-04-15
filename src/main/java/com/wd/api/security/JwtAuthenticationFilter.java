@@ -67,25 +67,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if ("PARTNER".equals(tokenType)) {
             // Partnership user authentication
             handlePartnerAuthentication(jwt, actualSubject, request);
-        } else if ("CUSTOMER".equals(tokenType)) {
-            // CustomerUser authentication (project owners, architects, 3rd-party viewers)
-            handleCustomerAuthentication(actualSubject, request);
         } else {
             // Portal user authentication (company employees only)
             handlePortalAuthentication(jwt, actualSubject, request);
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private void handleCustomerAuthentication(String email, HttpServletRequest request) {
-        // Customer users get ROLE_CUSTOMER authority — they can only access /api/customer/** endpoints
-        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER"));
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                email, null, authorities);
-        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-        SecurityContextHolder.getContext().setAuthentication(authToken);
-        logger.debug("Authenticated customer user: {}", email);
     }
 
     private void handlePartnerAuthentication(String jwt, String phone, HttpServletRequest request) {
