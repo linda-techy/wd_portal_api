@@ -57,6 +57,7 @@ spring:
   flyway:
     enabled: true
     validate-migration-naming: true
+    out-of-order: false
 
   mail:
     # SSL host/port/properties are in application.yml (base).
