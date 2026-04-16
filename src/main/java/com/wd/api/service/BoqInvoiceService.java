@@ -97,10 +97,14 @@ public class BoqInvoiceService {
         invoice.setDueDate(dueDate);
         invoice.setCreatedByUserId(userId);
 
+        // Ensure retention & net payable are up-to-date before reading amounts
+        stage.recalculateNetPayable();
+
         // Stage amount (immutable — read directly from frozen fields)
         BigDecimal stageAmountExGst = stage.getStageAmountExGst();
         BigDecimal gstAmount = stage.getGstAmount();
         BigDecimal grossInclGst = stage.getStageAmountInclGst();
+        BigDecimal retentionHeld = stage.getRetentionHeld() != null ? stage.getRetentionHeld() : BigDecimal.ZERO;
         BigDecimal creditApplied = stage.getAppliedCreditAmount();
         BigDecimal netDue = stage.getNetPayableAmount();
 
@@ -111,15 +115,22 @@ public class BoqInvoiceService {
         invoice.setNetAmountDue(netDue);
 
         // Build line items
+        int sortIdx = 0;
         List<BoqInvoiceLineItem> lines = new ArrayList<>();
         lines.add(lineItem(invoice, "STAGE_AMOUNT", stage.getStageName() + " — stage " + stage.getStageNumber(),
-                BigDecimal.ONE, stageAmountExGst, 1));
+                BigDecimal.ONE, stageAmountExGst, ++sortIdx));
         lines.add(lineItem(invoice, "GST",
                 "GST @ " + stage.getGstRate().multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString() + "%",
-                BigDecimal.ONE, gstAmount, 2));
+                BigDecimal.ONE, gstAmount, ++sortIdx));
+        if (retentionHeld.compareTo(BigDecimal.ZERO) > 0) {
+            lines.add(lineItem(invoice, "RETENTION_DEDUCTION",
+                    "Retention @ " + stage.getRetentionPct().multiply(new BigDecimal("100"))
+                            .stripTrailingZeros().toPlainString() + "%",
+                    BigDecimal.ONE, retentionHeld.negate(), ++sortIdx));
+        }
         if (creditApplied.compareTo(BigDecimal.ZERO) > 0) {
             lines.add(lineItem(invoice, "CREDIT_NOTE_DEDUCTION",
-                    "Credit note deduction", BigDecimal.ONE, creditApplied.negate(), 3));
+                    "Credit note deduction", BigDecimal.ONE, creditApplied.negate(), ++sortIdx));
         }
         invoice.setLineItems(lines);
 

@@ -57,6 +57,22 @@ public class StagePaymentCertificationService {
     }
 
     // -------------------------------------------------------------------------
+    // Retention summary (used by FinalAccount flow)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the total retention held across all payment stages for a project.
+     * Used by the Final Account flow to know how much retention to release
+     * after the defect liability period.
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal getTotalRetentionForProject(Long projectId) {
+        return stageRepository.findByProjectIdOrderByStageNumberAsc(projectId).stream()
+                .map(stage -> stage.getRetentionHeld() != null ? stage.getRetentionHeld() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    // -------------------------------------------------------------------------
     // Certify
     // -------------------------------------------------------------------------
 
@@ -83,7 +99,7 @@ public class StagePaymentCertificationService {
         stage.setCertifiedBy(req.certifiedBy());
         stage.setCertifiedAt(LocalDateTime.now());
         stage.setRetentionPct(retentionPct);
-        stage.computeRetention();
+        stage.recalculateNetPayable();   // computes retention + net payable
         stage.setUpdatedByUserId(userId);
 
         // Advance to DUE if still UPCOMING

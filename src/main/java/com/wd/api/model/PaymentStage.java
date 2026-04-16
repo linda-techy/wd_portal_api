@@ -129,23 +129,31 @@ public class PaymentStage {
         if (status == null) status = PaymentStageStatus.UPCOMING;
         if (appliedCreditAmount == null) appliedCreditAmount = BigDecimal.ZERO;
         if (paidAmount == null) paidAmount = BigDecimal.ZERO;
-        if (netPayableAmount == null) netPayableAmount = stageAmountInclGst != null ? stageAmountInclGst : BigDecimal.ZERO;
         if (retentionPct == null) retentionPct = new BigDecimal("0.0500");
         if (retentionHeld == null) retentionHeld = BigDecimal.ZERO;
+        recalculateNetPayable();
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+        recalculateNetPayable();
     }
 
     // ---- Computed helper ----
 
-    /** Recalculates net_payable_amount = stageAmountInclGst - appliedCreditAmount */
+    /**
+     * Recalculates net_payable_amount = stageAmountInclGst - retentionHeld - appliedCreditAmount.
+     *
+     * Retention is deducted first (standard construction practice), then any
+     * credit notes.  The result is floored at zero.
+     */
     public void recalculateNetPayable() {
-        BigDecimal credit = appliedCreditAmount != null ? appliedCreditAmount : BigDecimal.ZERO;
-        BigDecimal gross = stageAmountInclGst != null ? stageAmountInclGst : BigDecimal.ZERO;
-        this.netPayableAmount = gross.subtract(credit).max(BigDecimal.ZERO);
+        computeRetention();
+        BigDecimal gross     = stageAmountInclGst   != null ? stageAmountInclGst   : BigDecimal.ZERO;
+        BigDecimal retention = retentionHeld         != null ? retentionHeld         : BigDecimal.ZERO;
+        BigDecimal credit    = appliedCreditAmount   != null ? appliedCreditAmount   : BigDecimal.ZERO;
+        this.netPayableAmount = gross.subtract(retention).subtract(credit).max(BigDecimal.ZERO);
     }
 
     // ---- Getters and Setters ----
@@ -227,10 +235,15 @@ public class PaymentStage {
     public LocalDateTime getCertifiedAt() { return certifiedAt; }
     public void setCertifiedAt(LocalDateTime certifiedAt) { this.certifiedAt = certifiedAt; }
 
-    /** Computes and stores retention_held = stage_amount_excl_gst * retention_pct */
+    /**
+     * Computes and stores retention_held = stageAmountInclGst * retentionPct.
+     *
+     * retentionPct is stored as a decimal fraction (e.g. 0.0500 = 5%).
+     * Null retentionPct is treated as 0% (no retention).
+     */
     public void computeRetention() {
-        BigDecimal pct = retentionPct != null ? retentionPct : new BigDecimal("0.0500");
-        BigDecimal base = stageAmountExGst != null ? stageAmountExGst : BigDecimal.ZERO;
+        BigDecimal pct  = retentionPct != null ? retentionPct : BigDecimal.ZERO;
+        BigDecimal base = stageAmountInclGst != null ? stageAmountInclGst : BigDecimal.ZERO;
         this.retentionHeld = base.multiply(pct).setScale(6, java.math.RoundingMode.HALF_UP);
     }
 }
