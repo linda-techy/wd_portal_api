@@ -93,6 +93,10 @@ public class BoqItem extends BaseEntity {
     @Column(name = "item_kind", nullable = false, length = 20)
     private ItemKind itemKind = ItemKind.BASE;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "boq_document_id")
+    private BoqDocument boqDocument;
+
     @Override
     @PrePersist
     protected void onCreate() {
@@ -262,4 +266,7 @@ public class BoqItem extends BaseEntity {
 
     public ItemKind getItemKind() { return itemKind != null ? itemKind : ItemKind.BASE; }
     public void setItemKind(ItemKind itemKind) { this.itemKind = itemKind != null ? itemKind : ItemKind.BASE; }
+
+    public BoqDocument getBoqDocument() { return boqDocument; }
+    public void setBoqDocument(BoqDocument boqDocument) { this.boqDocument = boqDocument; }
 }
