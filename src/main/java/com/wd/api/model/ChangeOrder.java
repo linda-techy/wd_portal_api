@@ -18,7 +18,8 @@ import java.util.List;
  * Rule R-003 (Method 2): Every scope change after BOQ approval is a Change Order.
  * COs have their own billing lane, completely separate from stage invoices.
  *
- * Status flow: DRAFT → SUBMITTED → CUSTOMER_REVIEW → APPROVED / REJECTED
+ * Status flow: DRAFT → SUBMITTED → INTERNALLY_APPROVED → CUSTOMER_REVIEW → APPROVED / REJECTED
+ *              SUBMITTED → INTERNALLY_REJECTED (returns to DRAFT for revision)
  *              APPROVED → IN_PROGRESS → COMPLETED → CLOSED
  *
  * On approval of a reduction CO, a CreditNote is auto-generated.
@@ -83,6 +84,12 @@ public class ChangeOrder extends BaseEntity {
 
     @Column(name = "customer_reviewed_at")
     private LocalDateTime customerReviewedAt;
+
+    @Column(name = "internally_approved_at")
+    private LocalDateTime internallyApprovedAt;
+
+    @Column(name = "internally_approved_by")
+    private Long internallyApprovedBy;
 
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
@@ -222,6 +229,12 @@ public class ChangeOrder extends BaseEntity {
 
     public Long getApprovedBy() { return approvedBy; }
     public void setApprovedBy(Long approvedBy) { this.approvedBy = approvedBy; }
+
+    public LocalDateTime getInternallyApprovedAt() { return internallyApprovedAt; }
+    public void setInternallyApprovedAt(LocalDateTime internallyApprovedAt) { this.internallyApprovedAt = internallyApprovedAt; }
+
+    public Long getInternallyApprovedBy() { return internallyApprovedBy; }
+    public void setInternallyApprovedBy(Long internallyApprovedBy) { this.internallyApprovedBy = internallyApprovedBy; }
 
     public LocalDateTime getRejectedAt() { return rejectedAt; }
     public void setRejectedAt(LocalDateTime rejectedAt) { this.rejectedAt = rejectedAt; }

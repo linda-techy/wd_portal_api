@@ -129,14 +129,64 @@ public class ChangeOrderService {
     }
 
     // -------------------------------------------------------------------------
+    // Internal approval gate (PM review before customer sees the CO)
+    // -------------------------------------------------------------------------
+
+    public ChangeOrder approveInternally(Long coId, Long userId) {
+        ChangeOrder co = getChangeOrder(coId);
+
+        if (co.getStatus() != ChangeOrderStatus.SUBMITTED) {
+            throw new IllegalStateException("CO must be SUBMITTED for internal approval. Current: " + co.getStatus());
+        }
+
+        co.setStatus(ChangeOrderStatus.INTERNALLY_APPROVED);
+        co.setInternallyApprovedAt(LocalDateTime.now());
+        co.setInternallyApprovedBy(userId);
+        co.setUpdatedByUserId(userId);
+        ChangeOrder saved = changeOrderRepository.save(co);
+
+        activityFeedService.logProjectActivity(
+            "CO_INTERNALLY_APPROVED", "Change Order Internally Approved",
+            "Change order #" + co.getId() + " approved internally by PM.",
+            co.getProject(), getCurrentPortalUser());
+
+        logger.info("Change Order {} internally approved by user {}", co.getReferenceNumber(), userId);
+        return saved;
+    }
+
+    public ChangeOrder rejectInternally(Long coId, Long userId, String reason) {
+        ChangeOrder co = getChangeOrder(coId);
+
+        if (co.getStatus() != ChangeOrderStatus.SUBMITTED) {
+            throw new IllegalStateException("CO must be SUBMITTED for internal rejection. Current: " + co.getStatus());
+        }
+
+        co.setStatus(ChangeOrderStatus.DRAFT);
+        co.setRejectedAt(LocalDateTime.now());
+        co.setRejectedBy(userId);
+        co.setRejectionReason(reason);
+        co.setUpdatedByUserId(userId);
+        ChangeOrder saved = changeOrderRepository.save(co);
+
+        activityFeedService.logProjectActivity(
+            "CO_INTERNALLY_REJECTED", "Change Order Returned for Revision",
+            "Change order #" + co.getId() + " returned for revision. Reason: " + reason,
+            co.getProject(), getCurrentPortalUser());
+
+        logger.info("Change Order {} internally rejected by user {}. Reason: {}",
+                co.getReferenceNumber(), userId, reason);
+        return saved;
+    }
+
+    // -------------------------------------------------------------------------
     // Mark as sent to customer for review
     // -------------------------------------------------------------------------
 
     public ChangeOrder sendToCustomer(Long coId, Long userId) {
         ChangeOrder co = getChangeOrder(coId);
 
-        if (co.getStatus() != ChangeOrderStatus.SUBMITTED) {
-            throw new IllegalStateException("CO must be SUBMITTED before sending to customer. Current: " + co.getStatus());
+        if (co.getStatus() != ChangeOrderStatus.INTERNALLY_APPROVED) {
+            throw new IllegalStateException("CO must be INTERNALLY_APPROVED before sending to customer. Current: " + co.getStatus());
         }
 
         co.setStatus(ChangeOrderStatus.CUSTOMER_REVIEW);

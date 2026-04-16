@@ -102,6 +102,35 @@ public class ChangeOrderController {
         }
     }
 
+    @PatchMapping("/{id}/approve-internal")
+    @PreAuthorize("hasAuthority('BOQ_APPROVE')")
+    public ResponseEntity<ApiResponse<ChangeOrderResponse>> approveInternally(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Change order internally approved",
+                    ChangeOrderResponse.from(changeOrderService.approveInternally(id, getCurrentUserId()))));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to internally approve change order {}", id, e);
+            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+        }
+    }
+
+    @PatchMapping("/{id}/reject-internal")
+    @PreAuthorize("hasAuthority('BOQ_APPROVE')")
+    public ResponseEntity<ApiResponse<ChangeOrderResponse>> rejectInternally(
+            @PathVariable Long id, @RequestBody RejectInternalRequest request) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Change order returned for revision",
+                    ChangeOrderResponse.from(changeOrderService.rejectInternally(id, getCurrentUserId(), request.reason()))));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to internally reject change order {}", id, e);
+            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+        }
+    }
+
     @PatchMapping("/{id}/send-to-customer")
     @PreAuthorize("hasAuthority('BOQ_APPROVE')")
     public ResponseEntity<ApiResponse<ChangeOrderResponse>> sendToCustomer(@PathVariable Long id) {
@@ -193,6 +222,10 @@ public class ChangeOrderController {
             String description,
             String justification,
             @NotNull @Size(min = 1) List<LineItemRequest> lineItems
+    ) {}
+
+    public record RejectInternalRequest(
+            @NotBlank String reason
     ) {}
 
     public record LineItemRequest(
