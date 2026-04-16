@@ -76,6 +76,9 @@ spring:
 jwt:
   access-token-expiration: 3600000       # 1 hour
   refresh-token-expiration: 604800000    # 7 days
+  aud:
+    value: "portal-api"
+    enforce: false
 
 # ── Task Alerts ─────────────────────────────────────────────────
 task:
