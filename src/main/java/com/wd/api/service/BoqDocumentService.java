@@ -38,6 +38,7 @@ public class BoqDocumentService {
     private final PortalUserRepository portalUserRepository;
     private final ProjectAccessGuard projectAccessGuard;
     private final CustomerUserRepository customerUserRepository;
+    private final ActivityFeedService activityFeedService;
 
     public BoqDocumentService(BoqDocumentRepository boqDocumentRepository,
                                BoqItemRepository boqItemRepository,
@@ -45,7 +46,8 @@ public class BoqDocumentService {
                                CustomerProjectRepository projectRepository,
                                PortalUserRepository portalUserRepository,
                                ProjectAccessGuard projectAccessGuard,
-                               CustomerUserRepository customerUserRepository) {
+                               CustomerUserRepository customerUserRepository,
+                               ActivityFeedService activityFeedService) {
         this.boqDocumentRepository = boqDocumentRepository;
         this.boqItemRepository = boqItemRepository;
         this.paymentStageRepository = paymentStageRepository;
@@ -53,6 +55,7 @@ public class BoqDocumentService {
         this.portalUserRepository = portalUserRepository;
         this.projectAccessGuard = projectAccessGuard;
         this.customerUserRepository = customerUserRepository;
+        this.activityFeedService = activityFeedService;
     }
 
     // -------------------------------------------------------------------------
@@ -157,7 +160,14 @@ public class BoqDocumentService {
         doc.setSubmittedBy(submitter);
         doc.setUpdatedByUserId(userId);
 
-        return boqDocumentRepository.save(doc);
+        BoqDocument saved = boqDocumentRepository.save(doc);
+
+        activityFeedService.logProjectActivity(
+            "BOQ_SUBMITTED", "BOQ Submitted for Approval",
+            "BOQ revision " + doc.getRevisionNumber() + " submitted for customer approval.",
+            doc.getProject(), getCurrentPortalUser());
+
+        return saved;
     }
 
     // -------------------------------------------------------------------------
@@ -226,6 +236,11 @@ public class BoqDocumentService {
 
         generatePaymentStages(saved, stageConfigs);
 
+        activityFeedService.logProjectActivity(
+            "BOQ_APPROVED", "BOQ Approved",
+            "BOQ revision " + doc.getRevisionNumber() + " approved by customer.",
+            doc.getProject(), null);  // null portalUser because customer triggered this
+
         logger.info("BOQ document {} approved for project {}. Signed by customer user {}. {} payment stages generated.",
                 documentId, doc.getProject().getId(), customerSignedById, stageConfigs.size());
 
@@ -250,7 +265,14 @@ public class BoqDocumentService {
         doc.setRejectedBy(rejectorId);
         doc.setRejectionReason(reason);
         doc.setUpdatedByUserId(rejectorId);
-        return boqDocumentRepository.save(doc);
+        BoqDocument saved = boqDocumentRepository.save(doc);
+
+        activityFeedService.logProjectActivity(
+            "BOQ_REJECTED", "BOQ Rejected",
+            "BOQ revision " + doc.getRevisionNumber() + " rejected. Reason: " + doc.getRejectionReason(),
+            doc.getProject(), getCurrentPortalUser());
+
+        return saved;
     }
 
     // -------------------------------------------------------------------------
@@ -310,4 +332,14 @@ public class BoqDocumentService {
     // -------------------------------------------------------------------------
 
     public record StageConfig(String name, BigDecimal percentage) {}
+
+    private PortalUser getCurrentPortalUser() {
+        try {
+            String email = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
+            return portalUserRepository.findByEmail(email).orElse(null);
+        } catch (Exception e) {
+            return null;  // system-triggered actions have no portal user
+        }
+    }
 }

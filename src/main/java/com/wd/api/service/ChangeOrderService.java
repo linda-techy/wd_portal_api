@@ -34,19 +34,22 @@ public class ChangeOrderService {
     private final PortalUserRepository portalUserRepository;
     private final CreditNoteService creditNoteService;
     private final BoqInvoiceService boqInvoiceService;
+    private final ActivityFeedService activityFeedService;
 
     public ChangeOrderService(ChangeOrderRepository changeOrderRepository,
                                BoqDocumentRepository boqDocumentRepository,
                                CustomerProjectRepository projectRepository,
                                PortalUserRepository portalUserRepository,
                                CreditNoteService creditNoteService,
-                               BoqInvoiceService boqInvoiceService) {
+                               BoqInvoiceService boqInvoiceService,
+                               ActivityFeedService activityFeedService) {
         this.changeOrderRepository = changeOrderRepository;
         this.boqDocumentRepository = boqDocumentRepository;
         this.projectRepository = projectRepository;
         this.portalUserRepository = portalUserRepository;
         this.creditNoteService = creditNoteService;
         this.boqInvoiceService = boqInvoiceService;
+        this.activityFeedService = activityFeedService;
     }
 
     // -------------------------------------------------------------------------
@@ -139,7 +142,14 @@ public class ChangeOrderService {
         co.setStatus(ChangeOrderStatus.CUSTOMER_REVIEW);
         co.setCustomerReviewedAt(LocalDateTime.now());
         co.setUpdatedByUserId(userId);
-        return changeOrderRepository.save(co);
+        ChangeOrder saved = changeOrderRepository.save(co);
+
+        activityFeedService.logProjectActivity(
+            "CO_SENT_TO_CUSTOMER", "Change Order Sent for Review",
+            "Change order #" + co.getId() + " sent to customer for review.",
+            co.getProject(), getCurrentPortalUser());
+
+        return saved;
     }
 
     // -------------------------------------------------------------------------
@@ -165,6 +175,11 @@ public class ChangeOrderService {
             boqInvoiceService.generateCoAdvanceInvoice(saved);
         }
 
+        activityFeedService.logProjectActivity(
+            "CO_APPROVED", "Change Order Approved",
+            "Change order #" + co.getId() + " approved by customer.",
+            co.getProject(), null);  // customer triggered
+
         logger.info("Change Order {} approved by customer {}. Type: {}",
                 co.getReferenceNumber(), customerUserId, co.getCoType());
         return saved;
@@ -185,7 +200,14 @@ public class ChangeOrderService {
         co.setRejectedAt(LocalDateTime.now());
         co.setRejectedBy(customerUserId);
         co.setRejectionReason(reason);
-        return changeOrderRepository.save(co);
+        ChangeOrder saved = changeOrderRepository.save(co);
+
+        activityFeedService.logProjectActivity(
+            "CO_REJECTED", "Change Order Rejected",
+            "Change order #" + co.getId() + " rejected by customer. Reason: " + co.getRejectionReason(),
+            co.getProject(), null);  // customer triggered
+
+        return saved;
     }
 
     // -------------------------------------------------------------------------
@@ -248,5 +270,15 @@ public class ChangeOrderService {
     private String generateReferenceNumber(Long projectId) {
         long count = changeOrderRepository.countByProjectIdAndDeletedAtIsNull(projectId);
         return String.format("CO-%d-%04d", projectId, count + 1);
+    }
+
+    private PortalUser getCurrentPortalUser() {
+        try {
+            String email = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
+            return portalUserRepository.findByEmail(email).orElse(null);
+        } catch (Exception e) {
+            return null;  // system-triggered actions have no portal user
+        }
     }
 }
