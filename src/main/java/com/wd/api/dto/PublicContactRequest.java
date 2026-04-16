@@ -28,6 +28,9 @@ public class PublicContactRequest {
     /** Visitor's message — stored as lead notes. */
     private String message;
 
+    /** Optional granular source identifier from the form (e.g. "website_luxury_villa"). */
+    private String leadSource;
+
     // Getters & setters
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -49,4 +52,7 @@ public class PublicContactRequest {
 
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
+
+    public String getLeadSource() { return leadSource; }
+    public void setLeadSource(String leadSource) { this.leadSource = leadSource; }
 }

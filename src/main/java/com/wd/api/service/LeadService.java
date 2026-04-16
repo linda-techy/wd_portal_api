@@ -905,7 +905,8 @@ public class LeadService {
         lead.setName(request.getName());
         lead.setEmail(request.getEmail() != null ? request.getEmail() : "");
         lead.setPhone(request.getPhone());
-        lead.setLeadSource("website");
+        lead.setLeadSource(request.getLeadSource() != null && !request.getLeadSource().isBlank()
+                ? request.getLeadSource() : "website_contact");
         lead.setLeadStatus("new_inquiry");
         lead.setCustomerType("individual");
         lead.setPriority("medium");
