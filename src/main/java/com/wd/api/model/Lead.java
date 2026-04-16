@@ -149,6 +149,12 @@ public class Lead extends BaseEntity {
     @JsonProperty("converted_at")
     private LocalDateTime convertedAt;
 
+    @Column(name = "customer_user_id")
+    private Long customerUserId;
+
+    public Long getCustomerUserId() { return customerUserId; }
+    public void setCustomerUserId(Long customerUserId) { this.customerUserId = customerUserId; }
+
     /**
      * JPA lifecycle callback to sync transient assignedToId from assignedTo
      * relationship
