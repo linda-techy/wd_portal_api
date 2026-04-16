@@ -8,9 +8,10 @@ INSERT INTO portal_permissions (name, description)
 VALUES ('FINANCE_MANAGE', 'Access finance dashboard and manage financial records')
 ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO portal_role_permissions (role_code, permission_name)
-VALUES
-    ('ADMIN',              'FINANCE_MANAGE'),
-    ('FINANCE_OFFICER',    'FINANCE_MANAGE'),
-    ('ACCOUNTS_ASSISTANT', 'FINANCE_MANAGE')
+-- Join table uses FK IDs: role_id → portal_roles.id, permission_id → portal_permissions.id
+INSERT INTO portal_role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM portal_roles r, portal_permissions p
+WHERE r.code IN ('ADMIN', 'FINANCE_OFFICER', 'ACCOUNTS_ASSISTANT')
+  AND p.name = 'FINANCE_MANAGE'
 ON CONFLICT DO NOTHING;
