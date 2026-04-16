@@ -21,7 +21,7 @@ public class PublicReferralRequest {
     private String referralEmail;
 
     @NotBlank(message = "Referral phone number is required")
-    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Enter a valid 10-digit Indian mobile number")
+    @Pattern(regexp = "^(\\+?\\d{1,4}[\\-\\s]?)?\\d{7,14}$", message = "Enter a valid phone number")
     private String referralPhone;
 
     // ── Referrer information (person who is making the referral) ─────────────
@@ -33,7 +33,7 @@ public class PublicReferralRequest {
     @Email(message = "Please provide a valid email address")
     private String yourEmail;
 
-    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Enter a valid 10-digit Indian mobile number")
+    @Pattern(regexp = "^(\\+?\\d{1,4}[\\-\\s]?)?\\d{7,14}$", message = "Enter a valid phone number")
     private String yourPhone;
 
     // ── Project details ───────────────────────────────────────────────────────
