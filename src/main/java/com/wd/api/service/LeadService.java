@@ -986,6 +986,10 @@ public class LeadService {
         if (yourEmail != null && !yourEmail.isBlank()) notes.append(" | ").append(yourEmail);
         lead.setNotes(notes.toString());
 
+        lead.setReferredByEmail(request.getYourEmail());
+        lead.setReferredByName(request.getYourName());
+        lead.setReferredByPhone(request.getYourPhone());
+
         return createLead(lead);
     }
 

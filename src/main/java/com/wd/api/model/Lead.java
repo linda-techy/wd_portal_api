@@ -152,6 +152,15 @@ public class Lead extends BaseEntity {
     @Column(name = "customer_user_id")
     private Long customerUserId;
 
+    @Column(name = "referred_by_email")
+    private String referredByEmail;
+
+    @Column(name = "referred_by_name")
+    private String referredByName;
+
+    @Column(name = "referred_by_phone", length = 50)
+    private String referredByPhone;
+
     public Long getCustomerUserId() { return customerUserId; }
     public void setCustomerUserId(Long customerUserId) { this.customerUserId = customerUserId; }
 
@@ -460,5 +469,29 @@ public class Lead extends BaseEntity {
 
     public void setConvertedAt(LocalDateTime convertedAt) {
         this.convertedAt = convertedAt;
+    }
+
+    public String getReferredByEmail() {
+        return referredByEmail;
+    }
+
+    public void setReferredByEmail(String referredByEmail) {
+        this.referredByEmail = referredByEmail;
+    }
+
+    public String getReferredByName() {
+        return referredByName;
+    }
+
+    public void setReferredByName(String referredByName) {
+        this.referredByName = referredByName;
+    }
+
+    public String getReferredByPhone() {
+        return referredByPhone;
+    }
+
+    public void setReferredByPhone(String referredByPhone) {
+        this.referredByPhone = referredByPhone;
     }
 }
