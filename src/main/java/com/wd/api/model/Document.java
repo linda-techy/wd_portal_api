@@ -1,12 +1,16 @@
 package com.wd.api.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * Unified Document entity for polymorphic file attachments across the system.
  * Replaces specialized document entities (LeadDocument, ProjectDocument).
  * Extends BaseEntity for full enterprise audit trails and optimistic locking.
  */
+@SQLDelete(sql = "UPDATE project_documents SET deleted_at = NOW() WHERE id = ? AND version = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Entity
 @Table(name = "project_documents")
 public class Document extends BaseEntity {
