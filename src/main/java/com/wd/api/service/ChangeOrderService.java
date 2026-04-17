@@ -35,6 +35,7 @@ public class ChangeOrderService {
     private final CreditNoteService creditNoteService;
     private final BoqInvoiceService boqInvoiceService;
     private final ActivityFeedService activityFeedService;
+    private final CustomerNotificationFacade customerNotificationFacade;
 
     public ChangeOrderService(ChangeOrderRepository changeOrderRepository,
                                BoqDocumentRepository boqDocumentRepository,
@@ -42,7 +43,8 @@ public class ChangeOrderService {
                                PortalUserRepository portalUserRepository,
                                CreditNoteService creditNoteService,
                                BoqInvoiceService boqInvoiceService,
-                               ActivityFeedService activityFeedService) {
+                               ActivityFeedService activityFeedService,
+                               CustomerNotificationFacade customerNotificationFacade) {
         this.changeOrderRepository = changeOrderRepository;
         this.boqDocumentRepository = boqDocumentRepository;
         this.projectRepository = projectRepository;
@@ -50,6 +52,7 @@ public class ChangeOrderService {
         this.creditNoteService = creditNoteService;
         this.boqInvoiceService = boqInvoiceService;
         this.activityFeedService = activityFeedService;
+        this.customerNotificationFacade = customerNotificationFacade;
     }
 
     // -------------------------------------------------------------------------
@@ -198,6 +201,13 @@ public class ChangeOrderService {
             "CO_SENT_TO_CUSTOMER", "Change Order Sent for Review",
             "Change order #" + co.getId() + " sent to customer for review.",
             co.getProject(), getCurrentPortalUser());
+
+        customerNotificationFacade.notifyOwners(
+            co.getProject().getId(),
+            "Change Order Requires Review: " + co.getTitle(),
+            "Change order '" + co.getTitle() + "' has been submitted for your review.",
+            "CHANGE_ORDER",
+            co.getId());
 
         return saved;
     }

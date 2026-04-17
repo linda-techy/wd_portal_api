@@ -79,6 +79,9 @@ public class CustomerProjectService {
     @Autowired
     private PaymentScheduleRepository paymentScheduleRepository;
 
+    @Autowired
+    private CustomerNotificationFacade customerNotificationFacade;
+
     /**
      * NEW: Standardized search method using ProjectSearchFilter
      * Enterprise-grade implementation with comprehensive filtering
@@ -700,6 +703,14 @@ public class CustomerProjectService {
         member.setCustomerId(user.getId());
         member.setRoleInProject(request.getRoleInProject());
         ProjectMember saved = projectMemberRepository.save(member);
+
+        customerNotificationFacade.notifyAll(
+            project.getId(),
+            "You've been added to project: " + project.getName(),
+            "You have been added as a member of project '" + project.getName() + "'.",
+            "PROJECT",
+            project.getId());
+
         return toMemberResponse(saved, user);
     }
 

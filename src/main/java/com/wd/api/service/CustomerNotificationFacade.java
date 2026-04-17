@@ -4,6 +4,7 @@ import com.wd.api.model.CustomerNotification;
 import com.wd.api.model.CustomerUser;
 import com.wd.api.model.ProjectMember;
 import com.wd.api.repository.CustomerNotificationRepository;
+import com.wd.api.repository.CustomerUserRepository;
 import com.wd.api.repository.ProjectMemberRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,8 +26,9 @@ import java.util.stream.Collectors;
  * notifications to the affected devices.
  *
  * Notification strategy:
- *  - notifyOwners()  → CUSTOMER + CUSTOMER_ADMIN role members only (financial events: payments, site reports)
- *  - notifyAll()     → all customer members regardless of role (milestone completions, new documents)
+ *  - notifyOwners()   → CUSTOMER + CUSTOMER_ADMIN role members only (financial events: payments, site reports)
+ *  - notifyAll()      → all customer members regardless of role (milestone completions, new documents)
+ *  - notifyCustomer() → single customer user by ID, no project context (lead status changes)
  *
  * Design: runs in a separate transaction (REQUIRES_NEW) so a notification failure
  * never rolls back the caller's business transaction.
@@ -40,14 +43,17 @@ public class CustomerNotificationFacade {
 
     private final ProjectMemberRepository projectMemberRepository;
     private final CustomerNotificationRepository customerNotificationRepository;
+    private final CustomerUserRepository customerUserRepository;
     private final PushNotificationService pushNotificationService;
 
     public CustomerNotificationFacade(
             ProjectMemberRepository projectMemberRepository,
             CustomerNotificationRepository customerNotificationRepository,
+            CustomerUserRepository customerUserRepository,
             PushNotificationService pushNotificationService) {
         this.projectMemberRepository = projectMemberRepository;
         this.customerNotificationRepository = customerNotificationRepository;
+        this.customerUserRepository = customerUserRepository;
         this.pushNotificationService = pushNotificationService;
     }
 
@@ -92,6 +98,32 @@ public class CustomerNotificationFacade {
         }
     }
 
+    /**
+     * Notify a single customer user directly by their ID.
+     * Use for: lead status changes where there is no project context yet.
+     *
+     * @param customerUserId   ID of the CustomerUser to notify
+     * @param title            notification title
+     * @param body             notification body
+     * @param notificationType notification type string (e.g. "LEAD_STATUS")
+     * @param referenceId      ID of the linked entity (e.g. lead ID)
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notifyCustomer(Long customerUserId, String title, String body,
+                               String notificationType, Long referenceId) {
+        if (customerUserId == null) return;
+        try {
+            CustomerUser user = customerUserRepository.findById(customerUserId).orElse(null);
+            if (user == null) {
+                logger.warn("notifyCustomer: CustomerUser {} not found — skipping notification", customerUserId);
+                return;
+            }
+            persistAndPush(List.of(user), null, title, body, notificationType, referenceId);
+        } catch (Exception e) {
+            logger.error("Failed to send notification to customer user {}: {}", customerUserId, e.getMessage(), e);
+        }
+    }
+
     private void persistAndPush(List<CustomerUser> targets, Long projectId,
                                   String title, String body,
                                   String notificationType, Long referenceId) {
@@ -115,10 +147,13 @@ public class CustomerNotificationFacade {
                 .collect(Collectors.toList());
 
         if (!tokens.isEmpty()) {
-            pushNotificationService.sendToTokens(tokens, title, body,
-                    Map.of("type", notificationType,
-                           "projectId", String.valueOf(projectId),
-                           "referenceId", referenceId != null ? String.valueOf(referenceId) : ""));
+            // Build data payload — avoid Map.of() because projectId may be null
+            Map<String, String> data = new HashMap<>();
+            data.put("type", notificationType);
+            data.put("projectId", projectId != null ? String.valueOf(projectId) : "");
+            data.put("referenceId", referenceId != null ? String.valueOf(referenceId) : "");
+
+            pushNotificationService.sendToTokens(tokens, title, body, data);
         }
 
         logger.info("Customer notification '{}' dispatched to {} user(s) for project {}",
