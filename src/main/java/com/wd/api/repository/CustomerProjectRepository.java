@@ -67,6 +67,12 @@ public interface CustomerProjectRepository extends JpaRepository<CustomerProject
         int countByCustomer_IdAndDeletedAtIsNull(Long customerId);
 
         /**
+         * Batch-fetch project counts for a list of customer IDs (avoids N+1)
+         */
+        @Query("SELECT p.customer.id, COUNT(p) FROM CustomerProject p WHERE p.deletedAt IS NULL AND p.customer.id IN :ids GROUP BY p.customer.id")
+        List<Object[]> countProjectsByCustomerIds(@Param("ids") List<Long> ids);
+
+        /**
          * Check if an active project exists with given code
          */
         boolean existsByCodeAndDeletedAtIsNull(String code);

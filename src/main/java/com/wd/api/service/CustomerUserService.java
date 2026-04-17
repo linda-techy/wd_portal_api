@@ -8,6 +8,7 @@ import com.wd.api.model.CustomerUser;
 import com.wd.api.repository.CustomerUserRepository;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.CustomerRoleRepository;
+import com.wd.api.repository.LeadRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -53,15 +56,34 @@ public class CustomerUserService {
     private CustomerRoleRepository customerRoleRepository;
 
     @Autowired
+    private LeadRepository leadRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     /**
      * Search customers with filters
      */
     @Transactional(readOnly = true)
-    public Page<CustomerUser> searchCustomers(CustomerSearchFilter filter) {
+    public Page<CustomerResponse> searchCustomers(CustomerSearchFilter filter) {
         Specification<CustomerUser> spec = buildSpecification(filter);
-        return customerUserRepository.findAll(spec, filter.toPageable());
+        Page<CustomerUser> page = customerUserRepository.findAll(spec, filter.toPageable());
+
+        // Batch-fetch project counts to avoid N+1
+        List<Long> customerIds = page.getContent().stream()
+                .map(CustomerUser::getId).collect(Collectors.toList());
+
+        Map<Long, Long> projectCounts = new HashMap<>();
+        if (!customerIds.isEmpty()) {
+            customerProjectRepository.countProjectsByCustomerIds(customerIds)
+                    .forEach(row -> projectCounts.put((Long) row[0], (Long) row[1]));
+        }
+
+        return page.map(customer -> {
+            CustomerResponse response = new CustomerResponse(customer);
+            response.setProjectCount(projectCounts.getOrDefault(customer.getId(), 0L).intValue());
+            return response;
+        });
     }
 
     private Specification<CustomerUser> buildSpecification(CustomerSearchFilter filter) {
@@ -243,6 +265,14 @@ public class CustomerUserService {
             }
         }
 
+        // Audit log: track which fields changed (compare OLD values before updates)
+        List<String> changedFields = new ArrayList<>();
+        if (!java.util.Objects.equals(customerUser.getEmail(), request.getEmail())) changedFields.add("email");
+        if (request.getPhone() != null && !java.util.Objects.equals(customerUser.getPhone(), request.getPhone())) changedFields.add("phone");
+        if (request.getEnabled() != null && !java.util.Objects.equals(customerUser.getEnabled(), request.getEnabled())) changedFields.add("enabled");
+        if (request.getCustomerType() != null && !java.util.Objects.equals(customerUser.getCustomerType(), request.getCustomerType())) changedFields.add("customerType");
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) changedFields.add("password");
+
         // Update fields
         customerUser.setEmail(request.getEmail().trim());
         customerUser.setFirstName(request.getFirstName().trim());
@@ -284,7 +314,11 @@ public class CustomerUserService {
             }
         }
 
-        return customerUserRepository.save(customerUser);
+        CustomerUser saved = customerUserRepository.save(customerUser);
+        if (!changedFields.isEmpty()) {
+            logger.info("Customer {} updated — fields changed: {}", id, String.join(", ", changedFields));
+        }
+        return saved;
     }
 
     /**
@@ -298,15 +332,24 @@ public class CustomerUserService {
         CustomerUser customer = customerUserRepository.findById(customerId)
                 .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + customerId + " not found"));
 
-        // Check for associated projects
-        List<com.wd.api.model.CustomerProject> projects = customerProjectRepository.findByCustomer_Id(customerId);
-        if (!projects.isEmpty()) {
+        // Check for active (non-deleted) projects
+        int activeProjectCount = customerProjectRepository.countByCustomer_IdAndDeletedAtIsNull(customerId);
+        if (activeProjectCount > 0) {
             throw new IllegalStateException(
-                    "Cannot delete customer with associated projects. Please delete the projects first.");
+                    "Cannot delete customer with " + activeProjectCount + " active projects. Please delete the projects first.");
+        }
+
+        // Check for linked leads — soft-delete instead of hard delete
+        if (leadRepository.existsByCustomerUserId(customerId)) {
+            customer.setEnabled(false);
+            customerUserRepository.save(customer);
+            logger.info("Customer {} deactivated (has linked leads) — ID: {}", customer.getEmail(), customerId);
+            throw new IllegalStateException(
+                    "Customer has linked leads. Account deactivated instead of deleted.");
         }
 
         customerUserRepository.delete(customer);
-        logger.info("Customer deleted successfully - ID: {}", customerId);
+        logger.info("Customer deleted successfully — ID: {}", customerId);
     }
 
     // ==================== Private Validation Methods ====================

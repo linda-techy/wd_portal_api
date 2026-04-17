@@ -48,9 +48,9 @@ public class CustomerController {
      */
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
-    public ResponseEntity<Page<CustomerUser>> searchCustomers(@ModelAttribute CustomerSearchFilter filter) {
+    public ResponseEntity<Page<CustomerResponse>> searchCustomers(@ModelAttribute CustomerSearchFilter filter) {
         try {
-            Page<CustomerUser> customers = customerUserService.searchCustomers(filter);
+            Page<CustomerResponse> customers = customerUserService.searchCustomers(filter);
             return ResponseEntity.ok(customers);
         } catch (Exception e) {
             logger.error("Error searching customers", e);
