@@ -91,6 +91,9 @@ public class LeadService {
     @Autowired
     private PortalNotificationService portalNotificationService;
 
+    @Autowired
+    private CustomerNotificationFacade customerNotificationFacade;
+
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LeadService.class);
     // Thread-safe ObjectMapper instance for JSON serialization
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -516,10 +519,21 @@ public class LeadService {
                             savedLead.getId(),
                             "LEAD");
 
-                    // Lead status changes are internal CRM pipeline operations.
-                    // Customers are NOT notified of internal status movements.
-                    logger.info("[EMAIL-SKIP] Lead {} status changed {} → {} — no customer email sent (internal update)",
-                            savedLead.getId(), oldStatus, savedLead.getLeadStatus());
+                    // Notify the customer who submitted the enquiry, if linked
+                    if (savedLead.getCustomerUserId() != null) {
+                        try {
+                            customerNotificationFacade.notifyCustomer(
+                                    savedLead.getCustomerUserId(),
+                                    "Enquiry Update",
+                                    "Your enquiry '" + savedLead.getName() + "' status has been updated to "
+                                            + friendlyLeadStatus(savedLead.getLeadStatus()),
+                                    "LEAD_STATUS",
+                                    savedLead.getId());
+                        } catch (Exception e) {
+                            logger.warn("Failed to send lead status notification to customer user {}: {}",
+                                    savedLead.getCustomerUserId(), e.getMessage());
+                        }
+                    }
                 }
 
                 // Check if Lead became HOT
@@ -1156,6 +1170,25 @@ public class LeadService {
         }
     }
 
+    /**
+     * Convert an internal lead status value to a customer-friendly label.
+     */
+    private String friendlyLeadStatus(String status) {
+        if (status == null) return "Updated";
+        switch (normalizeStatusForComparison(status)) {
+            case "new":        return "Received";
+            case "contacted":  return "Being Reviewed";
+            case "qualified":  return "Qualified";
+            case "proposal_sent": return "Proposal Sent";
+            case "won":        return "Approved";
+            case "lost":       return "Closed";
+            default:
+                // Capitalise first letter of the raw value as a safe fallback
+                String s = status.trim();
+                return s.isEmpty() ? "Updated" : Character.toUpperCase(s.charAt(0)) + s.substring(1);
+        }
+    }
+
     private String normalizeStatusForComparison(String status) {
         if (status == null || status.isEmpty()) {
             return status;
@@ -1665,6 +1698,22 @@ public class LeadService {
             }
         } catch (Exception e) {
             logger.warn("Error logging status change activity: {}", e.getMessage());
+        }
+
+        // Notify the customer who submitted the enquiry, if linked
+        if (!newStatus.equals(oldStatus) && savedLead.getCustomerUserId() != null) {
+            try {
+                customerNotificationFacade.notifyCustomer(
+                        savedLead.getCustomerUserId(),
+                        "Enquiry Update",
+                        "Your enquiry '" + savedLead.getName() + "' status has been updated to "
+                                + friendlyLeadStatus(savedLead.getLeadStatus()),
+                        "LEAD_STATUS",
+                        savedLead.getId());
+            } catch (Exception e) {
+                logger.warn("Failed to send lead status notification to customer user {}: {}",
+                        savedLead.getCustomerUserId(), e.getMessage());
+            }
         }
 
         return savedLead;
