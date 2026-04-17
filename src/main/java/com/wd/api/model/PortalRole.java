@@ -19,7 +19,7 @@ public class PortalRole {
     @Column(columnDefinition = "TEXT")
     private String code;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "portal_role_permissions", joinColumns = @JoinColumn(name = "role_id"), inverseJoinColumns = @JoinColumn(name = "permission_id"))
     private java.util.Set<Permission> permissions;
 
