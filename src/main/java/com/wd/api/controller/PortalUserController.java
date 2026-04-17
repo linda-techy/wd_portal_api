@@ -110,6 +110,7 @@ public class PortalUserController {
     /**
      * Get portal user by ID
      */
+    @PreAuthorize("hasAuthority('PORTAL_USER_VIEW')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PortalUserResponse>> getPortalUserById(@PathVariable Long id) {
         try {
