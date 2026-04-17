@@ -3,6 +3,7 @@ package com.wd.api.controller;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.model.Permission;
 import com.wd.api.model.PortalRole;
+import com.wd.api.model.enums.PortalRoleCode;
 import com.wd.api.repository.PermissionRepository;
 import com.wd.api.repository.PortalRoleRepository;
 import org.slf4j.Logger;
@@ -91,7 +92,7 @@ public class AclController {
         try {
             return portalRoleRepository.findById(id)
                 .map(role -> {
-                    boolean isAdmin = "ADMIN".equalsIgnoreCase(role.getCode());
+                    boolean isAdmin = PortalRoleCode.isAdmin(role.getCode());
                     List<String> permNames;
                     if (isAdmin) {
                         // ADMIN gets all permissions
@@ -135,7 +136,7 @@ public class AclController {
             }
 
             PortalRole role = roleOpt.get();
-            if ("ADMIN".equalsIgnoreCase(role.getCode())) {
+            if (PortalRoleCode.isAdmin(role.getCode())) {
                 return ResponseEntity.badRequest().body(
                     ApiResponse.error("Cannot edit ADMIN role permissions — ADMIN always has all permissions"));
             }

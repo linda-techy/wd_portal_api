@@ -5,6 +5,7 @@ import com.wd.api.exception.UnauthorizedException;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.SiteReport;
+import com.wd.api.model.enums.PortalRoleCode;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.SiteReportRepository;
@@ -192,9 +193,7 @@ public class AuthorizationService {
         if (user.getRole() == null) {
             return false;
         }
-        String roleName = user.getRole().getName();
-        return roleName.equalsIgnoreCase("ADMIN") || 
-               roleName.equalsIgnoreCase("SUPER_ADMIN");
+        return PortalRoleCode.isAdmin(user.getRole().getName());
     }
 
     private boolean hasProjectAccess(PortalUser user, Long projectId) {
