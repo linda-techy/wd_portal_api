@@ -220,10 +220,12 @@ public class ProcurementService {
                 .notes(dto.getNotes())
                 .build();
 
+        // Count existing GRNs BEFORE saving the new one
+        long priorGrnCount = grnRepository.countByPurchaseOrderId(poId);
+
         grnRepository.save(grn);
 
-        // Check if there are prior GRNs for this PO (indicating partial receipt)
-        long priorGrnCount = grnRepository.countByPurchaseOrderId(poId);
+        // First GRN = full receipt; subsequent GRNs = partial receipt
         if (priorGrnCount > 0) {
             po.setStatus(PurchaseOrderStatus.PARTIALLY_RECEIVED);
         } else {
