@@ -35,6 +35,9 @@ public class CustomerResponse {
     @JsonProperty("notes")
     private String notes;
 
+    @JsonProperty("customer_type")
+    private String customerType;
+
     private Boolean enabled;
 
     @JsonProperty("role_id")
@@ -67,6 +70,7 @@ public class CustomerResponse {
         this.gstNumber = customerUser.getGstNumber();
         this.leadSource = customerUser.getLeadSource();
         this.notes = customerUser.getNotes();
+        this.customerType = customerUser.getCustomerType();
         this.enabled = customerUser.getEnabled() != null ? customerUser.getEnabled() : true;
         this.roleId = customerUser.getRole() != null ? customerUser.getRole().getId() : null;
         this.createdAt = customerUser.getCreatedAt();
@@ -105,6 +109,9 @@ public class CustomerResponse {
     public void setLastName(String lastName) {
         this.lastName = lastName;
     }
+
+    public String getCustomerType() { return customerType; }
+    public void setCustomerType(String customerType) { this.customerType = customerType; }
 
     public Boolean getEnabled() {
         return enabled;

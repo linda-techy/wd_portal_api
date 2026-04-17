@@ -33,6 +33,9 @@ public class CustomerUpdateRequest {
     @JsonProperty("notes")
     private String notes;
 
+    @JsonProperty("customer_type")
+    private String customerType;
+
     private String password; // Optional - only if changing password
     private Boolean enabled;
 
@@ -143,6 +146,9 @@ public class CustomerUpdateRequest {
     public void setNotes(String notes) {
         this.notes = notes;
     }
+
+    public String getCustomerType() { return customerType; }
+    public void setCustomerType(String customerType) { this.customerType = customerType; }
 
     public String getPassword() {
         return password;

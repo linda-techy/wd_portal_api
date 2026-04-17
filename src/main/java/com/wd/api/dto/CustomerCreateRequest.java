@@ -32,6 +32,9 @@ public class CustomerCreateRequest {
     @JsonProperty("notes")
     private String notes;
 
+    @JsonProperty("customer_type")
+    private String customerType;
+
     private String password;
     private Boolean enabled = true;
 
@@ -133,6 +136,9 @@ public class CustomerCreateRequest {
     public void setNotes(String notes) {
         this.notes = notes;
     }
+
+    public String getCustomerType() { return customerType; }
+    public void setCustomerType(String customerType) { this.customerType = customerType; }
 
     public String getPassword() {
         return password;

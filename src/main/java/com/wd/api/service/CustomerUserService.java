@@ -78,19 +78,10 @@ public class CustomerUserService {
                         cb.like(cb.lower(root.get("companyName")), searchPattern)));
             }
 
-            // Filter by customerType
+            // Filter by customerType (actual column, not inferred)
             if (filter.getCustomerType() != null && !filter.getCustomerType().isEmpty()) {
-                if ("individual".equalsIgnoreCase(filter.getCustomerType())) {
-                    // Individual: companyName is NULL or EMPTY
-                    predicates.add(cb.or(
-                            cb.isNull(root.get("companyName")),
-                            cb.equal(root.get("companyName"), "")));
-                } else if ("corporate".equalsIgnoreCase(filter.getCustomerType())) {
-                    // Corporate: companyName is NOT NULL and NOT EMPTY
-                    predicates.add(cb.and(
-                            cb.isNotNull(root.get("companyName")),
-                            cb.notEqual(root.get("companyName"), "")));
-                }
+                predicates.add(cb.equal(cb.lower(root.get("customerType")),
+                        filter.getCustomerType().toLowerCase()));
             }
 
             // Filter by location
@@ -211,6 +202,7 @@ public class CustomerUserService {
         customerUser.setGstNumber(request.getGstNumber());
         customerUser.setLeadSource(request.getLeadSource());
         customerUser.setNotes(request.getNotes());
+        customerUser.setCustomerType(request.getCustomerType() != null ? request.getCustomerType() : "individual");
 
         // Set role by looking up CustomerRole entity
         if (request.getRoleId() != null) {
@@ -271,6 +263,8 @@ public class CustomerUserService {
             customerUser.setLeadSource(request.getLeadSource());
         if (request.getNotes() != null)
             customerUser.setNotes(request.getNotes());
+        if (request.getCustomerType() != null)
+            customerUser.setCustomerType(request.getCustomerType());
 
         // Update password only if provided
         if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {

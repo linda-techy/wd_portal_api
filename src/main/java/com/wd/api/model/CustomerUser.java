@@ -45,6 +45,9 @@ public class CustomerUser {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "customer_type", length = 50)
+    private String customerType;
+
     @Column(name = "fcm_token", length = 512)
     private String fcmToken;
 
@@ -168,6 +171,9 @@ public class CustomerUser {
     public void setNotes(String notes) {
         this.notes = notes;
     }
+
+    public String getCustomerType() { return customerType; }
+    public void setCustomerType(String customerType) { this.customerType = customerType; }
 
     public String getFcmToken() {
         return fcmToken;
