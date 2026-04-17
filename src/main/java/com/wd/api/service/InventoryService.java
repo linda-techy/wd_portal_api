@@ -266,7 +266,13 @@ public class InventoryService {
                                                 .currentQuantity(BigDecimal.ZERO)
                                                 .build());
 
-                stock.setCurrentQuantity(stock.getCurrentQuantity().add(quantityChange));
+                BigDecimal newQuantity = stock.getCurrentQuantity().add(quantityChange);
+                if (newQuantity.compareTo(BigDecimal.ZERO) < 0) {
+                    throw new IllegalArgumentException(
+                            "Cannot reduce stock below zero for material " + material.getName() +
+                            ". Current: " + stock.getCurrentQuantity() + ", Change: " + quantityChange);
+                }
+                stock.setCurrentQuantity(newQuantity);
                 stockRepository.save(stock);
         }
 
