@@ -4,6 +4,8 @@ import com.wd.api.model.enums.BoqDocumentStatus;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * BOQ Document — the project-level Bill of Quantities container.
@@ -16,6 +18,8 @@ import java.time.LocalDateTime;
  * Status flow: DRAFT → PENDING_APPROVAL → APPROVED (terminal)
  *                                       → REJECTED  → DRAFT (new revision)
  */
+@SQLDelete(sql = "UPDATE boq_documents SET deleted_at = NOW() WHERE id = ? AND version = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Entity
 @Table(name = "boq_documents")
 public class BoqDocument extends BaseEntity {
