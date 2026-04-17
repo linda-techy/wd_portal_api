@@ -17,6 +17,7 @@ import com.wd.api.repository.GoodsReceivedNoteRepository;
 import com.wd.api.repository.MaterialRepository;
 import com.wd.api.repository.MaterialIndentRepository;
 import com.wd.api.repository.VendorQuotationRepository;
+import com.wd.api.service.MaterialIndentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -44,6 +45,7 @@ public class ProcurementService {
     private final MaterialRepository materialRepository;
     private final MaterialIndentRepository indentRepository;
     private final VendorQuotationRepository quotationRepository;
+    private final MaterialIndentService materialIndentService;
 
     @Transactional
     public VendorDTO createVendor(VendorDTO dto) {
@@ -220,8 +222,13 @@ public class ProcurementService {
 
         grnRepository.save(grn);
 
-        // Update PO status using proper enum
-        po.setStatus(PurchaseOrderStatus.RECEIVED);
+        // Check if there are prior GRNs for this PO (indicating partial receipt)
+        long priorGrnCount = grnRepository.countByPurchaseOrderId(poId);
+        if (priorGrnCount > 0) {
+            po.setStatus(PurchaseOrderStatus.PARTIALLY_RECEIVED);
+        } else {
+            po.setStatus(PurchaseOrderStatus.RECEIVED);
+        }
         poRepository.save(po);
 
         // Update Inventory Stock
@@ -231,6 +238,15 @@ public class ProcurementService {
                     inventoryService.updateStock(po.getProject().getId(), item.getMaterial().getId(),
                             item.getQuantity());
                 }
+            }
+        }
+
+        // Close the indent if all goods received
+        if (po.getIndent() != null && po.getStatus() == PurchaseOrderStatus.RECEIVED) {
+            try {
+                materialIndentService.closeIndent(po.getIndent().getId());
+            } catch (IllegalStateException e) {
+                log.warn("Could not close indent {}: {}", po.getIndent().getId(), e.getMessage());
             }
         }
 

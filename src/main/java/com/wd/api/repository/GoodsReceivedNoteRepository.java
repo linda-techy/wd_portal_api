@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface GoodsReceivedNoteRepository extends JpaRepository<GoodsReceivedNote, Long> {
     List<GoodsReceivedNote> findByPurchaseOrderId(Long poId);
+    long countByPurchaseOrderId(Long purchaseOrderId);
 }
