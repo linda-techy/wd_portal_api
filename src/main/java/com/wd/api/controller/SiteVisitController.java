@@ -25,7 +25,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/site-visits")
-@PreAuthorize("isAuthenticated()")
 public class SiteVisitController {
 
     private final SiteVisitService siteVisitService;
@@ -41,6 +40,7 @@ public class SiteVisitController {
      * GET /api/site-visits/search
      */
     @GetMapping("/search")
+    @PreAuthorize("hasAuthority('SITE_VISIT_VIEW')")
     public ResponseEntity<Page<SiteVisit>> searchSiteVisits(@ModelAttribute SiteVisitSearchFilter filter) {
         return ResponseEntity.ok(siteVisitService.searchSiteVisits(filter));
     }
@@ -50,6 +50,7 @@ public class SiteVisitController {
      * POST /api/site-visits/check-in
      */
     @PostMapping("/check-in")
+    @PreAuthorize("hasAuthority('SITE_VISIT_CREATE')")
     public ResponseEntity<ApiResponse<SiteVisitDTO>> checkIn(@RequestBody CheckInRequest request, Authentication auth) {
         try {
             Long userId = getCurrentUserId(auth);
@@ -65,6 +66,7 @@ public class SiteVisitController {
      * POST /api/site-visits/{id}/check-out
      */
     @PostMapping("/{id}/check-out")
+    @PreAuthorize("hasAuthority('SITE_VISIT_CREATE')")
     public ResponseEntity<ApiResponse<SiteVisitDTO>> checkOut(
             @PathVariable Long id,
             @RequestBody CheckOutRequest request,
@@ -83,6 +85,7 @@ public class SiteVisitController {
      * GET /api/site-visits/active
      */
     @GetMapping("/active")
+    @PreAuthorize("hasAuthority('SITE_VISIT_VIEW')")
     public ResponseEntity<ApiResponse<SiteVisitDTO>> getMyActiveVisit(Authentication auth) {
         Long userId = getCurrentUserId(auth);
         SiteVisitDTO visit = siteVisitService.getActiveVisitForUser(userId);
@@ -108,6 +111,7 @@ public class SiteVisitController {
      * GET /api/site-visits/project/{projectId}
      */
     @GetMapping("/project/{projectId}")
+    @PreAuthorize("hasAuthority('SITE_VISIT_VIEW')")
     public ResponseEntity<ApiResponse<List<SiteVisitDTO>>> getVisitsByProject(@PathVariable Long projectId) {
         return ResponseEntity
                 .ok(ApiResponse.success("Project visits retrieved", siteVisitService.getVisitsByProject(projectId)));
@@ -118,6 +122,7 @@ public class SiteVisitController {
      * GET /api/site-visits/project/{projectId}/today
      */
     @GetMapping("/project/{projectId}/today")
+    @PreAuthorize("hasAuthority('SITE_VISIT_VIEW')")
     public ResponseEntity<ApiResponse<List<SiteVisitDTO>>> getTodaysVisits(@PathVariable Long projectId) {
         return ResponseEntity.ok(ApiResponse.success("Today's project visits retrieved",
                 siteVisitService.getTodaysVisitsForProject(projectId)));
@@ -129,6 +134,7 @@ public class SiteVisitController {
      * /api/site-visits/project/{projectId}/range?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
      */
     @GetMapping("/project/{projectId}/range")
+    @PreAuthorize("hasAuthority('SITE_VISIT_VIEW')")
     public ResponseEntity<ApiResponse<List<SiteVisitDTO>>> getVisitsByProjectAndDateRange(
             @PathVariable Long projectId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -142,6 +148,7 @@ public class SiteVisitController {
      * GET /api/site-visits/my-history?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
      */
     @GetMapping("/my-history")
+    @PreAuthorize("hasAuthority('SITE_VISIT_VIEW')")
     public ResponseEntity<ApiResponse<List<SiteVisitDTO>>> getMyVisitHistory(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -156,6 +163,7 @@ public class SiteVisitController {
      * GET /api/site-visits/{id}
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('SITE_VISIT_VIEW')")
     public ResponseEntity<ApiResponse<SiteVisitDTO>> getVisit(@PathVariable Long id) {
         return ResponseEntity
                 .ok(ApiResponse.success("Site visit details retrieved", siteVisitService.getVisitById(id)));
@@ -166,6 +174,7 @@ public class SiteVisitController {
      * DELETE /api/site-visits/{id}
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('SITE_VISIT_CREATE')")
     public ResponseEntity<ApiResponse<Void>> cancelVisit(@PathVariable Long id, Authentication auth) {
         try {
             Long userId = getCurrentUserId(auth);
@@ -181,6 +190,7 @@ public class SiteVisitController {
      * GET /api/site-visits/types
      */
     @GetMapping("/types")
+    @PreAuthorize("hasAuthority('SITE_VISIT_VIEW')")
     public ResponseEntity<ApiResponse<List<Map<String, String>>>> getVisitTypes() {
         List<Map<String, String>> types = List.of(
                 Map.of("value", "SITE_ENGINEER", "label", "Site Engineer"),
