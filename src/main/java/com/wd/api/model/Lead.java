@@ -161,6 +161,25 @@ public class Lead extends BaseEntity {
     @Column(name = "referred_by_phone", length = 50)
     private String referredByPhone;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "partner_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private PartnershipUser partner;
+
+    @Transient
+    @JsonProperty("partnerId")
+    public Long getPartnerId() {
+        return partner != null ? partner.getId() : null;
+    }
+
+    public PartnershipUser getPartner() {
+        return partner;
+    }
+
+    public void setPartner(PartnershipUser partner) {
+        this.partner = partner;
+    }
+
     public Long getCustomerUserId() { return customerUserId; }
     public void setCustomerUserId(Long customerUserId) { this.customerUserId = customerUserId; }
 
