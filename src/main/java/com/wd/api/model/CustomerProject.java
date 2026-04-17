@@ -63,6 +63,9 @@ public class CustomerProject extends BaseEntity {
     @Column(name = "budget", precision = 15, scale = 2)
     private BigDecimal budget;
 
+    /** Primary client / project owner — the paying customer.
+     *  Distinct from project_members (join table) which tracks all users
+     *  who can view the project (owner + architect + designer + engineer + viewer). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     private CustomerUser customer;
