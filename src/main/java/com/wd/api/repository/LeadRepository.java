@@ -83,4 +83,6 @@ public interface LeadRepository extends JpaRepository<Lead, Long>, JpaSpecificat
     /** Count open leads (not converted or lost). */
     @Query("SELECT COUNT(l) FROM Lead l WHERE l.leadStatus NOT IN ('converted', 'lost')")
     long countOpen();
+
+    boolean existsByCustomerUserId(Long customerUserId);
 }

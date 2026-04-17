@@ -82,6 +82,7 @@ public class CustomerController {
     /**
      * Get all customers
      */
+    @Deprecated
     @GetMapping
     @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<ApiResponse<List<CustomerResponse>>> getAllCustomers() {
