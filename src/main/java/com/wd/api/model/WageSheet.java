@@ -41,6 +41,15 @@ public class WageSheet extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private SheetStatus status = SheetStatus.DRAFT;
 
+    @Column(name = "approved_by")
+    private Long approvedBy;
+
+    @Column(name = "approved_at")
+    private java.time.LocalDateTime approvedAt;
+
+    @Column(name = "approval_notes", columnDefinition = "TEXT")
+    private String approvalNotes;
+
     @Builder.Default
     @OneToMany(mappedBy = "wageSheet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WageSheetEntry> entries = new ArrayList<>();
