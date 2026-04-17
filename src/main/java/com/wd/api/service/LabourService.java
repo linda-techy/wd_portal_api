@@ -225,14 +225,27 @@ public class LabourService {
                         java.math.BigDecimal dailyWage = l.getDailyWage();
                         java.math.BigDecimal totalWage = dailyWage.multiply(java.math.BigDecimal.valueOf(days));
 
+                        // Calculate outstanding advances for this labour
+                        List<com.wd.api.model.LabourAdvance> advances = labourAdvanceRepository.findByLabourId(l.getId());
+                        java.math.BigDecimal totalAdvanceOutstanding = java.math.BigDecimal.ZERO;
+                        for (com.wd.api.model.LabourAdvance adv : advances) {
+                                java.math.BigDecimal recovered = adv.getRecoveredAmount() != null ? adv.getRecoveredAmount() : java.math.BigDecimal.ZERO;
+                                java.math.BigDecimal remaining = adv.getAmount().subtract(recovered);
+                                if (remaining.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                                        totalAdvanceOutstanding = totalAdvanceOutstanding.add(remaining);
+                                }
+                        }
+                        java.math.BigDecimal advancesToDeduct = totalAdvanceOutstanding.min(totalWage);
+                        java.math.BigDecimal netPayable = totalWage.subtract(advancesToDeduct);
+
                         com.wd.api.model.WageSheetEntry wsEntry = com.wd.api.model.WageSheetEntry.builder()
                                         .wageSheet(sheet)
                                         .labour(l)
                                         .daysWorked(java.math.BigDecimal.valueOf(days))
                                         .dailyWage(dailyWage)
                                         .totalWage(totalWage)
-                                        .advancesDeducted(java.math.BigDecimal.ZERO) // Logic for deduction can be added
-                                        .netPayable(totalWage)
+                                        .advancesDeducted(advancesToDeduct)
+                                        .netPayable(netPayable)
                                         .build();
 
                         sheet.getEntries().add(wsEntry);
@@ -254,6 +267,31 @@ public class LabourService {
                                 .notes(notes)
                                 .build();
                 return labourAdvanceRepository.save(advance);
+        }
+
+        @Transactional
+        public com.wd.api.model.WageSheet approveWageSheet(Long wageSheetId, Long approverUserId, String notes) {
+                com.wd.api.model.WageSheet sheet = wageSheetRepository.findById(wageSheetId)
+                                .orElseThrow(() -> new RuntimeException("WageSheet not found"));
+                if (sheet.getStatus() != com.wd.api.model.WageSheet.SheetStatus.DRAFT) {
+                        throw new IllegalStateException("Only DRAFT wage sheets can be approved");
+                }
+                sheet.setStatus(com.wd.api.model.WageSheet.SheetStatus.APPROVED);
+                sheet.setApprovedBy(approverUserId);
+                sheet.setApprovedAt(java.time.LocalDateTime.now());
+                sheet.setApprovalNotes(notes);
+                return wageSheetRepository.save(sheet);
+        }
+
+        @Transactional
+        public com.wd.api.model.WageSheet markWagesheetPaid(Long wageSheetId) {
+                com.wd.api.model.WageSheet sheet = wageSheetRepository.findById(wageSheetId)
+                                .orElseThrow(() -> new RuntimeException("WageSheet not found"));
+                if (sheet.getStatus() != com.wd.api.model.WageSheet.SheetStatus.APPROVED) {
+                        throw new IllegalStateException("Only APPROVED wage sheets can be marked as PAID");
+                }
+                sheet.setStatus(com.wd.api.model.WageSheet.SheetStatus.PAID);
+                return wageSheetRepository.save(sheet);
         }
 
         private LabourDTO mapToLabourDTO(Labour l) {
