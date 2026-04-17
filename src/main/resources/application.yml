@@ -78,7 +78,7 @@ jwt:
   refresh-token-expiration: 604800000    # 7 days
   aud:
     value: "portal-api"
-    enforce: false
+    enforce: true
 
 # ── Task Alerts ─────────────────────────────────────────────────
 task:
