@@ -2,10 +2,14 @@ package com.wd.api.model;
 
 import com.wd.api.model.enums.InvoiceStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@SQLDelete(sql = "UPDATE project_invoices SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Entity
 @Table(name = "project_invoices")
 public class ProjectInvoice {
@@ -51,6 +55,9 @@ public class ProjectInvoice {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @PrePersist
     protected void onCreate() {
@@ -210,6 +217,8 @@ public class ProjectInvoice {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    public LocalDateTime getDeletedAt() { return deletedAt; }
 
     public void setStatus(InvoiceStatus status) {
         this.status = status;
