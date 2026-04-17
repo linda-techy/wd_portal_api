@@ -5,7 +5,6 @@ import com.wd.api.dto.PartnerLoginResponse;
 import com.wd.api.dto.PartnershipApplicationRequest;
 import com.wd.api.dto.PartnershipReferralRequest;
 import com.wd.api.model.Lead;
-import com.wd.api.service.JwtService;
 import com.wd.api.service.LeadService;
 import com.wd.api.service.PartnershipService;
 import jakarta.validation.Valid;
@@ -14,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -28,9 +29,6 @@ public class PartnershipController {
 
     @Autowired
     private PartnershipService partnershipService;
-
-    @Autowired
-    private JwtService jwtService;
 
     @Autowired
     private LeadService leadService;
@@ -150,36 +148,11 @@ public class PartnershipController {
      * GET /api/partnerships/stats
      */
     @GetMapping("/stats")
-    public ResponseEntity<?> getStats(@RequestHeader("Authorization") String authHeader) {
-        try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Authorization header is required"));
-            }
-            String token = extractToken(authHeader);
-
-            if (!jwtService.validateToken(token)) {
-                logger.warn("Invalid token used for partner stats request");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid or expired token"));
-            }
-
-            String email = jwtService.extractActualSubject(token);
-            var partner = partnershipService.getPartnerByEmail(email);
-            if (partner == null) {
-                logger.warn("Partner not found for email: {}", email);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Partner not found"));
-            }
-
-            Map<String, Object> stats = partnershipService.getPartnerStats(partner.getId());
-            return ResponseEntity.ok(stats);
-        } catch (RuntimeException e) {
-            logger.error("Failed to get partner stats: {}", e.getMessage(), e);
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-        }
+    @PreAuthorize("hasRole('PARTNER')")
+    public ResponseEntity<?> getStats(Authentication auth) {
+        var partner = resolvePartner(auth);
+        Map<String, Object> stats = partnershipService.getPartnerStats(partner.getId());
+        return ResponseEntity.ok(stats);
     }
 
     /**
@@ -187,35 +160,10 @@ public class PartnershipController {
      * GET /api/partnerships/referrals
      */
     @GetMapping("/referrals")
-    public ResponseEntity<?> getReferrals(@RequestHeader("Authorization") String authHeader) {
-        try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Authorization header is required"));
-            }
-            String token = extractToken(authHeader);
-
-            if (!jwtService.validateToken(token)) {
-                logger.warn("Invalid token used for partner referrals request");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid or expired token"));
-            }
-
-            String email = jwtService.extractActualSubject(token);
-            var partner = partnershipService.getPartnerByEmail(email);
-            if (partner == null) {
-                logger.warn("Partner not found for email: {}", email);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Partner not found"));
-            }
-
-            return ResponseEntity.ok(partnershipService.getReferralSummaries(partner.getId()));
-        } catch (RuntimeException e) {
-            logger.error("Failed to get partner referrals: {}", e.getMessage(), e);
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-        }
+    @PreAuthorize("hasRole('PARTNER')")
+    public ResponseEntity<?> getReferrals(Authentication auth) {
+        var partner = resolvePartner(auth);
+        return ResponseEntity.ok(partnershipService.getReferralSummaries(partner.getId()));
     }
 
     /**
@@ -224,29 +172,12 @@ public class PartnershipController {
      * Creates a lead with lead_source = "referral_architect"
      */
     @PostMapping("/referrals")
+    @PreAuthorize("hasRole('PARTNER')")
     public ResponseEntity<?> submitReferral(
-            @RequestHeader("Authorization") String authHeader,
+            Authentication auth,
             @RequestBody Map<String, Object> referralData) {
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Authorization header is required"));
-            }
-            String token = extractToken(authHeader);
-
-            if (!jwtService.validateToken(token)) {
-                logger.warn("Invalid token used for referral submission");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid or expired token"));
-            }
-
-            String email = jwtService.extractActualSubject(token);
-            var partner = partnershipService.getPartnerByEmail(email);
-            if (partner == null) {
-                logger.warn("Partner not found for email: {} during referral submission", email);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Partner not found"));
-            }
+            var partner = resolvePartner(auth);
 
             // Build a PartnershipReferralRequest from the map
             PartnershipReferralRequest request = new PartnershipReferralRequest();
@@ -290,31 +221,12 @@ public class PartnershipController {
      * Creates a lead in the leads table with lead_source = "referral_architect"
      */
     @PostMapping("/referrals/lead")
+    @PreAuthorize("hasRole('PARTNER')")
     public ResponseEntity<?> submitReferralAsLead(
-            @RequestHeader("Authorization") String authHeader,
+            Authentication auth,
             @Valid @RequestBody PartnershipReferralRequest request) {
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Authorization header is required"));
-            }
-            String token = extractToken(authHeader);
-
-            if (!jwtService.validateToken(token)) {
-                logger.warn("Invalid token used for referral-as-lead submission");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid or expired token"));
-            }
-
-            // Extract partner information from token
-            String email = jwtService.extractActualSubject(token);
-            var partner = partnershipService.getPartnerByEmail(email);
-
-            if (partner == null) {
-                logger.warn("Partner not found for email: {} during referral-as-lead submission", email);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Partner not found"));
-            }
+            var partner = resolvePartner(auth);
 
             // Set partner information in the request
             request.setPartnerId(partner.getId().toString());
@@ -343,11 +255,25 @@ public class PartnershipController {
 
     // Helper Methods
 
-    private String extractToken(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Invalid authorization header");
+    /**
+     * Resolves the authenticated partner from the Spring Security context.
+     * JwtAuthenticationFilter has already validated the token and set the principal;
+     * this method simply looks up the partner record and checks their status.
+     */
+    private com.wd.api.model.PartnershipUser resolvePartner(Authentication auth) {
+        String email = auth.getName();
+        com.wd.api.model.PartnershipUser partner = partnershipService.getPartnerByEmail(email);
+        if (partner == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "Partner not found");
         }
-        return authHeader.substring(7);
+        String status = partner.getStatus();
+        if (!"active".equalsIgnoreCase(status) && !"approved".equalsIgnoreCase(status)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.FORBIDDEN,
+                "Partner account is " + status + ". Only active partners can access this resource.");
+        }
+        return partner;
     }
 
     private PartnershipApplicationRequest mapToApplicationRequest(Map<String, Object> data) {
