@@ -27,7 +27,7 @@ public class DashboardController {
      * Top-level KPIs: active projects, open leads, revenue collected, overdue items.
      */
     @GetMapping("/overview")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     public ResponseEntity<DashboardOverviewDTO> getOverview() {
         return ResponseEntity.ok(dashboardService.getOverview());
     }
@@ -36,7 +36,7 @@ public class DashboardController {
      * Project health: counts by phase/status, budget totals, at-risk projects list.
      */
     @GetMapping("/projects")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     public ResponseEntity<DashboardProjectsDTO> getProjectStats() {
         return ResponseEntity.ok(dashboardService.getProjectStats());
     }
@@ -45,7 +45,7 @@ public class DashboardController {
      * Lead pipeline: by status/source, conversion rate, pipeline value, monthly trend.
      */
     @GetMapping("/leads")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     public ResponseEntity<DashboardLeadsDTO> getLeadStats() {
         return ResponseEntity.ok(dashboardService.getLeadStats());
     }
@@ -54,7 +54,7 @@ public class DashboardController {
      * Financial KPIs: revenue collected vs target, cost breakdown, gross margin, monthly trend.
      */
     @GetMapping("/finance")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     public ResponseEntity<DashboardFinanceDTO> getFinanceStats() {
         return ResponseEntity.ok(dashboardService.getFinanceStats());
     }
@@ -63,7 +63,7 @@ public class DashboardController {
      * Operations pulse: labour on site today, site reports this week, pending approvals, delays.
      */
     @GetMapping("/operations")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     public ResponseEntity<DashboardOperationsDTO> getOperationsStats() {
         return ResponseEntity.ok(dashboardService.getOperationsStats());
     }
