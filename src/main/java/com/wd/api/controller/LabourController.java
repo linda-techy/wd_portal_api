@@ -1,14 +1,19 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LabourDTO;
 import com.wd.api.dto.LabourAttendanceDTO;
 import com.wd.api.dto.LabourSearchFilter;
 import com.wd.api.dto.MeasurementBookDTO;
 import com.wd.api.model.Labour;
+import com.wd.api.model.PortalUser;
+import com.wd.api.model.WageSheet;
+import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.LabourService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -18,6 +23,7 @@ import java.util.List;
 public class LabourController {
 
     private final LabourService labourService;
+    private final PortalUserRepository portalUserRepository;
 
     @GetMapping("/search")
     public ResponseEntity<Page<Labour>> searchLabour(@ModelAttribute LabourSearchFilter filter) {
@@ -65,5 +71,28 @@ public class LabourController {
             @RequestParam java.math.BigDecimal amount,
             @RequestParam(required = false) String notes) {
         return ResponseEntity.ok(labourService.createAdvance(labourId, amount, notes));
+    }
+
+    @PutMapping("/wagesheet/{id}/approve")
+    public ResponseEntity<?> approveWageSheet(
+            @PathVariable Long id,
+            @RequestParam(required = false) String notes,
+            Authentication auth) {
+        Long userId = getCurrentUserId(auth);
+        WageSheet sheet = labourService.approveWageSheet(id, userId, notes);
+        return ResponseEntity.ok(ApiResponse.success("Wage sheet approved", sheet));
+    }
+
+    @PutMapping("/wagesheet/{id}/mark-paid")
+    public ResponseEntity<?> markWagesheetPaid(@PathVariable Long id) {
+        WageSheet sheet = labourService.markWagesheetPaid(id);
+        return ResponseEntity.ok(ApiResponse.success("Wage sheet marked as paid", sheet));
+    }
+
+    private Long getCurrentUserId(Authentication auth) {
+        String email = auth.getName();
+        PortalUser user = portalUserRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return user.getId();
     }
 }
