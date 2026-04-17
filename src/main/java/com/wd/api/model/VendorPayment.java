@@ -1,18 +1,22 @@
 package com.wd.api.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
  * Vendor Payment Entity
  * Tracks payments made to vendors against purchase invoices
- * 
+ *
  * Business Context:
  * - Enables accounts payable tracking
  * - TDS deduction as per applicable sections
  * - Multiple payments can be made against one invoice (partial payments)
  */
+@SQLDelete(sql = "UPDATE vendor_payments SET deleted_at = NOW() WHERE id = ? AND version = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Entity
 @Table(name = "vendor_payments")
 public class VendorPayment extends BaseEntity {

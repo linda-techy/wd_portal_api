@@ -3,9 +3,13 @@ package com.wd.api.model;
 import com.wd.api.model.enums.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+@SQLDelete(sql = "UPDATE labour_payments SET deleted_at = NOW() WHERE id = ? AND version = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Entity
 @Table(name = "labour_payments")
 @Getter
