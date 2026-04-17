@@ -32,6 +32,10 @@ public class LabourPayment extends BaseEntity {
     @JoinColumn(name = "mb_entry_id")
     private MeasurementBook mbEntry;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "wage_sheet_id")
+    private WageSheet wageSheet;
+
     @Column(precision = 15, scale = 2, nullable = false)
     private BigDecimal amount;
 
