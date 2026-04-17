@@ -7,6 +7,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * BOQ Invoice — covers both stage invoices and CO invoices (Method 2).
@@ -21,6 +23,8 @@ import java.util.List;
  *                                     → DISPUTED → PAID
  *                                     → OVERDUE  → PAID
  */
+@SQLDelete(sql = "UPDATE boq_invoices SET deleted_at = NOW() WHERE id = ? AND version = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Entity
 @Table(name = "boq_invoices")
 public class BoqInvoice extends BaseEntity {
