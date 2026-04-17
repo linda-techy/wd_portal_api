@@ -303,10 +303,16 @@ public class FinanceService {
                         throw new RuntimeException("Project is required for receipt");
                 }
 
-                // If linked to invoice, update invoice status if fully paid?
-                // Logic can be added here. For now just save.
+                // Validate receipt amount does not exceed invoice total
                 if (receipt.getInvoice() != null) {
-                        // Check total paid against invoice amount could be done here
+                        BigDecimal invoiceTotal = receipt.getInvoice().getTotalAmount();
+                        BigDecimal priorReceipts = receiptRepository.sumAmountByInvoiceId(receipt.getInvoice().getId());
+                        if (priorReceipts == null) priorReceipts = BigDecimal.ZERO;
+                        BigDecimal newTotal = priorReceipts.add(receipt.getAmount());
+                        if (newTotal.compareTo(invoiceTotal) > 0) {
+                                throw new IllegalArgumentException(
+                                                "Total receipts (" + newTotal + ") would exceed invoice amount (" + invoiceTotal + ")");
+                        }
                 }
 
                 return receiptRepository.save(receipt);
