@@ -2,7 +2,6 @@ package com.wd.api.service;
 
 import com.wd.api.exception.ResourceNotFoundException;
 import com.wd.api.exception.UnauthorizedException;
-import com.wd.api.model.CustomerProject;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.SiteReport;
 import com.wd.api.model.enums.PortalRoleCode;
@@ -12,13 +11,10 @@ import com.wd.api.repository.SiteReportRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Centralized authorization service for checking user permissions.
@@ -89,33 +85,14 @@ public class AuthorizationService {
     @Cacheable(value = "userProjects", key = "#userEmail")
     @Transactional(readOnly = true)
     public List<Long> getAccessibleProjectIds(String userEmail) {
-        logger.debug("Fetching accessible project IDs for user {} (cache miss)", userEmail);
-        
+        logger.debug("Fetching accessible project IDs for user {}", userEmail);
         PortalUser user = getUserByEmail(userEmail);
-        List<Long> projectIds;
 
-        // Admin/Super Admin can access all projects
-        // PERFORMANCE: Limit to 10000 projects to prevent memory issues with large datasets
-        // If more projects exist, consider implementing a more targeted query approach
+        List<Long> projectIds;
         if (isAdmin(user)) {
-            Pageable pageable = PageRequest.of(0, 10000);
-            projectIds = projectRepository.findAll(pageable)
-                .stream()
-                .map(CustomerProject::getId)
-                .collect(Collectors.toList());
+            projectIds = projectRepository.findAllProjectIds();
         } else {
-            // Regular users can only access projects they're assigned to as members
-            // PERFORMANCE: Limit to 10000 projects to prevent memory issues with large datasets
-            // Note: For better performance, consider a custom repository query that filters by userId in SQL
-            Long userId = user.getId();
-            Pageable pageable = PageRequest.of(0, 10000);
-            projectIds = projectRepository.findAll(pageable)
-                .stream()
-                .filter(project -> project.getProjectMembers().stream()
-                    .anyMatch(member -> member.getPortalUser() != null && 
-                             member.getPortalUser().getId().equals(userId)))
-                .map(CustomerProject::getId)
-                .collect(Collectors.toList());
+            projectIds = projectRepository.findProjectIdsByPortalUserId(user.getId());
         }
 
         logger.debug("User {} has access to {} projects", userEmail, projectIds.size());

@@ -77,6 +77,22 @@ public interface CustomerProjectRepository extends JpaRepository<CustomerProject
          */
         boolean existsByCodeAndDeletedAtIsNull(String code);
 
+        // ==================== Authorization Queries ====================
+
+        /**
+         * Return IDs of all active (non-deleted) projects.
+         * Used by admins in AuthorizationService — avoids loading full entities.
+         */
+        @Query("SELECT p.id FROM CustomerProject p WHERE p.deletedAt IS NULL")
+        List<Long> findAllProjectIds();
+
+        /**
+         * Return IDs of projects where the given portal user is a member.
+         * Used by non-admin users in AuthorizationService — targeted DB filter.
+         */
+        @Query("SELECT pm.project.id FROM ProjectMember pm WHERE pm.portalUser.id = :userId")
+        List<Long> findProjectIdsByPortalUserId(@Param("userId") Long userId);
+
         // ==================== Project Manager Queries ====================
 
         /**
