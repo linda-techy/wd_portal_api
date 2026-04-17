@@ -1,5 +1,6 @@
 package com.wd.api.security;
 
+import com.wd.api.security.JwtConstants;
 import com.wd.api.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -64,7 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String actualSubject = jwtService.extractActualSubject(jwt);
 
         // Handle different token types
-        if ("PARTNER".equals(tokenType)) {
+        if (JwtConstants.TOKEN_TYPE_PARTNER.equals(tokenType)) {
             // Partnership user authentication
             handlePartnerAuthentication(jwt, actualSubject, request);
         } else {

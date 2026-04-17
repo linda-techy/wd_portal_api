@@ -1,5 +1,6 @@
 package com.wd.api.service;
 
+import com.wd.api.security.JwtConstants;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.JwtBuilder;
@@ -167,30 +168,30 @@ public class JwtService {
 
     public String generateAccessToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("tokenType", "PORTAL"); // explicit signed claim — not guessable via subject prefix
+        claims.put(JwtConstants.CLAIM_TOKEN_TYPE, JwtConstants.TOKEN_TYPE_PORTAL); // explicit signed claim — not guessable via subject prefix
         return createToken(claims, userDetails.getUsername(), accessTokenExpiration);
     }
 
     public String generateRefreshToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("tokenType", "REFRESH");
+        claims.put(JwtConstants.CLAIM_TOKEN_TYPE, "REFRESH");
         return createToken(claims, userDetails.getUsername(), refreshTokenExpiration);
     }
 
     // Multi-tenant token generation — tokenType stored as a SIGNED claim, not subject prefix
     public String generateToken(String subject, String tokenType, Map<String, Object> claims, Long expiration) {
         claims = new HashMap<>(claims); // defensive copy
-        claims.put("tokenType", tokenType); // secure: part of signed payload
+        claims.put(JwtConstants.CLAIM_TOKEN_TYPE, tokenType); // secure: part of signed payload
         return createToken(claims, subject, expiration); // subject = just the email, no prefix
     }
 
     public String generatePartnerToken(String email, Map<String, Object> claims) {
-        return generateToken(email, "PARTNER", claims, accessTokenExpiration);
+        return generateToken(email, JwtConstants.TOKEN_TYPE_PARTNER, claims, accessTokenExpiration);
     }
 
     /** Generate a JWT for a CustomerUser (primary client or 3rd-party like architect). */
     public String generateCustomerToken(String email, Map<String, Object> claims) {
-        return generateToken(email, "CUSTOMER", claims, accessTokenExpiration);
+        return generateToken(email, JwtConstants.TOKEN_TYPE_CUSTOMER, claims, accessTokenExpiration);
     }
 
     /**
@@ -199,11 +200,11 @@ public class JwtService {
      * Now reads from a cryptographically signed claim in the JWT payload.
      */
     public String extractTokenType(String token) {
-        Object tokenType = extractAllClaims(token).get("tokenType");
+        Object tokenType = extractAllClaims(token).get(JwtConstants.CLAIM_TOKEN_TYPE);
         if (tokenType != null) {
             return tokenType.toString();
         }
-        return "PORTAL"; // Safe default for tokens issued before this fix
+        return JwtConstants.DEFAULT_TOKEN_TYPE; // Safe default for tokens issued before this fix
     }
 
     /**

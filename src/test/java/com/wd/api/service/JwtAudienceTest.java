@@ -1,5 +1,6 @@
 package com.wd.api.service;
 
+import com.wd.api.security.JwtConstants;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -45,7 +46,7 @@ class JwtAudienceTest extends TestcontainersPostgresBase {
                 .parseSignedClaims(token)
                 .getPayload();
         Set<String> aud = claims.getAudience();
-        assertThat(aud).contains("portal-api");
+        assertThat(aud).contains(JwtConstants.AUDIENCE_PORTAL);
     }
 
     @Test
@@ -67,7 +68,7 @@ class JwtAudienceTest extends TestcontainersPostgresBase {
     @Test
     void case4_wrongAudEnforceFalseValidatesAndLogsWarn(CapturedOutput output) {
         ReflectionTestUtils.setField(jwtService, "audEnforce", false);
-        String token = tokenWithAud("customer-api");
+        String token = tokenWithAud(JwtConstants.AUDIENCE_CUSTOMER);
         assertThat(jwtService.validateToken(token)).isTrue();
         assertThat(output.getAll()).contains("JWT missing or mismatched aud claim");
     }
@@ -104,7 +105,7 @@ class JwtAudienceTest extends TestcontainersPostgresBase {
     private String tokenWithoutAud() {
         SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         HashMap<String, Object> claims = new HashMap<>();
-        claims.put("tokenType", "PORTAL");
+        claims.put(JwtConstants.CLAIM_TOKEN_TYPE, JwtConstants.TOKEN_TYPE_PORTAL);
         return Jwts.builder().claims(claims).subject("testuser@t.com")
                 .issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + 60_000))
                 .signWith(key, Jwts.SIG.HS256).compact();
@@ -113,7 +114,7 @@ class JwtAudienceTest extends TestcontainersPostgresBase {
     private String tokenWithAud(String audValue) {
         SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         HashMap<String, Object> claims = new HashMap<>();
-        claims.put("tokenType", "PORTAL");
+        claims.put(JwtConstants.CLAIM_TOKEN_TYPE, JwtConstants.TOKEN_TYPE_PORTAL);
         return Jwts.builder().claims(claims).subject("testuser@t.com")
                 .audience().add(audValue).and()
                 .issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + 60_000))
