@@ -47,6 +47,7 @@ public class CustomerController {
      * Search customers with filters
      */
     @GetMapping("/search")
+    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<Page<CustomerUser>> searchCustomers(@ModelAttribute CustomerSearchFilter filter) {
         try {
             Page<CustomerUser> customers = customerUserService.searchCustomers(filter);
