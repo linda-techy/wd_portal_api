@@ -139,7 +139,7 @@ public class CustomerProjectService {
             }
         }
 
-        Specification<CustomerProject> statusSpec = builder.buildEquals("status", filter.getStatus());
+        Specification<CustomerProject> statusSpec = builder.buildEquals("projectStatus", filter.getStatus());
         Specification<CustomerProject> locationSpec = builder.buildLike("location", filter.getLocation());
         Specification<CustomerProject> citySpec = builder.buildLike("city", filter.getCity());
         Specification<CustomerProject> stateSpec = builder.buildEquals("state", filter.getState());
