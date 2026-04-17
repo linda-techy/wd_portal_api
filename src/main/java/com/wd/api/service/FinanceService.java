@@ -31,6 +31,7 @@ public class FinanceService {
         private final ProjectMilestoneRepository milestoneRepository;
         private final ReceiptRepository receiptRepository;
         private final PaymentTransactionRepository paymentTransactionRepository;
+        private final WageSheetRepository wageSheetRepository;
         private final CustomerNotificationFacade customerNotificationFacade;
 
         @Transactional
@@ -113,10 +114,32 @@ public class FinanceService {
                         mbEntry = mbRepository.findById(mbId).orElse(null);
                 }
 
+                // Validate against wage sheet if provided
+                WageSheet wageSheet = null;
+                if (dto.getWageSheetId() != null) {
+                        wageSheet = wageSheetRepository.findById(dto.getWageSheetId())
+                                        .orElseThrow(() -> new RuntimeException("WageSheet not found"));
+                        if (wageSheet.getStatus() != WageSheet.SheetStatus.APPROVED) {
+                                throw new IllegalStateException("Can only record payments against APPROVED wage sheets");
+                        }
+                        BigDecimal paidSoFar = labourPaymentRepository.sumPaymentsByWageSheetAndLabour(
+                                        dto.getWageSheetId(), dto.getLabourId());
+                        WageSheetEntry entry = wageSheet.getEntries().stream()
+                                        .filter(e -> e.getLabour().getId().equals(dto.getLabourId()))
+                                        .findFirst()
+                                        .orElseThrow(() -> new IllegalArgumentException("Labour not found in this wage sheet"));
+                        BigDecimal remaining = entry.getNetPayable().subtract(paidSoFar);
+                        if (dto.getAmount().compareTo(remaining) > 0) {
+                                throw new IllegalArgumentException(
+                                                "Payment amount " + dto.getAmount() + " exceeds remaining balance " + remaining);
+                        }
+                }
+
                 LabourPayment payment = LabourPayment.builder()
                                 .labour(labour)
                                 .project(project)
                                 .mbEntry(mbEntry)
+                                .wageSheet(wageSheet)
                                 .amount(dto.getAmount())
                                 .paymentDate(dto.getPaymentDate() != null ? dto.getPaymentDate()
                                                 : java.time.LocalDate.now())

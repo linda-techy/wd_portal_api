@@ -16,6 +16,7 @@ public class LabourPaymentDTO {
     private Long projectId;
     private String projectName;
     private Long mbEntryId;
+    private Long wageSheetId;
     private BigDecimal amount;
     private LocalDate paymentDate;
     private PaymentMethod paymentMethod;
