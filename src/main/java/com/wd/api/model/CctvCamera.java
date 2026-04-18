@@ -1,10 +1,22 @@
 package com.wd.api.model;
 
+import com.wd.api.model.enums.StreamProtocol;
 import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "cctv_cameras")
+@SQLDelete(sql = "UPDATE cctv_cameras SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CctvCamera {
 
     @Id
@@ -15,25 +27,56 @@ public class CctvCamera {
     @JoinColumn(name = "project_id", nullable = false)
     private CustomerProject project;
 
-    @Column(nullable = false, length = 255)
-    private String name;
+    @Column(name = "camera_name", nullable = false)
+    private String cameraName;
 
-    @Column(name = "stream_url", length = 500)
-    private String streamUrl;
-
-    @Column(length = 255)
+    @Column(name = "location")
     private String location;
 
-    @Column(name = "is_active")
+    @Column(name = "provider", length = 100)
+    private String provider;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "stream_protocol", nullable = false, length = 20)
+    @Builder.Default
+    private StreamProtocol streamProtocol = StreamProtocol.HLS;
+
+    @Column(name = "stream_url", length = 1000)
+    private String streamUrl;
+
+    @Column(name = "snapshot_url", length = 1000)
+    private String snapshotUrl;
+
+    @Column(name = "username")
+    private String username;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "port")
+    private Integer port;
+
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @Column(name = "resolution", length = 50)
+    private String resolution;
 
-    @Column(name = "created_at")
+    @Column(name = "installation_date")
+    private LocalDate installationDate;
+
+    @Column(name = "display_order")
+    @Builder.Default
+    private Integer displayOrder = 0;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @PrePersist
@@ -45,78 +88,5 @@ public class CctvCamera {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
-    }
-
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public CustomerProject getProject() {
-        return project;
-    }
-
-    public void setProject(CustomerProject project) {
-        this.project = project;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getStreamUrl() {
-        return streamUrl;
-    }
-
-    public void setStreamUrl(String streamUrl) {
-        this.streamUrl = streamUrl;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
-    public Boolean getIsActive() {
-        return isActive;
-    }
-
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }
