@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +44,24 @@ public class View360Service {
     public View360 getTour(Long id) {
         return view360Repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("360 View not found"));
+    }
+
+    @Transactional
+    public View360 updateTour(Long id, Map<String, Object> updates) {
+        View360 tour = getTour(id);
+        if (updates.containsKey("title") && updates.get("title") != null) {
+            tour.setTitle((String) updates.get("title"));
+        }
+        if (updates.containsKey("description")) {
+            tour.setDescription((String) updates.get("description"));
+        }
+        if (updates.containsKey("location")) {
+            tour.setLocation((String) updates.get("location"));
+        }
+        if (updates.containsKey("captureDate") && updates.get("captureDate") != null) {
+            tour.setCaptureDate(LocalDateTime.parse((String) updates.get("captureDate")));
+        }
+        return view360Repository.save(tour);
     }
 
     @Transactional

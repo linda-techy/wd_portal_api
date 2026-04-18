@@ -67,6 +67,12 @@ public class View360Controller {
         return ResponseEntity.ok(view360Service.createTour(tour, file));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<View360> updateTour(@PathVariable Long id,
+                                               @RequestBody Map<String, Object> updates) {
+        return ResponseEntity.ok(view360Service.updateTour(id, updates));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<View360> getTour(@PathVariable Long id) {
         return ResponseEntity.ok(view360Service.getTour(id));
