@@ -1,6 +1,9 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.MeasurementRejectRequest;
 import com.wd.api.dto.SubcontractSearchFilter;
+import com.wd.api.dto.SubcontractSummaryDTO;
+import com.wd.api.model.RetentionRelease;
 import com.wd.api.model.SubcontractMeasurement;
 import com.wd.api.model.SubcontractPayment;
 import com.wd.api.model.SubcontractWorkOrder;
@@ -54,5 +57,57 @@ public class SubcontractController {
     public ResponseEntity<com.wd.api.model.RetentionRelease> releaseRetention(
             @RequestBody com.wd.api.model.RetentionRelease release) {
         return ResponseEntity.ok(subcontractService.releaseRetention(release));
+    }
+
+    // Work Order CRUD
+    @GetMapping("/{id}")
+    public ResponseEntity<SubcontractWorkOrder> getWorkOrder(@PathVariable Long id) {
+        return ResponseEntity.ok(subcontractService.getWorkOrder(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SubcontractWorkOrder> updateWorkOrder(@PathVariable Long id,
+            @RequestBody SubcontractWorkOrder updates) {
+        return ResponseEntity.ok(subcontractService.updateWorkOrder(id, updates));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteWorkOrder(@PathVariable Long id) {
+        subcontractService.deleteWorkOrder(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Measurements
+    @GetMapping("/{workOrderId}/measurements")
+    public ResponseEntity<List<SubcontractMeasurement>> getWorkOrderMeasurements(@PathVariable Long workOrderId) {
+        return ResponseEntity.ok(subcontractService.getWorkOrderMeasurements(workOrderId));
+    }
+
+    @PatchMapping("/measurements/{id}/approve")
+    public ResponseEntity<SubcontractMeasurement> approveMeasurement(@PathVariable Long id) {
+        return ResponseEntity.ok(subcontractService.approveMeasurement(id));
+    }
+
+    @PatchMapping("/measurements/{id}/reject")
+    public ResponseEntity<SubcontractMeasurement> rejectMeasurement(@PathVariable Long id,
+            @RequestBody MeasurementRejectRequest request) {
+        return ResponseEntity.ok(subcontractService.rejectMeasurement(id, request.rejectionReason()));
+    }
+
+    // Payments
+    @GetMapping("/{workOrderId}/payments")
+    public ResponseEntity<List<SubcontractPayment>> getWorkOrderPayments(@PathVariable Long workOrderId) {
+        return ResponseEntity.ok(subcontractService.getWorkOrderPayments(workOrderId));
+    }
+
+    // Summary & Retention
+    @GetMapping("/{workOrderId}/summary")
+    public ResponseEntity<SubcontractSummaryDTO> getWorkOrderSummary(@PathVariable Long workOrderId) {
+        return ResponseEntity.ok(subcontractService.getWorkOrderSummary(workOrderId));
+    }
+
+    @GetMapping("/{workOrderId}/retention-releases")
+    public ResponseEntity<List<RetentionRelease>> getRetentionReleases(@PathVariable Long workOrderId) {
+        return ResponseEntity.ok(subcontractService.getRetentionReleases(workOrderId));
     }
 }
