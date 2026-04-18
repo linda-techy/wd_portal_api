@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface SubcontractMeasurementRepository extends JpaRepository<SubcontractMeasurement, Long> {
         List<SubcontractMeasurement> findByWorkOrderId(Long workOrderId);
+        List<SubcontractMeasurement> findByWorkOrderIdOrderByMeasurementDateDesc(Long workOrderId);
 }

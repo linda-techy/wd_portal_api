@@ -1,6 +1,7 @@
 package com.wd.api.service;
 
 import com.wd.api.dto.SubcontractSearchFilter;
+import com.wd.api.dto.SubcontractSummaryDTO;
 import com.wd.api.model.*;
 import com.wd.api.repository.*;
 import org.springframework.data.domain.Page;
@@ -212,5 +213,132 @@ public class SubcontractService {
         if (projectId == null)
             return List.of();
         return workOrderRepository.findByProjectId(projectId);
+    }
+
+    @Transactional(readOnly = true)
+    public SubcontractWorkOrder getWorkOrder(Long id) {
+        return workOrderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Work Order not found: " + id));
+    }
+
+    @Transactional
+    public SubcontractWorkOrder updateWorkOrder(Long id, SubcontractWorkOrder updates) {
+        SubcontractWorkOrder existing = getWorkOrder(id);
+        if (existing.getStatus() != SubcontractWorkOrder.WorkOrderStatus.DRAFT
+                && existing.getStatus() != SubcontractWorkOrder.WorkOrderStatus.ISSUED) {
+            throw new IllegalStateException("Work order can only be updated in DRAFT or ISSUED status");
+        }
+        if (updates.getScopeDescription() != null) existing.setScopeDescription(updates.getScopeDescription());
+        if (updates.getUnit() != null) existing.setUnit(updates.getUnit());
+        if (updates.getRate() != null) existing.setRate(updates.getRate());
+        if (updates.getNegotiatedAmount() != null) existing.setNegotiatedAmount(updates.getNegotiatedAmount());
+        if (updates.getStartDate() != null) existing.setStartDate(updates.getStartDate());
+        if (updates.getTargetCompletionDate() != null) existing.setTargetCompletionDate(updates.getTargetCompletionDate());
+        if (updates.getActualCompletionDate() != null) existing.setActualCompletionDate(updates.getActualCompletionDate());
+        if (updates.getPaymentTerms() != null) existing.setPaymentTerms(updates.getPaymentTerms());
+        if (updates.getRetentionPercentage() != null) existing.setRetentionPercentage(updates.getRetentionPercentage());
+        if (updates.getMeasurementBasis() != null) existing.setMeasurementBasis(updates.getMeasurementBasis());
+        existing.setUpdatedAt(LocalDateTime.now());
+        return workOrderRepository.save(existing);
+    }
+
+    @Transactional
+    public void deleteWorkOrder(Long id) {
+        SubcontractWorkOrder workOrder = getWorkOrder(id);
+        if (workOrder.getStatus() != SubcontractWorkOrder.WorkOrderStatus.DRAFT) {
+            throw new IllegalStateException("Only DRAFT work orders can be deleted");
+        }
+        workOrderRepository.deleteById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SubcontractMeasurement> getWorkOrderMeasurements(Long workOrderId) {
+        return measurementRepository.findByWorkOrderIdOrderByMeasurementDateDesc(workOrderId);
+    }
+
+    @Transactional
+    public SubcontractMeasurement approveMeasurement(Long measurementId) {
+        SubcontractMeasurement measurement = measurementRepository.findById(measurementId)
+                .orElseThrow(() -> new RuntimeException("Measurement not found: " + measurementId));
+        if (measurement.getStatus() != SubcontractMeasurement.MeasurementStatus.PENDING) {
+            throw new IllegalStateException("Only PENDING measurements can be approved");
+        }
+        measurement.setStatus(SubcontractMeasurement.MeasurementStatus.APPROVED);
+        return measurementRepository.save(measurement);
+    }
+
+    @Transactional
+    public SubcontractMeasurement rejectMeasurement(Long measurementId, String rejectionReason) {
+        SubcontractMeasurement measurement = measurementRepository.findById(measurementId)
+                .orElseThrow(() -> new RuntimeException("Measurement not found: " + measurementId));
+        if (measurement.getStatus() != SubcontractMeasurement.MeasurementStatus.PENDING) {
+            throw new IllegalStateException("Only PENDING measurements can be rejected");
+        }
+        measurement.setStatus(SubcontractMeasurement.MeasurementStatus.REJECTED);
+        measurement.setRejectionReason(rejectionReason);
+        return measurementRepository.save(measurement);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SubcontractPayment> getWorkOrderPayments(Long workOrderId) {
+        return paymentRepository.findByWorkOrderIdOrderByPaymentDateDesc(workOrderId);
+    }
+
+    @Transactional(readOnly = true)
+    public SubcontractSummaryDTO getWorkOrderSummary(Long workOrderId) {
+        SubcontractWorkOrder workOrder = getWorkOrder(workOrderId);
+        List<SubcontractMeasurement> measurements = measurementRepository.findByWorkOrderId(workOrderId);
+        List<SubcontractPayment> payments = paymentRepository.findByWorkOrderId(workOrderId);
+        List<RetentionRelease> releases = retentionReleaseRepository.findByWorkOrderId(workOrderId);
+
+        BigDecimal totalMeasuredAmount = measurements.stream()
+                .map(SubcontractMeasurement::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalApprovedAmount = measurements.stream()
+                .filter(m -> m.getStatus() == SubcontractMeasurement.MeasurementStatus.APPROVED)
+                .map(SubcontractMeasurement::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalPaidAmount = payments.stream()
+                .map(SubcontractPayment::getNetAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalRetentionHeld = workOrder.getTotalRetentionAccumulated() != null
+                ? workOrder.getTotalRetentionAccumulated() : BigDecimal.ZERO;
+
+        BigDecimal totalRetentionReleased = releases.stream()
+                .map(RetentionRelease::getAmountReleased)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal contractedAmount = workOrder.getNegotiatedAmount() != null
+                ? workOrder.getNegotiatedAmount() : BigDecimal.ZERO;
+
+        BigDecimal balancePayable = totalApprovedAmount.subtract(totalPaidAmount);
+
+        int totalMeasurements = measurements.size();
+        int pendingMeasurements = (int) measurements.stream()
+                .filter(m -> m.getStatus() == SubcontractMeasurement.MeasurementStatus.PENDING).count();
+        int approvedMeasurements = (int) measurements.stream()
+                .filter(m -> m.getStatus() == SubcontractMeasurement.MeasurementStatus.APPROVED).count();
+
+        return new SubcontractSummaryDTO(
+                contractedAmount,
+                totalMeasuredAmount,
+                totalApprovedAmount,
+                totalPaidAmount,
+                totalRetentionHeld,
+                totalRetentionReleased,
+                balancePayable,
+                totalMeasurements,
+                pendingMeasurements,
+                approvedMeasurements,
+                payments.size()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<RetentionRelease> getRetentionReleases(Long workOrderId) {
+        return retentionReleaseRepository.findByWorkOrderIdOrderByReleaseDateDesc(workOrderId);
     }
 }

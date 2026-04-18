@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface RetentionReleaseRepository extends JpaRepository<RetentionRelease, Long> {
     List<RetentionRelease> findByWorkOrderId(Long workOrderId);
+    List<RetentionRelease> findByWorkOrderIdOrderByReleaseDateDesc(Long workOrderId);
 }
