@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +27,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -40,13 +44,16 @@ public class SiteVisitService {
     private final SiteVisitRepository siteVisitRepository;
     private final CustomerProjectRepository projectRepository;
     private final PortalUserRepository portalUserRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public SiteVisitService(SiteVisitRepository siteVisitRepository,
             CustomerProjectRepository projectRepository,
-            PortalUserRepository portalUserRepository) {
+            PortalUserRepository portalUserRepository,
+            JdbcTemplate jdbcTemplate) {
         this.siteVisitRepository = siteVisitRepository;
         this.projectRepository = projectRepository;
         this.portalUserRepository = portalUserRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     /**
@@ -189,6 +196,11 @@ public class SiteVisitService {
         }
         visit.setVisitType(visitType);
 
+        // Set purpose (optional — e.g. INSPECTION, CLIENT_MEETING, MATERIAL_DELIVERY)
+        if (request.getPurpose() != null && !request.getPurpose().isBlank()) {
+            visit.setPurpose(request.getPurpose().toUpperCase());
+        }
+
         // Perform check-in
         visit.checkIn(request.getLatitude(), request.getLongitude());
 
@@ -327,6 +339,60 @@ public class SiteVisitService {
     }
 
     /**
+     * Get monthly summary stats for all visits on a project.
+     * Returns total visits this month, average duration, breakdown by purpose, and top visitors.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getSummaryForProject(Long projectId) {
+        // Total visits this month
+        Integer totalVisitsThisMonth = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM site_visits " +
+            "WHERE project_id = ? AND visit_status = 'CHECKED_OUT' " +
+            "AND DATE_TRUNC('month', check_in_time) = DATE_TRUNC('month', NOW())",
+            Integer.class, projectId);
+
+        // Average duration in minutes (completed visits only)
+        Double avgDuration = jdbcTemplate.queryForObject(
+            "SELECT AVG(duration_minutes) FROM site_visits " +
+            "WHERE project_id = ? AND visit_status = 'CHECKED_OUT' AND duration_minutes IS NOT NULL",
+            Double.class, projectId);
+
+        // Visits grouped by purpose
+        List<Map<String, Object>> purposeRows = jdbcTemplate.queryForList(
+            "SELECT COALESCE(purpose, 'UNSPECIFIED') AS purpose, COUNT(*) AS cnt " +
+            "FROM site_visits WHERE project_id = ? AND visit_status = 'CHECKED_OUT' " +
+            "GROUP BY COALESCE(purpose, 'UNSPECIFIED') ORDER BY cnt DESC",
+            projectId);
+        Map<String, Long> visitsByPurpose = new LinkedHashMap<>();
+        for (Map<String, Object> row : purposeRows) {
+            visitsByPurpose.put((String) row.get("purpose"), ((Number) row.get("cnt")).longValue());
+        }
+
+        // Top 5 visitors by visit count
+        List<Map<String, Object>> visitorRows = jdbcTemplate.queryForList(
+            "SELECT CONCAT(pu.first_name, ' ', pu.last_name) AS name, COUNT(*) AS visits " +
+            "FROM site_visits sv JOIN portal_users pu ON sv.visited_by = pu.id " +
+            "WHERE sv.project_id = ? AND sv.visit_status = 'CHECKED_OUT' " +
+            "GROUP BY pu.id, pu.first_name, pu.last_name ORDER BY visits DESC LIMIT 5",
+            projectId);
+        List<Map<String, Object>> topVisitors = new ArrayList<>();
+        for (Map<String, Object> row : visitorRows) {
+            Map<String, Object> visitor = new HashMap<>();
+            visitor.put("name", row.get("name"));
+            visitor.put("visits", ((Number) row.get("visits")).longValue());
+            topVisitors.add(visitor);
+        }
+
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalVisitsThisMonth", totalVisitsThisMonth != null ? totalVisitsThisMonth : 0);
+        summary.put("averageDurationMinutes",
+            avgDuration != null ? Math.round(avgDuration) : 0);
+        summary.put("visitsByPurpose", visitsByPurpose);
+        summary.put("topVisitors", topVisitors);
+        return summary;
+    }
+
+    /**
      * Cancel a pending visit
      */
     @Transactional
@@ -372,6 +438,7 @@ public class SiteVisitService {
                 .checkInLongitude(visit.getCheckInLongitude())
                 .checkOutLatitude(visit.getCheckOutLatitude())
                 .checkOutLongitude(visit.getCheckOutLongitude())
+                .purpose(visit.getPurpose())
                 .visitType(visit.getVisitType() != null ? visit.getVisitType().name() : null)
                 .visitStatus(visit.getVisitStatus() != null ? visit.getVisitStatus().name() : null)
                 .durationMinutes(visit.getDurationMinutes())

@@ -19,6 +19,7 @@ public class SiteVisitDTO {
     private Double checkInLongitude;
     private Double checkOutLatitude;
     private Double checkOutLongitude;
+    private String purpose;
     private String visitType;
     private String visitStatus;
     private Integer durationMinutes;
@@ -101,6 +102,11 @@ public class SiteVisitDTO {
 
         public SiteVisitDTOBuilder checkOutLongitude(Double lng) {
             dto.checkOutLongitude = lng;
+            return this;
+        }
+
+        public SiteVisitDTOBuilder purpose(String purpose) {
+            dto.purpose = purpose;
             return this;
         }
 
@@ -252,6 +258,14 @@ public class SiteVisitDTO {
 
     public void setCheckOutLongitude(Double checkOutLongitude) {
         this.checkOutLongitude = checkOutLongitude;
+    }
+
+    public String getPurpose() {
+        return purpose;
+    }
+
+    public void setPurpose(String purpose) {
+        this.purpose = purpose;
     }
 
     public String getVisitType() {

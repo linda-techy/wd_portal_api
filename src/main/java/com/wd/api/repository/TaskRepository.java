@@ -97,4 +97,16 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
                         "WHERE t.dueDate = CURRENT_DATE " +
                         "AND t.status NOT IN ('COMPLETED', 'CANCELLED')")
         long countDueToday();
+
+        // ===== Gantt / Schedule Queries (V53) =====
+
+        /**
+         * Return all tasks for a project that have a start_date set, ordered for Gantt rendering.
+         * Tasks without start_date are included last (nulls last) so the chart always shows something.
+         */
+        @org.springframework.data.jpa.repository.Query(
+                        "SELECT t FROM Task t WHERE t.project.id = :projectId " +
+                        "ORDER BY CASE WHEN t.startDate IS NULL THEN 1 ELSE 0 END, t.startDate ASC")
+        List<Task> findByProjectIdOrderedForGantt(
+                        @org.springframework.data.repository.query.Param("projectId") Long projectId);
 }

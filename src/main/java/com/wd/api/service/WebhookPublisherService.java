@@ -124,6 +124,17 @@ public class WebhookPublisherService {
     }
 
     /**
+     * Called after a delay is logged for a project.
+     */
+    public void publishDelayReported(Long projectId, Long delayId, String category) {
+        publish(new PortalWebhookPayload(
+                "DELAY_REPORTED", projectId, null, delayId,
+                "A delay has been reported: " + category.toLowerCase().replace("_", " "),
+                Map.of("category", category),
+                LocalDateTime.now()));
+    }
+
+    /**
      * Called after a payment transaction is recorded.
      */
     public void publishPaymentRecorded(Long projectId, Long customerId,

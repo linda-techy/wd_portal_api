@@ -17,6 +17,8 @@ import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,6 +34,9 @@ public class DelayLogService {
 
     @Autowired
     private PortalUserRepository portalUserRepository;
+
+    @Autowired
+    private WebhookPublisherService webhookPublisherService;
 
     @Transactional(readOnly = true)
     public Page<DelayLog> searchDelayLogs(DelayLogSearchFilter filter) {
@@ -123,9 +128,16 @@ public class DelayLogService {
         if (userId != null) {
             PortalUser user = portalUserRepository.findById(userId).orElse(null);
             delay.setLoggedBy(user);
+            delay.setReportedBy(userId);
         }
 
-        return delayLogRepository.save(delay);
+        DelayLog saved = delayLogRepository.save(delay);
+
+        // Publish webhook so Customer API can notify project customers
+        String category = saved.getReasonCategory() != null ? saved.getReasonCategory() : saved.getDelayType();
+        webhookPublisherService.publishDelayReported(projectId, saved.getId(), category);
+
+        return saved;
     }
 
     @Transactional
@@ -148,6 +160,32 @@ public class DelayLogService {
         if (delayId != null) {
             delayLogRepository.deleteById(delayId);
         }
+    }
+
+    public Map<String, Object> getDelaySummary(Long projectId) {
+        if (projectId == null)
+            return Map.of();
+        List<DelayLog> delays = delayLogRepository.findByProjectId(projectId);
+
+        long totalDelays = delays.size();
+
+        long totalDaysLost = delays.stream()
+                .filter(d -> d.getToDate() != null)
+                .mapToLong(d -> ChronoUnit.DAYS.between(d.getFromDate(), d.getToDate()) + 1)
+                .sum();
+
+        // Breakdown by reason_category (fall back to delayType when category is null)
+        Map<String, Long> breakdownByCategory = delays.stream()
+                .collect(Collectors.groupingBy(
+                        d -> d.getReasonCategory() != null ? d.getReasonCategory() : d.getDelayType(),
+                        LinkedHashMap::new,
+                        Collectors.counting()));
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("totalDelays", totalDelays);
+        summary.put("totalDaysLost", totalDaysLost);
+        summary.put("breakdownByCategory", breakdownByCategory);
+        return summary;
     }
 
     public Map<String, Long> getDelayImpactAnalysis(Long projectId) {

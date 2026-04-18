@@ -40,6 +40,21 @@ public class DelayLog {
     @Column(name = "reason_text", columnDefinition = "TEXT")
     private String reasonText;
 
+    @Column(name = "reason_category", length = 50)
+    private String reasonCategory; // WEATHER, MATERIAL_SHORTAGE, LABOUR, PERMITS, CLIENT_DECISION, SUBCONTRACTOR, DESIGN_CHANGES, OTHER
+
+    @Column(name = "responsible_party")
+    private String responsibleParty;
+
+    @Column(name = "duration_days")
+    private Integer durationDays;
+
+    @Column(name = "impact_description", columnDefinition = "TEXT")
+    private String impactDescription;
+
+    @Column(name = "reported_by")
+    private Long reportedBy;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "logged_by_id")
     private PortalUser loggedBy;

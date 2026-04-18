@@ -72,6 +72,9 @@ public class SiteVisit {
     @Column(name = "check_out_notes", columnDefinition = "TEXT")
     private String checkOutNotes;
 
+    @Column(name = "purpose", length = 50)
+    private String purpose;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -258,6 +261,14 @@ public class SiteVisit {
 
     public void setCheckOutNotes(String checkOutNotes) {
         this.checkOutNotes = checkOutNotes;
+    }
+
+    public String getPurpose() {
+        return purpose;
+    }
+
+    public void setPurpose(String purpose) {
+        this.purpose = purpose;
     }
 
     public LocalDateTime getCreatedAt() {

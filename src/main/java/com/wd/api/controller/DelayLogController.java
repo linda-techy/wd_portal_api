@@ -41,7 +41,7 @@ public class DelayLogController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
+    @PreAuthorize("hasAnyAuthority('DELAY_CREATE', 'PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<DelayLog> logDelay(
             @PathVariable Long projectId,
             @RequestBody DelayLog delay,
@@ -66,6 +66,12 @@ public class DelayLogController {
             @PathVariable Long id) {
         delayLogService.deleteDelay(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/summary")
+    @PreAuthorize("hasAnyAuthority('DELAY_VIEW', 'PROJECT_VIEW')")
+    public ResponseEntity<Map<String, Object>> getDelaySummary(@PathVariable Long projectId) {
+        return ResponseEntity.ok(delayLogService.getDelaySummary(projectId));
     }
 
     @GetMapping("/impact")

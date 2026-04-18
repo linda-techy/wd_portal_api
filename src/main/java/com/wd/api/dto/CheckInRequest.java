@@ -8,6 +8,7 @@ public class CheckInRequest {
     private Double latitude;
     private Double longitude;
     private String visitType;
+    private String purpose;
     private String notes;
 
     public CheckInRequest() {
@@ -43,6 +44,14 @@ public class CheckInRequest {
 
     public void setVisitType(String visitType) {
         this.visitType = visitType;
+    }
+
+    public String getPurpose() {
+        return purpose;
+    }
+
+    public void setPurpose(String purpose) {
+        this.purpose = purpose;
     }
 
     public String getNotes() {
