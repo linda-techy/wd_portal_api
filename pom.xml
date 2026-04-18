@@ -115,6 +115,12 @@
         <version>8.10.1</version>
     </dependency>
 
+    <!-- Actuator — /actuator/health, /actuator/info -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
     <!-- Test Starter -->
     <dependency>
         <groupId>org.springframework.boot</groupId>

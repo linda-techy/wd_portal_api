@@ -20,5 +20,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // Auth endpoints — brute force protection per IP
         registry.addInterceptor(new AuthRateLimitInterceptor(rateLimiterConfig))
                 .addPathPatterns("/auth/**", "/api/partnerships/**", "/api/customer/**");
+
+        // Public lead submission endpoints — 10 submissions per minute per IP
+        registry.addInterceptor(new PublicLeadRateLimitInterceptor(rateLimiterConfig))
+                .addPathPatterns("/leads/contact", "/leads/referral");
     }
 }

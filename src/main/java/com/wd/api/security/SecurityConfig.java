@@ -63,6 +63,7 @@ public class SecurityConfig {
                                                 // Public endpoints
                                                 .requestMatchers("/auth/**").permitAll()
                                                 .requestMatchers("/tools/**").permitAll()
+                                                .requestMatchers("/actuator/health").permitAll()
 
                                                 // Public brochure download (marketing asset, no auth required)
                                                 .requestMatchers("/api/brochure/**").permitAll()

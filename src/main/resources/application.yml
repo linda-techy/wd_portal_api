@@ -100,6 +100,16 @@ app:
   # Website base URL — partner password reset emails point here.
   website-base-url: "https://walldotbuilders.com"
 
+# ── Actuator ─────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
 # ── OpenAPI / Swagger UI ─────────────────────────────────────────
 # Override per profile: swagger-ui.enabled: true in local/staging, false in production
 springdoc:

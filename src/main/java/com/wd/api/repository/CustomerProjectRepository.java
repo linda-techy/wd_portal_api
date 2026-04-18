@@ -3,6 +3,7 @@ package com.wd.api.repository;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.enums.ProjectPhase;
 import com.wd.api.model.enums.ProjectStatus;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -55,6 +56,22 @@ public interface CustomerProjectRepository extends JpaRepository<CustomerProject
          * Find active project by ID
          */
         Optional<CustomerProject> findByIdAndDeletedAtIsNull(Long id);
+
+        /**
+         * Find active project by ID with project members eagerly fetched (avoids N+1
+         * when iterating team membership in service layer).
+         */
+        @EntityGraph(value = "CustomerProject.withMembers")
+        @Query("SELECT p FROM CustomerProject p WHERE p.id = :id AND p.deletedAt IS NULL")
+        Optional<CustomerProject> findByIdWithMembers(@Param("id") Long id);
+
+        /**
+         * Find all active projects for a customer with members eagerly fetched.
+         * Use this in contexts that iterate project members (e.g. notification fan-out).
+         */
+        @EntityGraph(value = "CustomerProject.withMembers")
+        @Query("SELECT p FROM CustomerProject p WHERE p.customer.id = :customerId AND p.deletedAt IS NULL")
+        List<CustomerProject> findByCustomerIdWithMembers(@Param("customerId") Long customerId);
 
         /**
          * Find all active projects by customer

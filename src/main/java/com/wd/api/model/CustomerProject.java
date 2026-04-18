@@ -18,6 +18,10 @@ import java.util.UUID;
 @Where(clause = "deleted_at IS NULL")
 @Entity
 @Table(name = "customer_projects")
+@jakarta.persistence.NamedEntityGraph(
+    name = "CustomerProject.withMembers",
+    attributeNodes = @jakarta.persistence.NamedAttributeNode("projectMembers")
+)
 public class CustomerProject extends BaseEntity {
 
     @Id

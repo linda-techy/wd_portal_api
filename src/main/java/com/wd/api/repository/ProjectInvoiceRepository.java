@@ -27,4 +27,8 @@ public interface ProjectInvoiceRepository extends JpaRepository<ProjectInvoice, 
                     "GROUP BY TO_CHAR(i.invoice_date, 'YYYY-MM') ORDER BY month",
             nativeQuery = true)
     List<Object[]> monthlyInvoicedAmount(@org.springframework.data.repository.query.Param("fromDate") java.time.LocalDate fromDate);
+
+    /** Advance the database sequence and return the next invoice number. */
+    @org.springframework.data.jpa.repository.Query(value = "SELECT nextval('invoice_number_seq')", nativeQuery = true)
+    Long getNextInvoiceNumber();
 }
