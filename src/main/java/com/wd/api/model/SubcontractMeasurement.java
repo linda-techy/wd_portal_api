@@ -42,6 +42,9 @@ public class SubcontractMeasurement {
     @Enumerated(EnumType.STRING)
     private MeasurementStatus status = MeasurementStatus.PENDING;
 
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -130,6 +133,9 @@ public class SubcontractMeasurement {
     public void setStatus(MeasurementStatus status) {
         this.status = status;
     }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
