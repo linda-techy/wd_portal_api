@@ -28,7 +28,7 @@ public interface ChangeOrderRepository extends JpaRepository<ChangeOrder, Long> 
            "WHERE co.id = :id AND co.deletedAt IS NULL")
     Optional<ChangeOrder> findByIdWithLineItems(@Param("id") Long id);
 
-    @Query("SELECT co FROM ChangeOrder co LEFT JOIN FETCH co.lineItems LEFT JOIN FETCH co.milestones " +
+    @Query("SELECT co FROM ChangeOrder co LEFT JOIN FETCH co.lineItems " +
            "WHERE co.id = :id AND co.deletedAt IS NULL")
     Optional<ChangeOrder> findByIdWithDetails(@Param("id") Long id);
 }

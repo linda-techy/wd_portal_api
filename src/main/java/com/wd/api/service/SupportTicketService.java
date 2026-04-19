@@ -146,15 +146,15 @@ public class SupportTicketService {
 
         logger.info("Staff reply added to ticket {} by user {}", ticketId, staffUserId);
 
-        return Map.of(
-                "id", reply.get("id"),
-                "ticketId", ticketId,
-                "staffUserId", staffUserId,
-                "staffName", staffName,
-                "message", message,
-                "attachmentUrl", attachmentUrl,
-                "userType", "STAFF",
-                "createdAt", reply.get("created_at")
-        );
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("id", reply.get("id"));
+        result.put("ticketId", ticketId);
+        result.put("staffUserId", staffUserId);
+        result.put("staffName", staffName);
+        result.put("message", message);
+        result.put("attachmentUrl", attachmentUrl);
+        result.put("userType", "STAFF");
+        result.put("createdAt", reply.get("created_at"));
+        return result;
     }
 }

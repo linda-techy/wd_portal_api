@@ -86,20 +86,9 @@ class InvoiceModuleTest extends TestcontainersPostgresBase {
     void setup_createProjectAndApprovedBoq() {
         HttpHeaders headers = adminHeaders();
 
-        // 1. Create project
-        Map<String, Object> projectBody = new LinkedHashMap<>();
-        projectBody.put("name", "Invoice Test Project");
-        projectBody.put("location", "Chennai");
-        projectBody.put("project_type", "COMMERCIAL");
-        projectBody.put("state", "Tamil Nadu");
-        projectBody.put("district", "Chennai");
-
-        ResponseEntity<Map> projectResponse = restTemplate.exchange(
-                baseUrl("/customer-projects"), HttpMethod.POST,
-                new HttpEntity<>(projectBody, headers), Map.class);
-
-        assertThat(projectResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        projectId = ((Number) extractData(projectResponse.getBody()).get("id")).longValue();
+        // 1. Create fresh project (isolated from other tests that may have
+        // already approved a BOQ on the shared seeded projects).
+        projectId = seeder.createFreshProjectWithTeam("RESIDENTIAL", seeder.getCustomerA()).getId();
 
         // 2. Create BOQ document
         Map<String, Object> docBody = new LinkedHashMap<>();
@@ -140,16 +129,10 @@ class InvoiceModuleTest extends TestcontainersPostgresBase {
                 HttpMethod.PATCH, new HttpEntity<>(headers), Map.class);
         assertThat(approveResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        // 6. Customer approval with payment stages
+        // 6. Customer approval with payment stages.
+        // Residential project is owned by customerA (already attached as project
+        // member by the seeder); no membership setup required here.
         Long customerUserId = seeder.getCustomerA().getId();
-
-        // Add customerA as project member (required for verifyCustomerMembership)
-        Map<String, Object> memberBody = new LinkedHashMap<>();
-        memberBody.put("customerUserId", customerUserId);
-        memberBody.put("role", "CUSTOMER");
-        restTemplate.exchange(
-                baseUrl("/customer-projects/" + projectId + "/members"),
-                HttpMethod.POST, new HttpEntity<>(memberBody, headers), Map.class);
 
         Map<String, Object> stage1 = new LinkedHashMap<>();
         stage1.put("name", "Advance");

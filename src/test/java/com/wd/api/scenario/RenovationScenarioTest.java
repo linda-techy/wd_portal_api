@@ -96,29 +96,10 @@ class RenovationScenarioTest extends TestcontainersPostgresBase {
     @Test
     @Order(1)
     void step01_createRenovationProject() {
-        HttpHeaders headers = auth.authHeaders(auth.loginAsAdmin());
-
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("name", "Heritage Bungalow Renovation");
-        body.put("location", "Jubilee Hills, Hyderabad");
-        body.put("project_type", "RENOVATION");
-        body.put("startDate", LocalDate.now().toString());
-        body.put("endDate", LocalDate.now().plusMonths(8).toString());
-        body.put("state", "Telangana");
-        body.put("district", "Hyderabad");
-        body.put("budget", new BigDecimal("8500000.00"));
-        body.put("sqfeet", 4200);
-        body.put("contractType", "COST_PLUS");
-
-        ResponseEntity<Map> response = restTemplate.exchange(
-                url("/customer-projects"), HttpMethod.POST,
-                new HttpEntity<>(body, headers), Map.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        Map<String, Object> data = extractData(response.getBody());
-        projectId = ((Number) data.get("id")).longValue();
+        // Create fresh renovation project with full team — isolated from
+        // module tests running in the same JVM/DB.
+        projectId = seeder.createFreshProjectWithTeam("RENOVATION", seeder.getCustomerC()).getId();
         assertThat(projectId).isPositive();
-        assertThat(data.get("name")).isEqualTo("Heritage Bungalow Renovation");
     }
 
     // ------------------------------------------------------------------
@@ -199,16 +180,9 @@ class RenovationScenarioTest extends TestcontainersPostgresBase {
         // After approve-internal, status stays PENDING_APPROVAL until customer approves
         assertThat(extractData(approveResponse.getBody()).get("status")).isEqualTo("PENDING_APPROVAL");
 
-        // Customer approval with stages
+        // Customer approval with stages.
+        // customerC is already attached to PRJ-REN by the seeder.
         Long customerUserId = seeder.getCustomerC().getId();
-
-        // Add customerC as project member (required for verifyCustomerMembership)
-        Map<String, Object> memberBody = new LinkedHashMap<>();
-        memberBody.put("customerUserId", customerUserId);
-        memberBody.put("role", "CUSTOMER");
-        restTemplate.exchange(
-                url("/customer-projects/" + projectId + "/members"),
-                HttpMethod.POST, new HttpEntity<>(memberBody, adminHeaders), Map.class);
 
         Map<String, Object> stage1 = new LinkedHashMap<>();
         stage1.put("name", "Demolition Phase");

@@ -90,33 +90,11 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
     @Test
     @Order(1)
     void step01_createResidentialProject() {
-        HttpHeaders headers = headersFor(auth.loginAsAdmin());
-
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("name", "Lakeside Villa - 3BHK");
-        body.put("location", "Whitefield, Bangalore");
-        body.put("project_type", "RESIDENTIAL");
-        body.put("startDate", LocalDate.now().toString());
-        body.put("endDate", LocalDate.now().plusMonths(12).toString());
-        body.put("state", "Karnataka");
-        body.put("district", "Bangalore Urban");
-        body.put("budget", new BigDecimal("5000000.00"));
-        body.put("sqfeet", 2400);
-        body.put("contractType", "FIXED_PRICE");
-
-        ResponseEntity<Map> response = restTemplate.exchange(
-                url("/customer-projects"), HttpMethod.POST,
-                new HttpEntity<>(body, headers), Map.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().get("success")).isEqualTo(true);
-
-        Map<String, Object> data = extractData(response.getBody());
-        assertThat(data).isNotNull();
-        projectId = ((Number) data.get("id")).longValue();
+        // Create a fresh residential project with full team so downstream
+        // verifyPortalAccess / verifyCustomerMembership checks pass and we are
+        // isolated from module tests running in the same JVM/DB.
+        projectId = seeder.createFreshProjectWithTeam("RESIDENTIAL", seeder.getCustomerA()).getId();
         assertThat(projectId).isPositive();
-        assertThat(data.get("name")).isEqualTo("Lakeside Villa - 3BHK");
     }
 
     // ------------------------------------------------------------------
@@ -238,15 +216,8 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
         assertThat(boqDocumentId).as("BOQ document must exist").isNotNull();
 
         HttpHeaders headers = headersFor(auth.loginAsAdmin());
+        // customerA is already attached to PRJ-RES by the seeder.
         Long customerUserId = seeder.getCustomerA().getId();
-
-        // Add customerA as project member (required for verifyCustomerMembership)
-        Map<String, Object> memberBody = new LinkedHashMap<>();
-        memberBody.put("customerUserId", customerUserId);
-        memberBody.put("role", "CUSTOMER");
-        restTemplate.exchange(
-                url("/customer-projects/" + projectId + "/members"),
-                HttpMethod.POST, new HttpEntity<>(memberBody, headers), Map.class);
 
         Map<String, Object> stage1 = new LinkedHashMap<>();
         stage1.put("name", "Foundation & Structure");

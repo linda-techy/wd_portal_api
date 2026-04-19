@@ -90,20 +90,8 @@ class ChangeOrderModuleTest extends TestcontainersPostgresBase {
     void setup_createProjectAndApprovedBoq() {
         HttpHeaders headers = adminHeaders();
 
-        // 1. Create project
-        Map<String, Object> projectBody = new LinkedHashMap<>();
-        projectBody.put("name", "Change Order Test Project");
-        projectBody.put("location", "Mysore");
-        projectBody.put("project_type", "COMMERCIAL");
-        projectBody.put("state", "Karnataka");
-        projectBody.put("district", "Mysore");
-
-        ResponseEntity<Map> projectResponse = restTemplate.exchange(
-                baseUrl("/customer-projects"), HttpMethod.POST,
-                new HttpEntity<>(projectBody, headers), Map.class);
-
-        assertThat(projectResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        projectId = ((Number) extractData(projectResponse.getBody()).get("id")).longValue();
+        // 1. Create fresh project (isolated from other tests that approve BOQs).
+        projectId = seeder.createFreshProjectWithTeam("RENOVATION", seeder.getCustomerC()).getId();
 
         // 2. Create BOQ document
         Map<String, Object> docBody = new LinkedHashMap<>();
@@ -146,16 +134,10 @@ class ChangeOrderModuleTest extends TestcontainersPostgresBase {
                 HttpMethod.PATCH, new HttpEntity<>(headers), Map.class);
         assertThat(approveResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        // 6. Customer approval with payment stages
-        Long customerUserId = seeder.getCustomerA().getId();
-
-        // Add customerA as project member (required for verifyCustomerMembership)
-        Map<String, Object> memberBody = new LinkedHashMap<>();
-        memberBody.put("customerUserId", customerUserId);
-        memberBody.put("role", "CUSTOMER");
-        restTemplate.exchange(
-                baseUrl("/customer-projects/" + projectId + "/members"),
-                HttpMethod.POST, new HttpEntity<>(memberBody, headers), Map.class);
+        // 6. Customer approval with payment stages.
+        // Renovation project is owned by customerC; the seeder already attached
+        // customerC as a project member so no membership setup is needed here.
+        Long customerUserId = seeder.getCustomerC().getId();
 
         Map<String, Object> stage1 = new LinkedHashMap<>();
         stage1.put("name", "Advance");

@@ -44,5 +44,7 @@ public abstract class TestcontainersPostgresBase {
         registry.add("app.email.enabled", () -> "false");
         // app.rate-limiting.enabled: disable rate limiting to prevent 429 in tests.
         registry.add("app.rate-limiting.enabled", () -> "false");
+        // Silence Jackson errors on lazy Hibernate proxies returned by controllers.
+        registry.add("spring.jackson.serialization.fail-on-empty-beans", () -> "false");
     }
 }

@@ -104,21 +104,8 @@ class SiteManagementModuleTest extends TestcontainersPostgresBase {
     @Test
     @Order(0)
     void setup_createProject() {
-        HttpHeaders headers = adminHeaders();
-
-        Map<String, Object> projectBody = new LinkedHashMap<>();
-        projectBody.put("name", "Site Management Test Project");
-        projectBody.put("location", "Hubli");
-        projectBody.put("project_type", "RESIDENTIAL");
-        projectBody.put("state", "Karnataka");
-        projectBody.put("district", "Dharwad");
-
-        ResponseEntity<Map> projectResponse = restTemplate.exchange(
-                baseUrl("/customer-projects"), HttpMethod.POST,
-                new HttpEntity<>(projectBody, headers), Map.class);
-
-        assertThat(projectResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        projectId = ((Number) extractData(projectResponse.getBody()).get("id")).longValue();
+        // Create fresh project (isolated from other module tests).
+        projectId = seeder.createFreshProjectWithTeam("RESIDENTIAL", seeder.getCustomerA()).getId();
         assertThat(projectId).isPositive();
     }
 

@@ -224,7 +224,8 @@ public class WebhookPublisherService {
             eventLog.setAttempts(eventLog.getAttempts() + 1);
             eventLog.setLastAttemptAt(LocalDateTime.now());
             eventLog.setStatus("FAILED");
-            eventLog.setErrorMessage(truncate(e.getMessage(), 500));
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            eventLog.setErrorMessage(truncate(msg, 500));
             log.error("Webhook delivery failed: type={} attempt={} error={}",
                     eventLog.getEventType(), eventLog.getAttempts(), e.getMessage());
             promoteToDlqIfExhausted(eventLog);

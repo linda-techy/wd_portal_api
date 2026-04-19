@@ -83,27 +83,9 @@ class CommercialScenarioTest extends TestcontainersPostgresBase {
     @Test
     @Order(1)
     void step01_createCommercialProject() {
-        HttpHeaders headers = auth.authHeaders(auth.loginAsAdmin());
-
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("name", "Tech Park Tower B - Office Complex");
-        body.put("location", "HITEC City, Hyderabad");
-        body.put("project_type", "COMMERCIAL");
-        body.put("startDate", LocalDate.now().toString());
-        body.put("endDate", LocalDate.now().plusMonths(24).toString());
-        body.put("state", "Telangana");
-        body.put("district", "Hyderabad");
-        body.put("budget", new BigDecimal("45000000.00"));
-        body.put("sqfeet", 35000);
-        body.put("contractType", "COST_PLUS");
-
-        ResponseEntity<Map> response = restTemplate.exchange(
-                url("/customer-projects"), HttpMethod.POST,
-                new HttpEntity<>(body, headers), Map.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        Map<String, Object> data = extractData(response.getBody());
-        projectId = ((Number) data.get("id")).longValue();
+        // Create fresh commercial project with full team — isolated from
+        // module tests running in the same JVM/DB.
+        projectId = seeder.createFreshProjectWithTeam("COMMERCIAL", seeder.getCustomerB()).getId();
         assertThat(projectId).isPositive();
     }
 
@@ -199,16 +181,10 @@ class CommercialScenarioTest extends TestcontainersPostgresBase {
         // After approve-internal, status stays PENDING_APPROVAL until customer approves
         assertThat(extractData(approveResponse.getBody()).get("status")).isEqualTo("PENDING_APPROVAL");
 
-        // Customer approval with 5 stages at 20% each
+        // Customer approval with 5 stages at 20% each.
+        // customerB is already attached to PRJ-COM by the seeder.
         Long customerUserId = seeder.getCustomerB().getId();
 
-        // Add customerB as project member (required for verifyCustomerMembership)
-        Map<String, Object> memberBody = new LinkedHashMap<>();
-        memberBody.put("customerUserId", customerUserId);
-        memberBody.put("role", "CUSTOMER");
-        restTemplate.exchange(
-                url("/customer-projects/" + projectId + "/members"),
-                HttpMethod.POST, new HttpEntity<>(memberBody, adminHeaders), Map.class);
         List<Map<String, Object>> stages = new ArrayList<>();
         String[] stageNames = {"Mobilization", "Substructure", "Superstructure", "MEP Rough-in", "Finishing"};
         for (String name : stageNames) {

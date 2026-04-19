@@ -83,20 +83,8 @@ class ProcurementModuleTest extends TestcontainersPostgresBase {
     void setup_createProjectAndVendor() {
         HttpHeaders headers = adminHeaders();
 
-        // 1. Create project
-        Map<String, Object> projectBody = new LinkedHashMap<>();
-        projectBody.put("name", "Procurement Test Project");
-        projectBody.put("location", "Mangalore");
-        projectBody.put("project_type", "RESIDENTIAL");
-        projectBody.put("state", "Karnataka");
-        projectBody.put("district", "Dakshina Kannada");
-
-        ResponseEntity<Map> projectResponse = restTemplate.exchange(
-                baseUrl("/customer-projects"), HttpMethod.POST,
-                new HttpEntity<>(projectBody, headers), Map.class);
-
-        assertThat(projectResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        projectId = ((Number) extractData(projectResponse.getBody()).get("id")).longValue();
+        // 1. Create fresh project (isolated from other module tests).
+        projectId = seeder.createFreshProjectWithTeam("COMMERCIAL", seeder.getCustomerB()).getId();
         assertThat(projectId).isPositive();
 
         // 2. Create vendor
@@ -165,20 +153,22 @@ class ProcurementModuleTest extends TestcontainersPostgresBase {
 
         HttpHeaders headers = adminHeaders();
 
-        // Create PO items
+        // Create PO items (matches PurchaseOrderItemDTO schema)
         Map<String, Object> item1 = new LinkedHashMap<>();
-        item1.put("materialName", "TMT Steel Bars 12mm");
-        item1.put("unit", "Kg");
+        item1.put("description", "TMT Steel Bars 12mm");
+        item1.put("unit", "KG");
         item1.put("quantity", new BigDecimal("5000"));
-        item1.put("unitPrice", new BigDecimal("65.00"));
-        item1.put("totalPrice", new BigDecimal("325000.00"));
+        item1.put("rate", new BigDecimal("65.00"));
+        item1.put("gstPercentage", new BigDecimal("18.00"));
+        item1.put("amount", new BigDecimal("325000.00"));
 
         Map<String, Object> item2 = new LinkedHashMap<>();
-        item2.put("materialName", "Portland Cement 53 Grade");
-        item2.put("unit", "Bags");
+        item2.put("description", "Portland Cement 53 Grade");
+        item2.put("unit", "BAGS");
         item2.put("quantity", new BigDecimal("200"));
-        item2.put("unitPrice", new BigDecimal("380.00"));
-        item2.put("totalPrice", new BigDecimal("76000.00"));
+        item2.put("rate", new BigDecimal("380.00"));
+        item2.put("gstPercentage", new BigDecimal("18.00"));
+        item2.put("amount", new BigDecimal("76000.00"));
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("projectId", projectId);

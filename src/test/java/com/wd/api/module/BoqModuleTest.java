@@ -66,27 +66,14 @@ class BoqModuleTest extends TestcontainersPostgresBase {
     }
 
     /**
-     * Creates a test project and stores its ID in the static field.
-     * Called by the first test to set up the shared context.
+     * Uses the pre-seeded residential project (PRJ-RES). The seeder attaches
+     * customerA plus all portal roles (admin, PM, engineer, accounts) as project
+     * members, so {@code verifyPortalAccess}/{@code verifyCustomerMembership}
+     * checks pass without any per-test member setup.
      */
     private void ensureProjectExists() {
         if (projectId != null) return;
-
-        HttpHeaders headers = adminHeaders();
-        Map<String, Object> projectBody = new LinkedHashMap<>();
-        projectBody.put("name", "BOQ Test Project");
-        projectBody.put("location", "Bangalore");
-        projectBody.put("project_type", "RESIDENTIAL");
-        projectBody.put("state", "Karnataka");
-        projectBody.put("district", "Bangalore Urban");
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(projectBody, headers);
-        ResponseEntity<Map> response = restTemplate.exchange(
-                baseUrl("/customer-projects"), HttpMethod.POST, entity, Map.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        Map<String, Object> data = extractData(response.getBody());
-        projectId = ((Number) data.get("id")).longValue();
+        projectId = seeder.createFreshProjectWithTeam("RESIDENTIAL", seeder.getCustomerA()).getId();
     }
 
     // ------------------------------------------------------------------
@@ -248,15 +235,8 @@ class BoqModuleTest extends TestcontainersPostgresBase {
 
         HttpHeaders headers = adminHeaders();
 
+        // Customer is already a project member via the seeder — no member setup needed.
         Long customerUserId = seeder.getCustomerA().getId();
-
-        // Add customerA as project member so customer-approve's membership check passes
-        Map<String, Object> memberBody = new LinkedHashMap<>();
-        memberBody.put("customerUserId", customerUserId);
-        memberBody.put("role", "CUSTOMER");
-        restTemplate.exchange(
-                baseUrl("/customer-projects/" + projectId + "/members"),
-                HttpMethod.POST, new HttpEntity<>(memberBody, headers), Map.class);
 
         // Payment stage configuration (must total 100%)
         Map<String, Object> stage1 = new LinkedHashMap<>();

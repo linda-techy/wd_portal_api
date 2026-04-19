@@ -10,8 +10,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
 
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -39,13 +37,18 @@ class ExportModuleTest extends TestcontainersPostgresBase {
 
     AuthTestHelper auth;
 
-    // Use a dummy project ID — exports return empty CSV if no data exists,
-    // which is fine for verifying endpoint accessibility and response format.
-    private static final long PROJECT_ID = 1L;
+    /**
+     * ID of the pre-seeded residential project. Populated in {@link #setUp()}.
+     * Using a real seeded project (instead of a made-up ID) ensures the export
+     * endpoints can perform their project-access checks — the seeder attaches
+     * all portal roles as members to this project.
+     */
+    private long projectId;
 
     @BeforeEach
     void setUp() {
         seeder.seed();
+        projectId = seeder.getResidentialProject().getId();
         auth = new AuthTestHelper(restTemplate, port);
     }
 
@@ -54,7 +57,7 @@ class ExportModuleTest extends TestcontainersPostgresBase {
     // ------------------------------------------------------------------
 
     private String exportUrl(String type) {
-        return "http://localhost:" + port + "/api/projects/" + PROJECT_ID + "/export/" + type;
+        return "http://localhost:" + port + "/api/projects/" + projectId + "/export/" + type;
     }
 
     private HttpEntity<Void> authedGetEntity(String token) {

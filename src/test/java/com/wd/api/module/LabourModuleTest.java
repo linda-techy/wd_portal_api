@@ -34,9 +34,13 @@ class LabourModuleTest extends TestcontainersPostgresBase {
 
     AuthTestHelper auth;
 
+    /** Pre-seeded residential project; customer + portal team already attached. */
+    private Long projectId;
+
     @BeforeEach
     void setUp() {
         seeder.seed();
+        projectId = seeder.getResidentialProject().getId();
         auth = new AuthTestHelper(restTemplate, port);
     }
 
@@ -151,7 +155,7 @@ class LabourModuleTest extends TestcontainersPostgresBase {
         // Record attendance as a list (controller expects List<LabourAttendanceDTO>)
         Map<String, Object> attendance = new HashMap<>();
         attendance.put("labourId", labourId);
-        attendance.put("projectId", 1);
+        attendance.put("projectId", projectId);
         attendance.put("attendanceDate", "2026-04-19");
         attendance.put("status", "PRESENT");
         attendance.put("hoursWorked", 8.0);
@@ -169,7 +173,7 @@ class LabourModuleTest extends TestcontainersPostgresBase {
     @Order(5)
     void should_createMeasurementBookEntry() {
         Map<String, Object> mbBody = new HashMap<>();
-        mbBody.put("projectId", 1);
+        mbBody.put("projectId", projectId);
         mbBody.put("description", "Masonry work - ground floor");
         mbBody.put("quantity", 100.0);
         mbBody.put("unit", "sqm");
@@ -189,7 +193,7 @@ class LabourModuleTest extends TestcontainersPostgresBase {
         // WageSheet response may contain complex nested objects that cause JSON
         // parse errors when deserialized to Map. Use String response type instead.
         ResponseEntity<String> response = restTemplate.exchange(
-                baseUrl("/api/labour/wagesheet/generate?projectId=1&start=2026-04-01&end=2026-04-15"),
+                baseUrl("/api/labour/wagesheet/generate?projectId=" + projectId + "&start=2026-04-01&end=2026-04-15"),
                 HttpMethod.POST, authedGetEntity(), String.class);
 
         // Wage sheet generation requires project+labour data; verify auth passes
@@ -211,7 +215,7 @@ class LabourModuleTest extends TestcontainersPostgresBase {
         body.put("endDate", "2026-06-30");
 
         ResponseEntity<Map> response = restTemplate.exchange(
-                baseUrl("/api/subcontracts/project/1?vendorId=1"), HttpMethod.POST,
+                baseUrl("/api/subcontracts/project/" + projectId + "?vendorId=1"), HttpMethod.POST,
                 authedEntity(body), Map.class);
 
         // Work order creation requires a valid project and vendor;
@@ -223,7 +227,7 @@ class LabourModuleTest extends TestcontainersPostgresBase {
     @Order(8)
     void should_listSubcontractsForProject() {
         ResponseEntity<List> response = restTemplate.exchange(
-                baseUrl("/api/subcontracts/project/1"), HttpMethod.GET,
+                baseUrl("/api/subcontracts/project/" + projectId), HttpMethod.GET,
                 authedGetEntity(), List.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
