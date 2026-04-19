@@ -50,6 +50,7 @@ class CommercialScenarioTest extends TestcontainersPostgresBase {
     @BeforeAll
     void setUpOnce() {
         seeder.seed();
+        AuthTestHelper.clearTokenCache();
     }
 
     @BeforeEach
@@ -195,10 +196,19 @@ class CommercialScenarioTest extends TestcontainersPostgresBase {
                 url("/api/boq-documents/" + boqDocumentId + "/approve-internal"),
                 HttpMethod.PATCH, new HttpEntity<>(adminHeaders), Map.class);
         assertThat(approveResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(extractData(approveResponse.getBody()).get("status")).isEqualTo("INTERNALLY_APPROVED");
+        // After approve-internal, status stays PENDING_APPROVAL until customer approves
+        assertThat(extractData(approveResponse.getBody()).get("status")).isEqualTo("PENDING_APPROVAL");
 
         // Customer approval with 5 stages at 20% each
         Long customerUserId = seeder.getCustomerB().getId();
+
+        // Add customerB as project member (required for verifyCustomerMembership)
+        Map<String, Object> memberBody = new LinkedHashMap<>();
+        memberBody.put("customerUserId", customerUserId);
+        memberBody.put("role", "CUSTOMER");
+        restTemplate.exchange(
+                url("/customer-projects/" + projectId + "/members"),
+                HttpMethod.POST, new HttpEntity<>(memberBody, adminHeaders), Map.class);
         List<Map<String, Object>> stages = new ArrayList<>();
         String[] stageNames = {"Mobilization", "Substructure", "Superstructure", "MEP Rough-in", "Finishing"};
         for (String name : stageNames) {
@@ -217,7 +227,7 @@ class CommercialScenarioTest extends TestcontainersPostgresBase {
                 HttpMethod.PATCH, new HttpEntity<>(approveBody, adminHeaders), Map.class);
         assertThat(customerApproveResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(extractData(customerApproveResponse.getBody()).get("status"))
-                .isEqualTo("CUSTOMER_APPROVED");
+                .isEqualTo("APPROVED");
 
         // Retrieve payment stages
         ResponseEntity<Map> stagesResponse = restTemplate.exchange(

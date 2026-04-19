@@ -53,6 +53,7 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
     @BeforeAll
     void setUpOnce() {
         seeder.seed();
+        AuthTestHelper.clearTokenCache();
     }
 
     @BeforeEach
@@ -223,7 +224,8 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> data = extractData(response.getBody());
-        assertThat(data.get("status")).isEqualTo("INTERNALLY_APPROVED");
+        // After approve-internal, BOQ status stays PENDING_APPROVAL until customer approves
+        assertThat(data.get("status")).isEqualTo("PENDING_APPROVAL");
     }
 
     // ------------------------------------------------------------------
@@ -237,6 +239,14 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
 
         HttpHeaders headers = headersFor(auth.loginAsAdmin());
         Long customerUserId = seeder.getCustomerA().getId();
+
+        // Add customerA as project member (required for verifyCustomerMembership)
+        Map<String, Object> memberBody = new LinkedHashMap<>();
+        memberBody.put("customerUserId", customerUserId);
+        memberBody.put("role", "CUSTOMER");
+        restTemplate.exchange(
+                url("/customer-projects/" + projectId + "/members"),
+                HttpMethod.POST, new HttpEntity<>(memberBody, headers), Map.class);
 
         Map<String, Object> stage1 = new LinkedHashMap<>();
         stage1.put("name", "Foundation & Structure");
@@ -260,7 +270,7 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> data = extractData(response.getBody());
-        assertThat(data.get("status")).isEqualTo("CUSTOMER_APPROVED");
+        assertThat(data.get("status")).isEqualTo("APPROVED");
     }
 
     // ------------------------------------------------------------------

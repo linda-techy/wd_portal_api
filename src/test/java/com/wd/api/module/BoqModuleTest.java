@@ -237,7 +237,8 @@ class BoqModuleTest extends TestcontainersPostgresBase {
 
         Map<String, Object> data = extractData(response.getBody());
         assertThat(data).isNotNull();
-        assertThat(data.get("status")).isEqualTo("INTERNALLY_APPROVED");
+        // After internal approval, status stays PENDING_APPROVAL until customer approves
+        assertThat(data.get("status")).isEqualTo("PENDING_APPROVAL");
     }
 
     @Test
@@ -248,6 +249,14 @@ class BoqModuleTest extends TestcontainersPostgresBase {
         HttpHeaders headers = adminHeaders();
 
         Long customerUserId = seeder.getCustomerA().getId();
+
+        // Add customerA as project member so customer-approve's membership check passes
+        Map<String, Object> memberBody = new LinkedHashMap<>();
+        memberBody.put("customerUserId", customerUserId);
+        memberBody.put("role", "CUSTOMER");
+        restTemplate.exchange(
+                baseUrl("/customer-projects/" + projectId + "/members"),
+                HttpMethod.POST, new HttpEntity<>(memberBody, headers), Map.class);
 
         // Payment stage configuration (must total 100%)
         Map<String, Object> stage1 = new LinkedHashMap<>();
@@ -278,7 +287,7 @@ class BoqModuleTest extends TestcontainersPostgresBase {
 
         Map<String, Object> data = extractData(response.getBody());
         assertThat(data).isNotNull();
-        assertThat(data.get("status")).isEqualTo("CUSTOMER_APPROVED");
+        assertThat(data.get("status")).isEqualTo("APPROVED");
     }
 
     @Test
@@ -292,7 +301,7 @@ class BoqModuleTest extends TestcontainersPostgresBase {
 
         HttpHeaders headers = adminHeaders();
 
-        // Verify the document is now CUSTOMER_APPROVED (locked)
+        // Verify the document is now APPROVED (locked)
         HttpEntity<Void> getEntity = new HttpEntity<>(headers);
         ResponseEntity<Map> getResponse = restTemplate.exchange(
                 baseUrl("/api/boq-documents/" + boqDocumentId),
@@ -300,7 +309,7 @@ class BoqModuleTest extends TestcontainersPostgresBase {
 
         assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> docData = extractData(getResponse.getBody());
-        assertThat(docData.get("status")).isEqualTo("CUSTOMER_APPROVED");
+        assertThat(docData.get("status")).isEqualTo("APPROVED");
 
         // Attempt to submit again (should fail since it's already approved)
         HttpEntity<Void> submitEntity = new HttpEntity<>(headers);

@@ -149,6 +149,14 @@ class ChangeOrderModuleTest extends TestcontainersPostgresBase {
         // 6. Customer approval with payment stages
         Long customerUserId = seeder.getCustomerA().getId();
 
+        // Add customerA as project member (required for verifyCustomerMembership)
+        Map<String, Object> memberBody = new LinkedHashMap<>();
+        memberBody.put("customerUserId", customerUserId);
+        memberBody.put("role", "CUSTOMER");
+        restTemplate.exchange(
+                baseUrl("/customer-projects/" + projectId + "/members"),
+                HttpMethod.POST, new HttpEntity<>(memberBody, headers), Map.class);
+
         Map<String, Object> stage1 = new LinkedHashMap<>();
         stage1.put("name", "Advance");
         stage1.put("percentage", new BigDecimal("0.50"));

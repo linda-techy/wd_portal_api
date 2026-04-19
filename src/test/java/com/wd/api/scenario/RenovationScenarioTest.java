@@ -49,6 +49,7 @@ class RenovationScenarioTest extends TestcontainersPostgresBase {
     @BeforeAll
     void setUpOnce() {
         seeder.seed();
+        AuthTestHelper.clearTokenCache();
     }
 
     @BeforeEach
@@ -195,10 +196,19 @@ class RenovationScenarioTest extends TestcontainersPostgresBase {
                 url("/api/boq-documents/" + boqDocumentId + "/approve-internal"),
                 HttpMethod.PATCH, new HttpEntity<>(adminHeaders), Map.class);
         assertThat(approveResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(extractData(approveResponse.getBody()).get("status")).isEqualTo("INTERNALLY_APPROVED");
+        // After approve-internal, status stays PENDING_APPROVAL until customer approves
+        assertThat(extractData(approveResponse.getBody()).get("status")).isEqualTo("PENDING_APPROVAL");
 
         // Customer approval with stages
         Long customerUserId = seeder.getCustomerC().getId();
+
+        // Add customerC as project member (required for verifyCustomerMembership)
+        Map<String, Object> memberBody = new LinkedHashMap<>();
+        memberBody.put("customerUserId", customerUserId);
+        memberBody.put("role", "CUSTOMER");
+        restTemplate.exchange(
+                url("/customer-projects/" + projectId + "/members"),
+                HttpMethod.POST, new HttpEntity<>(memberBody, adminHeaders), Map.class);
 
         Map<String, Object> stage1 = new LinkedHashMap<>();
         stage1.put("name", "Demolition Phase");
@@ -220,7 +230,7 @@ class RenovationScenarioTest extends TestcontainersPostgresBase {
                 url("/api/boq-documents/" + boqDocumentId + "/customer-approve"),
                 HttpMethod.PATCH, new HttpEntity<>(body, adminHeaders), Map.class);
         assertThat(customerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(extractData(customerResponse.getBody()).get("status")).isEqualTo("CUSTOMER_APPROVED");
+        assertThat(extractData(customerResponse.getBody()).get("status")).isEqualTo("APPROVED");
     }
 
     // ------------------------------------------------------------------
@@ -281,7 +291,8 @@ class RenovationScenarioTest extends TestcontainersPostgresBase {
                 HttpMethod.PATCH, new HttpEntity<>(pmHeaders), Map.class);
         assertThat(submitResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> submitData = extractData(submitResponse.getBody());
-        assertThat(submitData.get("status")).isEqualTo("PENDING_APPROVAL");
+        // ChangeOrder.submit transitions to SUBMITTED (ChangeOrderStatus enum)
+        assertThat(submitData.get("status")).isEqualTo("SUBMITTED");
 
         // Internal approval
         ResponseEntity<Map> approveResponse = restTemplate.exchange(
@@ -364,7 +375,7 @@ class RenovationScenarioTest extends TestcontainersPostgresBase {
                 url("/api/change-orders/" + changeOrder2Id + "/submit"),
                 HttpMethod.PATCH, new HttpEntity<>(pmHeaders), Map.class);
         assertThat(submitResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(extractData(submitResponse.getBody()).get("status")).isEqualTo("PENDING_APPROVAL");
+        assertThat(extractData(submitResponse.getBody()).get("status")).isEqualTo("SUBMITTED");
 
         // Internal approval
         ResponseEntity<Map> approveResponse = restTemplate.exchange(
@@ -426,7 +437,7 @@ class RenovationScenarioTest extends TestcontainersPostgresBase {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> data = extractData(response.getBody());
-        assertThat(data.get("status")).isEqualTo("PENDING_APPROVAL");
+        assertThat(data.get("status")).isEqualTo("SUBMITTED");
     }
 
     // ------------------------------------------------------------------
@@ -523,8 +534,8 @@ class RenovationScenarioTest extends TestcontainersPostgresBase {
         Map<String, Object> data = extractData(response.getBody());
         assertThat(data).isNotNull();
 
-        // BOQ document should remain CUSTOMER_APPROVED regardless of change orders
-        assertThat(data.get("status")).isEqualTo("CUSTOMER_APPROVED");
+        // BOQ document should remain APPROVED regardless of change orders
+        assertThat(data.get("status")).isEqualTo("APPROVED");
 
         // Verify BOQ items still exist
         ResponseEntity<Map> itemsResponse = restTemplate.exchange(
@@ -576,10 +587,10 @@ class RenovationScenarioTest extends TestcontainersPostgresBase {
                 .as("CO2 should be INTERNALLY_APPROVED")
                 .isEqualTo("INTERNALLY_APPROVED");
 
-        // CO3: submitted -> PENDING_APPROVAL
+        // CO3: submitted -> SUBMITTED (ChangeOrderStatus enum)
         assertThat(coStatuses.get(changeOrder3Id))
-                .as("CO3 should be PENDING_APPROVAL")
-                .isEqualTo("PENDING_APPROVAL");
+                .as("CO3 should be SUBMITTED")
+                .isEqualTo("SUBMITTED");
 
         // Verify individual COs have correct types
         ResponseEntity<Map> co1Response = restTemplate.exchange(
