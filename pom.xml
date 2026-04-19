@@ -203,6 +203,14 @@
         <version>1.20.4</version>
         <scope>test</scope>
     </dependency>
+    <!-- Serialise Hibernate lazy proxies as null/empty rather than recursing
+         through Hibernate's internal bytecode-enhanced fields and blowing up
+         the JSON nesting depth (symptom: "Unexpected character ('s')" on
+         client parse because the server produced truncated nested output). -->
+    <dependency>
+        <groupId>com.fasterxml.jackson.datatype</groupId>
+        <artifactId>jackson-datatype-hibernate6</artifactId>
+    </dependency>
 </dependencies>
 
 	<build>

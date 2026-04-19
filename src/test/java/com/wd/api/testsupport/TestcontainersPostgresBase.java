@@ -46,5 +46,12 @@ public abstract class TestcontainersPostgresBase {
         registry.add("app.rate-limiting.enabled", () -> "false");
         // Silence Jackson errors on lazy Hibernate proxies returned by controllers.
         registry.add("spring.jackson.serialization.fail-on-empty-beans", () -> "false");
+        // Run schema-postgres.sql AFTER Hibernate has created the entity tables,
+        // so we can add Postgres-specific functions/sequences that reference them.
+        // Renamed from schema.sql to avoid it being auto-loaded by the H2-based
+        // ApiApplicationTests (which uses application-test.yml).
+        registry.add("spring.sql.init.mode", () -> "always");
+        registry.add("spring.sql.init.schema-locations", () -> "classpath:schema-postgres.sql");
+        registry.add("spring.jpa.defer-datasource-initialization", () -> "true");
     }
 }

@@ -282,7 +282,8 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
     void step08_raiseInvoiceStage1() {
         assertThat(stage1Id).as("Stage 1 ID must be captured").isNotNull();
 
-        HttpHeaders headers = headersFor(auth.loginAsAccounts());
+        // Use admin — BOQ_APPROVE is required to raise stage invoices.
+        HttpHeaders headers = headersFor(auth.loginAsAdmin());
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("dueDate", LocalDate.now().plusDays(15).toString());
@@ -306,7 +307,7 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
     void step09_sendInvoice1() {
         assertThat(invoice1Id).as("Invoice 1 must be raised").isNotNull();
 
-        HttpHeaders headers = headersFor(auth.loginAsAccounts());
+        HttpHeaders headers = headersFor(auth.loginAsAdmin());
 
         ResponseEntity<Map> response = restTemplate.exchange(
                 url("/api/boq-invoices/" + invoice1Id + "/send"),
@@ -325,7 +326,7 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
     void step10_confirmPaymentInvoice1() {
         assertThat(invoice1Id).as("Invoice 1 must be raised").isNotNull();
 
-        HttpHeaders headers = headersFor(auth.loginAsAccounts());
+        HttpHeaders headers = headersFor(auth.loginAsAdmin());
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("paymentReference", "NEFT-2026-RES-001");
@@ -449,7 +450,7 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
     void step13_raiseInvoiceStage2() {
         assertThat(stage2Id).as("Stage 2 ID must be captured").isNotNull();
 
-        HttpHeaders headers = headersFor(auth.loginAsAccounts());
+        HttpHeaders headers = headersFor(auth.loginAsAdmin());
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("dueDate", LocalDate.now().plusDays(30).toString());
@@ -473,7 +474,7 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
     void step14_sendAndConfirmPaymentStage2() {
         assertThat(invoice2Id).as("Invoice 2 must be raised").isNotNull();
 
-        HttpHeaders headers = headersFor(auth.loginAsAccounts());
+        HttpHeaders headers = headersFor(auth.loginAsAdmin());
 
         // Send
         ResponseEntity<Map> sendResponse = restTemplate.exchange(

@@ -319,7 +319,7 @@ class CommercialScenarioTest extends TestcontainersPostgresBase {
     void step06_raiseFirstTwoInvoices() {
         assertThat(stageIds).as("Stage IDs must be captured").hasSizeGreaterThanOrEqualTo(2);
 
-        HttpHeaders headers = auth.authHeaders(auth.loginAsAccounts());
+        HttpHeaders headers = auth.authHeaders(auth.loginAsAdmin());
 
         // Raise invoice for Stage 1
         Map<String, Object> body1 = new LinkedHashMap<>();
@@ -357,7 +357,7 @@ class CommercialScenarioTest extends TestcontainersPostgresBase {
         assertThat(invoice1Id).as("Invoice 1 must exist").isNotNull();
         assertThat(invoice2Id).as("Invoice 2 must exist").isNotNull();
 
-        HttpHeaders headers = auth.authHeaders(auth.loginAsAccounts());
+        HttpHeaders headers = auth.authHeaders(auth.loginAsAdmin());
 
         for (int i = 0; i < 2; i++) {
             Long invoiceId = (i == 0) ? invoice1Id : invoice2Id;

@@ -33,6 +33,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    /**
+     * Run on ASYNC dispatches too. Without this, DeferredResult/@Async
+     * endpoints lose their authentication when the response is written back
+     * (Spring Security's AnonymousAuthenticationFilter sets an anonymous
+     * context and the endpoint returns 401). The filter is cheap to rerun.
+     */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     @Override
     protected void doFilterInternal(
             @org.springframework.lang.NonNull HttpServletRequest request,

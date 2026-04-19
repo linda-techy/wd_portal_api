@@ -285,9 +285,17 @@ public class BoqController {
             result.setErrorResult(ResponseEntity.status(503).build());
         });
 
-        // Capture userId on the request thread before handing off to worker thread
+        // Capture userId and SecurityContext on the request thread before
+        // handing off — the worker thread doesn't otherwise inherit them, and
+        // downstream service code calls ProjectAccessGuard which reads from
+        // SecurityContextHolder to verify project access.
         final Long exportUserId = getCurrentUserId();
+        final org.springframework.security.core.context.SecurityContext securityContext =
+                org.springframework.security.core.context.SecurityContextHolder.getContext();
         taskExecutor.execute(() -> {
+            org.springframework.security.core.context.SecurityContext previous =
+                    org.springframework.security.core.context.SecurityContextHolder.getContext();
+            org.springframework.security.core.context.SecurityContextHolder.setContext(securityContext);
             try {
                 byte[] bytes = exportService.generateExcel(projectId, exportUserId);
                 String filename = "boq_project_" + projectId + "_" + LocalDate.now() + ".xlsx";
@@ -300,6 +308,8 @@ public class BoqController {
             } catch (Exception e) {
                 logger.error("Failed to export BOQ for project {}: {}", projectId, e.getMessage(), e);
                 result.setErrorResult(ResponseEntity.status(500).build());
+            } finally {
+                org.springframework.security.core.context.SecurityContextHolder.setContext(previous);
             }
         });
 

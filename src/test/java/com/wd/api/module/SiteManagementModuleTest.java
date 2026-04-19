@@ -126,12 +126,17 @@ class SiteManagementModuleTest extends TestcontainersPostgresBase {
         // Site report creation requires multipart/form-data with photos
         String reportJson = String.format(
                 "{\"title\":\"Foundation Inspection Report\",\"description\":\"Inspected foundation work\","
-                + "\"projectId\":%d,\"reportType\":\"DAILY\",\"weather\":\"Clear\","
+                + "\"projectId\":%d,\"reportType\":\"DAILY_PROGRESS\",\"weather\":\"Clear\","
                 + "\"manpowerDeployed\":15,\"workProgress\":\"Foundation 80%% complete\"}",
                 projectId);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("report", reportJson);
+        // Wrap the JSON part so RestTemplate sets Content-Type=application/json
+        // explicitly; without this the controller's @RequestPart("report") String
+        // binding rejects the part as a 400.
+        HttpHeaders reportHeaders = new HttpHeaders();
+        reportHeaders.setContentType(MediaType.APPLICATION_JSON);
+        body.add("report", new HttpEntity<>(reportJson, reportHeaders));
 
         // Add a dummy photo (required by the controller)
         ByteArrayResource photo = new ByteArrayResource(createDummyImage()) {
@@ -140,7 +145,9 @@ class SiteManagementModuleTest extends TestcontainersPostgresBase {
                 return "test-photo.png";
             }
         };
-        body.add("photos", photo);
+        HttpHeaders photoHeaders = new HttpHeaders();
+        photoHeaders.setContentType(MediaType.IMAGE_PNG);
+        body.add("photos", new HttpEntity<>(photo, photoHeaders));
 
         ResponseEntity<Map> response = restTemplate.exchange(
                 baseUrl("/api/site-reports"), HttpMethod.POST,
@@ -364,6 +371,7 @@ class SiteManagementModuleTest extends TestcontainersPostgresBase {
         HttpHeaders headers = adminHeaders();
 
         Map<String, Object> body = new LinkedHashMap<>();
+        body.put("delayType", "WEATHER");
         body.put("reasonText", "Heavy rainfall");
         body.put("reasonCategory", "WEATHER");
         body.put("durationDays", 3);

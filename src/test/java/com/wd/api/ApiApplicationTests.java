@@ -1,15 +1,19 @@
 package com.wd.api;
 
+import com.wd.api.testsupport.TestcontainersPostgresBase;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
-@ActiveProfiles("test")
-class ApiApplicationTests {
+/**
+ * Smoke test: verify the full Spring context loads.
+ *
+ * <p>Extends {@link TestcontainersPostgresBase} so the entity schema
+ * (Postgres-specific features like {@code text[]}) and the app's native
+ * repository queries compile — H2 can't parse those.
+ */
+class ApiApplicationTests extends TestcontainersPostgresBase {
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
 }

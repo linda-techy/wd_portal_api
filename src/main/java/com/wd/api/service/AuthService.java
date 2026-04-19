@@ -182,10 +182,17 @@ public class AuthService {
     }
 
     private void saveRefreshToken(PortalUser user, String rawRefreshToken) {
+        String hash = TokenHashUtil.hash(rawRefreshToken);
+        // If an identical token already exists (e.g. two logins in the same
+        // millisecond — common in tests), reuse it rather than triggering the
+        // unique-constraint violation.
+        if (refreshTokenRepository.findByToken(hash).isPresent()) {
+            return;
+        }
         RefreshToken token = new RefreshToken();
         token.setUser(user);
         // Store only the SHA-256 hash — the raw JWT is never persisted to DB
-        token.setToken(TokenHashUtil.hash(rawRefreshToken));
+        token.setToken(hash);
         token.setExpiryDate(LocalDateTime.now().plusDays(7)); // 7 days
         token.setRevoked(false);
 
