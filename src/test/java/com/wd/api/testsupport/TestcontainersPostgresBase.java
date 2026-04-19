@@ -42,5 +42,7 @@ public abstract class TestcontainersPostgresBase {
         registry.add("storageBasePath", () -> "/tmp/test-storage");
         // app.email.enabled: disable email sending in tests to avoid mail server dependency.
         registry.add("app.email.enabled", () -> "false");
+        // app.rate-limiting.enabled: disable rate limiting to prevent 429 in tests.
+        registry.add("app.rate-limiting.enabled", () -> "false");
     }
 }

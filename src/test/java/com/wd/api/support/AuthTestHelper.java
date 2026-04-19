@@ -8,25 +8,22 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Helper for integration tests that need JWT authentication tokens.
- * <p>
- * Typical usage inside a {@code @SpringBootTest(webEnvironment = RANDOM_PORT)} test:
- * <pre>
- *   &#64;LocalServerPort int port;
- *   &#64;Autowired TestRestTemplate restTemplate;
- *
- *   AuthTestHelper auth = new AuthTestHelper(restTemplate, port);
- *   String token = auth.loginAsAdmin();
- *   HttpHeaders headers = auth.authHeaders(token);
- * </pre>
+ * Caches tokens per email to avoid hitting rate limits across test methods.
  */
 public class AuthTestHelper {
 
     private static final String DEFAULT_PASSWORD = "password123";
+
+    /** Token cache shared across all AuthTestHelper instances within a JVM. */
+    private static final Map<String, String> TOKEN_CACHE = new ConcurrentHashMap<>();
 
     private final TestRestTemplate restTemplate;
     private final int port;
@@ -73,6 +70,12 @@ public class AuthTestHelper {
      * @throws AssertionError if the login request fails
      */
     public String login(String email, String password) {
+        String cacheKey = email + ":" + port;
+        String cached = TOKEN_CACHE.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
         LoginRequest request = new LoginRequest(email, password);
 
         ResponseEntity<LoginResponse> response = restTemplate.postForEntity(
@@ -84,7 +87,9 @@ public class AuthTestHelper {
         assertNotNull(response.getBody().getAccessToken(),
                 "Access token is null for " + email);
 
-        return response.getBody().getAccessToken();
+        String token = response.getBody().getAccessToken();
+        TOKEN_CACHE.put(cacheKey, token);
+        return token;
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.wd.api.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -11,8 +12,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
     private RateLimiterConfig rateLimiterConfig;
 
+    @Value("${app.rate-limiting.enabled:true}")
+    private boolean rateLimitingEnabled;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        if (!rateLimitingEnabled) {
+            return;
+        }
+
         // BOQ financial write operations — 10 per minute per user
         registry.addInterceptor(new RateLimitInterceptor(rateLimiterConfig))
                 .addPathPatterns("/api/boq/**");

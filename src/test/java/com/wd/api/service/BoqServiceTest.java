@@ -372,7 +372,7 @@ class BoqServiceTest {
         Object[] row = {2L, 2L,
                 new BigDecimal("100000.00"), new BigDecimal("50000.00"),
                 new BigDecimal("25000.00"), new BigDecimal("50000.00")};
-        when(boqItemRepository.getFinancialTotals(1L)).thenReturn(List.of(row));
+        when(boqItemRepository.getFinancialTotals(1L)).thenReturn(List.<Object[]>of(row));
         when(boqItemRepository.getFinancialCategoryBreakdown(1L)).thenReturn(Collections.emptyList());
         when(boqItemRepository.getFinancialWorkTypeBreakdown(1L)).thenReturn(Collections.emptyList());
 
