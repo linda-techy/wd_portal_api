@@ -1,10 +1,12 @@
 package com.wd.api.config;
 
+import com.wd.api.model.ActivityType;
 import com.wd.api.model.CustomerRole;
 import com.wd.api.model.CustomerUser;
 import com.wd.api.model.Permission;
 import com.wd.api.model.PortalRole;
 import com.wd.api.model.PortalUser;
+import com.wd.api.repository.ActivityTypeRepository;
 import com.wd.api.repository.CustomerRoleRepository;
 import com.wd.api.repository.CustomerUserRepository;
 import com.wd.api.repository.PermissionRepository;
@@ -43,9 +45,23 @@ public class TestDataSeeder {
             "PAYMENT_VIEW", "PAYMENT_CREATE",
             "CHANGE_ORDER_VIEW", "CHANGE_ORDER_CREATE", "CHANGE_ORDER_APPROVE",
             "SITE_REPORT_VIEW", "SITE_REPORT_CREATE",
+            "SITE_VISIT_VIEW", "SITE_VISIT_CREATE",
             "LABOUR_VIEW", "LABOUR_CREATE",
             "PROCUREMENT_VIEW", "PROCUREMENT_CREATE",
-            "EXPORT_VIEW"
+            "EXPORT_VIEW",
+            "STAGE_VIEW", "DELAY_VIEW", "DELAY_CREATE"
+    );
+
+    /**
+     * Activity type names required by services exercised in integration tests.
+     * Without these, BOQ workflow and Change Order workflow calls to
+     * {@code ActivityFeedService.logProjectActivity()} throw RuntimeException.
+     */
+    private static final List<String> REQUIRED_ACTIVITY_TYPES = List.of(
+            "BOQ_SUBMITTED", "BOQ_APPROVED", "BOQ_REJECTED",
+            "CO_INTERNALLY_APPROVED", "CO_INTERNALLY_REJECTED",
+            "CO_SENT_TO_CUSTOMER", "CO_APPROVED", "CO_REJECTED",
+            "LEAD_CONVERTED"
     );
 
     /**
@@ -81,6 +97,9 @@ public class TestDataSeeder {
                 "EXPORT_VIEW"
         ));
     }
+
+    @Autowired
+    private ActivityTypeRepository activityTypeRepository;
 
     @Autowired
     private PermissionRepository permissionRepository;
@@ -120,6 +139,7 @@ public class TestDataSeeder {
         seedPortalRoles();
         seedPortalUsers();
         seedCustomerRoleAndUsers();
+        seedActivityTypes();
     }
 
     // --- Permission getters ---
@@ -293,5 +313,21 @@ public class TestDataSeeder {
             return customerUserRepository.save(u);
         });
         customerUsers.put(email, user);
+    }
+
+    /**
+     * Seeds activity types required by BOQ workflow and Change Order workflow.
+     * Without these, {@code ActivityFeedService.logProjectActivity()} throws
+     * RuntimeException("Activity Type not found: ...").
+     */
+    private void seedActivityTypes() {
+        for (String name : REQUIRED_ACTIVITY_TYPES) {
+            activityTypeRepository.findByName(name).orElseGet(() -> {
+                ActivityType at = new ActivityType();
+                at.setName(name);
+                at.setDescription("Test activity type: " + name);
+                return activityTypeRepository.save(at);
+            });
+        }
     }
 }

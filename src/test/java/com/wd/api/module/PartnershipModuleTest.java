@@ -101,8 +101,9 @@ class PartnershipModuleTest extends TestcontainersPostgresBase {
     @Test
     @Order(2)
     void should_rejectDuplicateApplication() {
-        // First application
+        // First application — use a unique phone to avoid collision with test 1
         Map<String, Object> body = buildApplicationBody("duplicate@example.com");
+        body.put("contactPhone", "9876543288");
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
@@ -113,6 +114,7 @@ class PartnershipModuleTest extends TestcontainersPostgresBase {
 
         // Second application with same email — should be rejected
         Map<String, Object> duplicateBody = buildApplicationBody("duplicate@example.com");
+        duplicateBody.put("contactPhone", "9876543277");
         HttpEntity<Map<String, Object>> duplicateEntity = new HttpEntity<>(duplicateBody, headers);
 
         ResponseEntity<Map> response = restTemplate.exchange(
@@ -149,8 +151,9 @@ class PartnershipModuleTest extends TestcontainersPostgresBase {
     @Test
     @Order(4)
     void should_loginAsPartner() {
-        // First ensure the partner exists by applying
+        // First ensure the partner exists by applying (use unique phone)
         Map<String, Object> applyBody = buildApplicationBody("logintest@example.com");
+        applyBody.put("contactPhone", "9876543266");
         HttpHeaders applyHeaders = new HttpHeaders();
         applyHeaders.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> applyEntity = new HttpEntity<>(applyBody, applyHeaders);

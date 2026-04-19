@@ -186,9 +186,11 @@ class LabourModuleTest extends TestcontainersPostgresBase {
     @Test
     @Order(6)
     void should_generateWageSheet() {
-        ResponseEntity<Map> response = restTemplate.exchange(
+        // WageSheet response may contain complex nested objects that cause JSON
+        // parse errors when deserialized to Map. Use String response type instead.
+        ResponseEntity<String> response = restTemplate.exchange(
                 baseUrl("/api/labour/wagesheet/generate?projectId=1&start=2026-04-01&end=2026-04-15"),
-                HttpMethod.POST, authedGetEntity(), Map.class);
+                HttpMethod.POST, authedGetEntity(), String.class);
 
         // Wage sheet generation requires project+labour data; verify auth passes
         assertThat(response.getStatusCode().value()).isNotIn(401, 403);

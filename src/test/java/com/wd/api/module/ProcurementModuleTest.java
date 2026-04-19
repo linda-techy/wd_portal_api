@@ -107,7 +107,7 @@ class ProcurementModuleTest extends TestcontainersPostgresBase {
         vendorBody.put("email", "rajesh@abcsupplies.com");
         vendorBody.put("gstin", "29ABCDE1234F1Z5");
         vendorBody.put("address", "123 Industrial Area, Mangalore");
-        vendorBody.put("vendorType", "MATERIAL_SUPPLIER");
+        vendorBody.put("vendorType", "MATERIAL");
         vendorBody.put("bankName", "State Bank of India");
         vendorBody.put("accountNumber", "1234567890");
         vendorBody.put("ifscCode", "SBIN0001234");
