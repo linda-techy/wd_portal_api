@@ -1,6 +1,6 @@
 -- V52: Seed DELAY module permissions
-INSERT INTO permissions (name, description, module, created_at)
-VALUES
-    ('DELAY_CREATE', 'Create delay log entries', 'DELAYS', NOW()),
-    ('DELAY_VIEW', 'View delay logs', 'DELAYS', NOW())
+-- Target table is portal_permissions (matches Permission entity + V18/V27/V32/V39).
+INSERT INTO portal_permissions (name, description) VALUES
+    ('DELAY_CREATE', 'Create delay log entries'),
+    ('DELAY_VIEW', 'View delay logs')
 ON CONFLICT (name) DO NOTHING;
