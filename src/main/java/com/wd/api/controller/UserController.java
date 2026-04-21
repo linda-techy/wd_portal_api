@@ -35,15 +35,26 @@ public class UserController {
         try {
             List<TeamMemberDTO> teamMembers = new java.util.ArrayList<>();
 
-            // Fetch Portal Users
+            // Fetch Portal Users — include role + enabled so the team-members
+            // screen can show Active/Inactive and role-based department.
             List<com.wd.api.model.PortalUser> portalUsers = portalUserRepository.findAll();
             teamMembers.addAll(portalUsers.stream()
-                    .map(user -> new TeamMemberDTO(
-                            user.getId(),
-                            user.getFirstName(),
-                            user.getLastName(),
-                            user.getEmail(),
-                            "PORTAL"))
+                    .map(user -> {
+                        com.wd.api.model.PortalRole role = user.getRole();
+                        Long roleId = role != null ? role.getId() : null;
+                        String roleName = role != null ? role.getName() : null;
+                        return new TeamMemberDTO(
+                                user.getId(),
+                                user.getFirstName(),
+                                user.getLastName(),
+                                user.getEmail(),
+                                "PORTAL",
+                                Boolean.TRUE.equals(user.getEnabled()),
+                                roleId,
+                                roleName,
+                                roleName,   // designation mirrors role
+                                roleName);  // department mirrors role
+                    })
                     .collect(Collectors.toList()));
 
             // Fetch Customer Users
@@ -54,7 +65,12 @@ public class UserController {
                             user.getFirstName(),
                             user.getLastName(),
                             user.getEmail(),
-                            "CUSTOMER"))
+                            "CUSTOMER",
+                            Boolean.TRUE.equals(user.getEnabled()),
+                            null,
+                            "CUSTOMER",
+                            "Customer",
+                            "Customer"))
                     .collect(Collectors.toList()));
 
             return ResponseEntity.ok(ApiResponse.success("Team members retrieved successfully", teamMembers));
