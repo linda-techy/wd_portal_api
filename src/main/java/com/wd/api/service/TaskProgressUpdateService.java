@@ -1,0 +1,68 @@
+package com.wd.api.service;
+
+import com.wd.api.model.PortalUser;
+import com.wd.api.model.Task;
+import com.wd.api.repository.ProjectMilestoneRepository;
+import com.wd.api.repository.TaskRepository;
+import com.wd.api.service.wbs.ProgressRollupService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+
+@Service
+public class TaskProgressUpdateService {
+
+    private final TaskRepository taskRepo;
+    private final ProjectMilestoneRepository milestoneRepo;
+    private final ProgressRollupService rollup;
+    private final ActivityFeedService activityFeed;
+
+    public TaskProgressUpdateService(TaskRepository taskRepo,
+                                      ProjectMilestoneRepository milestoneRepo,
+                                      ProgressRollupService rollup,
+                                      ActivityFeedService activityFeed) {
+        this.taskRepo = taskRepo;
+        this.milestoneRepo = milestoneRepo;
+        this.rollup = rollup;
+        this.activityFeed = activityFeed;
+    }
+
+    @Transactional
+    public Task updateProgress(Long taskId, int newProgress, String note, PortalUser updatedBy) {
+        if (newProgress < 0 || newProgress > 100) {
+            throw new IllegalArgumentException("progressPercent must be between 0 and 100");
+        }
+
+        Task task = taskRepo.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found: " + taskId));
+
+        Task.TaskStatus oldStatus = task.getStatus();
+        Task.TaskStatus newStatus = deriveStatus(newProgress);
+
+        task.setProgressPercent(newProgress);
+        task.setStatus(newStatus);
+
+        if (newStatus == Task.TaskStatus.COMPLETED && task.getEndDate() == null) {
+            task.setEndDate(LocalDate.now());
+        }
+
+        Task saved = taskRepo.save(task);
+
+        if (oldStatus != newStatus && task.getProject() != null) {
+            String title = "Task '" + task.getTitle() + "' moved to " + newStatus.name();
+            String descr = note != null && !note.isBlank()
+                    ? note
+                    : "Status auto-derived from progress = " + newProgress + "%";
+            activityFeed.logProjectActivity("TASK_STATUS_CHANGED", title, descr, task.getProject(), updatedBy);
+        }
+
+        return saved;
+    }
+
+    private Task.TaskStatus deriveStatus(int progress) {
+        if (progress == 0) return Task.TaskStatus.PENDING;
+        if (progress == 100) return Task.TaskStatus.COMPLETED;
+        return Task.TaskStatus.IN_PROGRESS;
+    }
+}
