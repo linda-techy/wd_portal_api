@@ -37,5 +37,10 @@ public interface ProjectTypeTemplateRepository extends JpaRepository<ProjectType
      */
     @Query("SELECT t FROM ProjectTypeTemplate t LEFT JOIN FETCH t.milestoneTemplates WHERE t.projectType = :projectType")
     Optional<ProjectTypeTemplate> findByProjectTypeWithMilestones(String projectType);
+
+    /**
+     * Find template by its short code (e.g. SINGLE_FLOOR, G_PLUS_N)
+     */
+    Optional<ProjectTypeTemplate> findByCode(String code);
 }
 

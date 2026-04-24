@@ -11,4 +11,6 @@ public interface ProjectMilestoneRepository extends JpaRepository<ProjectMilesto
     List<ProjectMilestone> findByProjectId(Long projectId);
 
     List<ProjectMilestone> findByProjectIdAndStatus(Long projectId, String status);
+
+    long countByProjectId(Long projectId);
 }
