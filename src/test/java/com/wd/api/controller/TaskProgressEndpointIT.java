@@ -13,6 +13,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Set;
@@ -69,6 +70,9 @@ class TaskProgressEndpointIT extends TestcontainersPostgresBase {
 
     @Autowired
     TaskRepository taskRepository;
+
+    @Autowired
+    ProjectMilestoneRepository milestoneRepository;
 
     AuthTestHelper auth;
 
@@ -165,9 +169,91 @@ class TaskProgressEndpointIT extends TestcontainersPostgresBase {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
+    @Test
+    @Order(6)
+    void updatingTaskProgressRecomputesMilestoneProgress() {
+        // Setup: project with a COMPUTED milestone and two tasks at 0%.
+        SetupWithMilestone s = setupProjectWithMilestoneAndTwoTasks();
+        String jwt = auth.login("taskeditor@test.com", "password123");
+        HttpHeaders headers = authHeaders(jwt);
+
+        // PATCH task1 to 50. Unit-weight rollup over [50, 0] = 25.
+        patch(taskProgressPath(s.projectId(), s.task1Id()),
+                "{\"progressPercent\": 50}", headers);
+
+        BigDecimal milestonePct = milestoneRepository.findById(s.milestoneId())
+                .orElseThrow()
+                .getCompletionPercentage();
+        assertThat(milestonePct).isEqualByComparingTo(new BigDecimal("25.00"));
+
+        // PATCH task2 to 100. Unit-weight rollup over [50, 100] = 75.
+        patch(taskProgressPath(s.projectId(), s.task2Id()),
+                "{\"progressPercent\": 100}", headers);
+
+        milestonePct = milestoneRepository.findById(s.milestoneId())
+                .orElseThrow()
+                .getCompletionPercentage();
+        assertThat(milestonePct).isEqualByComparingTo(new BigDecimal("75.00"));
+    }
+
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
+
+    record SetupWithMilestone(Long projectId, Long milestoneId, Long task1Id, Long task2Id) {}
+
+    /**
+     * Creates a project milestone with progressSource=COMPUTED and two tasks linked to it,
+     * both starting at 0% progress. Mirrors the createTask() pattern.
+     */
+    private SetupWithMilestone setupProjectWithMilestoneAndTwoTasks() {
+        var project = seeder.getResidentialProject();
+        var admin = seeder.getAdmin();
+
+        ProjectMilestone milestone = ProjectMilestone.builder()
+                .project(project)
+                .name("Integration Test Milestone " + System.nanoTime())
+                .amount(BigDecimal.valueOf(10000))
+                .progressSource("COMPUTED")
+                .completionPercentage(BigDecimal.ZERO)
+                .build();
+        Long milestoneId = milestoneRepository.save(milestone).getId();
+
+        Task task1 = new Task();
+        task1.setTitle("Milestone Task A " + System.nanoTime());
+        task1.setDescription("Milestone IT task");
+        task1.setStatus(Task.TaskStatus.PENDING);
+        task1.setPriority(Task.TaskPriority.MEDIUM);
+        task1.setProgressPercent(0);
+        task1.setProject(project);
+        task1.setCreatedBy(admin);
+        task1.setAssignedTo(admin);
+        task1.setDueDate(LocalDate.now().plusDays(30));
+        task1.setCustomerVisible(true);
+        task1.setMilestoneId(milestoneId);
+        Long task1Id = taskRepository.save(task1).getId();
+
+        Task task2 = new Task();
+        task2.setTitle("Milestone Task B " + System.nanoTime());
+        task2.setDescription("Milestone IT task");
+        task2.setStatus(Task.TaskStatus.PENDING);
+        task2.setPriority(Task.TaskPriority.MEDIUM);
+        task2.setProgressPercent(0);
+        task2.setProject(project);
+        task2.setCreatedBy(admin);
+        task2.setAssignedTo(admin);
+        task2.setDueDate(LocalDate.now().plusDays(30));
+        task2.setCustomerVisible(true);
+        task2.setMilestoneId(milestoneId);
+        Long task2Id = taskRepository.save(task2).getId();
+
+        return new SetupWithMilestone(project.getId(), milestoneId, task1Id, task2Id);
+    }
+
+    /** Builds the progress PATCH path for a given project + task. */
+    private String taskProgressPath(Long projectId, Long taskId) {
+        return "/api/projects/" + projectId + "/tasks/" + taskId + "/progress";
+    }
 
     private String baseUrl(String path) {
         return "http://localhost:" + port + path;
