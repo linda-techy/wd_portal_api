@@ -88,6 +88,9 @@ public class Task extends BaseEntity {
     @Column(name = "progress_percent")
     private Integer progressPercent = 0;
 
+    @Column(name = "customer_visible", nullable = false)
+    private Boolean customerVisible = Boolean.TRUE;
+
     // Constructors
     public Task() {
     }
@@ -218,6 +221,14 @@ public class Task extends BaseEntity {
 
     public void setProgressPercent(Integer progressPercent) {
         this.progressPercent = progressPercent;
+    }
+
+    public Boolean getCustomerVisible() {
+        return customerVisible;
+    }
+
+    public void setCustomerVisible(Boolean customerVisible) {
+        this.customerVisible = customerVisible;
     }
 
     // Enums
