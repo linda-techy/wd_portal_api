@@ -211,11 +211,21 @@ public class JwtService {
      * Extract the actual subject (email).
      * Previously had to strip the "PARTNER_" prefix from subject — now subject is just the email.
      * Backward-compatible: strips legacy prefix for tokens issued before this fix.
+     *
+     * Safety: only strips when subject has no '@' (real emails always have '@')
+     * AND matches the legacy prefix shape (ALLCAPS_...). This prevents
+     * truncating emails that legitimately contain an underscore such as
+     * task_editor@test.com or john_smith@company.com.
      */
     public String extractActualSubject(String token) {
         String subject = extractUsername(token);
-        if (subject != null && subject.contains("_")) {
-            // Legacy token: had prefix — strip it for backward compatibility
+        if (subject == null) return null;
+        if (subject.contains("@")) {
+            // Modern token: subject is a plain email, no prefix to strip
+            return subject;
+        }
+        if (subject.matches("^[A-Z]+_.*")) {
+            // Legacy token: had UPPERCASE_ prefix — strip it for backward compatibility
             return subject.substring(subject.indexOf("_") + 1);
         }
         return subject;
