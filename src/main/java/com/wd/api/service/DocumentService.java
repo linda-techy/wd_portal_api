@@ -97,6 +97,7 @@ public class DocumentService {
         document.setDescription(description);
         document.setCategory(category);
         document.setIsActive(true);
+        document.setUploadedByType("PORTAL_USER");
 
         document = documentRepository.save(document);
 
@@ -156,6 +157,7 @@ public class DocumentService {
             projectDoc.setDescription(leadDoc.getDescription());
             projectDoc.setCategory(leadDoc.getCategory());
             projectDoc.setIsActive(true);
+            projectDoc.setUploadedByType(leadDoc.getUploadedByType() != null ? leadDoc.getUploadedByType() : "PORTAL_USER");
 
             documentRepository.save(projectDoc);
         }
