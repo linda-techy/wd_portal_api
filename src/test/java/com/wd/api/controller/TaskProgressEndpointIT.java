@@ -94,7 +94,7 @@ class TaskProgressEndpointIT extends TestcontainersPostgresBase {
     @Order(1)
     void zeroToFiftyTransitionsToInProgress() {
         Long taskId = createTask(sharedProjectId, 0);
-        String jwt = auth.login("task_editor@test.com", "password123");
+        String jwt = auth.login("taskeditor@test.com", "password123");
         HttpHeaders headers = authHeaders(jwt);
 
         ResponseEntity<Map> response = patch(
@@ -111,7 +111,7 @@ class TaskProgressEndpointIT extends TestcontainersPostgresBase {
     @Order(2)
     void fiftyToHundredTransitionsToCompleted() {
         Long taskId = createTask(sharedProjectId, 50);
-        String jwt = auth.login("task_editor@test.com", "password123");
+        String jwt = auth.login("taskeditor@test.com", "password123");
         HttpHeaders headers = authHeaders(jwt);
 
         ResponseEntity<Map> response = patch(
@@ -127,7 +127,7 @@ class TaskProgressEndpointIT extends TestcontainersPostgresBase {
     @Order(3)
     void invalidProgressReturns400() {
         Long taskId = createTask(sharedProjectId, 0);
-        String jwt = auth.login("task_editor@test.com", "password123");
+        String jwt = auth.login("taskeditor@test.com", "password123");
         HttpHeaders headers = authHeaders(jwt);
 
         ResponseEntity<Map> response = patch(
@@ -140,7 +140,7 @@ class TaskProgressEndpointIT extends TestcontainersPostgresBase {
     @Test
     @Order(4)
     void unknownTaskReturns404() {
-        String jwt = auth.login("task_editor@test.com", "password123");
+        String jwt = auth.login("taskeditor@test.com", "password123");
         HttpHeaders headers = authHeaders(jwt);
 
         ResponseEntity<Map> response = patch(
@@ -245,11 +245,14 @@ class TaskProgressEndpointIT extends TestcontainersPostgresBase {
             portalRoleRepository.save(taskEditorRole);
         }
 
-        // Create the task editor portal user
+        // Create the task editor portal user.
+        // Email must not contain underscores: JwtService.extractActualSubject() strips the
+        // legacy "TYPE_" prefix by cutting at the first '_', which would corrupt an email like
+        // "task_editor@test.com" into "editor@test.com" and cause 401 on every subsequent request.
         String encoded = new BCryptPasswordEncoder(12).encode("password123");
-        portalUserRepository.findByEmail("task_editor@test.com").orElseGet(() -> {
+        portalUserRepository.findByEmail("taskeditor@test.com").orElseGet(() -> {
             PortalUser u = new PortalUser();
-            u.setEmail("task_editor@test.com");
+            u.setEmail("taskeditor@test.com");
             u.setPassword(encoded);
             u.setFirstName("Task");
             u.setLastName("Editor");
