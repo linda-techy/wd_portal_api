@@ -63,6 +63,10 @@ public class ProjectMilestone {
     @Column(name = "weight_percentage", precision = 5, scale = 2)
     private BigDecimal weightPercentage;
 
+    @Column(name = "progress_source", length = 16, nullable = false)
+    @Builder.Default
+    private String progressSource = "COMPUTED";
+
     @Column(name = "actual_start_date")
     private LocalDate actualStartDate;
 
