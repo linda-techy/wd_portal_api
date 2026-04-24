@@ -31,6 +31,9 @@ public class ProjectTypeTemplate {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "code", length = 32, unique = true)
+    private String code;
+
     @OneToMany(mappedBy = "template", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<MilestoneTemplate> milestoneTemplates;
 
@@ -99,6 +102,14 @@ public class ProjectTypeTemplate {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
     }
 
     public List<MilestoneTemplate> getMilestoneTemplates() {
