@@ -46,15 +46,16 @@ class TaskProgressUpdateServiceTest {
     }
 
     @Test
-    void fiftyToHundredTransitionsToCompletedAndSetsEndDate() {
+    void fiftyToHundredTransitionsToCompletedAndSetsActualEndDate() {
         Task task = taskWithProgress(50, Task.TaskStatus.IN_PROGRESS);
         Mockito.when(taskRepo.findById(1L)).thenReturn(Optional.of(task));
         Mockito.when(taskRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        Mockito.when(milestoneRepo.findById(any())).thenReturn(Optional.empty());
 
         Task result = service.updateProgress(1L, 100, null, null);
 
         assertThat(result.getStatus()).isEqualTo(Task.TaskStatus.COMPLETED);
-        assertThat(result.getEndDate()).isNotNull();
+        assertThat(result.getActualEndDate()).isNotNull();
     }
 
     @Test

@@ -43,11 +43,28 @@ public class TaskProgressUpdateService {
         task.setProgressPercent(newProgress);
         task.setStatus(newStatus);
 
-        if (newStatus == Task.TaskStatus.COMPLETED && task.getEndDate() == null) {
-            task.setEndDate(LocalDate.now());
+        if (newStatus == Task.TaskStatus.COMPLETED && task.getActualEndDate() == null) {
+            task.setActualEndDate(LocalDate.now());
         }
 
         Task saved = taskRepo.save(task);
+
+        // Recompute parent milestone progress when source = COMPUTED
+        if (saved.getMilestoneId() != null) {
+            milestoneRepo.findById(saved.getMilestoneId()).ifPresent(milestone -> {
+                if ("COMPUTED".equals(milestone.getProgressSource())) {
+                    java.util.List<Task> siblings = taskRepo.findByMilestoneId(milestone.getId());
+                    java.util.List<ProgressRollupService.TaskInput> inputs = siblings.stream()
+                            .map(s -> new ProgressRollupService.TaskInput(
+                                    s.getProgressPercent() != null ? s.getProgressPercent() : 0,
+                                    1))
+                            .toList();
+                    java.math.BigDecimal newPct = rollup.rollupMilestone(inputs);
+                    milestone.setCompletionPercentage(newPct);
+                    milestoneRepo.save(milestone);
+                }
+            });
+        }
 
         if (oldStatus != newStatus && task.getProject() != null) {
             String title = "Task '" + task.getTitle() + "' moved to " + newStatus.name();

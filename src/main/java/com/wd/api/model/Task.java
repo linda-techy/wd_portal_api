@@ -91,6 +91,12 @@ public class Task extends BaseEntity {
     @Column(name = "customer_visible", nullable = false)
     private Boolean customerVisible = Boolean.TRUE;
 
+    @Column(name = "milestone_id")
+    private Long milestoneId;
+
+    @Column(name = "actual_end_date")
+    private LocalDate actualEndDate;
+
     // Constructors
     public Task() {
     }
@@ -230,6 +236,12 @@ public class Task extends BaseEntity {
     public void setCustomerVisible(Boolean customerVisible) {
         this.customerVisible = customerVisible;
     }
+
+    public Long getMilestoneId() { return milestoneId; }
+    public void setMilestoneId(Long milestoneId) { this.milestoneId = milestoneId; }
+
+    public LocalDate getActualEndDate() { return actualEndDate; }
+    public void setActualEndDate(LocalDate actualEndDate) { this.actualEndDate = actualEndDate; }
 
     // Enums
     public enum TaskStatus {

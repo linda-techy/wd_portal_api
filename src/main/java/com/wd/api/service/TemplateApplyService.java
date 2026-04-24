@@ -86,7 +86,7 @@ public class TemplateApplyService {
                 .progressSource("COMPUTED")
                 .template(template)
                 .build();
-        milestoneRepo.save(milestone);
+        ProjectMilestone saved = milestoneRepo.save(milestone);
 
         for (MilestoneTemplateTask tt :
                 milestoneTaskRepo.findByMilestoneTemplateIdOrderByTaskOrderAsc(template.getId())) {
@@ -95,8 +95,15 @@ public class TemplateApplyService {
             t.setProject(project);
             t.setStatus(Task.TaskStatus.PENDING);
             t.setPriority(Task.TaskPriority.MEDIUM);
-            t.setDueDate(LocalDate.now().plusDays(
-                    tt.getEstimatedDays() != null ? tt.getEstimatedDays() : 7));
+            t.setMilestoneId(saved.getId());
+            // Stamp planned start/end based on estimatedDays so the customer
+            // timeline bucket queries (which require non-null dates) include
+            // freshly-templated tasks. PMs can adjust later in the Gantt screen.
+            int days = tt.getEstimatedDays() != null ? tt.getEstimatedDays() : 7;
+            LocalDate start = LocalDate.now();
+            t.setStartDate(start);
+            t.setEndDate(start.plusDays(days));
+            t.setDueDate(start.plusDays(days));  // dueDate stays as plan-end too
             t.setProgressPercent(0);
             taskRepo.save(t);
         }

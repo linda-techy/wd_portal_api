@@ -109,4 +109,6 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
                         "ORDER BY CASE WHEN t.startDate IS NULL THEN 1 ELSE 0 END, t.startDate ASC")
         List<Task> findByProjectIdOrderedForGantt(
                         @org.springframework.data.repository.query.Param("projectId") Long projectId);
+
+        List<Task> findByMilestoneId(Long milestoneId);
 }
