@@ -1,5 +1,7 @@
 package com.wd.api.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.wd.api.dto.DocumentResponse;
 import com.wd.api.model.Document;
 import com.wd.api.model.DocumentCategory;
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class DocumentService {
+
+    private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
 
     private final DocumentRepository documentRepository;
     private final DocumentCategoryRepository categoryRepository;
@@ -90,7 +94,10 @@ public class DocumentService {
         Document document = new Document();
         document.setReferenceId(referenceId);
         document.setReferenceType(referenceType.toUpperCase());
-        document.setFilename(file.getOriginalFilename());
+        document.setFilename(uniqueDisplayName(
+                file.getOriginalFilename(),
+                referenceId,
+                referenceType.toUpperCase()));
         document.setFilePath(filePath);
         document.setFileSize(file.getSize());
         document.setFileType(file.getContentType());
@@ -226,8 +233,53 @@ public class DocumentService {
     public void deleteDocument(Long documentId) {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new RuntimeException("Document not found"));
+
+        // Remove physical file from storage so the disk doesn't accumulate
+        // soft-deleted blobs. Tolerate already-missing files (idempotent).
+        if (document.getFilePath() != null && !document.getFilePath().isBlank()) {
+            try {
+                fileStorageService.deleteFile(document.getFilePath());
+            } catch (RuntimeException ex) {
+                // Log and continue — DB cleanup should still proceed even if
+                // the file vanished out from under us.
+                logger.warn("Could not delete physical file {} for document {}: {}",
+                        document.getFilePath(), documentId, ex.getMessage());
+            }
+        }
+
+        // Soft-delete the row (preserves audit trail). The @SQLDelete on the
+        // entity sets deleted_at; we also flip is_active for legacy queries.
         document.setIsActive(false);
         documentRepository.save(document);
+        documentRepository.delete(document);
+    }
+
+    /**
+     * Returns a display filename unique within (referenceId, referenceType).
+     * If the original name already exists on an active row, appends
+     * " (copy)", " (copy 2)", … keeping the original extension.
+     */
+    private String uniqueDisplayName(String original, Long referenceId, String referenceType) {
+        if (original == null || original.isBlank()) {
+            return "untitled";
+        }
+        java.util.Set<String> taken = documentRepository
+                .findByReferenceIdAndReferenceTypeAndIsActiveTrue(referenceId, referenceType)
+                .stream()
+                .map(Document::getFilename)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        if (!taken.contains(original)) return original;
+
+        int dot = original.lastIndexOf('.');
+        String stem = dot > 0 ? original.substring(0, dot) : original;
+        String ext  = dot > 0 ? original.substring(dot)  : "";
+        for (int n = 1; n < 1000; n++) {
+            String candidate = stem + (n == 1 ? " (copy)" : " (copy " + n + ")") + ext;
+            if (!taken.contains(candidate)) return candidate;
+        }
+        // Pathological fallback — append timestamp.
+        return stem + " (" + System.currentTimeMillis() + ")" + ext;
     }
 
     public DocumentResponse toResponse(Document doc) {
