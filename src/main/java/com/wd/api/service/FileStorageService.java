@@ -85,4 +85,10 @@ public class FileStorageService {
     public Path getFilePath(String fileName) {
         return this.fileStorageLocation.resolve(fileName).normalize();
     }
+
+    /** Absolute path to the storage root. Used by reconciliation tools that
+     *  need to walk the disk for orphan files. */
+    public Path getStorageRoot() {
+        return this.fileStorageLocation;
+    }
 }

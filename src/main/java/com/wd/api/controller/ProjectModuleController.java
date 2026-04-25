@@ -79,6 +79,24 @@ public class ProjectModuleController {
         }
     }
 
+    /**
+     * Admin-only: scan the project's storage subtree and create
+     * project_documents rows for any orphan files. Use after a historical
+     * upload-pipeline bug left files on disk with no DB row.
+     */
+    @PostMapping("/documents/reconcile-storage")
+    public ResponseEntity<ApiResponse<Object>> reconcileStorage(
+            @PathVariable Long projectId) {
+        try {
+            Object result = documentService.reconcileProjectStorage(projectId);
+            return ResponseEntity.ok(ApiResponse.success("Reconciliation complete", result));
+        } catch (Exception e) {
+            logger.error("Failed to reconcile storage for project {}: {}", projectId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Failed to reconcile storage"));
+        }
+    }
+
     @DeleteMapping("/documents/{documentId}")
     public ResponseEntity<ApiResponse<Void>> deleteDocument(
             @PathVariable Long projectId,

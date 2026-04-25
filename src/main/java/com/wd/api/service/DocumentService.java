@@ -124,6 +124,104 @@ public class DocumentService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Walk the project's storage subtree and create project_documents rows
+     * for any files on disk that don't have a corresponding active row.
+     * Useful when historical uploads succeeded at the storage layer but
+     * failed at the DB layer (e.g. older bug where uploaded_by_type or FK
+     * violated). The category for each row is inferred from the
+     * subdirectory name (mapping back via DocumentCategory.name); files
+     * outside any known-category subdir are skipped.
+     */
+    @Transactional
+    public java.util.Map<String, Object> reconcileProjectStorage(Long projectId) {
+        java.util.List<String> created = new java.util.ArrayList<>();
+        java.util.List<String> alreadyHadRow = new java.util.ArrayList<>();
+        java.util.List<String> skippedNoCategory = new java.util.ArrayList<>();
+
+        java.nio.file.Path projectRoot = fileStorageService.getStorageRoot()
+                .resolve("projects").resolve(String.valueOf(projectId));
+        if (!java.nio.file.Files.isDirectory(projectRoot)) {
+            return java.util.Map.of(
+                    "created", created,
+                    "alreadyHadRow", alreadyHadRow,
+                    "skippedNoCategory", skippedNoCategory,
+                    "note", "no storage dir for project " + projectId);
+        }
+
+        // Build category lookup by sanitized folder name → category
+        java.util.Map<String, DocumentCategory> categoryByFolder = new java.util.HashMap<>();
+        for (DocumentCategory c : categoryRepository.findAll()) {
+            categoryByFolder.put(sanitizeFolderName(c.getName()), c);
+        }
+
+        // Existing rows for this project (active OR inactive — we want to
+        // know what file_paths are already tracked so we don't duplicate)
+        java.util.Set<String> existingFilePaths = documentRepository
+                .findByReferenceIdAndReferenceType(projectId, "PROJECT")
+                .stream().map(Document::getFilePath).collect(java.util.stream.Collectors.toSet());
+
+        try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(projectRoot)) {
+            walk.filter(java.nio.file.Files::isRegularFile).forEach(file -> {
+                java.nio.file.Path categoryFolder = file.getParent();
+                if (categoryFolder == null) return;
+                String folderName = categoryFolder.getFileName().toString();
+                DocumentCategory category = categoryByFolder.get(folderName);
+                if (category == null) {
+                    skippedNoCategory.add(file.toString());
+                    return;
+                }
+                // Build canonical relative file_path: projects/<id>/<folder>/<file>
+                String relPath = "projects/" + projectId + "/" + folderName + "/"
+                        + file.getFileName().toString();
+                if (existingFilePaths.contains(relPath)) {
+                    alreadyHadRow.add(relPath);
+                    return;
+                }
+                Document doc = new Document();
+                doc.setReferenceId(projectId);
+                doc.setReferenceType("PROJECT");
+                doc.setFilename(file.getFileName().toString());
+                doc.setFilePath(relPath);
+                try {
+                    doc.setFileSize(java.nio.file.Files.size(file));
+                } catch (java.io.IOException ignored) {
+                    doc.setFileSize(0L);
+                }
+                doc.setFileType(probeContentType(file));
+                doc.setDescription("Recovered from storage");
+                doc.setCategory(category);
+                doc.setIsActive(true);
+                doc.setUploadedByType("PORTAL");
+                documentRepository.save(doc);
+                created.add(relPath);
+            });
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to walk storage for project " + projectId, e);
+        }
+
+        return java.util.Map.of(
+                "createdCount", created.size(),
+                "created", created,
+                "alreadyHadRowCount", alreadyHadRow.size(),
+                "alreadyHadRow", alreadyHadRow,
+                "skippedNoCategoryCount", skippedNoCategory.size(),
+                "skippedNoCategory", skippedNoCategory);
+    }
+
+    private String probeContentType(java.nio.file.Path file) {
+        try {
+            String ct = java.nio.file.Files.probeContentType(file);
+            if (ct != null) return ct;
+        } catch (java.io.IOException ignored) {}
+        String name = file.getFileName().toString().toLowerCase();
+        if (name.endsWith(".pdf")) return "application/pdf";
+        if (name.endsWith(".txt")) return "text/plain";
+        if (name.endsWith(".png")) return "image/png";
+        if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+        return "application/octet-stream";
+    }
+
     @Transactional
     public void deleteDocument(Long documentId) {
         Document document = documentRepository.findById(documentId)
