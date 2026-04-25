@@ -96,6 +96,56 @@ class DelayLogServiceTest {
     }
 
     @Test
+    void logDelay_customerVisibleFields_arePersisted() {
+        // Given: a delay marked customer-visible with a curated summary and impact
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(portalUserRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        DelayLog delay = buildDelay("WEATHER", "WEATHER", LocalDate.now(), null);
+        delay.setReasonText("Internal — subcontractor Acme Ltd no-show");   // must NOT reach customer
+        delay.setResponsibleParty("Acme Ltd");                                // must NOT reach customer
+        delay.setCustomerVisible(true);
+        delay.setCustomerSummary("Pour rescheduled due to rainfall; no impact on handover.");
+        delay.setImpactOnHandover("NONE");
+        when(delayLogRepository.save(any())).thenReturn(delay);
+
+        // When
+        delayLogService.logDelay(delay, 1L, 1L);
+
+        // Then: save() gets a DelayLog whose customer-facing fields are populated exactly as submitted
+        ArgumentCaptor<DelayLog> captor = ArgumentCaptor.forClass(DelayLog.class);
+        verify(delayLogRepository).save(captor.capture());
+        DelayLog persisted = captor.getValue();
+
+        assertThat(persisted.isCustomerVisible()).isTrue();
+        assertThat(persisted.getCustomerSummary())
+                .isEqualTo("Pour rescheduled due to rainfall; no impact on handover.");
+        assertThat(persisted.getImpactOnHandover()).isEqualTo("NONE");
+
+        // And the internal-only fields remain on the entity (they'll be filtered downstream by the customer API DTO)
+        assertThat(persisted.getReasonText()).contains("Acme");
+        assertThat(persisted.getResponsibleParty()).isEqualTo("Acme Ltd");
+    }
+
+    @Test
+    void logDelay_customerVisibleDefaultsToFalse_whenNotSet() {
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(portalUserRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        DelayLog delay = buildDelay("MATERIAL_DELAY", "MATERIAL_SHORTAGE", LocalDate.now(), null);
+        // customerVisible not set — builder default is false
+        when(delayLogRepository.save(any())).thenReturn(delay);
+
+        delayLogService.logDelay(delay, 1L, 1L);
+
+        ArgumentCaptor<DelayLog> captor = ArgumentCaptor.forClass(DelayLog.class);
+        verify(delayLogRepository).save(captor.capture());
+        assertThat(captor.getValue().isCustomerVisible())
+                .as("customer_visible must default to false so new delays are internal unless opted in")
+                .isFalse();
+    }
+
+    @Test
     void logDelay_nullProjectId_throwsIllegalArgumentException() {
         DelayLog delay = buildDelay("WEATHER", null, LocalDate.now(), null);
 

@@ -52,6 +52,21 @@ public class DelayLog {
     @Column(name = "impact_description", columnDefinition = "TEXT")
     private String impactDescription;
 
+    /**
+     * Curated fields for customer-facing display. The raw fields above
+     * (reason_text, responsible_party, impact_description) are internal-only.
+     */
+    @lombok.Builder.Default
+    @Column(name = "customer_visible", nullable = false)
+    private boolean customerVisible = false;
+
+    @Column(name = "customer_summary", columnDefinition = "TEXT")
+    private String customerSummary;
+
+    /** NONE | MINOR | MATERIAL — structured impact on handover date. */
+    @Column(name = "impact_on_handover", length = 20)
+    private String impactOnHandover;
+
     @Column(name = "reported_by")
     private Long reportedBy;
 
