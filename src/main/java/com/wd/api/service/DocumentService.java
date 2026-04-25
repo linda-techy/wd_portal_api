@@ -231,8 +231,15 @@ public class DocumentService {
 
     @Transactional
     public void deleteDocument(Long documentId) {
-        Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+        // findById respects @Where(deleted_at IS NULL), so an already-
+        // soft-deleted row returns empty. Treat as no-op rather than throwing
+        // a 500 on the second click.
+        java.util.Optional<Document> opt = documentRepository.findById(documentId);
+        if (opt.isEmpty()) {
+            logger.info("Document {} already deleted; ignoring", documentId);
+            return;
+        }
+        Document document = opt.get();
 
         // Remove physical file from storage so the disk doesn't accumulate
         // soft-deleted blobs. Tolerate already-missing files (idempotent).
@@ -240,15 +247,14 @@ public class DocumentService {
             try {
                 fileStorageService.deleteFile(document.getFilePath());
             } catch (RuntimeException ex) {
-                // Log and continue — DB cleanup should still proceed even if
-                // the file vanished out from under us.
                 logger.warn("Could not delete physical file {} for document {}: {}",
                         document.getFilePath(), documentId, ex.getMessage());
             }
         }
 
-        // Soft-delete the row (preserves audit trail). The @SQLDelete on the
-        // entity sets deleted_at; we also flip is_active for legacy queries.
+        // @SQLDelete on the entity sets deleted_at automatically.
+        // Also flip is_active so legacy queries (findByReferenceIdAndReferenceTypeAndIsActiveTrue)
+        // see the row as gone.
         document.setIsActive(false);
         documentRepository.save(document);
         documentRepository.delete(document);
