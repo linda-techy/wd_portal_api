@@ -54,12 +54,12 @@ public class Document extends BaseEntity {
     private Boolean isActive = true;
 
     /**
-     * Uploader category — "PORTAL_USER" (staff upload via portal) or "CUSTOMER" (future).
+     * Uploader category — "PORTAL" (staff upload via portal) or "CUSTOMER" (future).
      * NOT NULL at DB level; defaults to PORTAL_USER if caller doesn't set it.
      */
     @Column(name = "uploaded_by_type", nullable = false, length = 32,
             columnDefinition = "VARCHAR(32) NOT NULL DEFAULT 'PORTAL_USER'")
-    private String uploadedByType = "PORTAL_USER";
+    private String uploadedByType = "PORTAL";
 
     // Constructors
     public Document() {

@@ -6,4 +6,4 @@
 -- Idempotent: ADD COLUMN IF NOT EXISTS leaves existing column alone.
 
 ALTER TABLE project_documents
-    ADD COLUMN IF NOT EXISTS uploaded_by_type VARCHAR(32) NOT NULL DEFAULT 'PORTAL_USER';
+    ADD COLUMN IF NOT EXISTS uploaded_by_type VARCHAR(32) NOT NULL DEFAULT 'PORTAL';
