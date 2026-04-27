@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title th:text="|Detailed Project Costing - ${dpc.projectName}|">Detailed Project Costing</title>
+    <style>
+        /* ============================================================
+           Page setup
+           ============================================================ */
+        @page {
+            size: A4;
+            margin: 14mm;
+        }
+        @page cover {
+            margin: 0;
+        }
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            color: #0f172a;
+            line-height: 1.45;
+            margin: 0;
+            padding: 0;
+            font-size: 9.5pt;
+        }
+
+        /* ============================================================
+           Brand palette (kept in sync with the reference PDF):
+             --navy:   #0f172a   primary dark
+             --red:    #ef5d4a   accent
+             --grey-1: #f1f5f9   light backdrop
+             --grey-2: #e2e8f0   borders / dividers
+             --grey-3: #64748b   secondary text
+             --green:  #16a34a   success / variance positive
+           openhtmltopdf does not support CSS variables; values are
+           inlined in each rule below.
+           ============================================================ */
+
+        .page {
+            page-break-after: always;
+            position: relative;
+            min-height: 260mm;
+        }
+        .page:last-child {
+            page-break-after: auto;
+        }
+
+        /* ============================================================
+           Reusable header / footer strips (non-cover pages)
+           ============================================================ */
+        .page-header {
+            display: table;
+            width: 100%;
+            font-size: 8pt;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 4mm;
+            margin-bottom: 6mm;
+        }
+        .page-header .col {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .page-header .left { text-align: left; width: 33%; }
+        .page-header .center { text-align: center; width: 34%; text-transform: uppercase; letter-spacing: 1px; }
+        .page-header .right { text-align: right; width: 33%; font-weight: bold; color: #0f172a; }
+
+        .page-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            font-size: 8pt;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 3mm;
+            display: table;
+            width: 100%;
+        }
+        .page-footer .col {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .page-footer .left { text-align: left; width: 50%; }
+        .page-footer .right { text-align: right; width: 50%; }
+
+        /* ============================================================
+           Cover page (page 1)
+           ============================================================ */
+        .cover {
+            page: cover;
+            background-color: #0f172a;
+            color: #ffffff;
+            min-height: 297mm;
+            padding: 18mm 16mm;
+            position: relative;
+        }
+        .cover .brand-line {
+            font-size: 11pt;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #ef5d4a;
+            font-weight: bold;
+        }
+        .cover .tagline {
+            margin-top: 6mm;
+            font-size: 11pt;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #cbd5e1;
+        }
+        .cover .title {
+            margin-top: 56mm;
+            font-size: 44pt;
+            line-height: 1.05;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        .cover .title .dot {
+            color: #ef5d4a;
+        }
+        .cover .intro {
+            margin-top: 10mm;
+            font-size: 11pt;
+            color: #cbd5e1;
+            max-width: 130mm;
+            line-height: 1.6;
+        }
+        .cover .info-cards {
+            display: table;
+            width: 100%;
+            margin-top: 30mm;
+        }
+        .cover .info-card {
+            display: table-cell;
+            width: 33.33%;
+            padding: 6mm 4mm;
+            border-left: 1px solid #334155;
+            vertical-align: top;
+        }
+        .cover .info-card:first-child {
+            border-left: 0;
+        }
+        .cover .info-card .label {
+            font-size: 8pt;
+            letter-spacing: 2px;
+            color: #ef5d4a;
+            text-transform: uppercase;
+            margin-bottom: 3mm;
+        }
+        .cover .info-card .value {
+            font-size: 13pt;
+            color: #ffffff;
+            font-weight: bold;
+        }
+        .cover .footer-strip {
+            position: absolute;
+            bottom: 12mm;
+            left: 16mm;
+            right: 16mm;
+            border-top: 1px solid #334155;
+            padding-top: 4mm;
+            font-size: 8pt;
+            letter-spacing: 2px;
+            color: #ef5d4a;
+            text-transform: uppercase;
+        }
+
+        /* ============================================================
+           Section number + heading (used on every content page)
+           ============================================================ */
+        .section-number {
+            font-size: 28pt;
+            font-weight: bold;
+            color: #ef5d4a;
+            line-height: 1;
+        }
+        .section-heading {
+            font-size: 22pt;
+            font-weight: bold;
+            color: #0f172a;
+            margin: 2mm 0 6mm 0;
+            line-height: 1.1;
+        }
+        .section-heading .dot { color: #ef5d4a; }
+        .section-lead {
+            font-size: 10.5pt;
+            color: #334155;
+            margin-bottom: 6mm;
+            max-width: 165mm;
+        }
+
+        /* ============================================================
+           Generic callouts and chips
+           ============================================================ */
+        .callout {
+            background-color: #f1f5f9;
+            border-left: 4px solid #ef5d4a;
+            padding: 5mm 6mm;
+            margin: 6mm 0;
+        }
+        .callout.dark {
+            background-color: #0f172a;
+            color: #ffffff;
+            border-left-color: #ef5d4a;
+        }
+        .callout.dark .h {
+            color: #ef5d4a;
+        }
+        .callout .h {
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+            color: #ef5d4a;
+            margin-bottom: 3mm;
+        }
+        .callout ul {
+            margin: 0;
+            padding-left: 5mm;
+        }
+        .callout li {
+            margin-bottom: 1.5mm;
+        }
+
+        .chip-row {
+            display: table;
+            width: 100%;
+            border-spacing: 3mm 3mm;
+            margin-left: -3mm;
+        }
+        .chip {
+            display: inline-block;
+            padding: 2mm 4mm;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-size: 8.5pt;
+            border-radius: 2mm;
+            margin: 0 2mm 2mm 0;
+            border: 1px solid #e2e8f0;
+        }
+        .chip .num {
+            color: #ef5d4a;
+            font-weight: bold;
+            margin-right: 2mm;
+        }
+
+        /* ============================================================
+           Three-up "totals" cards (intro page bottom)
+           ============================================================ */
+        .stat-row {
+            display: table;
+            width: 100%;
+            margin-top: 6mm;
+            border-spacing: 4mm 0;
+        }
+        .stat-card {
+            display: table-cell;
+            width: 33.33%;
+            padding: 6mm 5mm;
+            background-color: #f1f5f9;
+            vertical-align: top;
+            border-top: 3px solid #ef5d4a;
+        }
+        .stat-card.dark {
+            background-color: #0f172a;
+            color: #ffffff;
+        }
+        .stat-card .label {
+            font-size: 8pt;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 2mm;
+        }
+        .stat-card.dark .label { color: #cbd5e1; }
+        .stat-card .value {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .stat-card.dark .value { color: #ffffff; }
+        .stat-card .sub {
+            font-size: 8pt;
+            color: #64748b;
+            margin-top: 2mm;
+        }
+
+        /* ============================================================
+           Tables
+           ============================================================ */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+            margin: 4mm 0;
+        }
+        .data-table th {
+            background-color: #0f172a;
+            color: #ffffff;
+            text-align: left;
+            padding: 3mm 4mm;
+            font-size: 8.5pt;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .data-table th.num,
+        .data-table td.num {
+            text-align: right;
+        }
+        .data-table td {
+            padding: 3mm 4mm;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+        .data-table tr:nth-child(even) td {
+            background-color: #f8fafc;
+        }
+        .data-table tfoot td {
+            background-color: #0f172a !important;
+            color: #ffffff;
+            font-weight: bold;
+            border-bottom: 0;
+        }
+
+        /* ============================================================
+           Three-column "what's in / out" page
+           ============================================================ */
+        .col3 {
+            display: table;
+            width: 100%;
+            margin-top: 4mm;
+        }
+        .col3 .col {
+            display: table-cell;
+            width: 33.33%;
+            padding: 0 4mm;
+            vertical-align: top;
+        }
+        .col3 .col:first-child { padding-left: 0; }
+        .col3 .col:last-child  { padding-right: 0; }
+        .col3 .col h4 {
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ef5d4a;
+            margin: 0 0 3mm 0;
+        }
+        .col3 .col ul {
+            margin: 0;
+            padding-left: 5mm;
+            font-size: 9.5pt;
+            color: #334155;
+        }
+        .col3 .col li { margin-bottom: 2mm; }
+
+        /* ============================================================
+           Scope detail page
+           ============================================================ */
+        .cost-band {
+            display: table;
+            width: 100%;
+            background-color: #f1f5f9;
+            margin: 3mm 0 4mm 0;
+        }
+        .cost-band .cell {
+            display: table-cell;
+            padding: 3mm 5mm;
+            width: 50%;
+            vertical-align: top;
+        }
+        .cost-band .cell + .cell {
+            border-left: 1px solid #e2e8f0;
+        }
+        .cost-band .label {
+            font-size: 8pt;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+        .cost-band .value {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #0f172a;
+            margin-top: 2mm;
+        }
+        .cost-band .sub {
+            font-size: 8.5pt;
+            color: #64748b;
+            margin-top: 1mm;
+        }
+
+        .scope-cols {
+            display: table;
+            width: 100%;
+            margin: 4mm 0 6mm 0;
+        }
+        .scope-cols .col {
+            display: table-cell;
+            width: 33.33%;
+            padding: 0 4mm;
+            vertical-align: top;
+        }
+        .scope-cols .col:first-child { padding-left: 0; }
+        .scope-cols .col:last-child  { padding-right: 0; }
+        .scope-cols h4 {
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ef5d4a;
+            margin: 0 0 3mm 0;
+        }
+        .scope-cols ul {
+            margin: 0;
+            padding-left: 5mm;
+            font-size: 9pt;
+            color: #334155;
+        }
+        .scope-cols li { margin-bottom: 1.5mm; }
+        .brand-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+        }
+        .brand-table td {
+            padding: 1.5mm 0;
+            border-bottom: 1px dotted #e2e8f0;
+            vertical-align: top;
+        }
+        .brand-table td.k { color: #64748b; width: 45%; }
+        .brand-table td.v { color: #0f172a; font-weight: bold; }
+
+        .options-row {
+            display: table;
+            width: 100%;
+            border-spacing: 3mm 0;
+            margin-left: -3mm;
+            margin-top: 3mm;
+        }
+        .option-card {
+            display: table-cell;
+            width: 25%;
+            border: 1px solid #e2e8f0;
+            padding: 0;
+            vertical-align: top;
+            background-color: #ffffff;
+        }
+        .option-card.selected {
+            border: 2px solid #ef5d4a;
+        }
+        .option-card .image-wrap {
+            background-color: #f1f5f9;
+            text-align: center;
+            padding: 8mm 0;
+            font-size: 8pt;
+            color: #94a3b8;
+        }
+        .option-card .image-wrap img {
+            max-width: 100%;
+            max-height: 22mm;
+        }
+        .option-card .meta {
+            padding: 3mm 3mm;
+        }
+        .option-card .name {
+            font-size: 9pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .option-card .badge {
+            display: inline-block;
+            font-size: 7pt;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ffffff;
+            background-color: #ef5d4a;
+            padding: 0.5mm 2mm;
+            border-radius: 1mm;
+            margin-top: 1.5mm;
+        }
+
+        /* ============================================================
+           Payment-schedule cumulative bar chart
+           ============================================================ */
+        .bar-row {
+            display: table;
+            width: 100%;
+            margin: 1.5mm 0;
+            font-size: 9pt;
+        }
+        .bar-row .col {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .bar-row .name { width: 30%; padding-right: 3mm; color: #334155; }
+        .bar-row .track {
+            width: 55%;
+            background-color: #e2e8f0;
+            height: 4mm;
+            position: relative;
+        }
+        .bar-row .fill {
+            background-color: #ef5d4a;
+            height: 4mm;
+            display: block;
+        }
+        .bar-row .pct { width: 15%; padding-left: 3mm; text-align: right; font-weight: bold; color: #0f172a; }
+
+        /* ============================================================
+           Quality + escalation page
+           ============================================================ */
+        .qa-cards {
+            display: table;
+            width: 100%;
+            border-spacing: 4mm 0;
+            margin: 4mm 0;
+            margin-left: -4mm;
+        }
+        .qa-card {
+            display: table-cell;
+            width: 33.33%;
+            padding: 5mm 5mm;
+            background-color: #f1f5f9;
+            vertical-align: top;
+            border-top: 3px solid #ef5d4a;
+        }
+        .qa-card h4 {
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #0f172a;
+            margin: 0 0 3mm 0;
+        }
+        .qa-card p {
+            font-size: 9pt;
+            margin: 0;
+            color: #334155;
+        }
+
+        .escalation-table .lvl {
+            font-weight: bold;
+            color: #ef5d4a;
+            text-transform: uppercase;
+            font-size: 8.5pt;
+            letter-spacing: 1px;
+        }
+        .escalation-table .who {
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .escalation-table .ph {
+            color: #334155;
+        }
+
+        /* ============================================================
+           Sign-off page
+           ============================================================ */
+        .signoff-row {
+            display: table;
+            width: 100%;
+            border-spacing: 6mm 0;
+            margin: 6mm 0;
+            margin-left: -6mm;
+        }
+        .signoff-card {
+            display: table-cell;
+            width: 50%;
+            padding: 6mm 6mm;
+            border: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+        .signoff-card h4 {
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ef5d4a;
+            margin: 0 0 6mm 0;
+        }
+        .signoff-card .field {
+            font-size: 8pt;
+            color: #64748b;
+            margin-top: 8mm;
+            border-bottom: 1px solid #94a3b8;
+            padding-bottom: 1mm;
+        }
+        .signoff-card .field-label {
+            font-size: 7pt;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin-top: 1mm;
+        }
+
+        .contact-row {
+            display: table;
+            width: 100%;
+            border-spacing: 4mm 0;
+            margin: 4mm 0;
+            margin-left: -4mm;
+        }
+        .contact-card {
+            display: table-cell;
+            width: 33.33%;
+            padding: 5mm 5mm;
+            background-color: #f1f5f9;
+            vertical-align: top;
+        }
+        .contact-card .label {
+            font-size: 7.5pt;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ef5d4a;
+            margin-bottom: 2mm;
+        }
+        .contact-card .value {
+            font-size: 10pt;
+            color: #0f172a;
+            font-weight: bold;
+        }
+        .contact-card .sub {
+            font-size: 8.5pt;
+            color: #64748b;
+            margin-top: 1mm;
+        }
+
+        /* small utilities */
+        .muted { color: #64748b; }
+        .red   { color: #ef5d4a; }
+        .green { color: #16a34a; }
+        .right { text-align: right; }
+        .center { text-align: center; }
+        .nowrap { white-space: nowrap; }
+        .small { font-size: 8.5pt; }
+        .bold { font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<!-- =============================================================
+     PAGE 1 — COVER
+     ============================================================= -->
+<div class="page cover">
+    <div class="brand-line">WALLDOT BUILDERS</div>
+    <div class="tagline">Your dream home starts here.</div>
+
+    <div class="title">
+        Detailed<br/>Project<br/>Costing<span class="dot">.</span>
+    </div>
+
+    <div class="intro">
+        A complete, audit-ready breakdown of what you are paying for, what you are getting,
+        and how every rupee on this project is going to be spent — drawn from your approved
+        Bill of Quantities and refreshed for every revision.
+    </div>
+
+    <div class="info-cards">
+        <div class="info-card">
+            <div class="label">Project</div>
+            <div class="value" th:text="${dpc.projectName} ?: 'Unnamed Project'">Project Name</div>
+        </div>
+        <div class="info-card">
+            <div class="label">Location</div>
+            <div class="value" th:text="${dpc.projectLocation} ?: '—'">Location</div>
+        </div>
+        <div class="info-card">
+            <div class="label">Built-up Area</div>
+            <div class="value">
+                <span th:text="${fmt.sqfeet}">0</span> sqft
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-strip">
+        REV <span th:text="${revisionLabel}">01</span>
+        &#160;|&#160; PREPARED FOR HANDOVER
+        &#160;|&#160; <span th:text="${currentDate}">01 Jan 2026</span>
+    </div>
+</div>
+
+<!-- =============================================================
+     PAGE 2 — INTRODUCTION (About this document)
+     ============================================================= -->
+<div class="page">
+    <div class="page-header">
+        <div class="col left" th:text="${company.name}">Walldot Builders LLP</div>
+        <div class="col center">About This Document</div>
+        <div class="col right">02 / <span th:text="${totalPages}">16</span></div>
+    </div>
+
+    <div class="section-number">01</div>
+    <h1 class="section-heading">About this document<span class="dot">.</span></h1>
+    <p class="section-lead">
+        This Detailed Project Costing (DPC) is the single source of truth for the cost,
+        scope, brand specifications, and quality protocol of your project.  It bundles the
+        master cost table, the payment schedule, every customization you have approved, and
+        the procedures we will follow on site — into one signed-off package.
+    </p>
+
+    <div class="callout">
+        <div class="h">What you get</div>
+        <ul>
+            <li>Master cost table — original BoQ vs customized total per scope</li>
+            <li>Payment schedule with milestone-by-milestone breakdown</li>
+            <li>Scope-wise breakdown of materials, brands and procedures</li>
+            <li>Brand specifications for every line item</li>
+            <li>Quality protocols — pre-check, interim and final hand-over checks</li>
+            <li>Escalation matrix with named contacts at each level</li>
+        </ul>
+    </div>
+
+    <div class="callout">
+        <div class="h">Scope at a glance</div>
+        <div class="chip-row">
+            <th:block th:each="s, it : ${scopesView}">
+                <span class="chip">
+                    <span class="num" th:text="${#strings.length(#strings.toString(it.count)) == 1} ? '0' + ${it.count} : ${it.count}">01</span>
+                    <span th:text="${s.scopeTitle}">Scope</span>
+                </span>
+            </th:block>
+        </div>
+    </div>
+
+    <div class="callout dark">
+        <div class="h">Project totals</div>
+        <div class="stat-row">
+            <div class="stat-card">
+                <div class="label">Original (BoQ)</div>
+                <div class="value">&#8377; <span th:text="${masterView.totalOriginal}">0</span></div>
+                <div class="sub">As per the approved BoQ baseline.</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Customized total</div>
+                <div class="value">&#8377; <span th:text="${masterView.totalCustomized}">0</span></div>
+                <div class="sub">After your approved customizations.</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Variance</div>
+                <div class="value">&#8377; <span th:text="${masterView.totalVariance}">0</span></div>
+                <div class="sub">Difference vs the BoQ baseline.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-footer">
+        <div class="col left" th:text="|${company.name} — your dream home starts here.|">Walldot Builders</div>
+        <div class="col right" th:text="${dpc.projectName}">Project</div>
+    </div>
+</div>
+
+<!-- =============================================================
+     PAGE 3 — MASTER COST TABLE
+     ============================================================= -->
+<div class="page">
+    <div class="page-header">
+        <div class="col left" th:text="${company.name}">Walldot Builders LLP</div>
+        <div class="col center">Master Cost Table</div>
+        <div class="col right">03 / <span th:text="${totalPages}">16</span></div>
+    </div>
+
+    <div class="section-number">02</div>
+    <h1 class="section-heading">Master cost table<span class="dot">.</span></h1>
+    <p class="section-lead">
+        Every scope, every rupee — the BoQ baseline alongside the customized total, with
+        the variance called out per scope.
+    </p>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Scope</th>
+                <th class="num">Original</th>
+                <th class="num">Customized</th>
+                <th class="num">Variance</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="row : ${masterView.rows}">
+                <td>
+                    <span class="bold" th:text="${row.scopeTitle}">Scope</span>
+                    <div class="small muted" th:text="${row.scopeCode}">CODE</div>
+                </td>
+                <td class="num">&#8377; <span th:text="${row.originalAmount}">0</span></td>
+                <td class="num">&#8377; <span th:text="${row.customizedAmount}">0</span></td>
+                <td class="num red" th:text="|&#8377; ${row.variance}|">&#8377; 0</td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td>TOTAL</td>
+                <td class="num">&#8377; <span th:text="${masterView.totalOriginal}">0</span></td>
+                <td class="num">&#8377; <span th:text="${masterView.totalCustomized}">0</span></td>
+                <td class="num">&#8377; <span th:text="${masterView.totalVariance}">0</span></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="cost-band">
+        <div class="cell">
+            <div class="label">Original per sqft</div>
+            <div class="value">&#8377; <span th:text="${masterView.originalPerSqft}">0</span></div>
+            <div class="sub">Computed against built-up area.</div>
+        </div>
+        <div class="cell">
+            <div class="label">Customized per sqft</div>
+            <div class="value">&#8377; <span th:text="${masterView.customizedPerSqft}">0</span></div>
+            <div class="sub">Includes all approved customizations.</div>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="h">What's behind these numbers</div>
+        <ul>
+            <li>Original column = the approved BoQ BASE total for items mapped to each scope.</li>
+            <li>Customized column = BASE + approved ADDON / variation items.</li>
+            <li>Per-sqft figures use the project's built-up area as the divisor.</li>
+            <li>All figures are inclusive of GST as quoted in the BoQ.</li>
+        </ul>
+    </div>
+
+    <div class="page-footer">
+        <div class="col left" th:text="|${company.name} — your dream home starts here.|">Walldot Builders</div>
+        <div class="col right" th:text="${dpc.projectName}">Project</div>
+    </div>
+</div>
+
+<!-- =============================================================
+     PAGE 4 — PAYMENT SCHEDULE
+     ============================================================= -->
+<div class="page">
+    <div class="page-header">
+        <div class="col left" th:text="${company.name}">Walldot Builders LLP</div>
+        <div class="col center">Payment Schedule</div>
+        <div class="col right">04 / <span th:text="${totalPages}">16</span></div>
+    </div>
+
+    <div class="section-number">03</div>
+    <h1 class="section-heading">Payment schedule<span class="dot">.</span></h1>
+    <p class="section-lead">
+        Stage-wise payment plan tied to clearly defined site milestones.  Each stage triggers
+        when the listed milestone is verified by the project engineer and signed off.
+    </p>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Stage</th>
+                <th>Milestone</th>
+                <th class="num">% of total</th>
+                <th class="num">Amount (incl. GST)</th>
+                <th class="num">Cumulative %</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="m : ${milestonesView}">
+                <td>
+                    <span class="bold">M<span th:text="${m.stageNumber}">1</span></span>
+                    <div class="small muted" th:text="${m.stageName}">Stage</div>
+                </td>
+                <td th:text="${m.milestoneDescription}">Milestone description</td>
+                <td class="num"><span th:text="${m.stagePercentage}">0</span>%</td>
+                <td class="num">&#8377; <span th:text="${m.stageAmountInclGst}">0</span></td>
+                <td class="num"><span th:text="${m.cumulativePercentage}">0</span>%</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout">
+        <div class="h">Cumulative cash flow</div>
+        <div th:each="m : ${milestonesView}" class="bar-row">
+            <div class="col name">
+                M<span th:text="${m.stageNumber}">1</span> · <span th:text="${m.stageName}">Stage</span>
+            </div>
+            <div class="col track">
+                <span class="fill"
+                      th:style="|width: ${m.cumulativeBarWidth}%;|"></span>
+            </div>
+            <div class="col pct"><span th:text="${m.cumulativePercentage}">0</span>%</div>
+        </div>
+    </div>
+
+    <div class="page-footer">
+        <div class="col left" th:text="|${company.name} — your dream home starts here.|">Walldot Builders</div>
+        <div class="col right" th:text="${dpc.projectName}">Project</div>
+    </div>
+</div>
+
+<!-- =============================================================
+     PAGE 5 — WHAT'S IN / OUT
+     ============================================================= -->
+<div class="page">
+    <div class="page-header">
+        <div class="col left" th:text="${company.name}">Walldot Builders LLP</div>
+        <div class="col center">What's In / What's Out</div>
+        <div class="col right">05 / <span th:text="${totalPages}">16</span></div>
+    </div>
+
+    <div class="section-number">04</div>
+    <h1 class="section-heading">What's in. What's out<span class="dot">.</span></h1>
+    <p class="section-lead">
+        A plain-English summary of what the contract covers, what is quoted as an add-on,
+        and what falls outside Walldot's scope so you can plan for it separately.
+    </p>
+
+    <div class="col3">
+        <div class="col">
+            <h4>Included</h4>
+            <ul>
+                <li>All civil structural work as per approved drawings</li>
+                <li>Brick and block masonry, plastering, waterproofing</li>
+                <li>Internal and external painting (one coat primer + two finish)</li>
+                <li>Standard electrical wiring + fixtures (per BoQ)</li>
+                <li>Standard plumbing rough-in + sanitary fixtures (per BoQ)</li>
+                <li>Flooring as per the approved selection</li>
+                <li>Standard kitchen counter + sink (per scope card)</li>
+                <li>Doors, windows, grill work as quoted</li>
+                <li>One coat of weatherproof exterior finish</li>
+                <li>Site supervision and quality checks</li>
+            </ul>
+        </div>
+        <div class="col">
+            <h4>Add-ons quoted</h4>
+            <ul>
+                <li>Premium tile / flooring upgrades (variance shown in master table)</li>
+                <li>Modular kitchen and wardrobes (per customization line)</li>
+                <li>False ceiling and decorative lighting</li>
+                <li>Elevation customizations (page 15)</li>
+                <li>Designer paint finishes / textured walls</li>
+                <li>Smart-home wiring / automation pre-rough-in</li>
+                <li>Premium bathroom fittings as per option selected</li>
+                <li>Approved structural extensions / additions</li>
+            </ul>
+        </div>
+        <div class="col">
+            <h4>Not covered</h4>
+            <ul>
+                <li>Interior furniture, soft furnishings, and curtains</li>
+                <li>Loose appliances (TV, fridge, washing machine, etc.)</li>
+                <li>Landscaping, lawn, and exterior planters</li>
+                <li>Compound wall and gate (unless quoted separately)</li>
+                <li>Government / society approval fees and taxes outside GST</li>
+                <li>Borewell, water tank above standard size</li>
+                <li>Solar panels, inverter, generator</li>
+                <li>Architect / consultant fees if engaged separately</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="page-footer">
+        <div class="col left" th:text="|${company.name} — your dream home starts here.|">Walldot Builders</div>
+        <div class="col right" th:text="${dpc.projectName}">Project</div>
+    </div>
+</div>
+
+<!-- =============================================================
+     PAGES 6 - 13 — SCOPE DETAIL PAGES (one per included scope)
+     We render up to 8 included scopes; the rest are skipped from
+     the long-form section (still appear in the master table).
+     ============================================================= -->
+<th:block th:each="s, it : ${scopesView}"
+          th:if="${s.includedInPdf and it.count <= 8}">
+
+        <div class="page">
+            <div class="page-header">
+                <div class="col left" th:text="${company.name}">Walldot Builders LLP</div>
+                <div class="col center" th:text="${s.scopeTitle}">Scope</div>
+                <div class="col right">
+                    <span th:text="${#strings.length(#strings.toString(it.count + 5)) == 1} ? '0' + ${it.count + 5} : ${it.count + 5}">06</span>
+                    / <span th:text="${totalPages}">16</span>
+                </div>
+            </div>
+
+            <div class="section-number"
+                 th:text="${#strings.length(#strings.toString(it.count + 4)) == 1} ? '0' + ${it.count + 4} : ${it.count + 4}">05</div>
+            <h1 class="section-heading">
+                <span th:text="${s.scopeTitle}">Scope title</span><span class="dot">.</span>
+            </h1>
+            <p class="section-lead" th:if="${s.selectedOptionRationale != null and !#strings.isEmpty(s.selectedOptionRationale)}"
+               th:text="${s.selectedOptionRationale}">Why this option was chosen.</p>
+
+            <div class="cost-band">
+                <div class="cell">
+                    <div class="label">Original</div>
+                    <div class="value">&#8377; <span th:text="${s.originalAmount}">0</span></div>
+                    <div class="sub">&#8377; <span th:text="${s.originalPerSqft}">0</span> / sqft</div>
+                </div>
+                <div class="cell">
+                    <div class="label">Customized</div>
+                    <div class="value">&#8377; <span th:text="${s.customizedAmount}">0</span></div>
+                    <div class="sub">&#8377; <span th:text="${s.customizedPerSqft}">0</span> / sqft</div>
+                </div>
+            </div>
+
+            <div class="scope-cols">
+                <div class="col">
+                    <h4>What you get</h4>
+                    <ul>
+                        <li th:each="line : ${s.whatYouGet}" th:text="${line}">Item</li>
+                        <li th:if="${#lists.isEmpty(s.whatYouGet)}" class="muted">No items configured.</li>
+                    </ul>
+                </div>
+                <div class="col">
+                    <h4>Brands</h4>
+                    <table class="brand-table">
+                        <tr th:each="b : ${s.brands}">
+                            <td class="k" th:text="${b.key}">key</td>
+                            <td class="v" th:text="${b.value}">value</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(s.brands)}">
+                            <td class="muted" colspan="2">No brand specs configured.</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col">
+                    <h4>Documents you get</h4>
+                    <ul>
+                        <li>Material delivery challans + invoices</li>
+                        <li>Quality test reports per stage</li>
+                        <li>Manufacturer warranty certificates</li>
+                        <li>As-built shop drawings</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="callout">
+                <div class="h">Quality procedures</div>
+                <ul>
+                    <li>Material verified against approved sample on delivery</li>
+                    <li>Surface preparation signed off by site engineer before execution</li>
+                    <li>Workmanship checked at 25 / 50 / 100% completion</li>
+                    <li>Final inspection with the customer before next stage starts</li>
+                </ul>
+            </div>
+
+            <div class="callout dark">
+                <div class="h">When this happens on site</div>
+                <p>
+                    Triggered after the previous stage milestone is signed off; full duration
+                    and exact dates are tracked in the live project schedule on the customer
+                    app.
+                </p>
+            </div>
+
+            <div th:if="${not #lists.isEmpty(s.options)}">
+                <h4 style="font-size: 9pt; text-transform: uppercase; letter-spacing: 2px; color: #ef5d4a; margin: 4mm 0 2mm 0;">
+                    Options considered
+                </h4>
+                <div class="options-row">
+                    <div th:each="opt, oi : ${s.options}"
+                         th:if="${oi.count <= 4}"
+                         th:class="${opt.selected} ? 'option-card selected' : 'option-card'">
+                        <div class="image-wrap">
+                            <img th:if="${opt.imagePath != null and !#strings.isEmpty(opt.imagePath)}"
+                                 th:src="${opt.imagePath}" alt="" />
+                            <span th:if="${opt.imagePath == null or #strings.isEmpty(opt.imagePath)}">image</span>
+                        </div>
+                        <div class="meta">
+                            <div class="name" th:text="${opt.displayName}">Option name</div>
+                            <span th:if="${opt.selected}" class="badge">Selected</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-footer">
+                <div class="col left" th:text="|${company.name} — your dream home starts here.|">Walldot Builders</div>
+                <div class="col right" th:text="${dpc.projectName}">Project</div>
+            </div>
+        </div>
+
+</th:block>
+
+<!-- =============================================================
+     PAGE 14 — Skipped if all 8 scope pages already rendered.
+     If fewer than 8 scopes exist, the layout still flows; nothing
+     extra is needed here. (Kept as a comment to keep the page-
+     count table-of-contents stable.)
+     ============================================================= -->
+
+<!-- =============================================================
+     PAGE 15 — ELEVATION CUSTOMIZATIONS
+     ============================================================= -->
+<div class="page">
+    <div class="page-header">
+        <div class="col left" th:text="${company.name}">Walldot Builders LLP</div>
+        <div class="col center">Elevation Customizations</div>
+        <div class="col right">15 / <span th:text="${totalPages}">16</span></div>
+    </div>
+
+    <div class="section-number">14</div>
+    <h1 class="section-heading">Elevation &amp; customizations<span class="dot">.</span></h1>
+    <p class="section-lead">
+        Every customization line — auto-imported from your approved BoQ ADDON items and any
+        manually added line items — with a brief explanation of what each one delivers.
+    </p>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Customization</th>
+                <th>What it includes</th>
+                <th class="num">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="c : ${customizationsView}">
+                <td class="bold" th:text="${c.title}">Title</td>
+                <td th:text="${c.description}">Description</td>
+                <td class="num">&#8377; <span th:text="${c.amount}">0</span></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(customizationsView)}">
+                <td colspan="3" class="muted center">No customizations on this revision.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout">
+        <div class="h">Why these were added</div>
+        <ul>
+            <li>Customer-requested upgrades captured during finalization</li>
+            <li>Site-condition-driven additions verified by the project engineer</li>
+            <li>Code-compliance / safety-driven additions where applicable</li>
+            <li>Each line ties back to a BoQ row for full traceability</li>
+        </ul>
+    </div>
+
+    <div class="page-footer">
+        <div class="col left" th:text="|${company.name} — your dream home starts here.|">Walldot Builders</div>
+        <div class="col right" th:text="${dpc.projectName}">Project</div>
+    </div>
+</div>
+
+<!-- =============================================================
+     PAGE 16 — QUALITY PROTOCOL & ESCALATION
+     ============================================================= -->
+<div class="page">
+    <div class="page-header">
+        <div class="col left" th:text="${company.name}">Walldot Builders LLP</div>
+        <div class="col center">Quality &amp; Escalation</div>
+        <div class="col right">16 / <span th:text="${totalPages}">16</span></div>
+    </div>
+
+    <div class="section-number">15</div>
+    <h1 class="section-heading">Quality protocol &amp; escalation<span class="dot">.</span></h1>
+    <p class="section-lead">
+        We run three quality gates per stage and provide three escalation levels for any
+        issue you raise.  Site visit cadence is fixed and is recorded as part of each
+        milestone hand-over.
+    </p>
+
+    <div class="qa-cards">
+        <div class="qa-card">
+            <h4>Pre-check</h4>
+            <p>Materials, drawings and site conditions verified before the stage kicks off.
+               Any non-conformity is documented and resolved before work starts.</p>
+        </div>
+        <div class="qa-card">
+            <h4>Interim check</h4>
+            <p>Workmanship measured against the spec at 25 / 50 / 75% completion.
+               Photographic evidence stored against the milestone in the customer app.</p>
+        </div>
+        <div class="qa-card">
+            <h4>Final check</h4>
+            <p>Stage-end walk-through with the customer; deficiencies are listed in the
+               milestone snag report and closed out before the next stage starts.</p>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="h">Escalation matrix</div>
+        <table class="data-table escalation-table">
+            <thead>
+                <tr>
+                    <th>Level</th>
+                    <th>Contact</th>
+                    <th>Phone</th>
+                    <th>Resolution SLA</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="lvl">Level 1</td>
+                    <td class="who">Project Engineer</td>
+                    <td class="ph" th:text="${company.phone}">+91 9074954874</td>
+                    <td>Within 24 hours</td>
+                </tr>
+                <tr>
+                    <td class="lvl">Level 2</td>
+                    <td class="who" th:text="${dpc.branchManagerName} ?: 'Branch Manager'">Branch Manager</td>
+                    <td class="ph" th:text="${dpc.branchManagerPhone} ?: ${company.phone}">+91 9074954874</td>
+                    <td>Within 48 hours</td>
+                </tr>
+                <tr>
+                    <td class="lvl">Level 3</td>
+                    <td class="who" th:text="${dpc.crmTeamName} ?: 'Customer Relations'">CRM Team</td>
+                    <td class="ph" th:text="${dpc.crmTeamPhone} ?: ${company.phone}">+91 9074954874</td>
+                    <td>Within 72 hours</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="qa-cards">
+        <div class="qa-card">
+            <h4>Project Engineer</h4>
+            <p><span class="bold">DAILY</span> on-site presence during active stages;
+               photo log of progress each evening.</p>
+        </div>
+        <div class="qa-card">
+            <h4>Project Manager</h4>
+            <p><span class="bold">BI-WEEKLY</span> walk-throughs with the customer; signs
+               off the stage milestone before payment is triggered.</p>
+        </div>
+        <div class="qa-card">
+            <h4>Architect</h4>
+            <p><span class="bold">MONTHLY</span> review of design conformance and finishes
+               against the approved drawings.</p>
+        </div>
+    </div>
+
+    <div class="page-footer">
+        <div class="col left" th:text="|${company.name} — your dream home starts here.|">Walldot Builders</div>
+        <div class="col right" th:text="${dpc.projectName}">Project</div>
+    </div>
+</div>
+
+<!-- =============================================================
+     PAGE 17 — SIGN-OFF (last page; no page-break-after)
+     Note: the cover counts as page 1, intro as page 2, master as 3,
+     payments as 4, what's-in/out as 5, scopes 6-13, customizations
+     as 15, quality as 16, sign-off as 17.  The header on this page
+     is labeled 17 but the design "16" target collapses pages 14
+     onwards depending on how many scopes the document actually
+     has.  We always emit the sign-off as the final page.
+     ============================================================= -->
+<div class="page" style="page-break-after: auto;">
+    <div class="page-header">
+        <div class="col left" th:text="${company.name}">Walldot Builders LLP</div>
+        <div class="col center">Acknowledgement &amp; Sign-off</div>
+        <div class="col right">17 / <span th:text="${totalPages}">16</span></div>
+    </div>
+
+    <div class="section-number">16</div>
+    <h1 class="section-heading">Acknowledgement &amp; sign-off<span class="dot">.</span></h1>
+    <p class="section-lead">
+        Signing this DPC confirms that the scope, brand specifications, customizations,
+        payment schedule, and quality protocols above accurately represent the agreement
+        between you and Walldot Builders for this revision.
+    </p>
+
+    <div class="signoff-row">
+        <div class="signoff-card">
+            <h4>Client</h4>
+            <div class="field">&#160;</div>
+            <div class="field-label">Name</div>
+            <div class="field" style="margin-top: 12mm;" th:text="${dpc.clientSignatoryName} ?: ' '">&#160;</div>
+            <div class="field-label">Signature</div>
+            <div class="field" style="margin-top: 12mm;">&#160;</div>
+            <div class="field-label">Date</div>
+        </div>
+        <div class="signoff-card">
+            <h4>For Walldot Builders</h4>
+            <div class="field">&#160;</div>
+            <div class="field-label">Name</div>
+            <div class="field" style="margin-top: 12mm;" th:text="${dpc.walldotSignatoryName} ?: ' '">&#160;</div>
+            <div class="field-label">Signature</div>
+            <div class="field" style="margin-top: 12mm;" th:text="${currentDate}">&#160;</div>
+            <div class="field-label">Date</div>
+        </div>
+    </div>
+
+    <h4 style="font-size: 9pt; text-transform: uppercase; letter-spacing: 2px; color: #ef5d4a; margin: 8mm 0 2mm 0;">
+        Stay in touch
+    </h4>
+    <div class="contact-row">
+        <div class="contact-card">
+            <div class="label">Phone</div>
+            <div class="value" th:text="${company.phone}">+91 9074954874</div>
+            <div class="sub">Mon – Sat, 9:30 AM – 6:30 PM</div>
+        </div>
+        <div class="contact-card">
+            <div class="label">Email</div>
+            <div class="value" th:text="${company.email}">info@walldotbuilders.com</div>
+            <div class="sub">Replies within one business day</div>
+        </div>
+        <div class="contact-card">
+            <div class="label">Web</div>
+            <div class="value" th:text="${company.website}">www.walldotbuilders.com</div>
+            <div class="sub">Customer portal &amp; project status</div>
+        </div>
+    </div>
+
+    <div style="margin-top: 10mm; font-size: 8pt; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 4mm;">
+        <span class="bold">Document version:</span>
+        REV <span th:text="${revisionLabel}">01</span>
+        &#160;·&#160;
+        Generated <span th:text="${currentDate}">01 Jan 2026</span>
+        &#160;·&#160;
+        DPC #<span th:text="${dpc.id}">0</span>
+        &#160;·&#160;
+        Project #<span th:text="${dpc.projectId}">0</span>
+    </div>
+</div>
+
+</body>
+</html>

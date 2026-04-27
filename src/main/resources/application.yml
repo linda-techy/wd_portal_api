@@ -124,11 +124,18 @@ springdoc:
 company:
   name: Walldot Builders LLP
   address: Kerala, India
-  phone: "+91 9876543210"
+  phone: "+91 9074954874"
   email: info@walldotbuilders.com
   website: www.walldotbuilders.com
   gst: ""
   pan: ""
+  llpin: ""
+  # Bank details printed on the quotation PDF for advance-payment instructions.
+  bank-account-name: "Walldot Builders LLP"
+  bank-account-number: ""
+  bank-ifsc: ""
+  bank-name: ""
+  bank-branch: ""
 
 # ── Customer API webhook integration ─────────────────────────────
 # Portal notifies Customer API on key events (site reports, invoices, payments, etc.)

@@ -390,7 +390,7 @@ public class EmailService {
                 This link is valid for 24 hours. Once you set your password, you can log in anytime at:
                 https://walldotbuilders.com/partnerships/login
 
-                If you have any questions, feel free to contact us at info@walldotbuilders.com or call +91 9207 700 700.
+                If you have any questions, feel free to contact us at info@walldotbuilders.com or call +91 9074954874.
 
                 Best regards,
                 The Walldot Builders Team

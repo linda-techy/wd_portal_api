@@ -24,4 +24,10 @@ public interface BoqDocumentRepository extends JpaRepository<BoqDocument, Long> 
     List<BoqDocument> findActiveByProjectId(@Param("projectId") Long projectId);
 
     boolean existsByProjectIdAndStatus(Long projectId, BoqDocumentStatus status);
+
+    /**
+     * Most recently approved BoQ for a project, used by DPC creation to anchor
+     * the new document onto a single frozen BoQ snapshot.
+     */
+    Optional<BoqDocument> findFirstByProject_IdAndStatusOrderByApprovedAtDesc(Long projectId, BoqDocumentStatus status);
 }

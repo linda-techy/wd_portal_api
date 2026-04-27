@@ -15,11 +15,19 @@ public class CompanyInfoConfig {
 
     private String name = "Walldot Builders LLP";
     private String address = "123 Construction Avenue, Building City, State - 123456";
-    private String phone = "+91 1234567890";
+    private String phone = "+91 9074954874";
     private String email = "info@walldotbuilders.com";
     private String website = "www.walldotbuilders.com";
     private String gst = "GST123456789";
     private String pan;
+    private String llpin;
+
+    // Bank details — used by quotation PDF for advance-payment instructions.
+    private String bankAccountName;
+    private String bankAccountNumber;
+    private String bankIfsc;
+    private String bankName;
+    private String bankBranch;
 
     public String getName() {
         return name;
@@ -75,5 +83,53 @@ public class CompanyInfoConfig {
 
     public void setPan(String pan) {
         this.pan = pan;
+    }
+
+    public String getLlpin() {
+        return llpin;
+    }
+
+    public void setLlpin(String llpin) {
+        this.llpin = llpin;
+    }
+
+    public String getBankAccountName() {
+        return bankAccountName;
+    }
+
+    public void setBankAccountName(String bankAccountName) {
+        this.bankAccountName = bankAccountName;
+    }
+
+    public String getBankAccountNumber() {
+        return bankAccountNumber;
+    }
+
+    public void setBankAccountNumber(String bankAccountNumber) {
+        this.bankAccountNumber = bankAccountNumber;
+    }
+
+    public String getBankIfsc() {
+        return bankIfsc;
+    }
+
+    public void setBankIfsc(String bankIfsc) {
+        this.bankIfsc = bankIfsc;
+    }
+
+    public String getBankName() {
+        return bankName;
+    }
+
+    public void setBankName(String bankName) {
+        this.bankName = bankName;
+    }
+
+    public String getBankBranch() {
+        return bankBranch;
+    }
+
+    public void setBankBranch(String bankBranch) {
+        this.bankBranch = bankBranch;
     }
 }

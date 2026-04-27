@@ -1,8 +1,16 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LeadQuotationSearchFilter;
+import com.wd.api.dto.quotation.AddItemFromCatalogRequest;
+import com.wd.api.dto.quotation.LeadQuotationDetailResponse;
+import com.wd.api.dto.quotation.PromoteItemToCatalogRequest;
+import com.wd.api.dto.quotation.QuotationCatalogItemDto;
 import com.wd.api.model.LeadQuotation;
+import com.wd.api.model.LeadQuotationItem;
 import com.wd.api.service.LeadQuotationService;
+import com.wd.api.service.QuotationCatalogPromotionService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +42,9 @@ public class LeadQuotationController {
     @Autowired
     private com.wd.api.repository.PortalUserRepository portalUserRepository;
 
+    @Autowired
+    private QuotationCatalogPromotionService catalogPromotionService;
+
     @GetMapping("/search")
     public ResponseEntity<Page<LeadQuotation>> searchLeadQuotations(@ModelAttribute LeadQuotationSearchFilter filter) {
         return ResponseEntity.ok(quotationService.searchLeadQuotations(filter));
@@ -47,7 +58,7 @@ public class LeadQuotationController {
     public ResponseEntity<?> getQuotationById(@PathVariable Long id) {
         try {
             LeadQuotation quotation = quotationService.getQuotationById(id);
-            return ResponseEntity.ok(quotation);
+            return ResponseEntity.ok(LeadQuotationDetailResponse.from(quotation));
         } catch (RuntimeException e) {
             return ResponseEntity.status(404)
                     .body(Map.of("success", false, "message", e.getMessage()));
@@ -192,6 +203,64 @@ public class LeadQuotationController {
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * Add a new line item to a quotation, sourced from the master catalog.
+     */
+    @PostMapping("/{quotationId}/items/from-catalog")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> addItemFromCatalog(
+            @PathVariable Long quotationId,
+            @Valid @RequestBody AddItemFromCatalogRequest request) {
+        try {
+            LeadQuotationItem item = quotationService.addItemFromCatalog(quotationId, request);
+            Map<String, Object> body = new java.util.HashMap<>();
+            body.put("id", item.getId());
+            body.put("itemNumber", item.getItemNumber());
+            body.put("description", item.getDescription());
+            body.put("quantity", item.getQuantity());
+            body.put("unitPrice", item.getUnitPrice());
+            body.put("totalPrice", item.getTotalPrice());
+            body.put("catalogItemId", item.getCatalogItem() != null ? item.getCatalogItem().getId() : null);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Item added from catalog", body));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to add catalog item to quotation {}", quotationId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("An internal error occurred while adding the catalog item"));
+        }
+    }
+
+    /**
+     * Promote an ad-hoc quotation line item into the master catalog.
+     */
+    @PostMapping("/items/{itemId}/promote-to-catalog")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'QUOTATION_CATALOG_MANAGE')")
+    public ResponseEntity<?> promoteItemToCatalog(
+            @PathVariable Long itemId,
+            @Valid @RequestBody PromoteItemToCatalogRequest request) {
+        try {
+            QuotationCatalogItemDto dto = catalogPromotionService.promoteAdHocItem(itemId, request);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Item promoted to catalog", dto));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to promote item {} to catalog", itemId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("An internal error occurred while promoting the item"));
         }
     }
 

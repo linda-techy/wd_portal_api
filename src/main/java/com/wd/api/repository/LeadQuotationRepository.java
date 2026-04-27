@@ -3,6 +3,8 @@ package com.wd.api.repository;
 import com.wd.api.model.LeadQuotation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,4 +22,7 @@ public interface LeadQuotationRepository extends JpaRepository<LeadQuotation, Lo
     List<LeadQuotation> findByLeadIdOrderByVersionDesc(Long leadId);
 
     List<LeadQuotation> findByCreatedById(Long createdById);
+
+    @Query("SELECT q FROM LeadQuotation q LEFT JOIN FETCH q.items WHERE q.id = :id")
+    Optional<LeadQuotation> findByIdWithItems(@Param("id") Long id);
 }

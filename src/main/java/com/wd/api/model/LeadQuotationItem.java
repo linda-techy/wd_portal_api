@@ -36,6 +36,14 @@ public class LeadQuotationItem {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /**
+     * Optional link to the master catalog row this item was sourced from.
+     * NULL when the item was entered ad-hoc (not picked from the catalog).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "catalog_item_id")
+    private QuotationCatalogItem catalogItem;
+
     // Constructors
     public LeadQuotationItem() {
     }
@@ -103,5 +111,19 @@ public class LeadQuotationItem {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public QuotationCatalogItem getCatalogItem() {
+        return catalogItem;
+    }
+
+    public void setCatalogItem(QuotationCatalogItem catalogItem) {
+        this.catalogItem = catalogItem;
+    }
+
+    /** True when this item was entered ad-hoc (not sourced from the catalog). */
+    @Transient
+    public boolean isAdHoc() {
+        return catalogItem == null;
     }
 }
