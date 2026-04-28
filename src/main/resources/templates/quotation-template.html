@@ -182,13 +182,17 @@
             color: #1a3a5c;
             font-weight: bold;
         }
+        /* Exclusions block — quieter neutral, not a yellow warning. The
+           "What's Included / Not Covered" section earlier in the document
+           is the primary scope-clarity surface; this is a fine-print
+           reinforcement, not a klaxon. */
         .exclusions-callout {
             margin-top: 12px;
             padding: 10px 12px;
-            background-color: #fff8e1;
-            border-left: 4px solid #f4a100;
+            background-color: #f1f5f9;
+            border-left: 3px solid #64748b;
             font-size: 8.5pt;
-            color: #5b4a00;
+            color: #475569;
             line-height: 1.5;
         }
         .milestones-table {
@@ -361,20 +365,95 @@
             padding-top: 15px;
             border-top: 2px solid #1a3a5c;
         }
-        .summary-row.total .summary-label,
+        /* Final Amount must read in 0.3 seconds — bumped from 14pt to 18pt
+           with the figure right-aligned and given dedicated weight. The
+           single most important number on the document. */
+        .summary-row.total .summary-label {
+            font-size: 12pt;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
         .summary-row.total .summary-value {
-            font-size: 14pt;
+            font-size: 22pt;
             font-weight: bold;
             color: #1a3a5c;
         }
-        .amount-words {
-            margin-top: 15px;
-            padding: 12px;
-            background-color: #fff3cd;
-            border-left: 4px solid #ed1c24;
+
+        /* Two-column "Included / Not Covered" — the highest-leverage
+           scope-clarity widget. Pre-empts the most common conversion
+           friction ("what am I actually paying for?") and the most common
+           dispute source ("you said it was included"). */
+        .scope-clarity {
+            margin: 22px 0;
+            display: table;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 12px 0;
+        }
+        .scope-clarity .col {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            padding: 14px 16px;
+            border-radius: 6px;
+        }
+        .scope-clarity .col.included {
+            background-color: #f0fdf4;
+            border-left: 4px solid #16a34a;
+        }
+        .scope-clarity .col.excluded {
+            background-color: #fafbfc;
+            border-left: 4px solid #94a3b8;
+        }
+        .scope-clarity .col-title {
             font-size: 10pt;
-            font-style: italic;
-            color: #856404;
+            font-weight: bold;
+            color: #1a3a5c;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .scope-clarity ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .scope-clarity li {
+            font-size: 9pt;
+            color: #334155;
+            line-height: 1.55;
+            padding: 3px 0 3px 18px;
+            position: relative;
+        }
+        .scope-clarity .col.included li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #16a34a;
+            font-weight: bold;
+        }
+        .scope-clarity .col.excluded li:before {
+            content: "—";
+            position: absolute;
+            left: 0;
+            color: #94a3b8;
+        }
+        /* Amount in Words — calm confirmation, NOT a warning. Yellow + italic
+           was reading as "danger / disclaimer" to customers; the figure above
+           is the agreed total, not a caveat. */
+        .amount-words {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background-color: #f8fafc;
+            border-left: 3px solid #1a3a5c;
+            font-size: 9.5pt;
+            color: #334155;
+        }
+        .amount-words strong {
+            color: #0f172a;
+            margin-right: 6px;
         }
         .terms-section {
             margin-top: 30px;
@@ -446,15 +525,23 @@
             color: #999;
             text-align: center;
         }
-        .validity-info {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 4px;
-            font-size: 9pt;
-            color: #856404;
-            text-align: center;
+        /* Validity copy — inline pill instead of full-width yellow alert.
+           Sat with two other yellow callouts on the page; reading as "danger".
+           Now: a quieter chip pinned near the document title. */
+        .validity-pill {
+            display: inline-block;
+            padding: 4px 12px;
+            background-color: #fef3c7;
+            color: #92400e;
+            border-radius: 999px;
+            font-size: 8.5pt;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            margin: 0 0 14px 0;
+        }
+        .validity-pill.urgent {
+            background-color: #fee2e2;
+            color: #991b1b;
         }
     </style>
 </head>
@@ -485,6 +572,20 @@
         </div>
     </div>
     <div class="document-title-band">Quotation</div>
+
+    <!-- Validity countdown — replaces the old full-width yellow callout.
+         Renders as a small pill so the document doesn't lead with a warning;
+         turns red within 7 days of expiry to drive urgency. -->
+    <div th:if="${validUntil != null}" style="text-align: center;">
+        <span class="validity-pill"
+              th:classappend="${daysUntilExpiry != null and daysUntilExpiry <= 7} ? ' urgent'">
+            Valid until
+            <span th:text="${#temporals.format(validUntil, 'dd MMM yyyy')}">17 Feb 2025</span>
+            <span th:if="${daysUntilExpiry != null}">
+                · <span th:text="${daysUntilExpiry} + ' days left'">21 days left</span>
+            </span>
+        </span>
+    </div>
 
     <!-- Quotation Details: Company & Client Info -->
     <div class="info-section">
@@ -539,11 +640,39 @@
             </div>
         </div>
         <div th:if="${quotation.description != null && !quotation.description.isEmpty()}" style="margin-top: 12px;">
-            <div class="label" style="margin-bottom: 4px;">Description &amp; Inclusions</div>
+            <div class="label" style="margin-bottom: 4px;">Description</div>
             <div class="value" th:text="${quotation.description}">Project description...</div>
         </div>
-        <div class="exclusions-callout">
-            <strong>Standard Exclusions:</strong> Plot cost, statutory approvals (panchayat / municipality / RERA), soil-test report, electricity / water connection charges, design fees, items not explicitly listed above, and changes requested after the design freeze.
+    </div>
+
+    <!-- What's Included / Not Covered — the single most important
+         scope-clarity widget on the document. Pre-empts the customer's
+         "what am I actually paying for?" and the post-handover dispute
+         "you said it was included." -->
+    <div class="scope-clarity">
+        <div class="col included">
+            <div class="col-title">What's Included</div>
+            <ul>
+                <li>All civil structural work as per approved drawings</li>
+                <li>Brick / block masonry, plastering, waterproofing</li>
+                <li>Standard electrical wiring + sanitary fixtures (per BoQ)</li>
+                <li>Internal &amp; external painting (one primer + two finish coats)</li>
+                <li>Doors, windows, grill work as quoted</li>
+                <li>Site supervision and quality checks</li>
+                <li>Material delivery challans, test reports, warranty cards</li>
+            </ul>
+        </div>
+        <div class="col excluded">
+            <div class="col-title">Not Covered</div>
+            <ul>
+                <li>Plot cost &amp; statutory approvals (panchayat / RERA)</li>
+                <li>Soil-test report &amp; design / consultant fees</li>
+                <li>Electricity / water connection charges</li>
+                <li>Interior furniture, soft furnishings, curtains</li>
+                <li>Loose appliances (TV, fridge, washing machine)</li>
+                <li>Landscaping, compound wall, gate (unless quoted)</li>
+                <li>Changes requested after design freeze</li>
+            </ul>
         </div>
     </div>
 
@@ -551,7 +680,7 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th>S. No.</th>
+                <th>#</th>
                 <th>Description</th>
                 <th>Qty</th>
                 <th>Unit Price (&#8377;)</th>
@@ -606,12 +735,9 @@
         <strong>Amount in Words:</strong> <span th:text="${amountInWords}">Rupees One Lakh Thirteen Thousand Only</span>
     </div>
 
-    <!-- Validity Information -->
-    <div class="validity-info" th:if="${quotation.validityDays != null && quotation.createdAt != null}">
-        <strong>Note:</strong> This quotation is valid for <span th:text="${quotation.validityDays}">30</span> days from the date of issue
-        (<span th:text="${#temporals.format(quotation.createdAt, 'dd MMM yyyy')}">18 Jan 2025</span>).
-        Valid until: <span th:text="${validUntil != null ? #temporals.format(validUntil, 'dd MMM yyyy') : ''}">17 Feb 2025</span>
-    </div>
+    <!-- (validity copy now lives as a small pill near the Quotation title;
+         no full-width yellow alert here — it competed with the Amount-in-
+         Words box visually and made every page lead with a warning.) -->
 
     <!-- Payment Milestones — percentages resolved to rupee amounts. -->
     <div class="terms-section">
@@ -674,20 +800,42 @@
         </div>
     </div>
 
-    <!-- Acceptance block — gives the customer a clear next step. -->
+    <!-- Acceptance block — friendly "next step" framing, not legalese.
+         Three reply paths so the customer picks whichever feels easiest:
+         WhatsApp (most Kerala residential), phone, email. The full client +
+         company signature row stays for those who want a printed contract. -->
     <div class="acceptance-block">
-        <div class="heading">Client Acceptance</div>
-        <div>
-            I, <span style="border-bottom: 1px solid #555; padding: 0 28px;" th:text="${lead != null ? lead.name : ''}">&#160;</span>,
-            accept this quotation (<strong th:text="${quotation.quotationNumber}">QUO-XXXX</strong>) and authorise Walldot Builders LLP to commence the work
-            described herein, subject to the conditions above.
+        <div class="heading">Ready to start? Reply YES to confirm.</div>
+        <div style="margin-bottom: 10px;">
+            Confirm quotation <strong th:text="${quotation.quotationNumber}">QUO-XXXX</strong>
+            and we'll begin within 15 days of advance receipt.
+            Reach us via any of the channels below — whichever is most convenient for you.
         </div>
+        <table style="width:100%; border-collapse: collapse; margin: 8px 0 14px 0;">
+            <tr>
+                <td style="width:33%; padding: 8px 6px; vertical-align: top;">
+                    <div style="font-size: 8.5pt; color: #6a7785; text-transform: uppercase; letter-spacing: 0.6px;">WhatsApp / Call</div>
+                    <div style="font-size: 11pt; font-weight: bold; color: #0f172a; margin-top: 2px;"
+                         th:text="${companyPhone != null ? companyPhone : '+91 9074954874'}">+91 9074954874</div>
+                </td>
+                <td style="width:34%; padding: 8px 6px; vertical-align: top; border-left: 1px solid #e2e8f0;">
+                    <div style="font-size: 8.5pt; color: #6a7785; text-transform: uppercase; letter-spacing: 0.6px;">Email</div>
+                    <div style="font-size: 10.5pt; font-weight: bold; color: #0f172a; margin-top: 2px;"
+                         th:text="${companyEmail != null ? companyEmail : 'info@walldotbuilders.com'}">info@walldotbuilders.com</div>
+                </td>
+                <td style="width:33%; padding: 8px 6px; vertical-align: top; border-left: 1px solid #e2e8f0;">
+                    <div style="font-size: 8.5pt; color: #6a7785; text-transform: uppercase; letter-spacing: 0.6px;">Visit</div>
+                    <div style="font-size: 10.5pt; font-weight: bold; color: #0f172a; margin-top: 2px;"
+                         th:text="${companyWebsite != null ? companyWebsite : 'www.walldotbuilders.com'}">www.walldotbuilders.com</div>
+                </td>
+            </tr>
+        </table>
         <div class="acceptance-line">
             <div class="ac-cell">
                 <div class="ac-line">Client Signature &amp; Date</div>
             </div>
             <div class="ac-cell">
-                <div class="ac-line">For Walldot Builders LLP — Authorised Signatory &amp; Date</div>
+                <div class="ac-line">For <span th:text="${companyName}">Walldot Builders LLP</span> — Authorised Signatory &amp; Date</div>
             </div>
         </div>
     </div>

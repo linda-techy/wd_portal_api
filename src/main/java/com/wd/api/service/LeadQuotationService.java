@@ -486,10 +486,17 @@ public class LeadQuotationService {
         // Pre-compute validity expiry date in Java — Thymeleaf SpEL can't reliably
         // call LocalDate.plusDays(Integer) chained with createDateTime/createLocalTime.
         java.time.LocalDate validUntil = null;
+        Long daysUntilExpiry = null;
         if (quotation.getCreatedAt() != null && quotation.getValidityDays() != null) {
             validUntil = quotation.getCreatedAt().toLocalDate().plusDays(quotation.getValidityDays().longValue());
+            // Drive the urgency-pill copy ("X days left") and red-state styling.
+            // Negative values are clamped to zero — an EXPIRED quote still says
+            // "0 days left" rather than a confusing minus-number.
+            long days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), validUntil);
+            daysUntilExpiry = Math.max(0L, days);
         }
         context.setVariable("validUntil", validUntil);
+        context.setVariable("daysUntilExpiry", daysUntilExpiry);
 
         // Pre-format every monetary value using Indian-locale grouping (e.g.
         // 4728200 -> "47,28,200") so the template doesn't need to call
