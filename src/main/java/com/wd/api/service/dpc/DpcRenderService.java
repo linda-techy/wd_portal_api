@@ -185,6 +185,28 @@ public class DpcRenderService {
         return "INR " + formatINR(value);
     }
 
+    /**
+     * Like {@link #formatINR(BigDecimal)} but maps {@code null} to the em-dash
+     * "—" used on the customer-facing PDF for "no value computable". Zero
+     * stays as "0" (a real-but-empty scope is still a valid figure).
+     */
+    public static String formatINROrDash(BigDecimal value) {
+        if (value == null) return "—";
+        return formatINR(value);
+    }
+
+    /**
+     * Format a built-up area value for the customer-facing PDF.
+     *
+     * <p>Both {@code null} and {@code 0} collapse to "—" — when the project
+     * record carries no built-up area we never want to print "0 sqft" on a
+     * handover document (regression: project 47 REV 01).
+     */
+    public static String formatSqftOrDash(BigDecimal value) {
+        if (value == null || value.signum() <= 0) return "—";
+        return formatINR(value.setScale(0, RoundingMode.HALF_UP));
+    }
+
     // ---- View-model builders ----
 
     private Map<String, String> buildFormattedNumbers(DpcDocumentDto dto) {
@@ -194,11 +216,10 @@ public class DpcRenderService {
             fmt.put("totalOriginal", formatINR(s.totalOriginal()));
             fmt.put("totalCustomized", formatINR(s.totalCustomized()));
             fmt.put("totalVariance", formatINR(s.totalVariance()));
-            fmt.put("originalPerSqft", formatINR(s.originalPerSqft()));
-            fmt.put("customizedPerSqft", formatINR(s.customizedPerSqft()));
+            fmt.put("originalPerSqft", formatINROrDash(s.originalPerSqft()));
+            fmt.put("customizedPerSqft", formatINROrDash(s.customizedPerSqft()));
         }
-        fmt.put("sqfeet", dto.sqfeet() != null
-                ? formatINR(dto.sqfeet().setScale(0, RoundingMode.HALF_UP)) : "0");
+        fmt.put("sqfeet", formatSqftOrDash(dto.sqfeet()));
         return fmt;
     }
 
@@ -223,8 +244,8 @@ public class DpcRenderService {
             row.put("originalAmount", formatINR(orig));
             row.put("customizedAmount", formatINR(cust));
             row.put("variance", formatINR(safeSubtract(cust, orig)));
-            row.put("originalPerSqft", formatINR(perSqft(orig, sqft)));
-            row.put("customizedPerSqft", formatINR(perSqft(cust, sqft)));
+            row.put("originalPerSqft", formatINROrDash(perSqft(orig, sqft)));
+            row.put("customizedPerSqft", formatINROrDash(perSqft(cust, sqft)));
 
             // Brands as ordered entry list (keeps template loop simple).
             List<Map<String, String>> brands = new ArrayList<>();
@@ -281,8 +302,8 @@ public class DpcRenderService {
         v.put("totalOriginal", s != null ? formatINR(s.totalOriginal()) : "0");
         v.put("totalCustomized", s != null ? formatINR(s.totalCustomized()) : "0");
         v.put("totalVariance", s != null ? formatINR(s.totalVariance()) : "0");
-        v.put("originalPerSqft", s != null ? formatINR(s.originalPerSqft()) : "0");
-        v.put("customizedPerSqft", s != null ? formatINR(s.customizedPerSqft()) : "0");
+        v.put("originalPerSqft", s != null ? formatINROrDash(s.originalPerSqft()) : "—");
+        v.put("customizedPerSqft", s != null ? formatINROrDash(s.customizedPerSqft()) : "—");
         return v;
     }
 
@@ -324,9 +345,15 @@ public class DpcRenderService {
         return view;
     }
 
+    /**
+     * Compute per-sqft rate. Returns {@code null} (not zero) when the project
+     * has no built-up area on file — callers pair this with
+     * {@link #formatINROrDash(BigDecimal)} so the PDF shows "—" instead of
+     * a misleading "0".
+     */
     private static BigDecimal perSqft(BigDecimal amount, BigDecimal sqft) {
-        if (amount == null || sqft == null || sqft.compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO;
+        if (amount == null || sqft == null || sqft.signum() <= 0) {
+            return null;
         }
         return amount.divide(sqft, 0, RoundingMode.HALF_UP);
     }
