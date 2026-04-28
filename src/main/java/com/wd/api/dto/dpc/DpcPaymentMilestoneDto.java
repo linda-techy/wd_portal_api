@@ -9,8 +9,11 @@ import java.util.List;
 /**
  * DTO for one row of the DPC payment-milestones page.
  *
- * Includes a running cumulative percentage so the renderer can show a
- * "% paid by stage" column without recomputing.
+ * <p>{@code stagePercentage} and {@code cumulativePercentage} are expressed in
+ * <strong>percent units</strong> (e.g. {@code 30.00} represents 30%). The
+ * underlying {@link PaymentStage#getStagePercentage()} stores a decimal
+ * fraction ({@code 0.30}); {@link #fromStages(List)} performs the conversion
+ * so renderers can format the values directly.
  */
 public record DpcPaymentMilestoneDto(
         Integer stageNumber,
@@ -21,9 +24,15 @@ public record DpcPaymentMilestoneDto(
         BigDecimal cumulativePercentage
 ) {
 
+    private static final BigDecimal PERCENT_FACTOR = new BigDecimal("100");
+
     /**
      * Build a milestone list from {@link PaymentStage} entities, ordered by
      * stage_number, with running cumulative percentages.
+     *
+     * <p>Decimal-fraction stage percentages from the entity (e.g. {@code 0.30})
+     * are converted to percent units (e.g. {@code 30.00}) here so downstream
+     * renderers don't re-implement the conversion.
      *
      * @param stages stages already ordered by stage_number ascending
      * @return milestone DTOs (never null; empty if input is null/empty)
@@ -32,17 +41,17 @@ public record DpcPaymentMilestoneDto(
         if (stages == null || stages.isEmpty()) return List.of();
 
         List<DpcPaymentMilestoneDto> result = new ArrayList<>(stages.size());
-        BigDecimal cumulative = BigDecimal.ZERO;
+        BigDecimal cumulativeFraction = BigDecimal.ZERO;
         for (PaymentStage s : stages) {
-            BigDecimal pct = s.getStagePercentage() != null ? s.getStagePercentage() : BigDecimal.ZERO;
-            cumulative = cumulative.add(pct);
+            BigDecimal fraction = s.getStagePercentage() != null ? s.getStagePercentage() : BigDecimal.ZERO;
+            cumulativeFraction = cumulativeFraction.add(fraction);
             result.add(new DpcPaymentMilestoneDto(
                     s.getStageNumber(),
                     s.getStageName(),
-                    s.getStagePercentage(),
+                    fraction.multiply(PERCENT_FACTOR),
                     s.getStageAmountInclGst(),
                     s.getMilestoneDescription(),
-                    cumulative
+                    cumulativeFraction.multiply(PERCENT_FACTOR)
             ));
         }
         return result;
