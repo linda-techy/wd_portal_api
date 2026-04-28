@@ -89,6 +89,17 @@ public class LeadQuotation {
     private String notes;
 
     /**
+     * Lead name carried on the response so the Flutter list card can show
+     * the customer's name instead of leaking the internal {@code leadId}
+     * (regression: {@code "Lead ID: 47"} on every card). Populated by the
+     * service layer in batch after the page query so we don't add an
+     * N+1 lookup or a JPA association on the entity. Not persisted —
+     * {@code @Transient} keeps it out of the schema.
+     */
+    @Transient
+    private String leadName;
+
+    /**
      * Lazy-loaded quotation items - excluded from JSON serialization to prevent lazy-loading proxy issues
      * Use explicit item loading in service layer if items are needed in responses
      */
@@ -271,6 +282,14 @@ public class LeadQuotation {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getLeadName() {
+        return leadName;
+    }
+
+    public void setLeadName(String leadName) {
+        this.leadName = leadName;
     }
 
     public List<LeadQuotationItem> getItems() {

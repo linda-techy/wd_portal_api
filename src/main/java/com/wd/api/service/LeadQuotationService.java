@@ -70,7 +70,33 @@ public class LeadQuotationService {
     @Transactional(readOnly = true)
     public Page<LeadQuotation> searchLeadQuotations(LeadQuotationSearchFilter filter) {
         Specification<LeadQuotation> spec = buildSpecification(filter);
-        return quotationRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()));
+        Page<LeadQuotation> page = quotationRepository.findAll(spec, Objects.requireNonNull(filter.toPageable()));
+        enrichWithLeadNames(page.getContent());
+        return page;
+    }
+
+    /**
+     * Batch-populate {@code leadName} on each quotation in the list. Single
+     * {@code IN (...)} lookup against the lead table avoids N+1, and the
+     * field is {@code @Transient} so it costs nothing on persist. Quietly
+     * tolerates missing leads — leadName stays null for orphan quotations.
+     */
+    private void enrichWithLeadNames(List<LeadQuotation> quotations) {
+        if (quotations == null || quotations.isEmpty()) return;
+        java.util.Set<Long> leadIds = new java.util.HashSet<>();
+        for (LeadQuotation q : quotations) {
+            if (q.getLeadId() != null) leadIds.add(q.getLeadId());
+        }
+        if (leadIds.isEmpty()) return;
+        java.util.Map<Long, String> nameByLeadId = new java.util.HashMap<>();
+        for (Lead lead : leadRepository.findAllById(leadIds)) {
+            nameByLeadId.put(lead.getId(), lead.getName());
+        }
+        for (LeadQuotation q : quotations) {
+            if (q.getLeadId() != null) {
+                q.setLeadName(nameByLeadId.get(q.getLeadId()));
+            }
+        }
     }
 
     private Specification<LeadQuotation> buildSpecification(LeadQuotationSearchFilter filter) {
@@ -665,14 +691,17 @@ public class LeadQuotationService {
             context.setVariable("perSqftDisplay", null);
         }
 
-        // Resolve the standard payment milestones to rupee amounts so customers
-        // can budget cash flow concretely instead of doing percent math.
-        List<Map<String, String>> milestones = new ArrayList<>();
-        milestones.add(milestoneRow("Advance on acceptance",      "30%", finalAmount, new BigDecimal("0.30")));
-        milestones.add(milestoneRow("Foundation completion",      "40%", finalAmount, new BigDecimal("0.40")));
-        milestones.add(milestoneRow("Structure completion",       "25%", finalAmount, new BigDecimal("0.25")));
-        milestones.add(milestoneRow("Final handover",             "5%",  finalAmount, new BigDecimal("0.05")));
-        context.setVariable("milestones", milestones);
+        // Resolve the payment milestones to rupee amounts. Schedule shape
+        // varies by project type — a ₹40L interior fitout shouldn't ride on
+        // the same 30/40/25/5 cashflow as a ₹3 cr villa. Earlier audit
+        // flagged the hardcoded waterfall as a trust killer; the per-type
+        // map below resolves that, with a sensible default for unknown
+        // types so we never crash on legacy or unmapped leads.
+        String projectType = (lead != null && lead.getProjectType() != null)
+                ? lead.getProjectType().toUpperCase(Locale.ROOT)
+                : "DEFAULT";
+        context.setVariable("milestones",
+                resolveMilestonesForProjectType(projectType, finalAmount));
 
         // Company registration + bank details (driven by application.yml /
         // CompanyInfoConfig — empty values are safely hidden by the template).
@@ -716,6 +745,88 @@ public class LeadQuotationService {
         BigDecimal amount = finalAmount.multiply(pct).setScale(0, java.math.RoundingMode.HALF_UP);
         row.put("amountDisplay", DpcRenderService.formatINR(amount));
         return row;
+    }
+
+    /**
+     * One milestone in a payment schedule template. Pure value; values are
+     * stable so the schedule resolves deterministically from project type.
+     */
+    private static final class MilestoneSpec {
+        final String label;
+        final String pctLabel;
+        final BigDecimal pct;
+        MilestoneSpec(String label, String pctLabel, BigDecimal pct) {
+            this.label = label;
+            this.pctLabel = pctLabel;
+            this.pct = pct;
+        }
+    }
+
+    /**
+     * Payment-schedule templates keyed by {@code Lead.projectType} (upper-cased).
+     * Each template's percentages must sum to 1.00 — the unit test asserts this.
+     *
+     * <ul>
+     *   <li>RESIDENTIAL — softer 20% advance for Kerala small-residential
+     *       (less aggressive than the old 30%).</li>
+     *   <li>VILLA       — same as residential but with a heavier finishing
+     *       weight, since villas spend more on joinery / wall finishes.</li>
+     *   <li>COMMERCIAL  — closer to the old waterfall; commercial customers
+     *       expect a 30% mobilisation advance.</li>
+     *   <li>INTERIOR    — front-loaded; interior fitouts spend most on
+     *       material procurement before site work.</li>
+     *   <li>TURNKEY     — balanced, matches typical turnkey contracts.</li>
+     *   <li>DEFAULT     — preserved 30/40/25/5 so existing demo data stays
+     *       arithmetically consistent with V28 seed.</li>
+     * </ul>
+     */
+    private static final Map<String, List<MilestoneSpec>> MILESTONE_TEMPLATES = Map.of(
+            "RESIDENTIAL", List.of(
+                    new MilestoneSpec("Advance on acceptance",  "20%", new BigDecimal("0.20")),
+                    new MilestoneSpec("Foundation completion",  "40%", new BigDecimal("0.40")),
+                    new MilestoneSpec("Structure completion",   "30%", new BigDecimal("0.30")),
+                    new MilestoneSpec("Final handover",         "10%", new BigDecimal("0.10"))),
+            "VILLA", List.of(
+                    new MilestoneSpec("Advance on acceptance",  "20%", new BigDecimal("0.20")),
+                    new MilestoneSpec("Foundation completion",  "30%", new BigDecimal("0.30")),
+                    new MilestoneSpec("Structure completion",   "30%", new BigDecimal("0.30")),
+                    new MilestoneSpec("Finishing & handover",   "20%", new BigDecimal("0.20"))),
+            "COMMERCIAL", List.of(
+                    new MilestoneSpec("Advance on acceptance",  "30%", new BigDecimal("0.30")),
+                    new MilestoneSpec("Foundation completion",  "40%", new BigDecimal("0.40")),
+                    new MilestoneSpec("Structure completion",   "25%", new BigDecimal("0.25")),
+                    new MilestoneSpec("Final handover",         "5%",  new BigDecimal("0.05"))),
+            "INTERIOR", List.of(
+                    new MilestoneSpec("Material procurement",   "40%", new BigDecimal("0.40")),
+                    new MilestoneSpec("Carcass installation",   "40%", new BigDecimal("0.40")),
+                    new MilestoneSpec("Snag-list & handover",   "20%", new BigDecimal("0.20"))),
+            "TURNKEY", List.of(
+                    new MilestoneSpec("Advance on acceptance",  "25%", new BigDecimal("0.25")),
+                    new MilestoneSpec("Foundation completion",  "35%", new BigDecimal("0.35")),
+                    new MilestoneSpec("Structure completion",   "30%", new BigDecimal("0.30")),
+                    new MilestoneSpec("Final handover",         "10%", new BigDecimal("0.10"))),
+            "DEFAULT", List.of(
+                    new MilestoneSpec("Advance on acceptance",  "30%", new BigDecimal("0.30")),
+                    new MilestoneSpec("Foundation completion",  "40%", new BigDecimal("0.40")),
+                    new MilestoneSpec("Structure completion",   "25%", new BigDecimal("0.25")),
+                    new MilestoneSpec("Final handover",         "5%",  new BigDecimal("0.05")))
+    );
+
+    /**
+     * Resolve and render the payment-milestone rows for a given project type.
+     * Falls back to {@code DEFAULT} when the type is missing or unmapped.
+     * Package-private so unit tests can drive the lookup directly.
+     */
+    static List<Map<String, String>> resolveMilestonesForProjectType(
+            String projectType, BigDecimal finalAmount) {
+        List<MilestoneSpec> specs = MILESTONE_TEMPLATES.getOrDefault(
+                projectType != null ? projectType.toUpperCase(Locale.ROOT) : "DEFAULT",
+                MILESTONE_TEMPLATES.get("DEFAULT"));
+        List<Map<String, String>> out = new ArrayList<>(specs.size());
+        for (MilestoneSpec s : specs) {
+            out.add(milestoneRow(s.label, s.pctLabel, finalAmount, s.pct));
+        }
+        return out;
     }
 
     /** Open a classpath font resource as an InputStream — wraps the checked
