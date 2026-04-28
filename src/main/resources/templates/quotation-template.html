@@ -12,7 +12,148 @@
             color: #2b2b2b;
             line-height: 1.55;
             margin: 0;
-            padding: 0;
+            /* Reserve room at the bottom of every page so flow content
+               doesn't collide with the fixed bottom decoration / contact
+               strip used by SQFT_RATE. Harmless for LINE_ITEM where those
+               elements aren't rendered. */
+            padding: 0 0 18mm 0;
+        }
+
+        /* ============================================================
+           Walldot brand decorations — SQFT_RATE customer-facing PDF.
+           Re-creates the visual identity from the original paper
+           quotation: navy banner with a red swoop at top-right, a
+           red sweeping curve in the bottom-left, and a contact strip
+           in the bottom-right with small icons.
+           openhtmltopdf does not honor CSS gradients or clip-path
+           reliably; SVG with M/L/Q/Z paths is the safe primitive.
+           ============================================================ */
+
+        /* Top banner — full-width, decorative only. Sits inside the
+           @page content area to avoid bleed-clipping. The logo block
+           overlaps the banner via absolute positioning so the brand
+           mark "lives" inside the navy area, mirroring the original. */
+        .walldot-top-banner {
+            position: relative;
+            width: 100%;
+            height: 22mm;
+            margin: -2mm 0 8mm 0;
+            page-break-after: avoid;
+        }
+        .walldot-top-banner .deco-svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .walldot-top-banner .corner-logo {
+            position: absolute;
+            top: 4mm;
+            right: 6mm;
+            display: table;
+        }
+        .walldot-top-banner .corner-logo .logo-img {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .walldot-top-banner .corner-logo .logo-img img {
+            width: 26px;
+            height: 26px;
+            display: block;
+        }
+        .walldot-top-banner .corner-logo .logo-text {
+            display: table-cell;
+            vertical-align: middle;
+            padding-left: 8px;
+            line-height: 1.05;
+        }
+        .walldot-top-banner .corner-logo .logo-text .brand {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+        .walldot-top-banner .corner-logo .logo-text .sub {
+            font-size: 9pt;
+            color: #ffffff;
+            opacity: 0.9;
+            letter-spacing: 0.5px;
+        }
+
+        /* Bottom decoration + contact strip — fixed position so it
+           repeats on every page. Red sweep on the left, contact rows
+           on the right. */
+        .walldot-bottom-deco {
+            position: fixed;
+            bottom: -10mm;
+            left: -10mm;
+            width: 80mm;
+            height: 24mm;
+            z-index: 0;
+        }
+        .walldot-bottom-deco svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .walldot-bottom-contacts {
+            position: fixed;
+            bottom: 2mm;
+            right: 0;
+            width: 90mm;
+            font-size: 8.5pt;
+            color: #475569;
+            text-align: right;
+            line-height: 1.55;
+            z-index: 1;
+        }
+        .walldot-bottom-contacts .row {
+            display: block;
+            padding: 1px 0;
+        }
+        .walldot-bottom-contacts .row .icon {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 4px;
+            vertical-align: -2px;
+        }
+
+        /* Walldot title + ref row — used in SQFT_RATE mode in place
+           of the big LINE_ITEM `.header` block. */
+        .walldot-ref-row {
+            display: table;
+            width: 100%;
+            font-size: 9.5pt;
+            color: #1a3a5c;
+            margin-bottom: 14px;
+            margin-top: 2mm;
+        }
+        .walldot-ref-row .ref { display: table-cell; text-align: left; }
+        .walldot-ref-row .date { display: table-cell; text-align: right; }
+        .walldot-title {
+            text-align: center;
+            font-size: 16pt;
+            font-weight: bold;
+            color: #0f172a;
+            text-decoration: underline;
+            margin: 12px 0 8px 0;
+            line-height: 1.3;
+        }
+        .walldot-validity {
+            font-size: 9.5pt;
+            color: #334155;
+            margin: 0 0 16px 0;
+            line-height: 1.55;
+        }
+        /* Brand "dot" — the small red square Walldot uses as a period
+           accent after section titles. Inline element. */
+        .brand-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: #DC2626;
+            margin-left: 2px;
+            vertical-align: 2px;
         }
         /* openhtmltopdf does not render CSS gradients — use a flat background
            plus a thick red border underneath for the brand "stripe" look.
@@ -549,8 +690,119 @@
     <!-- DRAFT watermark — only renders when the quotation hasn't been sent yet. -->
     <div th:if="${quotation.status == 'DRAFT'}" class="draft-watermark">DRAFT</div>
 
-    <!-- Header: Company Logo and Info -->
-    <div class="header">
+    <!-- ============================================================
+         Per-page bottom decoration + contact strip — SQFT_RATE only.
+         position: fixed makes openhtmltopdf repeat these on every
+         rendered page, mirroring the paper original where the red
+         curve + contacts appear in the same place across pages.
+         ============================================================ -->
+    <div th:if="${isSqftRate}" class="walldot-bottom-deco" aria-hidden="true">
+        <svg viewBox="0 0 240 120" preserveAspectRatio="none"
+             xmlns="http://www.w3.org/2000/svg">
+            <!-- Sweeping red curve from bottom-left, gentle quadratic. -->
+            <path fill="#DC2626"
+                  d="M 0,120 L 0,40 Q 80,0 240,80 L 240,120 Z" />
+        </svg>
+    </div>
+    <div th:if="${isSqftRate}" class="walldot-bottom-contacts" aria-hidden="true">
+        <div class="row" th:if="${companyWebsite != null}">
+            <span class="icon"><svg viewBox="0 0 12 12"
+                xmlns="http://www.w3.org/2000/svg"><circle cx="6" cy="6" r="5"
+                fill="none" stroke="#DC2626" stroke-width="1.2"/><path
+                d="M 1,6 L 11,6 M 6,1 Q 9,6 6,11 Q 3,6 6,1"
+                fill="none" stroke="#DC2626" stroke-width="1"/></svg></span>
+            <span th:text="${companyWebsite}">www.walldotbuilders.com</span>
+        </div>
+        <div class="row" th:if="${companyEmail != null}">
+            <span class="icon"><svg viewBox="0 0 12 12"
+                xmlns="http://www.w3.org/2000/svg"><rect x="0.5" y="2"
+                width="11" height="8" fill="none" stroke="#DC2626"
+                stroke-width="1.2"/><path d="M 0.5,2 L 6,7 L 11.5,2"
+                fill="none" stroke="#DC2626" stroke-width="1"/></svg></span>
+            <span th:text="${companyEmail}">info@walldotbuilders.com</span>
+        </div>
+        <div class="row" th:if="${companyPhone != null}">
+            <span class="icon"><svg viewBox="0 0 12 12"
+                xmlns="http://www.w3.org/2000/svg"><path
+                d="M 2,1 L 4,1 L 5,4 L 4,5 Q 6,8 7,9 L 8,8 L 11,9 L 11,11 Q 6,11 2,7 Q 1,3 2,1 Z"
+                fill="#DC2626"/></svg></span>
+            <span th:text="${companyPhone}">+91 90749 54804</span>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SQFT_RATE — Walldot brand layout: top banner with logo at
+         right, slim ref/date row, underlined title, validity prose.
+         Mirrors the visual identity of the actual paper quotation.
+         ============================================================ -->
+    <div th:if="${isSqftRate}" class="walldot-top-banner">
+        <!-- Decoration: navy fill + red swoop from upper-right.
+             SVG paths only (Q quadratic curves) — no gradients,
+             no clip-path; openhtmltopdf-safe primitives. -->
+        <svg class="deco-svg" viewBox="0 0 595 88" preserveAspectRatio="none"
+             xmlns="http://www.w3.org/2000/svg">
+            <!-- Navy base with curved bottom edge (concave dip in centre). -->
+            <path fill="#0f172a"
+                  d="M 0,0 L 595,0 L 595,68 Q 297.5,92 0,68 Z" />
+            <!-- Red swoop sweeping in from the upper-right corner. -->
+            <path fill="#DC2626"
+                  d="M 595,0 L 320,0 Q 460,28 595,52 Z" />
+        </svg>
+        <!-- Logo + brand wordmark, positioned over the banner. -->
+        <div class="corner-logo">
+            <div class="logo-img">
+                <img th:if="${companyLogoDataUri != null}"
+                     th:src="${companyLogoDataUri}" alt="Logo" />
+            </div>
+            <div class="logo-text">
+                <div class="brand" th:text="${companyName != null and companyName.contains(' ')
+                        ? #strings.substringBefore(companyName, ' ') : companyName}">Walldot</div>
+                <div class="sub" th:text="${companyName != null and companyName.contains(' ')
+                        ? #strings.substringAfter(companyName, ' ') : 'Builders'}">Builders</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Walldot ref/date row — slim, sits right under the banner.
+         Format mirrors the paper original: ref left, date right. -->
+    <div th:if="${isSqftRate}" class="walldot-ref-row">
+        <div class="ref">
+            Ref. No: <strong th:text="${quotation.quotationNumber}">2026/02/04/A6</strong>
+        </div>
+        <div class="date">
+            Date:
+            <strong th:text="${quotation.createdAt != null ?
+                    #temporals.format(quotation.createdAt, 'dd-MM-yyyy') : ''}">04-02-2026</strong>
+        </div>
+    </div>
+
+    <!-- Walldot title — "Work Quotation for [Type] Building".
+         Centred, bold, underlined per the paper format. -->
+    <div th:if="${isSqftRate}" class="walldot-title">
+        Work Quotation for<br/>
+        <span th:text="${lead != null and lead.projectType != null
+                ? lead.projectType + ' Building' : 'Residential Building'}">Residential Building</span>
+    </div>
+
+    <!-- Walldot validity statement — full sentence in body voice,
+         not a pill. Names the parties + the validity window. -->
+    <div th:if="${isSqftRate}" class="walldot-validity">
+        This quotation is only valid between
+        <strong th:text="${lead != null ? lead.name : 'the client'}">the client</strong><span
+            th:if="${lead != null and lead.district != null}">, <span th:text="${lead.district}">district</span></span>
+        and
+        <strong th:text="${companyName}">Walldot Builders</strong>,
+        <span th:text="${companyCity}">Thrissur</span>.
+        The quotation is valid only for
+        <strong>
+            <span th:text="${quotation.validityDays != null
+                    ? quotation.validityDays / 30 : 1}">1</span>
+            month<span th:if="${quotation.validityDays != null and quotation.validityDays > 30}">s</span></strong>.
+    </div>
+
+    <!-- LINE_ITEM mode keeps the original navy header / centred title /
+         pill validity treatment unchanged. -->
+    <div th:unless="${isSqftRate}" class="header">
         <img th:if="${companyLogoDataUri != null}"
              th:src="${companyLogoDataUri}"
              class="company-logo"
@@ -571,12 +823,11 @@
             <div th:if="${companyWebsite != null}" th:text="${companyWebsite}">www.walldotbuilders.com</div>
         </div>
     </div>
-    <div class="document-title-band">Quotation</div>
+    <div th:unless="${isSqftRate}" class="document-title-band">Quotation</div>
 
-    <!-- Validity countdown — replaces the old full-width yellow callout.
-         Renders as a small pill so the document doesn't lead with a warning;
-         turns red within 7 days of expiry to drive urgency. -->
-    <div th:if="${validUntil != null}" style="text-align: center;">
+    <!-- Validity countdown pill — LINE_ITEM only. SQFT_RATE uses the
+         prose validity statement above. -->
+    <div th:if="${!isSqftRate and validUntil != null}" style="text-align: center;">
         <span class="validity-pill"
               th:classappend="${daysUntilExpiry != null and daysUntilExpiry <= 7} ? ' urgent'">
             Valid until
