@@ -1,6 +1,7 @@
 package com.wd.api.service.dpc;
 
 import com.wd.api.dto.dpc.DpcDocumentDto;
+import com.wd.api.dto.dpc.DpcMasterCostSummaryDto;
 import com.wd.api.model.Document;
 import com.wd.api.model.DocumentCategory;
 import com.wd.api.repository.DocumentCategoryRepository;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -72,6 +74,19 @@ public class DpcIssueService {
         DpcDocumentDto dto = dpcDocumentService.getById(dpcDocumentId);
         if (dto.projectId() == null) {
             throw new IllegalStateException("DPC " + dpcDocumentId + " has no project — cannot issue");
+        }
+
+        // 1b. Refuse to issue a customer-facing artifact whose customized total
+        //     rolls up to zero — the resulting PDF would print "INR 0" across
+        //     every scope. Always indicates the BoQ items are not mapped to
+        //     scope categories or the project has no items at all. The fix is
+        //     in the BoQ data, not in the issued document.
+        DpcMasterCostSummaryDto summary = dto.masterCostSummary();
+        BigDecimal customized = summary != null ? summary.totalCustomized() : null;
+        if (customized == null || customized.signum() <= 0) {
+            throw new IllegalStateException(
+                    "DPC " + dpcDocumentId + " has zero customized total — verify that the "
+                            + "BoQ has approved items mapped to scope categories before issuing.");
         }
 
         // 2. Render PDF.
