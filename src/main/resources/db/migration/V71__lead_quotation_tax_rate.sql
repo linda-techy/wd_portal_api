@@ -28,7 +28,11 @@ ALTER TABLE lead_quotations
 -- Backfill: existing rows keep NULL (= "manual tax_amount honored unchanged").
 -- No UPDATE statement here — that's intentional.
 
+-- Postgres COMMENT IS expects a string *constant*, not an expression —
+-- `||` is not allowed here. Use adjacent-literal concatenation across
+-- newlines (the SQL standard "string-literal continuation" syntax)
+-- which the parser treats as a single concatenated string.
 COMMENT ON COLUMN lead_quotations.tax_rate_percent IS
     'Tax rate as percent (e.g. 18.00 = 18% GST). NULL = legacy manual mode: '
-    || 'tax_amount is used as-is. When set, service auto-computes '
-    || 'tax_amount = (total_amount − discount_amount) × tax_rate_percent / 100.';
+    'tax_amount is used as-is. When set, service auto-computes '
+    'tax_amount = (total_amount − discount_amount) × tax_rate_percent / 100.';

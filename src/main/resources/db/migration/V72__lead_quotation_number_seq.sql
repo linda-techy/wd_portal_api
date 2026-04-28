@@ -27,6 +27,7 @@ BEGIN
     PERFORM setval('lead_quotation_number_seq', next_start, false);
 END $$;
 
+-- Adjacent-literal continuation (no `||` — that's an expression, not a constant).
 COMMENT ON SEQUENCE lead_quotation_number_seq IS
     'Atomic counter for the suffix of LeadQuotation.quotationNumber. '
-    || 'Replaces the racy count(*)+1 strategy.';
+    'Replaces the racy count(*)+1 strategy.';

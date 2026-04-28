@@ -11,8 +11,11 @@
 -- `findAll` / `findById` query auto-filters deleted_at IS NULL.
 -- ===========================================================================
 
+-- Idempotent: Hibernate auto-DDL may have already added this column on
+-- a prior app boot once the entity field was declared. IF NOT EXISTS
+-- lets the migration re-run cleanly against either state.
 ALTER TABLE lead_quotations
-    ADD COLUMN deleted_at TIMESTAMP;
+    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 
 -- Partial index — only non-deleted rows participate in normal lookups.
 -- Cheap and a no-op while no rows are deleted.
@@ -20,7 +23,8 @@ CREATE INDEX IF NOT EXISTS idx_lead_quotations_active
     ON lead_quotations(id)
     WHERE deleted_at IS NULL;
 
+-- Adjacent-literal continuation (no `||`; expressions aren't valid in COMMENT IS).
 COMMENT ON COLUMN lead_quotations.deleted_at IS
     'Soft-delete tombstone. NULL = live row. Set by @SQLDelete on '
-    || 'LeadQuotation; reset to NULL by LeadQuotationService.restoreQuotation '
-    || 'within the Undo window (Flutter snackbar, 5s).';
+    'LeadQuotation; reset to NULL by LeadQuotationService.restoreQuotation '
+    'within the Undo window (Flutter snackbar, 5s).';
