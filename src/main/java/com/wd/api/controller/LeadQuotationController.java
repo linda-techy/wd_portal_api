@@ -265,6 +265,37 @@ public class LeadQuotationController {
     }
 
     /**
+     * Pipeline summary — feeds the Flutter list-screen hero card.
+     * Open count + value (DRAFT/SENT/VIEWED), accepted count + value over a
+     * 90-day window, win rate, and average close days.
+     */
+    @GetMapping("/pipeline-summary")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<com.wd.api.dto.quotation.PipelineSummaryResponse> getPipelineSummary() {
+        return ResponseEntity.ok(quotationService.getPipelineSummary());
+    }
+
+    /**
+     * Duplicate an existing quotation as a fresh DRAFT — copies header,
+     * pricing knobs, and items. The most-requested missing CRM action.
+     */
+    @PostMapping("/{id}/duplicate")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'LEAD_CREATE')")
+    public ResponseEntity<?> duplicateQuotation(@PathVariable Long id, Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            com.wd.api.model.PortalUser user = portalUserRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("Portal User not found"));
+            LeadQuotation copy = quotationService.duplicateQuotation(id, user.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(copy);
+        } catch (RuntimeException e) {
+            logger.error("Failed to duplicate quotation {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
      * Download quotation PDF for client presentation
      */
     @GetMapping("/{id}/pdf")

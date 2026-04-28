@@ -35,6 +35,22 @@ public interface LeadQuotationRepository extends JpaRepository<LeadQuotation, Lo
     Long nextQuotationSequenceValue();
 
     /**
+     * One-shot fetch of the rows the pipeline-summary aggregator cares about:
+     * everything currently open, plus everything that closed (accepted or
+     * rejected) in the last 90 days. Service composes the per-bucket
+     * aggregates in Java rather than running 4 separate vendor-specific
+     * SQL queries — at residential-builder scale (low thousands of rows
+     * over 90 days) this is comfortably fast.
+     *
+     * @return tuples of {@code [status, finalAmount, sentAt, respondedAt]}
+     */
+    @Query("SELECT q.status, q.finalAmount, q.sentAt, q.respondedAt "
+            + "FROM LeadQuotation q "
+            + "WHERE q.status IN ('DRAFT', 'SENT', 'VIEWED') "
+            + "   OR (q.respondedAt IS NOT NULL AND q.respondedAt > :since)")
+    List<Object[]> pipelineRowsSince(@Param("since") java.time.LocalDateTime since);
+
+    /**
      * Mark every {@code SENT} or {@code VIEWED} quotation whose validity
      * window has elapsed ({@code created_at + validity_days < now()}) as
      * {@code EXPIRED}. Run by the scheduled

@@ -357,6 +357,101 @@ public class LeadQuotationService {
     }
 
     /**
+     * Aggregate summary stats for the pipeline hero card. Open = DRAFT /
+     * SENT / VIEWED (still actionable). Accepted/rejected counts and win
+     * rate are computed over a 90-day rolling window so the dashboard
+     * reflects the current quarter rather than the full archive.
+     */
+    @Transactional(readOnly = true)
+    public com.wd.api.dto.quotation.PipelineSummaryResponse getPipelineSummary() {
+        java.time.LocalDateTime since = java.time.LocalDateTime.now().minusDays(90);
+        List<Object[]> rows = quotationRepository.pipelineRowsSince(since);
+
+        long openCount = 0;
+        BigDecimal openValue = BigDecimal.ZERO;
+        long acceptedCount = 0;
+        BigDecimal acceptedValue = BigDecimal.ZERO;
+        long rejectedCount = 0;
+        long totalCloseDays = 0;
+        int closeSamples = 0;
+
+        for (Object[] row : rows) {
+            String status = (String) row[0];
+            BigDecimal finalAmount = (BigDecimal) row[1];
+            java.time.LocalDateTime sentAt = (java.time.LocalDateTime) row[2];
+            java.time.LocalDateTime respondedAt = (java.time.LocalDateTime) row[3];
+
+            if ("DRAFT".equals(status) || "SENT".equals(status) || "VIEWED".equals(status)) {
+                openCount++;
+                if (finalAmount != null) openValue = openValue.add(finalAmount);
+            } else if ("ACCEPTED".equals(status)) {
+                acceptedCount++;
+                if (finalAmount != null) acceptedValue = acceptedValue.add(finalAmount);
+                if (sentAt != null && respondedAt != null) {
+                    totalCloseDays += java.time.temporal.ChronoUnit.DAYS.between(sentAt, respondedAt);
+                    closeSamples++;
+                }
+            } else if ("REJECTED".equals(status)) {
+                rejectedCount++;
+            }
+        }
+
+        long closedTotal = acceptedCount + rejectedCount;
+        double winRate = closedTotal > 0 ? (acceptedCount * 100.0) / closedTotal : 0.0;
+        Double avgCloseDays = closeSamples > 0 ? (double) totalCloseDays / closeSamples : null;
+
+        return new com.wd.api.dto.quotation.PipelineSummaryResponse(
+                openCount, openValue, acceptedCount, acceptedValue, winRate, avgCloseDays);
+    }
+
+    /**
+     * Duplicate an existing quotation as a fresh DRAFT — copies header,
+     * pricing knobs, and items (including catalog FKs); resets identifiers,
+     * status, and lifecycle timestamps. The most-requested missing CRM
+     * action: re-quoting a similar villa for a new lead, or revising after
+     * a customer-led scope change.
+     *
+     * <p>Quotation number is generated fresh; title gets a " (Copy)" suffix
+     * so the user notices the duplicate in the list before they edit it.
+     */
+    @Transactional
+    public LeadQuotation duplicateQuotation(Long sourceId, Long currentUserId) {
+        LeadQuotation src = quotationRepository.findByIdWithItems(sourceId)
+                .orElseThrow(() -> new RuntimeException("Quotation not found: " + sourceId));
+
+        LeadQuotation copy = new LeadQuotation();
+        copy.setLeadId(src.getLeadId());
+        copy.setQuotationNumber(generateQuotationNumber());
+        copy.setVersion(1);
+        copy.setTitle((src.getTitle() != null ? src.getTitle() : "Quotation") + " (Copy)");
+        copy.setDescription(src.getDescription());
+        copy.setValidityDays(src.getValidityDays());
+        copy.setTaxRatePercent(src.getTaxRatePercent());
+        copy.setDiscountAmount(src.getDiscountAmount());
+        copy.setNotes(src.getNotes());
+        copy.setStatus("DRAFT");
+        copy.setCreatedById(currentUserId);
+
+        // Items — fresh rows, but preserve catalog-FK and content. Catalog
+        // promotion source-of-truth stays the original quotation; the copy
+        // is a fresh consumer of the same catalog rows.
+        for (LeadQuotationItem srcItem : src.getItems()) {
+            LeadQuotationItem newItem = new LeadQuotationItem();
+            newItem.setItemNumber(srcItem.getItemNumber());
+            newItem.setDescription(srcItem.getDescription());
+            newItem.setQuantity(srcItem.getQuantity());
+            newItem.setUnitPrice(srcItem.getUnitPrice());
+            newItem.setTotalPrice(srcItem.getTotalPrice());
+            newItem.setNotes(srcItem.getNotes());
+            newItem.setCatalogItem(srcItem.getCatalogItem());
+            copy.addItem(newItem);
+        }
+
+        calculateTotals(copy);
+        return quotationRepository.save(copy);
+    }
+
+    /**
      * Generate a unique, race-safe quotation number using the
      * {@code lead_quotation_number_seq} Postgres sequence (V72).
      *
