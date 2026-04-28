@@ -30,11 +30,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -517,11 +521,35 @@ public class LeadQuotationService {
         // Suppress duplicate "Subtotal == Final" row when no tax/discount applies.
         context.setVariable("hasAdjustments", tax.signum() > 0 || discount.signum() > 0);
 
-        // GST stance — explicit so customers know whether 18% is added on top.
-        // Template branches: if tax > 0 we show the line; otherwise we show the
-        // "GST extra at 18%" notice with the would-be rupee amount.
-        BigDecimal gstAt18 = subtotal.multiply(new BigDecimal("0.18"));
-        context.setVariable("gstNoticeDisplay", DpcRenderService.formatINR(gstAt18));
+        // Tax label and GST notice — driven by the quotation's actual
+        // taxRatePercent so the PDF reflects the configured rate (no more
+        // hardcoded "CGST 9% + SGST 9%"). When rate is null the quotation is
+        // in legacy manual-tax mode; the label collapses to a generic "Tax".
+        BigDecimal taxRate = quotation.getTaxRatePercent();
+        String rateLabel;          // "GST (18%)" or "Tax"
+        String gstNoticeRateLabel; // "GST extra at 18%" or null when rate unset
+        BigDecimal gstAtRate;
+        if (taxRate != null) {
+            String rateStr = taxRate.stripTrailingZeros().toPlainString();
+            rateLabel = "GST (" + rateStr + "%)";
+            gstNoticeRateLabel = "GST extra at " + rateStr + "%";
+            BigDecimal discountedBase = subtotal.subtract(discount).max(BigDecimal.ZERO);
+            gstAtRate = discountedBase.multiply(taxRate)
+                    .divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+        } else {
+            rateLabel = "Tax";
+            gstNoticeRateLabel = null;
+            gstAtRate = BigDecimal.ZERO;
+        }
+        context.setVariable("taxRateLabel", rateLabel);
+        context.setVariable("gstNoticeRateLabel", gstNoticeRateLabel);
+        context.setVariable("gstNoticeDisplay", DpcRenderService.formatINR(gstAtRate));
+
+        // Optional company logo — rendered above the company name in the
+        // PDF header. Resolved to a data URI so openhtmltopdf can embed it
+        // without needing a network or filesystem lookup at render time.
+        // Absent / unreadable file → null → template skips the <img>.
+        context.setVariable("companyLogoDataUri", resolveCompanyLogoDataUri());
 
         // Per-sqft rate when the lead carries a built-up area — Kerala's most
         // discussed residential metric.
@@ -596,5 +624,49 @@ public class LeadQuotationService {
         } catch (IOException e) {
             throw new RuntimeException("Quotation font missing on classpath: " + classPathResource, e);
         }
+    }
+
+    /**
+     * Load the configured company logo and return it as a data URI suitable
+     * for an HTML {@code <img src=...>}. Returns {@code null} if the path is
+     * unset or the file cannot be read — the template treats absence as
+     * "render header without logo" rather than failing the PDF.
+     *
+     * <p>Accepts either {@code classpath:branding/foo.png} (resource bundled
+     * with the JAR) or an absolute filesystem path.
+     */
+    private String resolveCompanyLogoDataUri() {
+        String configured = companyInfoConfig.getLogoPath();
+        if (configured == null || configured.isBlank()) return null;
+        try {
+            byte[] bytes;
+            String mimeSource;
+            if (configured.startsWith("classpath:")) {
+                String resource = configured.substring("classpath:".length());
+                try (InputStream is = new ClassPathResource(resource).getInputStream()) {
+                    bytes = is.readAllBytes();
+                }
+                mimeSource = resource;
+            } else {
+                bytes = Files.readAllBytes(Path.of(configured));
+                mimeSource = configured;
+            }
+            return "data:" + guessImageMime(mimeSource) + ";base64,"
+                    + Base64.getEncoder().encodeToString(bytes);
+        } catch (Exception e) {
+            // Logo is optional. Don't fail the PDF if the file is missing —
+            // typical state during dev before a brand asset has been dropped in.
+            return null;
+        }
+    }
+
+    /** Map a file extension to its MIME type for data-URI rendering. */
+    private static String guessImageMime(String pathOrName) {
+        String lower = pathOrName.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        if (lower.endsWith(".gif")) return "image/gif";
+        return "application/octet-stream";
     }
 }

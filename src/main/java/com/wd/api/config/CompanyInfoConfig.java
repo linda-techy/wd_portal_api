@@ -22,6 +22,20 @@ public class CompanyInfoConfig {
     private String pan;
     private String llpin;
 
+    /**
+     * Path to the company logo image rendered on the quotation PDF header.
+     *
+     * <p>Accepts either a {@code classpath:} URI (e.g.
+     * {@code classpath:branding/walldot-logo.png}) — file is bundled with the
+     * JAR — or an absolute filesystem path. PNG, JPEG, and SVG are supported.
+     *
+     * <p>Default points at {@code branding/walldot-logo.png} on the classpath;
+     * drop a file at {@code wd_portal_api/src/main/resources/branding/walldot-logo.png}
+     * and rebuild to have it appear. If the file is missing the header
+     * gracefully renders without a logo (text only).
+     */
+    private String logoPath = "classpath:branding/walldot-logo.png";
+
     // Bank details — used by quotation PDF for advance-payment instructions.
     private String bankAccountName;
     private String bankAccountNumber;
@@ -131,5 +145,13 @@ public class CompanyInfoConfig {
 
     public void setBankBranch(String bankBranch) {
         this.bankBranch = bankBranch;
+    }
+
+    public String getLogoPath() {
+        return logoPath;
+    }
+
+    public void setLogoPath(String logoPath) {
+        this.logoPath = logoPath;
     }
 }

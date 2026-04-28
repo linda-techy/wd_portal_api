@@ -15,40 +15,59 @@
             padding: 0;
         }
         /* openhtmltopdf does not render CSS gradients — use a flat background
-           plus a thick red border underneath for the brand "stripe" look. */
+           plus a thick red border underneath for the brand "stripe" look.
+           Earlier this used `margin: -15mm` to bleed to the page edge, but
+           openhtmltopdf clipped any text that fell above the @page content
+           area, leaving "Walldot Builders LLP" cut off at the top. The
+           header now sits inside the content area with generous padding —
+           no bleed, no clipping. */
         .header {
             text-align: center;
             background-color: #1a3a5c;
             color: #ffffff;
-            padding: 20px 20px 16px 20px;
-            margin: -15mm -15mm 0 -15mm;
+            padding: 22px 24px 18px 24px;
+            margin: 0 0 22px 0;
             border-bottom: 5px solid #ed1c24;
         }
+        .header .company-logo {
+            display: block;
+            margin: 0 auto 10px auto;
+            max-width: 72px;
+            max-height: 72px;
+        }
         .header .company-name {
-            font-size: 26pt;
+            font-size: 22pt;
             font-weight: bold;
             color: #ffffff;
             margin: 0 0 4px 0;
             letter-spacing: 1px;
+            line-height: 1.15;
         }
         .header .company-tagline {
             font-size: 10pt;
             color: #d6e2f0;
-            margin: 0 0 8px 0;
+            margin: 0 0 10px 0;
+            font-style: italic;
         }
         .header .company-info {
             font-size: 9pt;
             color: #e8eef6;
-            line-height: 1.45;
+            line-height: 1.5;
+        }
+        .header .company-info span.sep {
+            opacity: 0.5;
+            padding: 0 6px;
         }
         .document-title-band {
             text-align: center;
-            font-size: 18pt;
+            font-size: 16pt;
             font-weight: bold;
             color: #1a3a5c;
-            letter-spacing: 4px;
+            letter-spacing: 6px;
             text-transform: uppercase;
-            margin: 18px 0 22px 0;
+            margin: 4px 0 22px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
         }
         /* DRAFT watermark — repeats on every page via CSS @page running element.
            openhtmltopdf supports `position: fixed` for "repeat on each page";
@@ -223,9 +242,10 @@
         }
         .acceptance-block {
             margin-top: 26px;
-            padding: 16px;
-            border: 2px dashed #1a3a5c;
-            border-radius: 5px;
+            padding: 16px 18px;
+            background-color: #f6f8fb;
+            border-top: 3px solid #ed1c24;
+            border-radius: 0 0 4px 4px;
             font-size: 9.5pt;
             page-break-inside: avoid;
         }
@@ -235,7 +255,7 @@
             color: #1a3a5c;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
         .acceptance-line {
             display: table;
@@ -444,13 +464,24 @@
 
     <!-- Header: Company Logo and Info -->
     <div class="header">
-        <h1 class="company-name">Walldot Builders LLP</h1>
+        <img th:if="${companyLogoDataUri != null}"
+             th:src="${companyLogoDataUri}"
+             class="company-logo"
+             alt="Logo" />
+        <h1 class="company-name" th:text="${companyName}">Walldot Builders LLP</h1>
         <div class="company-tagline">Your dream home starts here.</div>
         <div class="company-info">
-            <div th:if="${companyAddress != null}" th:text="${companyAddress}">123 Construction Avenue, Building City, State - 123456</div>
-            <div th:if="${companyPhone != null}">Phone: <span th:text="${companyPhone}">+91 9074954874</span></div>
-            <div th:if="${companyEmail != null}">Email: <span th:text="${companyEmail}">info@walldotbuilders.com</span></div>
-            <div th:if="${companyWebsite != null}">Website: <span th:text="${companyWebsite}">www.walldotbuilders.com</span></div>
+            <div th:if="${companyAddress != null}" th:text="${companyAddress}">Kerala, India</div>
+            <div>
+                <span th:if="${companyPhone != null}">
+                    Phone: <span th:text="${companyPhone}">+91 9074954874</span>
+                </span>
+                <span th:if="${companyPhone != null and companyEmail != null}" class="sep">|</span>
+                <span th:if="${companyEmail != null}">
+                    Email: <span th:text="${companyEmail}">info@walldotbuilders.com</span>
+                </span>
+            </div>
+            <div th:if="${companyWebsite != null}" th:text="${companyWebsite}">www.walldotbuilders.com</div>
         </div>
     </div>
     <div class="document-title-band">Quotation</div>
@@ -541,27 +572,30 @@
         </tbody>
     </table>
 
-    <!-- Financial Summary — collapses to a single row when no tax/discount apply -->
+    <!-- Financial Summary — collapses to a single row when no tax/discount apply.
+         Order follows Indian-invoice convention: subtotal, discount, tax, final. -->
     <div class="financial-summary">
         <div class="summary-row" th:if="${hasAdjustments}">
             <div class="summary-label">Subtotal:</div>
             <div class="summary-value">&#8377;&#160;<span th:text="${subtotalDisplay}">1,00,000</span></div>
         </div>
-        <div class="summary-row" th:if="${taxDisplay != null}">
-            <div class="summary-label">Tax / GST (CGST 9% + SGST 9%):</div>
-            <div class="summary-value">+ &#8377;&#160;<span th:text="${taxDisplay}">18,000</span></div>
-        </div>
         <div class="summary-row" th:if="${discountDisplay != null}">
             <div class="summary-label">Discount:</div>
-            <div class="summary-value">- &#8377;&#160;<span th:text="${discountDisplay}">5,000</span></div>
+            <div class="summary-value">&#8722; &#8377;&#160;<span th:text="${discountDisplay}">5,000</span></div>
+        </div>
+        <div class="summary-row" th:if="${taxDisplay != null}">
+            <div class="summary-label" th:text="${taxRateLabel + ':'}">GST (18%):</div>
+            <div class="summary-value">+ &#8377;&#160;<span th:text="${taxDisplay}">16,200</span></div>
         </div>
         <div class="summary-row total">
             <div class="summary-label">Final Amount:</div>
-            <div class="summary-value">&#8377;&#160;<span th:text="${finalDisplay}">1,13,000</span></div>
+            <div class="summary-value">&#8377;&#160;<span th:text="${finalDisplay}">1,06,200</span></div>
         </div>
-        <div class="summary-row" th:unless="${hasAdjustments}" style="margin-top: 6px;">
-            <div class="summary-label" style="font-size: 8.5pt; color: #6a7785;">
-                GST not included &#8212; CGST 9% + SGST 9% (~&#8377;&#160;<span th:text="${gstNoticeDisplay}">5,15,322</span>) is extra as per current rates.
+        <div class="summary-row" th:if="${!hasAdjustments and gstNoticeRateLabel != null}" style="margin-top: 6px;">
+            <div class="summary-label" style="font-size: 8.5pt; color: #6a7785; text-align: left; padding-left: 4px;">
+                <span th:text="${gstNoticeRateLabel}">GST extra at 18%</span>
+                (~&#8377;&#160;<span th:text="${gstNoticeDisplay}">15,300</span>)
+                is not included in the figure above.
             </div>
             <div class="summary-value">&#160;</div>
         </div>
