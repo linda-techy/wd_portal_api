@@ -676,8 +676,8 @@
         </div>
     </div>
 
-    <!-- Line Items Table -->
-    <table class="items-table">
+    <!-- Line Items Table — LINE_ITEM mode (legacy quantity × unitPrice). -->
+    <table class="items-table" th:unless="${isSqftRate}">
         <thead>
             <tr>
                 <th>#</th>
@@ -701,9 +701,34 @@
         </tbody>
     </table>
 
-    <!-- Financial Summary — collapses to a single row when no tax/discount apply.
-         Order follows Indian-invoice convention: subtotal, discount, tax, final. -->
-    <div class="financial-summary">
+    <!-- Scope-of-Work Table — SQFT_RATE mode (Walldot's customer-facing
+         document shape). Each row is a scope specification with no per-line
+         price; the headline rate is a single ₹/sqft figure rendered below.
+         Mirrors the actual Walldot template (e.g. "Work Quotation for
+         Mr Clinton Amballur") that staff hand to customers today. -->
+    <table class="items-table" th:if="${isSqftRate}">
+        <thead>
+            <tr>
+                <th style="width: 48px;">Sl. No.</th>
+                <th style="width: 30%;">Particulars</th>
+                <th style="text-align: left;">Item Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="item : ${formattedItems}">
+                <td style="text-align: center;" th:text="${item.itemNumber}">1</td>
+                <td style="font-weight: 600;" th:text="${item.description}">Foundation</td>
+                <td style="text-align: left; white-space: pre-line;"
+                    th:text="${item.notes != null and !item.notes.isEmpty() ? item.notes : '—'}">
+                    Specifications, brands, max-cost ceiling…
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Financial Summary — LINE_ITEM mode. Indian-invoice order:
+         subtotal → discount → tax → final. -->
+    <div class="financial-summary" th:unless="${isSqftRate}">
         <div class="summary-row" th:if="${hasAdjustments}">
             <div class="summary-label">Subtotal:</div>
             <div class="summary-value">&#8377;&#160;<span th:text="${subtotalDisplay}">1,00,000</span></div>
@@ -725,6 +750,35 @@
                 <span th:text="${gstNoticeRateLabel}">GST extra at 18%</span>
                 (~&#8377;&#160;<span th:text="${gstNoticeDisplay}">15,300</span>)
                 is not included in the figure above.
+            </div>
+            <div class="summary-value">&#160;</div>
+        </div>
+    </div>
+
+    <!-- Financial Summary — SQFT_RATE mode (Walldot customer doc).
+         Three numbers stacked: built-up area, headline ₹/sqft rate,
+         total project amount. The "additional work charged separately"
+         disclaimer mirrors the actual Walldot quotation footer. -->
+    <div class="financial-summary" th:if="${isSqftRate}">
+        <div class="summary-row" th:if="${areaDisplay != null}">
+            <div class="summary-label">Built-up Area:</div>
+            <div class="summary-value"><span th:text="${areaDisplay}">1,800</span> sq.ft.</div>
+        </div>
+        <div class="summary-row" th:if="${ratePerSqftDisplay != null}">
+            <div class="summary-label">Quoted Rate:</div>
+            <div class="summary-value">&#8377;&#160;<span th:text="${ratePerSqftDisplay}">2,050</span> / sq.ft.</div>
+        </div>
+        <div class="summary-row total">
+            <div class="summary-label">Project Total:</div>
+            <div class="summary-value">&#8377;&#160;<span th:text="${finalDisplay}">36,90,000</span></div>
+        </div>
+        <div class="summary-row" style="margin-top: 10px;">
+            <div class="summary-label" style="font-size: 8.5pt; color: #475569; text-align: left; padding-left: 4px; line-height: 1.55;">
+                All activities above will adhere to the specified standards.
+                Any additional work beyond the specified scope will be
+                charged separately at the quoted rate. The client is
+                responsible for supplying necessary water and electricity
+                for the project.
             </div>
             <div class="summary-value">&#160;</div>
         </div>

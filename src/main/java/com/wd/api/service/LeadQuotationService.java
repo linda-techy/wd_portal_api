@@ -478,6 +478,45 @@ public class LeadQuotationService {
     }
 
     /**
+     * Resolve the subtotal source for a quotation based on its pricing mode.
+     *
+     * <ul>
+     *   <li>{@code LINE_ITEM} — sum of {@code item.totalPrice} (legacy).</li>
+     *   <li>{@code SQFT_RATE} — {@code lead.projectSqftArea × quotation.ratePerSqft}.
+     *       Subtotal is {@code 0} (not an error) when either input is missing —
+     *       a partially-typed quotation in the Flutter form should still be
+     *       saveable as a draft.</li>
+     * </ul>
+     *
+     * <p>Package-private so the unit test can drive each branch directly.
+     */
+    BigDecimal computeSubtotal(LeadQuotation quotation) {
+        if ("SQFT_RATE".equals(quotation.getPricingMode())) {
+            BigDecimal rate = quotation.getRatePerSqft();
+            if (rate == null || rate.signum() <= 0) return BigDecimal.ZERO;
+            BigDecimal sqft = resolveLeadSqft(quotation.getLeadId());
+            if (sqft == null || sqft.signum() <= 0) return BigDecimal.ZERO;
+            return sqft.multiply(rate).setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+        // LINE_ITEM (legacy default for migrated rows).
+        return quotation.getItems().stream()
+                .map(LeadQuotationItem::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * Resolve {@code Lead.projectSqftArea} for a quotation. Tolerates
+     * unknown / orphan leads with {@code null} so {@link #computeSubtotal}
+     * can collapse to zero rather than throwing during a draft save.
+     */
+    private BigDecimal resolveLeadSqft(Long leadId) {
+        if (leadId == null) return null;
+        return leadRepository.findById(leadId)
+                .map(Lead::getProjectSqftArea)
+                .orElse(null);
+    }
+
+    /**
      * Generate a unique, race-safe quotation number using the
      * {@code lead_quotation_number_seq} Postgres sequence (V72).
      *
@@ -494,17 +533,23 @@ public class LeadQuotationService {
     }
 
     /**
-     * Compute and write the totals on a quotation from its line items.
+     * Compute and write the totals on a quotation.
      *
-     * <p>Order of operations (Indian GST convention):
+     * <p>Subtotal source depends on {@link LeadQuotation#getPricingMode()}:
+     * <ul>
+     *   <li>{@code LINE_ITEM} — {@code subtotal = SUM(item.totalPrice)} (legacy).</li>
+     *   <li>{@code SQFT_RATE} — {@code subtotal = lead.projectSqftArea × ratePerSqft}
+     *       (Walldot customer-facing quotation). Items are scope specs, not
+     *       priced rows; their prices are ignored. When the lead has no sqft
+     *       on file or {@code ratePerSqft} is unset, subtotal collapses to 0.</li>
+     * </ul>
+     *
+     * <p>Discount + tax then apply uniformly:
      * <ol>
-     *   <li>{@code subtotal = SUM(item.totalPrice)}</li>
      *   <li>{@code discountedBase = subtotal − discount} (validated: discount ≤ subtotal)</li>
-     *   <li>If {@code taxRatePercent} is set on the quotation, {@code taxAmount}
-     *       is computed as {@code discountedBase × rate / 100} (rounded HALF_UP
-     *       to two decimals) and overwrites whatever was on the entity. When
-     *       the rate is {@code null}, the staff-entered manual {@code taxAmount}
-     *       is honored unchanged.</li>
+     *   <li>If {@code taxRatePercent} is set, {@code taxAmount = discountedBase × rate / 100}
+     *       (rounded HALF_UP, overwrites manual entry). When rate is {@code null},
+     *       the staff-entered manual {@code taxAmount} is honored unchanged.</li>
      *   <li>{@code finalAmount = discountedBase + taxAmount}</li>
      * </ol>
      *
@@ -512,13 +557,11 @@ public class LeadQuotationService {
      * having to mock the repositories.
      *
      * @throws IllegalArgumentException if {@code discountAmount} exceeds the
-     *         line-item subtotal (negative finalAmount → broken accounting).
+     *         subtotal (negative finalAmount → broken accounting), or
+     *         {@code discountAmount} is negative.
      */
     void calculateTotals(LeadQuotation quotation) {
-        BigDecimal subtotal = quotation.getItems().stream()
-                .map(LeadQuotationItem::getTotalPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
+        BigDecimal subtotal = computeSubtotal(quotation);
         quotation.setTotalAmount(subtotal);
 
         BigDecimal discount = quotation.getDiscountAmount() != null
@@ -706,7 +749,8 @@ public class LeadQuotationService {
         context.setVariable("companyLogoDataUri", resolveCompanyLogoDataUri());
 
         // Per-sqft rate when the lead carries a built-up area — Kerala's most
-        // discussed residential metric.
+        // discussed residential metric. In SQFT_RATE mode this is the
+        // headline number rather than a derived figure.
         BigDecimal area = lead != null ? lead.getProjectSqftArea() : null;
         if (area != null && area.signum() > 0) {
             BigDecimal perSqft = finalAmount.divide(area, 0, java.math.RoundingMode.HALF_UP);
@@ -715,6 +759,18 @@ public class LeadQuotationService {
         } else {
             context.setVariable("areaDisplay", null);
             context.setVariable("perSqftDisplay", null);
+        }
+
+        // SQFT_RATE-specific render hints. The template branches on these
+        // to render the Walldot scope-table layout (description-only items)
+        // and the "Rs. X/- per square feet" headline.
+        boolean isSqftRate = "SQFT_RATE".equals(quotation.getPricingMode());
+        context.setVariable("isSqftRate", isSqftRate);
+        if (isSqftRate && quotation.getRatePerSqft() != null) {
+            context.setVariable("ratePerSqftDisplay",
+                    DpcRenderService.formatINR(quotation.getRatePerSqft()));
+        } else {
+            context.setVariable("ratePerSqftDisplay", null);
         }
 
         // Resolve the payment milestones to rupee amounts. Schedule shape

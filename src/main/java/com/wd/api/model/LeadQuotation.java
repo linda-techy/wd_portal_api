@@ -79,6 +79,34 @@ public class LeadQuotation {
     @Column(nullable = false, length = 50)
     private String status = "DRAFT"; // DRAFT, SENT, VIEWED, ACCEPTED, REJECTED, EXPIRED
 
+    /**
+     * How the headline figure is derived:
+     *
+     * <ul>
+     *   <li>{@code LINE_ITEM} — legacy: subtotal = sum(item.totalPrice).</li>
+     *   <li>{@code SQFT_RATE} — Walldot's standard customer quotation:
+     *       subtotal = {@code lead.projectSqftArea × ratePerSqft}; items are
+     *       scope specifications (description + brand + max-cost ceiling)
+     *       with no per-line prices.</li>
+     * </ul>
+     *
+     * <p>The entity default stays {@code LINE_ITEM} so a bare
+     * {@code new LeadQuotation()} preserves the old math (matters for tests
+     * and any service-layer instantiation). The Flutter add screen sets
+     * {@code SQFT_RATE} explicitly for new customer-facing quotations —
+     * that's where the customer-facing default lives.
+     */
+    @Column(name = "pricing_mode", nullable = false, length = 20)
+    private String pricingMode = "LINE_ITEM";
+
+    /**
+     * Headline per-sqft rate for {@link #pricingMode} = {@code SQFT_RATE}.
+     * Multiplied by {@code lead.projectSqftArea} to produce the subtotal.
+     * {@code null} for {@code LINE_ITEM} mode.
+     */
+    @Column(name = "rate_per_sqft", precision = 12, scale = 2)
+    private BigDecimal ratePerSqft;
+
     @Column(name = "sent_at")
     private LocalDateTime sentAt;
 
@@ -247,6 +275,22 @@ public class LeadQuotation {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getPricingMode() {
+        return pricingMode;
+    }
+
+    public void setPricingMode(String pricingMode) {
+        this.pricingMode = pricingMode;
+    }
+
+    public BigDecimal getRatePerSqft() {
+        return ratePerSqft;
+    }
+
+    public void setRatePerSqft(BigDecimal ratePerSqft) {
+        this.ratePerSqft = ratePerSqft;
     }
 
     public LocalDateTime getSentAt() {
