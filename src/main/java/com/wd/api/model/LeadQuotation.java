@@ -40,6 +40,21 @@ public class LeadQuotation {
     @Column(name = "tax_amount", precision = 12, scale = 2)
     private BigDecimal taxAmount;
 
+    /**
+     * Optional tax rate as a percentage (e.g. {@code 18.00} for India's
+     * standard 18% GST). When set, {@code taxAmount} is computed in the
+     * service layer as {@code (subtotal - discount) × rate / 100} so the
+     * tax base is always the discounted amount — matching Indian invoicing
+     * convention. When {@code null}, {@code taxAmount} is treated as a
+     * staff-entered manual override and used as-is.
+     *
+     * <p>New quotations default to 18% (Indian standard residential GST).
+     * Loading an existing row from the DB preserves whatever value (including
+     * NULL) is on disk, so legacy rows continue to behave as before.
+     */
+    @Column(name = "tax_rate_percent", precision = 5, scale = 2)
+    private BigDecimal taxRatePercent = new BigDecimal("18.00");
+
     @Column(name = "discount_amount", precision = 12, scale = 2)
     private BigDecimal discountAmount;
 
@@ -160,6 +175,14 @@ public class LeadQuotation {
 
     public void setTaxAmount(BigDecimal taxAmount) {
         this.taxAmount = taxAmount;
+    }
+
+    public BigDecimal getTaxRatePercent() {
+        return taxRatePercent;
+    }
+
+    public void setTaxRatePercent(BigDecimal taxRatePercent) {
+        this.taxRatePercent = taxRatePercent;
     }
 
     public BigDecimal getDiscountAmount() {

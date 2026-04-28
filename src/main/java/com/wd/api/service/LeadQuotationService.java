@@ -353,35 +353,76 @@ public class LeadQuotationService {
     }
 
     /**
-     * Generate unique quotation number
+     * Generate a unique, race-safe quotation number using the
+     * {@code lead_quotation_number_seq} Postgres sequence (V72).
+     *
+     * <p>Format: {@code QUO-{yyyyMMdd}-{NNNN}} with the suffix sourced from
+     * the sequence, not from a row count. Replaces the previous
+     * {@code count(*) + 1} approach which was racy under concurrent creates
+     * and reused numbers after a hard delete.
      */
     private String generateQuotationNumber() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         String datePart = LocalDateTime.now().format(formatter);
-        long count = quotationRepository.count() + 1;
-        return String.format("QUO-%s-%04d", datePart, count);
+        long seq = quotationRepository.nextQuotationSequenceValue();
+        return String.format("QUO-%s-%04d", datePart, seq);
     }
 
     /**
-     * Calculate totals based on line items
+     * Compute and write the totals on a quotation from its line items.
+     *
+     * <p>Order of operations (Indian GST convention):
+     * <ol>
+     *   <li>{@code subtotal = SUM(item.totalPrice)}</li>
+     *   <li>{@code discountedBase = subtotal − discount} (validated: discount ≤ subtotal)</li>
+     *   <li>If {@code taxRatePercent} is set on the quotation, {@code taxAmount}
+     *       is computed as {@code discountedBase × rate / 100} (rounded HALF_UP
+     *       to two decimals) and overwrites whatever was on the entity. When
+     *       the rate is {@code null}, the staff-entered manual {@code taxAmount}
+     *       is honored unchanged.</li>
+     *   <li>{@code finalAmount = discountedBase + taxAmount}</li>
+     * </ol>
+     *
+     * <p>Package-private so unit tests can drive the math directly without
+     * having to mock the repositories.
+     *
+     * @throws IllegalArgumentException if {@code discountAmount} exceeds the
+     *         line-item subtotal (negative finalAmount → broken accounting).
      */
-    private void calculateTotals(LeadQuotation quotation) {
-        BigDecimal total = quotation.getItems().stream()
+    void calculateTotals(LeadQuotation quotation) {
+        BigDecimal subtotal = quotation.getItems().stream()
                 .map(LeadQuotationItem::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        quotation.setTotalAmount(total);
+        quotation.setTotalAmount(subtotal);
 
-        // Calculate final amount with tax and discount
-        BigDecimal finalAmount = total;
-        if (quotation.getTaxAmount() != null) {
-            finalAmount = finalAmount.add(quotation.getTaxAmount());
+        BigDecimal discount = quotation.getDiscountAmount() != null
+                ? quotation.getDiscountAmount() : BigDecimal.ZERO;
+        if (discount.signum() < 0) {
+            throw new IllegalArgumentException("discount amount cannot be negative");
         }
-        if (quotation.getDiscountAmount() != null) {
-            finalAmount = finalAmount.subtract(quotation.getDiscountAmount());
+        if (discount.compareTo(subtotal) > 0) {
+            throw new IllegalArgumentException(
+                    "discount amount " + discount + " exceeds subtotal " + subtotal
+                            + " — quotation final cannot be negative");
         }
 
-        quotation.setFinalAmount(finalAmount);
+        BigDecimal discountedBase = subtotal.subtract(discount);
+
+        BigDecimal taxAmount;
+        if (quotation.getTaxRatePercent() != null) {
+            // Auto-compute against the discounted base — this is the canonical
+            // Indian-GST tax base. Round to 2dp HALF_UP to match the column.
+            taxAmount = discountedBase
+                    .multiply(quotation.getTaxRatePercent())
+                    .divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+            quotation.setTaxAmount(taxAmount);
+        } else {
+            taxAmount = quotation.getTaxAmount() != null
+                    ? quotation.getTaxAmount() : BigDecimal.ZERO;
+        }
+
+        quotation.setFinalAmount(discountedBase.add(taxAmount));
     }
 
     /**
@@ -403,8 +444,14 @@ public class LeadQuotationService {
     /**
      * Generate quotation PDF for client presentation
      * Enterprise-grade PDF generation with company branding and professional
-     * formatting
+     * formatting.
+     *
+     * <p>{@code @Transactional(readOnly = true)} keeps the Hibernate session
+     * open for the duration of the render so the lazy-loaded
+     * {@code quotation.items} collection can be iterated without throwing
+     * {@code LazyInitializationException}.
      */
+    @Transactional(readOnly = true)
     public byte[] generateQuotationPdf(Long quotationId) {
         LeadQuotation quotation = getQuotationById(quotationId);
 
