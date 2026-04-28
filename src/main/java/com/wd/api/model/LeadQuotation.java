@@ -2,17 +2,29 @@ package com.wd.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Entity representing a quotation/proposal sent to a lead
- * Supports versioning, status tracking, and line items
+ * Entity representing a quotation/proposal sent to a lead.
+ * Supports versioning, status tracking, line items, and soft-delete (V74).
+ *
+ * <p>Soft-delete is wired with {@code @SQLDelete} so calling
+ * {@code repo.delete(quotation)} performs a tombstone UPDATE rather than a
+ * destructive DELETE. {@code @Where} auto-filters tombstoned rows from every
+ * normal query, so existing code continues to "see only live" without
+ * change. Restore is via the explicit native query in
+ * {@code LeadQuotationRepository.restoreById}.
  */
 @Entity
 @Table(name = "lead_quotations")
+@SQLDelete(sql = "UPDATE lead_quotations SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 public class LeadQuotation {
 
     @Id
@@ -84,6 +96,15 @@ public class LeadQuotation {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    /**
+     * Soft-delete tombstone. NULL = live row. Set automatically by the
+     * {@link SQLDelete} statement when {@code repo.delete} is invoked;
+     * cleared by {@code LeadQuotationRepository.restoreById} via a native
+     * query that bypasses the {@code @SQLRestriction} filter.
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
@@ -282,6 +303,14 @@ public class LeadQuotation {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 
     public String getLeadName() {

@@ -68,4 +68,20 @@ public interface LeadQuotationRepository extends JpaRepository<LeadQuotation, Lo
             + "AND created_at + (validity_days || ' days')::INTERVAL < NOW()",
             nativeQuery = true)
     int markExpiredQuotations();
+
+    /**
+     * Restore a soft-deleted quotation by clearing its {@code deleted_at}
+     * tombstone. Native query so it bypasses the entity's
+     * {@code @SQLRestriction("deleted_at IS NULL")} filter — JPA wouldn't
+     * see the tombstoned row otherwise. Used by the Undo flow after a
+     * delete inside the Flutter snackbar window.
+     *
+     * @return number of rows updated (1 if restored, 0 if not deleted or
+     *         not present)
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query(value = "UPDATE lead_quotations SET deleted_at = NULL "
+            + "WHERE id = :id AND deleted_at IS NOT NULL",
+            nativeQuery = true)
+    int restoreById(@Param("id") Long id);
 }

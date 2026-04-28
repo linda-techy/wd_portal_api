@@ -265,6 +265,24 @@ public class LeadQuotationController {
     }
 
     /**
+     * Restore a soft-deleted quotation. Powers the Flutter Undo snackbar
+     * after a delete. 422 when the row isn't currently tombstoned (already
+     * restored, never deleted, or unknown id).
+     */
+    @PostMapping("/{id}/restore")
+    @PreAuthorize("hasAuthority('LEAD_DELETE')")
+    public ResponseEntity<?> restoreQuotation(@PathVariable Long id) {
+        try {
+            LeadQuotation restored = quotationService.restoreQuotation(id);
+            return ResponseEntity.ok(restored);
+        } catch (RuntimeException e) {
+            logger.error("Failed to restore quotation {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
      * Pipeline summary — feeds the Flutter list-screen hero card.
      * Open count + value (DRAFT/SENT/VIEWED), accepted count + value over a
      * 90-day window, win rate, and average close days.

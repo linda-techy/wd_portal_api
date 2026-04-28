@@ -177,6 +177,37 @@ class LeadQuotationServicePipelineDuplicateTest {
         }
     }
 
+    // ── Restore (soft-delete undo) ────────────────────────────────────────
+
+    @Test
+    void restoreQuotation_returnsRestoredRowWhenTombstoneCleared() {
+        LeadQuotation restored = new LeadQuotation();
+        restored.setId(42L);
+        restored.setStatus("DRAFT");
+        restored.setTitle("Resurrected");
+
+        when(quotationRepository.restoreById(42L)).thenReturn(1);
+        when(quotationRepository.findById(42L)).thenReturn(Optional.of(restored));
+
+        LeadQuotation result = service.restoreQuotation(42L);
+
+        assertThat(result).isSameAs(restored);
+        assertThat(result.getTitle()).isEqualTo("Resurrected");
+    }
+
+    @Test
+    void restoreQuotation_throwsWhenNothingToRestore() {
+        // Row not deleted (or doesn't exist) → restoreById returns 0.
+        when(quotationRepository.restoreById(anyLong())).thenReturn(0);
+
+        try {
+            service.restoreQuotation(404L);
+            org.junit.jupiter.api.Assertions.fail("expected RuntimeException");
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage()).contains("not found or not deleted");
+        }
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────
 
     /** Build a row tuple matching the JPQL projection in pipelineRowsSince. */

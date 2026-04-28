@@ -551,19 +551,45 @@ public class LeadQuotationService {
     }
 
     /**
-     * Delete quotation
+     * Soft-delete a quotation. Backed by the entity's {@code @SQLDelete}
+     * directive — the row gets a {@code deleted_at} tombstone rather than
+     * a destructive DELETE. The {@code @SQLRestriction} filter then hides
+     * it from every normal query.
+     *
+     * <p>Restricted to DRAFT status because sending/accepting a quote is a
+     * commitment to the customer; deleting one in those states would leave
+     * the relationship in an undefined place. Restoration via
+     * {@link #restoreQuotation(Long)} is available for the Undo window.
      */
     @Transactional
     public void deleteQuotation(Long id) {
         LeadQuotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
 
-        // Only allow deletion of DRAFT quotations
         if (!"DRAFT".equals(quotation.getStatus())) {
             throw new IllegalStateException("Only DRAFT quotations can be deleted");
         }
 
         quotationRepository.delete(quotation);
+    }
+
+    /**
+     * Restore a soft-deleted quotation. Triggered by the Flutter "Undo"
+     * snackbar within a 5-second window after a delete. Returns the
+     * restored quotation; throws when the row is not currently tombstoned
+     * (already-restored, never-deleted, or unknown id).
+     */
+    @Transactional
+    public LeadQuotation restoreQuotation(Long id) {
+        int updated = quotationRepository.restoreById(id);
+        if (updated == 0) {
+            throw new RuntimeException(
+                    "Cannot restore quotation " + id + " — not found or not deleted");
+        }
+        return quotationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException(
+                        "Restored quotation " + id + " disappeared from query — "
+                                + "investigate concurrent delete"));
     }
 
     /**
