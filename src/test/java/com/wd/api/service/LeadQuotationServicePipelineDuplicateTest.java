@@ -146,7 +146,9 @@ class LeadQuotationServicePipelineDuplicateTest {
         assertThat(copy.getSentAt()).isNull();
         assertThat(copy.getRespondedAt()).isNull();
         assertThat(copy.getId()).isNull();
-        assertThat(copy.getQuotationNumber()).startsWith("QUO-").endsWith("-0099");
+        // Walldot reference format: YYYY/MM/DD/A<seq> (matches the
+        // company's actual paper quotations, e.g. "2026/02/04/A6").
+        assertThat(copy.getQuotationNumber()).matches("\\d{4}/\\d{2}/\\d{2}/A99");
         assertThat(copy.getCreatedById()).isEqualTo(5L);
 
         // Items: same content, new instances (no FK collision with source).

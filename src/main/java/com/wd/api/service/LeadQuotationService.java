@@ -520,16 +520,21 @@ public class LeadQuotationService {
      * Generate a unique, race-safe quotation number using the
      * {@code lead_quotation_number_seq} Postgres sequence (V72).
      *
-     * <p>Format: {@code QUO-{yyyyMMdd}-{NNNN}} with the suffix sourced from
-     * the sequence, not from a row count. Replaces the previous
-     * {@code count(*) + 1} approach which was racy under concurrent creates
-     * and reused numbers after a hard delete.
+     * <p>Format: {@code YYYY/MM/DD/A{seq}} — matches Walldot's actual
+     * paper reference (e.g. {@code 2026/02/04/A6} on Mr Clinton's
+     * quotation). The "A" prefix is the company-internal series code;
+     * sequence is a single global counter so collisions are impossible.
+     *
+     * <p>The slashes in the format are URL-unsafe but the existing
+     * download path already escapes them
+     * ({@code quotationNumber.replace("/", "_")} in the controller's
+     * {@code Content-Disposition}), so they don't break PDF downloads.
      */
     private String generateQuotationNumber() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
         String datePart = LocalDateTime.now().format(formatter);
         long seq = quotationRepository.nextQuotationSequenceValue();
-        return String.format("QUO-%s-%04d", datePart, seq);
+        return String.format("%s/A%d", datePart, seq);
     }
 
     /**
@@ -772,6 +777,12 @@ public class LeadQuotationService {
         } else {
             context.setVariable("ratePerSqftDisplay", null);
         }
+
+        // Signatory + city for the SQFT_RATE "With Regards" footer block —
+        // mirrors Walldot's paper-format signature. Defaults come from
+        // CompanyInfoConfig so a deployment can swap MD/branch without code.
+        context.setVariable("companySignatoryName", companyInfoConfig.getSignatoryName());
+        context.setVariable("companyCity", companyInfoConfig.getCity());
 
         // Resolve the payment milestones to rupee amounts. Schedule shape
         // varies by project type — a ₹40L interior fitout shouldn't ride on

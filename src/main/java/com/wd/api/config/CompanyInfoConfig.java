@@ -23,6 +23,16 @@ public class CompanyInfoConfig {
     private String llpin;
 
     /**
+     * Default signatory + city for the customer-facing SQFT_RATE quotation
+     * footer ("With Regards, [name], Managing Director, [company], [city]").
+     * Mirror's Walldot's actual paper format. Override per-deployment via
+     * {@code company.signatory-name} / {@code company.city} in
+     * {@code application.properties}.
+     */
+    private String signatoryName = "Praveen P F";
+    private String city = "Thrissur";
+
+    /**
      * Path to the company logo image rendered on the quotation PDF header.
      *
      * <p>Accepts either a {@code classpath:} URI (e.g.
@@ -153,5 +163,21 @@ public class CompanyInfoConfig {
 
     public void setLogoPath(String logoPath) {
         this.logoPath = logoPath;
+    }
+
+    public String getSignatoryName() {
+        return signatoryName;
+    }
+
+    public void setSignatoryName(String signatoryName) {
+        this.signatoryName = signatoryName;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 }

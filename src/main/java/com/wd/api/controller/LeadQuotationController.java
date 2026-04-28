@@ -283,6 +283,20 @@ public class LeadQuotationController {
     }
 
     /**
+     * The 16-row Walldot standard scope library — used by the Flutter
+     * "Load Walldot scopes" button on the SQFT_RATE add screen to seed a
+     * fresh quotation with the standard descriptive content. Static
+     * payload (no auth needed beyond LEAD_VIEW); the Flutter side caches
+     * it for the session.
+     */
+    @GetMapping("/standard-scopes")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<java.util.List<com.wd.api.dto.quotation.StandardScopeTemplate>> standardScopes() {
+        return ResponseEntity.ok(
+                com.wd.api.dto.quotation.StandardScopeTemplate.WALLDOT_DEFAULTS);
+    }
+
+    /**
      * Pipeline summary — feeds the Flutter list-screen hero card.
      * Open count + value (DRAFT/SENT/VIEWED), accepted count + value over a
      * 90-day window, win rate, and average close days.

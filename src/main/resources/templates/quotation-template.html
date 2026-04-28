@@ -622,8 +622,12 @@
         </div>
     </div>
 
-    <!-- Scope summary — area, per-sqft rate, project description -->
-    <div class="scope-summary" th:if="${areaDisplay != null || (quotation.description != null && !quotation.description.isEmpty())}">
+    <!-- Scope summary — area, per-sqft rate, project description.
+         Suppressed in SQFT_RATE mode because the scope table below already
+         carries the per-line scope, and the financial summary carries the
+         headline rate + project total. Showing this card in SQFT_RATE
+         mode would duplicate content. -->
+    <div class="scope-summary" th:if="${!isSqftRate and (areaDisplay != null || (quotation.description != null && !quotation.description.isEmpty()))}">
         <div class="section-title">Project Scope</div>
         <div th:if="${areaDisplay != null}" class="scope-grid">
             <div class="scope-cell">
@@ -645,11 +649,11 @@
         </div>
     </div>
 
-    <!-- What's Included / Not Covered — the single most important
-         scope-clarity widget on the document. Pre-empts the customer's
-         "what am I actually paying for?" and the post-handover dispute
-         "you said it was included." -->
-    <div class="scope-clarity">
+    <!-- What's Included / Not Covered — only in LINE_ITEM mode. The
+         SQFT_RATE scope table itself is the "what's included" surface
+         (each row describes the spec / brand / max-cost ceiling), and
+         the disclaimer in the financial summary handles "what's not". -->
+    <div class="scope-clarity" th:unless="${isSqftRate}">
         <div class="col included">
             <div class="col-title">What's Included</div>
             <ul>
@@ -793,8 +797,10 @@
          no full-width yellow alert here — it competed with the Amount-in-
          Words box visually and made every page lead with a warning.) -->
 
-    <!-- Payment Milestones — percentages resolved to rupee amounts. -->
-    <div class="terms-section">
+    <!-- Payment Milestones — LINE_ITEM only. Walldot's actual customer
+         quotation doesn't include a payment schedule; that's negotiated
+         and delivered as a separate document at acceptance. -->
+    <div class="terms-section" th:unless="${isSqftRate}">
         <div class="terms-title">Payment Schedule</div>
         <table class="milestones-table">
             <thead>
@@ -817,8 +823,10 @@
         </div>
     </div>
 
-    <!-- Bank details for advance payment -->
-    <div class="info-block" th:if="${bankAccountNumber != null and !bankAccountNumber.isEmpty()}">
+    <!-- Bank details — LINE_ITEM only. Bank info travels with the invoice
+         after acceptance, not on a quotation. Walldot's customer-facing
+         doc doesn't include it. -->
+    <div class="info-block" th:if="${!isSqftRate and bankAccountNumber != null and !bankAccountNumber.isEmpty()}">
         <div class="heading">Bank Details for Advance Payment</div>
         <div class="row"><div class="k">Account Name</div><div class="v" th:text="${bankAccountName}">Walldot Builders LLP</div></div>
         <div class="row"><div class="k">Account Number</div><div class="v" th:text="${bankAccountNumber}">XXXXXXXXXX</div></div>
@@ -827,17 +835,19 @@
         <div class="row" th:if="${bankBranch != null and !bankBranch.isEmpty()}"><div class="k">Branch</div><div class="v" th:text="${bankBranch}">Branch</div></div>
     </div>
 
-    <!-- Company registration -->
+    <!-- Company registration — LINE_ITEM only. Walldot's customer doc
+         carries this on the invoice, not the quotation. -->
     <div class="info-block"
-         th:if="${(companyGst != null and !companyGst.isEmpty()) or (companyPan != null and !companyPan.isEmpty()) or (companyLlpin != null and !companyLlpin.isEmpty())}">
+         th:if="${!isSqftRate and ((companyGst != null and !companyGst.isEmpty()) or (companyPan != null and !companyPan.isEmpty()) or (companyLlpin != null and !companyLlpin.isEmpty()))}">
         <div class="heading">Company Registration</div>
         <div class="row" th:if="${companyGst != null and !companyGst.isEmpty()}"><div class="k">GSTIN</div><div class="v" th:text="${companyGst}">GSTIN</div></div>
         <div class="row" th:if="${companyPan != null and !companyPan.isEmpty()}"><div class="k">PAN</div><div class="v" th:text="${companyPan}">PAN</div></div>
         <div class="row" th:if="${companyLlpin != null and !companyLlpin.isEmpty()}"><div class="k">LLPIN</div><div class="v" th:text="${companyLlpin}">LLPIN</div></div>
     </div>
 
-    <!-- Conditions block (consolidated, customer-facing) -->
-    <div class="terms-section">
+    <!-- Conditions — LINE_ITEM only. SQFT_RATE's compact disclaimer
+         (in the financial summary) is the equivalent surface. -->
+    <div class="terms-section" th:unless="${isSqftRate}">
         <div class="terms-title">Conditions</div>
         <div class="terms-content">
             <ul>
@@ -854,11 +864,9 @@
         </div>
     </div>
 
-    <!-- Acceptance block — friendly "next step" framing, not legalese.
-         Three reply paths so the customer picks whichever feels easiest:
-         WhatsApp (most Kerala residential), phone, email. The full client +
-         company signature row stays for those who want a printed contract. -->
-    <div class="acceptance-block">
+    <!-- Acceptance block — LINE_ITEM mode only. SQFT_RATE uses the
+         simpler Walldot-style signature block below. -->
+    <div class="acceptance-block" th:unless="${isSqftRate}">
         <div class="heading">Ready to start? Reply YES to confirm.</div>
         <div style="margin-bottom: 10px;">
             Confirm quotation <strong th:text="${quotation.quotationNumber}">QUO-XXXX</strong>
@@ -891,6 +899,21 @@
             <div class="ac-cell">
                 <div class="ac-line">For <span th:text="${companyName}">Walldot Builders LLP</span> — Authorised Signatory &amp; Date</div>
             </div>
+        </div>
+    </div>
+
+    <!-- SQFT_RATE signature block — mirrors Walldot's actual customer doc:
+         a brief "With Regards" closing signed by a named MD, no
+         counter-signature line for the client (Walldot's flow has the
+         client sign a separate acknowledgement). -->
+    <div th:if="${isSqftRate}" style="margin-top: 36px; page-break-inside: avoid;">
+        <div style="font-size: 10pt; color: #1a3a5c; line-height: 1.7;">
+            <div>With Regards,</div>
+            <div style="margin-top: 22px; font-weight: bold; font-size: 11pt;"
+                 th:text="${companySignatoryName}">Praveen P F</div>
+            <div style="color: #475569;">Managing Director</div>
+            <div style="color: #475569;" th:text="${companyName}">Walldot Builders</div>
+            <div style="color: #475569;" th:text="${companyCity}">Thrissur</div>
         </div>
     </div>
 
