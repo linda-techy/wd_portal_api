@@ -141,6 +141,14 @@ public class LeadInteractionService {
         if (interaction.getLeadId() != null) {
             leadRepository.findById(interaction.getLeadId()).ifPresent(lead -> {
                 lead.setLastContactDate(interactionDate);
+                
+                // Update or clear nextFollowUp based on this interaction
+                if (interaction.getNextActionDate() != null) {
+                    lead.setNextFollowUp(interaction.getNextActionDate());
+                } else if (lead.getNextFollowUp() != null && !interactionDate.toLocalDate().isBefore(lead.getNextFollowUp().toLocalDate())) {
+                    lead.setNextFollowUp(null);
+                }
+                
                 leadRepository.save(lead);
             });
         }
@@ -194,10 +202,13 @@ public class LeadInteractionService {
 
         LeadInteraction saved = interactionRepository.save(interaction);
 
-        // Update lead's last_contact_date
+        // Update lead's last_contact_date and handle follow up clearing
         if (leadId != null) {
             leadRepository.findById(leadId).ifPresent(lead -> {
                 lead.setLastContactDate(now);
+                if (lead.getNextFollowUp() != null && !now.toLocalDate().isBefore(lead.getNextFollowUp().toLocalDate())) {
+                    lead.setNextFollowUp(null);
+                }
                 leadRepository.save(lead);
             });
         }

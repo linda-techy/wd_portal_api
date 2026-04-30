@@ -594,6 +594,16 @@ public class LeadService {
     }
 
     /**
+     * Get leads with overdue follow-ups
+     */
+    public List<Lead> getOverdueFollowUps() {
+        return leadRepository.findByNextFollowUpBeforeAndLeadStatusNotIn(
+                java.time.LocalDateTime.now(),
+                java.util.Arrays.asList("converted", "lost", "projectwon")
+        );
+    }
+
+    /**
      * Get all leads with a safety limit to prevent memory issues.
      * WARNING: This method loads up to 1000 leads into memory.
      * For production use, prefer the paginated search() method instead.

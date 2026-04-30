@@ -227,6 +227,24 @@ public class LeadController {
     }
 
     /**
+     * Get leads with overdue follow-ups
+     * 
+     * @return List of overdue leads
+     */
+    @GetMapping("/overdue-followups")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<ApiResponse<List<Lead>>> getOverdueFollowUps() {
+        try {
+            List<Lead> overdueLeads = leadService.getOverdueFollowUps();
+            return ResponseEntity.ok(ApiResponse.success("Overdue follow-ups retrieved successfully", overdueLeads));
+        } catch (Exception e) {
+            logger.error("Error fetching overdue follow-ups: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to retrieve overdue follow-ups: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Get a lead by ID
      * 
      * @param id The ID of the lead
