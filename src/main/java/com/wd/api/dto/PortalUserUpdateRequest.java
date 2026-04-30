@@ -24,6 +24,11 @@ public class PortalUserUpdateRequest {
     
     private Boolean enabled;
     
+    private String phone;
+    private String whatsapp;
+    private String designation;
+    private String department;
+    
     // Custom setter to handle both Integer and Long types for roleId
     @JsonSetter("role_id")
     public void setRoleIdFromJson(Object roleIdValue) {
@@ -89,6 +94,38 @@ public class PortalUserUpdateRequest {
     
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getWhatsapp() {
+        return whatsapp;
+    }
+
+    public void setWhatsapp(String whatsapp) {
+        this.whatsapp = whatsapp;
+    }
+
+    public String getDesignation() {
+        return designation;
+    }
+
+    public void setDesignation(String designation) {
+        this.designation = designation;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
     }
 }
 

@@ -160,6 +160,11 @@ public class PortalUserController {
             user.setPassword(passwordEncoder.encode(request.getPassword().trim()));
             user.setFirstName(request.getFirstName().trim());
             user.setLastName(request.getLastName().trim());
+            
+            if (request.getPhone() != null) user.setPhone(request.getPhone().trim());
+            if (request.getWhatsapp() != null) user.setWhatsapp(request.getWhatsapp().trim());
+            if (request.getDesignation() != null) user.setDesignation(request.getDesignation().trim());
+            if (request.getDepartment() != null) user.setDepartment(request.getDepartment().trim());
 
             // Set role by looking up PortalRole entity
             if (request.getRoleId() != null) {
@@ -233,6 +238,19 @@ public class PortalUserController {
 
             if (request.getLastName() != null && !request.getLastName().trim().isEmpty()) {
                 user.setLastName(request.getLastName().trim());
+            }
+
+            if (request.getPhone() != null) {
+                user.setPhone(request.getPhone().trim());
+            }
+            if (request.getWhatsapp() != null) {
+                user.setWhatsapp(request.getWhatsapp().trim());
+            }
+            if (request.getDesignation() != null) {
+                user.setDesignation(request.getDesignation().trim());
+            }
+            if (request.getDepartment() != null) {
+                user.setDepartment(request.getDepartment().trim());
             }
 
             if (request.getRoleId() != null) {

@@ -37,6 +37,18 @@ public class PortalUser extends BaseEntity implements UserDetails {
     @Column(name = "fcm_token", length = 512)
     private String fcmToken;
 
+    @Column(length = 50)
+    private String phone;
+
+    @Column(length = 50)
+    private String whatsapp;
+
+    @Column(length = 100)
+    private String designation;
+
+    @Column(length = 100)
+    private String department;
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -100,6 +112,38 @@ public class PortalUser extends BaseEntity implements UserDetails {
 
     public void setFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getWhatsapp() {
+        return whatsapp;
+    }
+
+    public void setWhatsapp(String whatsapp) {
+        this.whatsapp = whatsapp;
+    }
+
+    public String getDesignation() {
+        return designation;
+    }
+
+    public void setDesignation(String designation) {
+        this.designation = designation;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
     }
 
     // UserDetails implementation
