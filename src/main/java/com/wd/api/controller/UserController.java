@@ -52,8 +52,10 @@ public class UserController {
                                 Boolean.TRUE.equals(user.getEnabled()),
                                 roleId,
                                 roleName,
-                                roleName,   // designation mirrors role
-                                roleName);  // department mirrors role
+                                user.getDesignation() != null ? user.getDesignation() : roleName,
+                                user.getDepartment() != null ? user.getDepartment() : roleName,
+                                user.getPhone(),
+                                user.getWhatsapp());
                     })
                     .collect(Collectors.toList()));
 
@@ -70,7 +72,9 @@ public class UserController {
                             null,
                             "CUSTOMER",
                             "Customer",
-                            "Customer"))
+                            "Customer",
+                            null,
+                            null))
                     .collect(Collectors.toList()));
 
             return ResponseEntity.ok(ApiResponse.success("Team members retrieved successfully", teamMembers));
@@ -104,8 +108,10 @@ public class UserController {
                                 true,
                                 roleId,
                                 roleName,
-                                roleName,
-                                roleName);
+                                user.getDesignation() != null ? user.getDesignation() : roleName,
+                                user.getDepartment() != null ? user.getDepartment() : roleName,
+                                user.getPhone(),
+                                user.getWhatsapp());
                     })
                     .collect(Collectors.toList());
 

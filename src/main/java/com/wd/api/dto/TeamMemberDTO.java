@@ -31,18 +31,22 @@ public class TeamMemberDTO {
     private String designation;
 
     private String department;
+    
+    private String phone;
+    
+    private String whatsapp;
 
     public TeamMemberDTO() {
     }
 
     /** Backward-compat constructor (no status / role). */
     public TeamMemberDTO(Long id, String firstName, String lastName, String email, String type) {
-        this(id, firstName, lastName, email, type, true, null, null, null, null);
+        this(id, firstName, lastName, email, type, true, null, null, null, null, null, null);
     }
 
     public TeamMemberDTO(Long id, String firstName, String lastName, String email, String type,
                          Boolean isActive, Long roleId, String roleName,
-                         String designation, String department) {
+                         String designation, String department, String phone, String whatsapp) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -55,6 +59,8 @@ public class TeamMemberDTO {
         this.roleName = roleName;
         this.designation = designation;
         this.department = department;
+        this.phone = phone;
+        this.whatsapp = whatsapp;
     }
 
     public Long getId() { return id; }
@@ -89,6 +95,12 @@ public class TeamMemberDTO {
 
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getWhatsapp() { return whatsapp; }
+    public void setWhatsapp(String whatsapp) { this.whatsapp = whatsapp; }
 
     private void updateFullName() {
         this.fullName = (firstName == null ? "" : firstName) + " "
