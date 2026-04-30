@@ -64,6 +64,10 @@ public class CustomerProjectResponse {
     private Double latitude;
     private Double longitude;
 
+    /** Project GPS lock state (V82). Non-null = locked. */
+    private java.time.LocalDateTime gpsLockedAt;
+    private Long gpsLockedByUserId;
+
     // Constructors
     public CustomerProjectResponse() {
     }
@@ -94,6 +98,8 @@ public class CustomerProjectResponse {
         this.isDesignAgreementSigned = project.getIsDesignAgreementSigned();
         this.latitude = project.getLatitude();
         this.longitude = project.getLongitude();
+        this.gpsLockedAt = project.getGpsLockedAt();
+        this.gpsLockedByUserId = project.getGpsLockedByUserId();
         this.projectUuid = project.getProjectUuid();
 
         if (Hibernate.isInitialized(project.getProjectMembers()) && project.getProjectMembers() != null
@@ -300,6 +306,22 @@ public class CustomerProjectResponse {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public java.time.LocalDateTime getGpsLockedAt() {
+        return gpsLockedAt;
+    }
+
+    public void setGpsLockedAt(java.time.LocalDateTime gpsLockedAt) {
+        this.gpsLockedAt = gpsLockedAt;
+    }
+
+    public Long getGpsLockedByUserId() {
+        return gpsLockedByUserId;
+    }
+
+    public void setGpsLockedByUserId(Long gpsLockedByUserId) {
+        this.gpsLockedByUserId = gpsLockedByUserId;
     }
 
     public UUID getProjectUuid() {

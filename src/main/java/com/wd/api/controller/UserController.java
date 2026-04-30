@@ -79,4 +79,40 @@ public class UserController {
             return ResponseEntity.status(500).body(ApiResponse.error("Error fetching team members"));
         }
     }
+
+    /**
+     * Get only internal portal staff (portal users only, no customer accounts).
+     * Used by task assignment dropdowns to restrict assignees to company employees.
+     */
+    @GetMapping("/portal-staff")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<TeamMemberDTO>>> getPortalStaff() {
+        try {
+            List<com.wd.api.model.PortalUser> portalUsers = portalUserRepository.findAll();
+            List<TeamMemberDTO> staff = portalUsers.stream()
+                    .filter(user -> Boolean.TRUE.equals(user.getEnabled()))
+                    .map(user -> {
+                        com.wd.api.model.PortalRole role = user.getRole();
+                        Long roleId = role != null ? role.getId() : null;
+                        String roleName = role != null ? role.getName() : null;
+                        return new TeamMemberDTO(
+                                user.getId(),
+                                user.getFirstName(),
+                                user.getLastName(),
+                                user.getEmail(),
+                                "PORTAL",
+                                true,
+                                roleId,
+                                roleName,
+                                roleName,
+                                roleName);
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success("Portal staff retrieved successfully", staff));
+        } catch (Exception e) {
+            logger.error("Error fetching portal staff", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Error fetching portal staff"));
+        }
+    }
 }

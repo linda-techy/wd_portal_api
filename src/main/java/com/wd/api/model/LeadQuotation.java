@@ -6,9 +6,11 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Entity representing a quotation/proposal sent to a lead.
@@ -36,6 +38,41 @@ public class LeadQuotation {
 
     @Column(name = "quotation_number", nullable = false, unique = true, length = 50)
     private String quotationNumber;
+
+    /**
+     * Sales-stage discriminator (V76).
+     *
+     * <ul>
+     *   <li>{@code BUDGETARY} — lead-enquiry artefact. Tier ranges only,
+     *       no grand total. Customer is comparing builders, not signing.</li>
+     *   <li>{@code DETAILED} — post-site-visit estimate. Floor-wise
+     *       breakdown, add-ons, range totals.</li>
+     *   <li>{@code CONTRACT_BOQ} — signed-contract artefact. Exact item
+     *       quantities, fixed total, payment terms.</li>
+     * </ul>
+     *
+     * <p>Default {@code DETAILED} preserves legacy behaviour for any code
+     * path that still does {@code new LeadQuotation()} without setting the
+     * type. Existing rows are migrated as DETAILED in V76.
+     */
+    @Column(name = "quotation_type", nullable = false, length = 20)
+    private String quotationType = "DETAILED";
+
+    /**
+     * Predecessor in the BUDGETARY → DETAILED → CONTRACT_BOQ chain. Powers
+     * the lead-screen timeline showing which earlier quote this one was
+     * promoted from. {@code null} for the first quotation on a lead.
+     */
+    @Column(name = "parent_quotation_id")
+    private Long parentQuotationId;
+
+    /**
+     * Finish tier — drives the 3-card customer choice (Economy / Standard /
+     * Premium) on the budgetary PDF. {@code null} for legacy DETAILED rows
+     * that predate tiering.
+     */
+    @Column(name = "tier", length = 20)
+    private String tier;
 
     @Column(nullable = false)
     private Integer version = 1;
@@ -107,6 +144,66 @@ public class LeadQuotation {
     @Column(name = "rate_per_sqft", precision = 12, scale = 2)
     private BigDecimal ratePerSqft;
 
+    /**
+     * Lower bound of the per-sqft rate range. Used by BUDGETARY and DETAILED
+     * PDFs to render "₹1,950–2,150/sqft" instead of a single number — sets
+     * honest expectations before the BOQ is locked.
+     */
+    @Column(name = "rate_per_sqft_min", precision = 12, scale = 2)
+    private BigDecimal ratePerSqftMin;
+
+    @Column(name = "rate_per_sqft_max", precision = 12, scale = 2)
+    private BigDecimal ratePerSqftMax;
+
+    /**
+     * Lower / upper bound of estimated built-up area in sqft for DETAILED
+     * stage. Lets the customer-facing PDF say "1,800–2,000 sqft" before the
+     * structural plan is finalised.
+     */
+    @Column(name = "estimated_area_min", precision = 10, scale = 2)
+    private BigDecimal estimatedAreaMin;
+
+    @Column(name = "estimated_area_max", precision = 10, scale = 2)
+    private BigDecimal estimatedAreaMax;
+
+    /**
+     * Estimated construction duration in months, as a range. Surfaced on
+     * all three PDF stages with the standard Kerala monsoon-clause caveat.
+     */
+    @Column(name = "duration_months_min")
+    private Integer durationMonthsMin;
+
+    @Column(name = "duration_months_max")
+    private Integer durationMonthsMax;
+
+    /**
+     * Absolute expiry date (V76). Replaces {@link #validityDays} as the
+     * source of truth — customers need to see "locked till 04 May 2026",
+     * not "30 days from when?". {@code validityDays} stays around as a UI
+     * default-feeder. Backfilled in V76 from {@code sent_at + validityDays}.
+     */
+    @Column(name = "valid_until")
+    private LocalDate validUntil;
+
+    /**
+     * When {@code false}, the rendered PDF must suppress every grand-total
+     * figure. New BUDGETARY rows default to {@code false} — committing to a
+     * number before the area is fixed mis-sells the project. CONTRACT_BOQ
+     * rows always set this {@code true}.
+     */
+    @Column(name = "show_grand_total", nullable = false)
+    private boolean showGrandTotal = false;
+
+    /**
+     * Random UUID for the customer-facing tracked link
+     * ({@code /public/quotations/{token}}). {@code null} until "Send" is
+     * clicked. Hits on the public endpoint append to a view-log table
+     * (later phase) so staff finally know whether the customer opened
+     * the PDF.
+     */
+    @Column(name = "public_view_token", unique = true)
+    private UUID publicViewToken;
+
     @Column(name = "sent_at")
     private LocalDateTime sentAt;
 
@@ -155,6 +252,46 @@ public class LeadQuotation {
     @JsonIgnore
     @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<LeadQuotationItem> items = new ArrayList<>();
+
+    /**
+     * Structured "what is included" rows (V76). Replaces the free-text
+     * description paragraph that used to bury inclusion details — that
+     * ambiguity was the root of every Walldot scope dispute.
+     */
+    @JsonIgnore
+    @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("displayOrder ASC")
+    private List<QuotationInclusion> inclusions = new ArrayList<>();
+
+    /**
+     * Things explicitly NOT covered (compound wall, borewell, earth filling,
+     * modular kitchen, furniture). Pre-empting in writing raises close
+     * rates — counter-intuitive but consistent with field data.
+     */
+    @JsonIgnore
+    @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("displayOrder ASC")
+    private List<QuotationExclusion> exclusions = new ArrayList<>();
+
+    /**
+     * Site / customer-side preconditions assumed by the quote (plot levelled,
+     * road access, single-phase electricity at site, customer supplies water
+     * during construction).
+     */
+    @JsonIgnore
+    @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("displayOrder ASC")
+    private List<QuotationAssumption> assumptions = new ArrayList<>();
+
+    /**
+     * Stage-linked payment schedule (Kerala default: 8 stages). {@code amount}
+     * may be null on each row when the parent is BUDGETARY — the percentage
+     * is meaningful, the rupee figure is not yet locked.
+     */
+    @JsonIgnore
+    @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("milestoneNumber ASC")
+    private List<QuotationPaymentMilestone> paymentMilestones = new ArrayList<>();
 
     // Lifecycle callbacks
     @PrePersist
@@ -373,6 +510,58 @@ public class LeadQuotation {
         this.items = items;
     }
 
+    // ── V76 redesign accessors ───────────────────────────────────────────
+
+    public String getQuotationType() { return quotationType; }
+    public void setQuotationType(String quotationType) { this.quotationType = quotationType; }
+
+    public Long getParentQuotationId() { return parentQuotationId; }
+    public void setParentQuotationId(Long parentQuotationId) { this.parentQuotationId = parentQuotationId; }
+
+    public String getTier() { return tier; }
+    public void setTier(String tier) { this.tier = tier; }
+
+    public BigDecimal getRatePerSqftMin() { return ratePerSqftMin; }
+    public void setRatePerSqftMin(BigDecimal ratePerSqftMin) { this.ratePerSqftMin = ratePerSqftMin; }
+
+    public BigDecimal getRatePerSqftMax() { return ratePerSqftMax; }
+    public void setRatePerSqftMax(BigDecimal ratePerSqftMax) { this.ratePerSqftMax = ratePerSqftMax; }
+
+    public BigDecimal getEstimatedAreaMin() { return estimatedAreaMin; }
+    public void setEstimatedAreaMin(BigDecimal estimatedAreaMin) { this.estimatedAreaMin = estimatedAreaMin; }
+
+    public BigDecimal getEstimatedAreaMax() { return estimatedAreaMax; }
+    public void setEstimatedAreaMax(BigDecimal estimatedAreaMax) { this.estimatedAreaMax = estimatedAreaMax; }
+
+    public Integer getDurationMonthsMin() { return durationMonthsMin; }
+    public void setDurationMonthsMin(Integer durationMonthsMin) { this.durationMonthsMin = durationMonthsMin; }
+
+    public Integer getDurationMonthsMax() { return durationMonthsMax; }
+    public void setDurationMonthsMax(Integer durationMonthsMax) { this.durationMonthsMax = durationMonthsMax; }
+
+    public LocalDate getValidUntil() { return validUntil; }
+    public void setValidUntil(LocalDate validUntil) { this.validUntil = validUntil; }
+
+    public boolean isShowGrandTotal() { return showGrandTotal; }
+    public void setShowGrandTotal(boolean showGrandTotal) { this.showGrandTotal = showGrandTotal; }
+
+    public UUID getPublicViewToken() { return publicViewToken; }
+    public void setPublicViewToken(UUID publicViewToken) { this.publicViewToken = publicViewToken; }
+
+    public List<QuotationInclusion> getInclusions() { return inclusions; }
+    public void setInclusions(List<QuotationInclusion> inclusions) { this.inclusions = inclusions; }
+
+    public List<QuotationExclusion> getExclusions() { return exclusions; }
+    public void setExclusions(List<QuotationExclusion> exclusions) { this.exclusions = exclusions; }
+
+    public List<QuotationAssumption> getAssumptions() { return assumptions; }
+    public void setAssumptions(List<QuotationAssumption> assumptions) { this.assumptions = assumptions; }
+
+    public List<QuotationPaymentMilestone> getPaymentMilestones() { return paymentMilestones; }
+    public void setPaymentMilestones(List<QuotationPaymentMilestone> paymentMilestones) {
+        this.paymentMilestones = paymentMilestones;
+    }
+
     // Helper methods
     public void addItem(LeadQuotationItem item) {
         items.add(item);
@@ -382,5 +571,25 @@ public class LeadQuotation {
     public void removeItem(LeadQuotationItem item) {
         items.remove(item);
         item.setQuotation(null);
+    }
+
+    public void addInclusion(QuotationInclusion inclusion) {
+        inclusions.add(inclusion);
+        inclusion.setQuotation(this);
+    }
+
+    public void addExclusion(QuotationExclusion exclusion) {
+        exclusions.add(exclusion);
+        exclusion.setQuotation(this);
+    }
+
+    public void addAssumption(QuotationAssumption assumption) {
+        assumptions.add(assumption);
+        assumption.setQuotation(this);
+    }
+
+    public void addPaymentMilestone(QuotationPaymentMilestone milestone) {
+        paymentMilestones.add(milestone);
+        milestone.setQuotation(this);
     }
 }

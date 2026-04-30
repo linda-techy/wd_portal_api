@@ -345,6 +345,55 @@ public class CustomerProjectService {
     }
 
     /**
+     * Stamp (or admin-override) the project's site GPS coordinates (V82).
+     *
+     * <p>First-time set is allowed for any caller — the controller's
+     * {@code @PreAuthorize("hasAuthority('PROJECT_EDIT')")} restricts who
+     * can reach this method. Once {@code gps_locked_at} is non-null, only
+     * an ADMIN can change the coordinates; any other caller gets an
+     * {@link IllegalStateException} explaining the lock and pointing at
+     * the locker via {@code gpsLockedByUserId}.
+     *
+     * <p>Rejects "Null Island" {@code (0, 0)} input — these always come
+     * from an Android GPS sensor that hasn't yet acquired a fix and would
+     * silently corrupt the project record if accepted.
+     */
+    public CustomerProject lockProjectGps(Long projectId, double latitude, double longitude,
+            PortalUser actingUser) {
+        if (projectId == null) {
+            throw new IllegalArgumentException("Project ID is required");
+        }
+        if (latitude == 0.0 && longitude == 0.0) {
+            throw new IllegalStateException(
+                    "GPS sensor not yet ready (received 0, 0). Please wait a "
+                            + "moment for your device to acquire a location and try again.");
+        }
+
+        CustomerProject project = customerProjectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Project with ID " + projectId + " not found"));
+
+        if (project.isGpsLocked() && !isAdmin(actingUser)) {
+            throw new IllegalStateException(
+                    "This project's GPS location is already locked. Only an "
+                            + "Administrator can override it. Locked by user id "
+                            + project.getGpsLockedByUserId() + ".");
+        }
+
+        project.setLatitude(latitude);
+        project.setLongitude(longitude);
+        project.setGpsLockedAt(java.time.LocalDateTime.now());
+        project.setGpsLockedByUserId(actingUser != null ? actingUser.getId() : null);
+        return customerProjectRepository.save(project);
+    }
+
+    private boolean isAdmin(PortalUser user) {
+        return user != null
+                && user.getRole() != null
+                && "ADMIN".equals(user.getRole().getCode());
+    }
+
+    /**
      * Update existing customer project
      */
     public CustomerProject updateProject(Long id, CustomerProjectUpdateRequest request) {

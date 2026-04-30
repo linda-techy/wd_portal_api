@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface LeadQuotationRepository extends JpaRepository<LeadQuotation, Long>, JpaSpecificationExecutor<LeadQuotation> {
@@ -25,6 +26,14 @@ public interface LeadQuotationRepository extends JpaRepository<LeadQuotation, Lo
 
     @Query("SELECT q FROM LeadQuotation q LEFT JOIN FETCH q.items WHERE q.id = :id")
     Optional<LeadQuotation> findByIdWithItems(@Param("id") Long id);
+
+    /**
+     * Customer-facing lookup. Used by the public token-gated endpoint to
+     * resolve a UUID share-link back to the underlying quotation. Returns
+     * empty when the token doesn't match — caller maps to 404 (never reveal
+     * "valid token, but pointing to a deleted quote").
+     */
+    Optional<LeadQuotation> findByPublicViewToken(UUID publicViewToken);
 
     /**
      * Atomic counter for {@code QUO-{date}-{NNNN}} numbering. Backed by the

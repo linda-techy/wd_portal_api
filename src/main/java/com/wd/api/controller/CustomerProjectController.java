@@ -4,12 +4,15 @@ import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.CustomerProjectCreateRequest;
 import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
+import com.wd.api.dto.ProjectGpsLockRequest;
 import com.wd.api.dto.ProjectProgressDTO;
 import com.wd.api.dto.ProjectTypeTemplateDTO;
 import com.wd.api.dto.ProjectSearchFilter;
 import com.wd.api.dto.ProjectMemberRequest;
 import com.wd.api.dto.ProjectMemberResponse;
 import com.wd.api.model.CustomerProject;
+import com.wd.api.model.PortalUser;
+import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.model.ProjectProgressLog;
 import com.wd.api.service.CustomerProjectService;
 import com.wd.api.service.ProjectProgressService;
@@ -45,6 +48,9 @@ public class CustomerProjectController {
 
     @Autowired
     private ProjectProgressService progressService;
+
+    @Autowired
+    private PortalUserRepository portalUserRepository;
 
     /**
      * NEW: Standardized search endpoint using ProjectSearchFilter
@@ -365,6 +371,41 @@ public class CustomerProjectController {
         } catch (Exception e) {
             logger.error("Error removing member {} from project {}: {}", membershipId, id, e.getMessage());
             return ResponseEntity.status(500).body(ApiResponse.error("Error removing member: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Stamp the project's site GPS coordinates (V82). Any user with
+     * PROJECT_EDIT can set the location the first time; once locked
+     * (gps_locked_at != null), the service rejects non-ADMIN attempts to
+     * change it.
+     *
+     * <p>Returns the updated project so the Flutter UI can re-render the
+     * GPS card with the lock badge + locked-by attribution without a
+     * second round-trip.
+     */
+    @PostMapping("/{id}/gps")
+    @PreAuthorize("hasAuthority('PROJECT_EDIT')")
+    public ResponseEntity<?> lockProjectGps(
+            @PathVariable Long id,
+            @jakarta.validation.Valid @RequestBody ProjectGpsLockRequest request,
+            Authentication auth) {
+        try {
+            PortalUser actingUser = portalUserRepository.findByEmail(auth.getName())
+                    .orElseThrow(() -> new IllegalStateException("Portal user not found"));
+            CustomerProject updated = customerProjectService.lockProjectGps(
+                    id, request.latitude(), request.longitude(), actingUser);
+            return ResponseEntity.ok(
+                    ApiResponse.success("Project GPS location saved", new CustomerProjectResponse(updated)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to lock GPS on project {}", id, e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Failed to save project GPS location"));
         }
     }
 

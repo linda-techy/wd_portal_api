@@ -58,7 +58,7 @@ app:
     # Initial admin user seeded by DataInitializer on first startup (if no admin exists).
     # Override here or set as env vars in production.
     seed-email: admin@walldotbuilders.com
-    seed-password: Admin@2025
+    seed-password: Test123$
   portal-app-base-url: "http://localhost:3001"
   customer-app-base-url: "http://localhost:3002"
   website-base-url: "http://localhost:3000"

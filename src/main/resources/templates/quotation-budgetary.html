@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+    Budgetary Quotation PDF (Stage 1 of the 3-stage redesign).
+
+    Customer-facing artefact for the lead-enquiry stage. Used when the
+    built-up area isn't fixed, the structural plan isn't drawn, and the
+    customer is comparing builders. Showing a grand total at this stage
+    damages trust — so this template renders tier ranges (Economy /
+    Standard / Premium), scope inclusions, exclusions, assumptions, and
+    a payment-milestone shape without rupee figures.
+
+    Intentionally NEVER renders:
+      • final / total / subtotal rupee amounts
+      • per-line item rupees (BUDGETARY items are scope specs, not BOQ rows)
+      • GST notice (rate not yet locked)
+
+    The DETAILED and CONTRACT_BOQ stages continue to use the legacy
+    quotation-template.html until those templates are split out.
+-->
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        @page {
+            size: A4;
+            margin: 14mm;
+        }
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            color: #1f2937;
+            line-height: 1.55;
+            margin: 0;
+            font-size: 10.5pt;
+        }
+
+        /* ── Top brand banner ──────────────────────────────────────── */
+        .brand-banner {
+            background: #0f1d3f;
+            color: #ffffff;
+            padding: 10mm 12mm;
+            margin: 0 0 8mm 0;
+            position: relative;
+        }
+        .brand-banner .row {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+        .brand-banner .left {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .brand-banner .right {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: right;
+        }
+        .brand-banner .brand-name {
+            font-size: 18pt;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        .brand-banner .brand-sub {
+            font-size: 9.5pt;
+            opacity: 0.9;
+            margin-top: 1mm;
+        }
+        .brand-banner .ref {
+            font-size: 9pt;
+            opacity: 0.85;
+        }
+        .brand-banner .doc-stage {
+            display: inline-block;
+            background: #c0392b;
+            color: #ffffff;
+            font-size: 8.5pt;
+            letter-spacing: 1px;
+            padding: 2px 8px;
+            border-radius: 2px;
+            margin-top: 4mm;
+            text-transform: uppercase;
+        }
+
+        /* ── Customer / validity strip ─────────────────────────────── */
+        .meta {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            margin: 0 0 6mm 0;
+        }
+        .meta .for {
+            display: table-cell;
+            vertical-align: top;
+            width: 60%;
+        }
+        .meta .valid {
+            display: table-cell;
+            vertical-align: top;
+            text-align: right;
+            width: 40%;
+        }
+        .meta .for .label,
+        .meta .valid .label {
+            font-size: 8.5pt;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1mm;
+        }
+        .meta .for .name {
+            font-size: 13pt;
+            font-weight: bold;
+        }
+        .meta .for .loc {
+            color: #4b5563;
+            font-size: 10pt;
+        }
+        .valid-pill {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 9.5pt;
+            font-weight: bold;
+        }
+
+        /* ── Section heading ───────────────────────────────────────── */
+        .section-h {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #0f1d3f;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1.5px solid #0f1d3f;
+            padding-bottom: 2px;
+            margin: 6mm 0 3mm 0;
+        }
+
+        /* ── Tier comparison cards ─────────────────────────────────── */
+        .tiers {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 3mm 0;
+            margin: 0 -3mm;
+        }
+        .tier-card {
+            display: table-cell;
+            vertical-align: top;
+            width: 33.33%;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 4mm;
+            text-align: center;
+        }
+        .tier-card.selected {
+            border: 2px solid #0f1d3f;
+            background: #f8fafc;
+        }
+        .tier-card .tier-name {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #0f1d3f;
+            margin-bottom: 2mm;
+        }
+        .tier-card .tier-range {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .tier-card .tier-unit {
+            font-size: 9pt;
+            color: #6b7280;
+        }
+        .tier-card .tier-badge {
+            display: inline-block;
+            background: #c0392b;
+            color: #ffffff;
+            font-size: 7.5pt;
+            padding: 1px 6px;
+            border-radius: 2px;
+            margin-top: 2mm;
+            letter-spacing: 0.5px;
+        }
+        .selected-rate {
+            text-align: center;
+            margin-top: 3mm;
+            font-size: 10pt;
+            color: #4b5563;
+        }
+        .selected-rate strong {
+            color: #0f1d3f;
+            font-size: 11pt;
+        }
+
+        /* ── List blocks ───────────────────────────────────────────── */
+        .list-block {
+            page-break-inside: avoid;
+        }
+        .list-block ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+        .list-block li {
+            padding: 2mm 0 2mm 8mm;
+            border-bottom: 1px dashed #e5e7eb;
+            position: relative;
+        }
+        .list-block li:before {
+            position: absolute;
+            left: 0;
+            top: 2mm;
+            font-weight: bold;
+        }
+        .inclusions li:before { content: "✓"; color: #047857; }
+        .exclusions li:before { content: "✗"; color: #b91c1c; }
+        .assumptions li:before { content: "·"; color: #6b7280; font-size: 14pt; line-height: 0.5; top: 4mm; }
+        .list-block .cat {
+            font-size: 8.5pt;
+            text-transform: uppercase;
+            color: #6b7280;
+            letter-spacing: 0.5px;
+            margin-right: 6px;
+        }
+        .list-block .note {
+            display: block;
+            font-size: 9pt;
+            color: #6b7280;
+            margin-top: 1mm;
+            font-style: italic;
+        }
+
+        /* ── Estimate ranges grid ──────────────────────────────────── */
+        .estimate-grid {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+        .estimate-cell {
+            display: table-cell;
+            vertical-align: top;
+            text-align: center;
+            padding: 3mm;
+            border: 1px solid #e5e7eb;
+        }
+        .estimate-cell .key {
+            font-size: 8.5pt;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1mm;
+        }
+        .estimate-cell .val {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #0f1d3f;
+        }
+
+        /* ── Payment milestone table ───────────────────────────────── */
+        .milestones {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+        }
+        .milestones th {
+            background: #0f1d3f;
+            color: #ffffff;
+            text-align: left;
+            padding: 2.5mm 3mm;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            font-size: 9pt;
+            text-transform: uppercase;
+        }
+        .milestones td {
+            padding: 2mm 3mm;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+        .milestones .num { width: 12mm; color: #6b7280; }
+        .milestones .pct { width: 22mm; text-align: right; font-weight: bold; }
+
+        /* ── CTA block ─────────────────────────────────────────────── */
+        .cta {
+            background: #0f1d3f;
+            color: #ffffff;
+            padding: 6mm;
+            border-radius: 4px;
+            margin-top: 6mm;
+            page-break-inside: avoid;
+        }
+        .cta .row {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+        .cta .left {
+            display: table-cell;
+            vertical-align: middle;
+            width: 70%;
+        }
+        .cta .right {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: right;
+        }
+        .cta .h {
+            font-size: 13pt;
+            font-weight: bold;
+            margin-bottom: 1mm;
+        }
+        .cta .sub {
+            font-size: 10pt;
+            opacity: 0.9;
+        }
+        .cta .phone {
+            font-size: 14pt;
+            font-weight: bold;
+        }
+
+        /* ── Trust strip ───────────────────────────────────────────── */
+        .trust {
+            margin-top: 6mm;
+            padding: 4mm 0;
+            border-top: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: center;
+            color: #4b5563;
+            font-size: 9.5pt;
+        }
+        .trust .quote {
+            font-style: italic;
+            margin-bottom: 1mm;
+        }
+        .trust .source {
+            color: #6b7280;
+            font-size: 8.5pt;
+        }
+
+        /* ── Disclaimer + signature ────────────────────────────────── */
+        .disclaimer {
+            margin-top: 5mm;
+            padding: 3mm;
+            background: #fef3c7;
+            border-left: 3px solid #f59e0b;
+            color: #92400e;
+            font-size: 9pt;
+        }
+        .signature {
+            margin-top: 8mm;
+            page-break-inside: avoid;
+        }
+        .signature .from {
+            font-size: 10pt;
+            margin-bottom: 1mm;
+        }
+        .signature .name {
+            font-weight: bold;
+            font-size: 11pt;
+        }
+        .signature .title {
+            color: #6b7280;
+            font-size: 9.5pt;
+        }
+
+        /* ── Footer line ───────────────────────────────────────────── */
+        .footer {
+            margin-top: 8mm;
+            padding-top: 3mm;
+            border-top: 1px solid #e5e7eb;
+            font-size: 8.5pt;
+            color: #9ca3af;
+            text-align: center;
+        }
+
+        /* DRAFT watermark — only renders when status == DRAFT. */
+        .draft-watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 80pt;
+            font-weight: bold;
+            color: rgba(192, 57, 43, 0.10);
+            z-index: 10;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div th:if="${quotation.status == 'DRAFT'}" class="draft-watermark">DRAFT</div>
+
+    <!-- ============================================================
+         Brand banner + stage marker
+         ============================================================ -->
+    <div class="brand-banner">
+        <div class="row">
+            <div class="left">
+                <div class="brand-name" th:text="${companyName}">WALLDOT BUILDERS</div>
+                <div class="brand-sub">Quality residential construction · Kerala</div>
+            </div>
+            <div class="right">
+                <div class="ref">
+                    Ref: <span th:text="${quotation.quotationNumber}">BQ-2026-001</span>
+                </div>
+                <div class="ref" th:if="${quotation.createdAt != null}">
+                    Date: <span th:text="${#temporals.format(quotation.createdAt, 'dd MMM yyyy')}">04 Apr 2026</span>
+                </div>
+                <div class="doc-stage">Budgetary Estimate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         For / validity
+         ============================================================ -->
+    <div class="meta">
+        <div class="for">
+            <div class="label">Prepared for</div>
+            <div class="name" th:text="${lead != null ? lead.name : 'Customer'}">Customer Name</div>
+            <div class="loc">
+                <span th:if="${lead != null and lead.district != null}" th:text="${lead.district}">District</span><span
+                      th:if="${lead != null and lead.district != null and lead.state != null}">, </span><span
+                      th:if="${lead != null and lead.state != null}" th:text="${lead.state}">State</span>
+            </div>
+        </div>
+        <div class="valid">
+            <div class="label">Pricing locked till</div>
+            <div class="valid-pill" th:if="${validUntilDisplay != null}" th:text="${validUntilDisplay}">04 May 2026</div>
+            <div class="valid-pill" th:unless="${validUntilDisplay != null}">See validity below</div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         Tier comparison cards (Economy / Standard / Premium)
+         The "Most Picked" badge highlights the customer's tier when set
+         on the quotation.
+         ============================================================ -->
+    <div class="section-h">Your Three Options</div>
+    <div class="tiers">
+        <div th:class="${quotation.tier == 'ECONOMY'} ? 'tier-card selected' : 'tier-card'">
+            <div class="tier-name">ECONOMY</div>
+            <div class="tier-range">₹1,750 – 1,950</div>
+            <div class="tier-unit">per sq.ft.</div>
+            <div class="tier-badge" th:if="${quotation.tier == 'ECONOMY'}">YOUR TIER</div>
+        </div>
+        <div th:class="${quotation.tier == 'STANDARD'} ? 'tier-card selected' : 'tier-card'">
+            <div class="tier-name">STANDARD</div>
+            <div class="tier-range">₹1,950 – 2,150</div>
+            <div class="tier-unit">per sq.ft.</div>
+            <div class="tier-badge" th:if="${quotation.tier == 'STANDARD'}">YOUR TIER</div>
+            <div class="tier-badge" th:unless="${quotation.tier != null}">★ MOST PICKED</div>
+        </div>
+        <div th:class="${quotation.tier == 'PREMIUM'} ? 'tier-card selected' : 'tier-card'">
+            <div class="tier-name">PREMIUM</div>
+            <div class="tier-range">₹2,150 – 2,500</div>
+            <div class="tier-unit">per sq.ft.</div>
+            <div class="tier-badge" th:if="${quotation.tier == 'PREMIUM'}">YOUR TIER</div>
+        </div>
+    </div>
+    <div class="selected-rate"
+         th:if="${quotation.ratePerSqftMin != null and quotation.ratePerSqftMax != null}">
+        Indicative range for your project:
+        <strong>
+            ₹<span th:text="${#numbers.formatDecimal(quotation.ratePerSqftMin, 0, 'COMMA', 0, 'POINT')}">1,950</span>
+            – ₹<span th:text="${#numbers.formatDecimal(quotation.ratePerSqftMax, 0, 'COMMA', 0, 'POINT')}">2,150</span>
+            per sq.ft.
+        </strong>
+    </div>
+
+    <!-- ============================================================
+         Estimate ranges grid (area + duration). Each cell is hidden
+         when the corresponding pair isn't set.
+         ============================================================ -->
+    <div th:if="${quotation.estimatedAreaMin != null or quotation.durationMonthsMin != null}">
+        <div class="section-h">Estimated Scale</div>
+        <div class="estimate-grid">
+            <div class="estimate-cell"
+                 th:if="${quotation.estimatedAreaMin != null and quotation.estimatedAreaMax != null}">
+                <div class="key">Built-up Area</div>
+                <div class="val">
+                    <span th:text="${quotation.estimatedAreaMin}">1,800</span> –
+                    <span th:text="${quotation.estimatedAreaMax}">2,000</span> sq.ft.
+                </div>
+            </div>
+            <div class="estimate-cell"
+                 th:if="${quotation.durationMonthsMin != null and quotation.durationMonthsMax != null}">
+                <div class="key">Approximate Duration</div>
+                <div class="val">
+                    <span th:text="${quotation.durationMonthsMin}">10</span> –
+                    <span th:text="${quotation.durationMonthsMax}">12</span> months
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         Inclusions — what's covered. Categorised when the field is set.
+         ============================================================ -->
+    <div th:if="${not #lists.isEmpty(quotation.inclusions)}">
+        <div class="section-h">What's Included</div>
+        <div class="list-block inclusions">
+            <ul>
+                <li th:each="inc : ${quotation.inclusions}">
+                    <span class="cat" th:if="${inc.category != null}" th:text="${inc.category}">Civil</span>
+                    <span th:text="${inc.text}">Inclusion text</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         Exclusions — pre-empted scope-dispute items. Cost-implication
+         note shown when present (Kerala builders pre-empt borewell,
+         compound wall, earth filling here).
+         ============================================================ -->
+    <div th:if="${not #lists.isEmpty(quotation.exclusions)}">
+        <div class="section-h">What's Not Included</div>
+        <div class="list-block exclusions">
+            <ul>
+                <li th:each="exc : ${quotation.exclusions}">
+                    <span th:text="${exc.text}">Exclusion text</span>
+                    <span class="note" th:if="${exc.costImplicationNote != null}"
+                          th:text="${exc.costImplicationNote}">Estimate ₹40k–60k extra</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         Assumptions — site / customer-side preconditions
+         ============================================================ -->
+    <div th:if="${not #lists.isEmpty(quotation.assumptions)}">
+        <div class="section-h">Assumptions</div>
+        <div class="list-block assumptions">
+            <ul>
+                <li th:each="ass : ${quotation.assumptions}" th:text="${ass.text}">Assumption text</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         Payment milestones — percentage only, no rupee figures.
+         The customer learns the payment shape here; rupees come at
+         contract stage.
+         ============================================================ -->
+    <div th:if="${not #lists.isEmpty(quotation.paymentMilestones)}">
+        <div class="section-h">Payment Schedule</div>
+        <table class="milestones">
+            <thead>
+                <tr>
+                    <th class="num">#</th>
+                    <th>Milestone</th>
+                    <th class="pct">Share</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="m : ${quotation.paymentMilestones}">
+                    <td class="num" th:text="${m.milestoneNumber}">1</td>
+                    <td th:text="${m.triggerEvent}">On agreement</td>
+                    <td class="pct">
+                        <span th:text="${#numbers.formatDecimal(m.percentage, 0, 'COMMA', 1, 'POINT')}">10.0</span>%
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============================================================
+         Disclaimer — sets honest expectations
+         ============================================================ -->
+    <div class="disclaimer">
+        <strong>Note:</strong> This is a budgetary estimate based on the information shared
+        so far. The exact contract value will be finalised after the site visit and
+        structural drawings. All material rates are subject to revision quarterly if
+        the steel / cement index moves more than 7%. Timeline excludes more than
+        five consecutive rain days per month during the June–September monsoon.
+    </div>
+
+    <!-- ============================================================
+         CTA block
+         ============================================================ -->
+    <div class="cta">
+        <div class="row">
+            <div class="left">
+                <div class="h">📍 Book a free site visit</div>
+                <div class="sub">Our engineer will assess your plot and confirm a precise estimate.</div>
+            </div>
+            <div class="right">
+                <div class="phone" th:if="${companyPhone != null}" th:text="${companyPhone}">+91 90749 54804</div>
+                <div class="sub" th:if="${companyEmail != null}" th:text="${companyEmail}">info@walldotbuilders.com</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         Trust strip — past-customer testimonial
+         ============================================================ -->
+    <div class="trust">
+        <div class="quote">"Praveen's team finished on time and within budget."</div>
+        <div class="source">— Anish K, Ollur (2024)</div>
+    </div>
+
+    <!-- ============================================================
+         Signature
+         ============================================================ -->
+    <div class="signature">
+        <div class="from">With regards,</div>
+        <div class="name" th:text="${companySignatoryName != null ? companySignatoryName : 'Praveen P F'}">Praveen P F</div>
+        <div class="title">Managing Director, <span th:text="${companyName}">Walldot Builders</span><span
+              th:if="${companyCity != null}">, <span th:text="${companyCity}">Thrissur</span></span></div>
+    </div>
+
+    <!-- ============================================================
+         Footer
+         ============================================================ -->
+    <div class="footer">
+        This is a budgetary estimate, not a contract. A detailed proposal will be issued after the site visit.
+    </div>
+</body>
+</html>

@@ -807,8 +807,26 @@ public class LeadQuotationService {
         context.setVariable("bankName",          companyInfoConfig.getBankName());
         context.setVariable("bankBranch",        companyInfoConfig.getBankBranch());
 
-        // Process Thymeleaf template
-        String html = templateEngine.process("quotation-template", context);
+        // Pre-format an absolute valid_until date for the budgetary template.
+        // Falls back to the legacy "createdAt + validityDays" derivation when
+        // the V76 valid_until column hasn't been set on the row yet.
+        String validUntilDisplay = null;
+        java.time.LocalDate effectiveValidUntil = quotation.getValidUntil() != null
+                ? quotation.getValidUntil()
+                : validUntil;
+        if (effectiveValidUntil != null) {
+            validUntilDisplay = effectiveValidUntil.format(
+                    java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
+        }
+        context.setVariable("validUntilDisplay", validUntilDisplay);
+
+        // V76: pick the template by quotation_type. BUDGETARY uses the new
+        // tier-card / no-totals layout; everything else falls through to the
+        // legacy template until those stages are split out.
+        String templateName = "BUDGETARY".equals(quotation.getQuotationType())
+                ? "quotation-budgetary"
+                : "quotation-template";
+        String html = templateEngine.process(templateName, context);
 
         // Generate PDF using openhtmltopdf with Arial embedded so the rupee
         // glyph (U+20B9) renders — without an embedded font that supports it

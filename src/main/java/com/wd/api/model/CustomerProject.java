@@ -103,6 +103,22 @@ public class CustomerProject extends BaseEntity {
     @Column(name = "longitude")
     private Double longitude;
 
+    /**
+     * When the project site GPS was first stamped (V82). {@code null} =
+     * not yet captured; once non-null, the value is "locked" and only
+     * an ADMIN can re-set the coordinates.
+     */
+    @Column(name = "gps_locked_at")
+    private java.time.LocalDateTime gpsLockedAt;
+
+    /**
+     * PortalUser id of whoever first stamped (or last overrode) the
+     * project GPS. Surfaced on the GPS card so staff know who to ask
+     * if it looks wrong.
+     */
+    @Column(name = "gps_locked_by_user_id")
+    private Long gpsLockedByUserId;
+
     // ==================== Progress Tracking Fields ====================
     
     /**
@@ -470,6 +486,27 @@ public class CustomerProject extends BaseEntity {
     /**
      * Check if project has GPS coordinates set
      */
+    public java.time.LocalDateTime getGpsLockedAt() {
+        return gpsLockedAt;
+    }
+
+    public void setGpsLockedAt(java.time.LocalDateTime gpsLockedAt) {
+        this.gpsLockedAt = gpsLockedAt;
+    }
+
+    public Long getGpsLockedByUserId() {
+        return gpsLockedByUserId;
+    }
+
+    public void setGpsLockedByUserId(Long gpsLockedByUserId) {
+        this.gpsLockedByUserId = gpsLockedByUserId;
+    }
+
+    /** True when the project GPS has been stamped at least once (V82). */
+    public boolean isGpsLocked() {
+        return gpsLockedAt != null;
+    }
+
     public boolean hasLocation() {
         return latitude != null && longitude != null;
     }

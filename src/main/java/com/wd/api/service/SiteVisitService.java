@@ -59,10 +59,18 @@ public class SiteVisitService {
     /**
      * Search site visits with filters and pagination
      */
+    /**
+     * Search site visits with filters and pagination, returning the
+     * customer-facing DTO (flat projectName, visitedByName, etc.) — the
+     * raw entity serialises with the nested {@code project: { name }}
+     * shape, which the Flutter list screen can't read and falls back to
+     * "Unknown Project".
+     */
     @Transactional(readOnly = true)
-    public Page<SiteVisit> searchSiteVisits(SiteVisitSearchFilter filter) {
+    public Page<SiteVisitDTO> searchSiteVisits(SiteVisitSearchFilter filter) {
         Specification<SiteVisit> spec = buildSpecification(filter);
-        return siteVisitRepository.findAll(spec, filter.toPageable());
+        return siteVisitRepository.findAll(spec, filter.toPageable())
+                .map(this::mapToDTO);
     }
 
     private Specification<SiteVisit> buildSpecification(SiteVisitSearchFilter filter) {
@@ -156,6 +164,17 @@ public class SiteVisitService {
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new IllegalStateException(
                     "GPS coordinates are required for check-in. Please enable location services.");
+        }
+
+        // Reject "Null Island" coordinates (lat=0, lng=0). These never come
+        // from a real check-in — the literal point is in the Gulf of Guinea
+        // — and almost always indicate an Android GPS sensor that hasn't
+        // yet acquired a fix. Without this guard the proximity check below
+        // surfaces a misleading "you are 8,500 km away" message.
+        if (request.getLatitude() == 0.0 && request.getLongitude() == 0.0) {
+            throw new IllegalStateException(
+                    "GPS sensor not yet ready (received 0, 0). Please wait a "
+                            + "moment for your device to acquire a location and try again.");
         }
 
         // Validate GPS proximity - must be within 2km of project site

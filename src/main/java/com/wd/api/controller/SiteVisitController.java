@@ -41,7 +41,7 @@ public class SiteVisitController {
      */
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('SITE_VISIT_VIEW')")
-    public ResponseEntity<Page<SiteVisit>> searchSiteVisits(@ModelAttribute SiteVisitSearchFilter filter) {
+    public ResponseEntity<Page<SiteVisitDTO>> searchSiteVisits(@ModelAttribute SiteVisitSearchFilter filter) {
         return ResponseEntity.ok(siteVisitService.searchSiteVisits(filter));
     }
 

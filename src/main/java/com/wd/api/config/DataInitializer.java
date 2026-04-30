@@ -39,7 +39,7 @@ public class DataInitializer implements ApplicationRunner {
     private String adminEmail;
 
     /** Default admin password — can be overridden via {@code app.admin.seed-password}. */
-    @Value("${app.admin.seed-password:Admin@2025}")
+    @Value("${app.admin.seed-password:Test123$}")
     private String adminPassword;
 
     @Autowired
@@ -59,37 +59,35 @@ public class DataInitializer implements ApplicationRunner {
     // ── Private helpers ──────────────────────────────────────────────────────
 
     private void seedAdminUser() {
-        // Already exists — nothing to do
-        if (portalUserRepository.findByEmail(adminEmail).isPresent()) {
-            logger.debug("Admin user '{}' already exists — skipping seed", adminEmail);
-            return;
-        }
-
-        portalRoleRepository.findByCode("ADMIN").ifPresentOrElse(
-                adminRole -> {
-                    PortalUser admin = new PortalUser();
-                    admin.setEmail(adminEmail);
+        portalUserRepository.findByEmail(adminEmail).ifPresentOrElse(
+                admin -> {
+                    // Sync password with seed-password in local dev
                     admin.setPassword(passwordEncoder.encode(adminPassword));
-                    admin.setFirstName("System");
-                    admin.setLastName("Admin");
-                    admin.setRole(adminRole);
-                    admin.setEnabled(true);
-
                     portalUserRepository.save(admin);
-
-                    // WARN level so this is visible in every env's log even with INFO filtering
-                    logger.warn("================================================================");
-                    logger.warn("  INITIAL ADMIN USER CREATED — CHANGE PASSWORD IMMEDIATELY");
-                    logger.warn("  Email    : {}", adminEmail);
-                    logger.warn("  Password : {}", adminPassword);
-                    logger.warn("  Use the portal UI or /auth/forgot-password to reset it.");
-                    logger.warn("================================================================");
+                    logger.info("Admin user '{}' password synchronized with seed value", adminEmail);
                 },
-                () -> logger.error(
-                        "ADMIN role not found in portal_roles table. " +
-                        "The database migrations (V5) must run before the app can seed an admin user. " +
-                        "Start the app with a production/staging profile to trigger Flyway, " +
-                        "or insert the ADMIN role manually.")
+                () -> {
+                    portalRoleRepository.findByCode("ADMIN").ifPresentOrElse(
+                            adminRole -> {
+                                PortalUser admin = new PortalUser();
+                                admin.setEmail(adminEmail);
+                                admin.setPassword(passwordEncoder.encode(adminPassword));
+                                admin.setFirstName("System");
+                                admin.setLastName("Admin");
+                                admin.setRole(adminRole);
+                                admin.setEnabled(true);
+
+                                portalUserRepository.save(admin);
+
+                                logger.warn("================================================================");
+                                logger.warn("  INITIAL ADMIN USER CREATED");
+                                logger.warn("  Email    : {}", adminEmail);
+                                logger.warn("  Password : {}", adminPassword);
+                                logger.warn("================================================================");
+                            },
+                            () -> logger.error("ADMIN role not found in portal_roles table.")
+                    );
+                }
         );
     }
 }

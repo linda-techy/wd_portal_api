@@ -3,13 +3,22 @@ package com.wd.api.controller;
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.LeadQuotationSearchFilter;
 import com.wd.api.dto.quotation.AddItemFromCatalogRequest;
+import com.wd.api.dto.quotation.AssumptionRequest;
+import com.wd.api.dto.quotation.AssumptionResponse;
+import com.wd.api.dto.quotation.ExclusionRequest;
+import com.wd.api.dto.quotation.ExclusionResponse;
+import com.wd.api.dto.quotation.InclusionRequest;
+import com.wd.api.dto.quotation.InclusionResponse;
 import com.wd.api.dto.quotation.LeadQuotationDetailResponse;
+import com.wd.api.dto.quotation.PaymentMilestoneRequest;
+import com.wd.api.dto.quotation.PaymentMilestoneResponse;
 import com.wd.api.dto.quotation.PromoteItemToCatalogRequest;
 import com.wd.api.dto.quotation.QuotationCatalogItemDto;
 import com.wd.api.model.LeadQuotation;
 import com.wd.api.model.LeadQuotationItem;
 import com.wd.api.service.LeadQuotationService;
 import com.wd.api.service.QuotationCatalogPromotionService;
+import com.wd.api.service.QuotationSubResourceService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +53,12 @@ public class LeadQuotationController {
 
     @Autowired
     private QuotationCatalogPromotionService catalogPromotionService;
+
+    @Autowired
+    private QuotationSubResourceService subResourceService;
+
+    @Autowired
+    private com.wd.api.service.PublicQuotationService publicQuotationService;
 
     @GetMapping("/search")
     public ResponseEntity<Page<LeadQuotation>> searchLeadQuotations(@ModelAttribute LeadQuotationSearchFilter filter) {
@@ -325,6 +340,268 @@ public class LeadQuotationController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("success", false, "message", e.getMessage()));
         }
+    }
+
+    // ── V76 sub-resources: inclusions / exclusions / assumptions / milestones ──
+    //
+    // Each group is a thin controller wrapper around QuotationSubResourceService.
+    // Status mapping:
+    //   404  — quotation or sub-resource not found
+    //   422  — domain rule violation (e.g. duplicate milestone number)
+    //   400  — validation failure (caught by Spring's MethodArgumentNotValidException
+    //          handler globally; we don't repeat per-method)
+    //   500  — unexpected; logged with quotationId for forensics
+
+    @GetMapping("/{quotationId}/inclusions")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<?> listInclusions(@PathVariable Long quotationId) {
+        try {
+            List<InclusionResponse> body = subResourceService.listInclusions(quotationId).stream()
+                    .map(InclusionResponse::from)
+                    .toList();
+            return ResponseEntity.ok(body);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{quotationId}/inclusions")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> createInclusion(
+            @PathVariable Long quotationId, @Valid @RequestBody InclusionRequest req) {
+        try {
+            InclusionResponse body = InclusionResponse.from(
+                    subResourceService.createInclusion(quotationId, req));
+            return ResponseEntity.status(HttpStatus.CREATED).body(body);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to create inclusion on quotation {}", quotationId, e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Internal error creating inclusion"));
+        }
+    }
+
+    @PutMapping("/{quotationId}/inclusions/{inclusionId}")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> updateInclusion(
+            @PathVariable Long quotationId, @PathVariable Long inclusionId,
+            @Valid @RequestBody InclusionRequest req) {
+        try {
+            return ResponseEntity.ok(InclusionResponse.from(
+                    subResourceService.updateInclusion(quotationId, inclusionId, req)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{quotationId}/inclusions/{inclusionId}")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> deleteInclusion(
+            @PathVariable Long quotationId, @PathVariable Long inclusionId) {
+        try {
+            subResourceService.deleteInclusion(quotationId, inclusionId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{quotationId}/exclusions")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<?> listExclusions(@PathVariable Long quotationId) {
+        try {
+            return ResponseEntity.ok(subResourceService.listExclusions(quotationId).stream()
+                    .map(ExclusionResponse::from).toList());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{quotationId}/exclusions")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> createExclusion(
+            @PathVariable Long quotationId, @Valid @RequestBody ExclusionRequest req) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(ExclusionResponse.from(
+                    subResourceService.createExclusion(quotationId, req)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to create exclusion on quotation {}", quotationId, e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Internal error creating exclusion"));
+        }
+    }
+
+    @PutMapping("/{quotationId}/exclusions/{exclusionId}")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> updateExclusion(
+            @PathVariable Long quotationId, @PathVariable Long exclusionId,
+            @Valid @RequestBody ExclusionRequest req) {
+        try {
+            return ResponseEntity.ok(ExclusionResponse.from(
+                    subResourceService.updateExclusion(quotationId, exclusionId, req)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{quotationId}/exclusions/{exclusionId}")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> deleteExclusion(
+            @PathVariable Long quotationId, @PathVariable Long exclusionId) {
+        try {
+            subResourceService.deleteExclusion(quotationId, exclusionId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{quotationId}/assumptions")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<?> listAssumptions(@PathVariable Long quotationId) {
+        try {
+            return ResponseEntity.ok(subResourceService.listAssumptions(quotationId).stream()
+                    .map(AssumptionResponse::from).toList());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{quotationId}/assumptions")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> createAssumption(
+            @PathVariable Long quotationId, @Valid @RequestBody AssumptionRequest req) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(AssumptionResponse.from(
+                    subResourceService.createAssumption(quotationId, req)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to create assumption on quotation {}", quotationId, e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Internal error creating assumption"));
+        }
+    }
+
+    @PutMapping("/{quotationId}/assumptions/{assumptionId}")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> updateAssumption(
+            @PathVariable Long quotationId, @PathVariable Long assumptionId,
+            @Valid @RequestBody AssumptionRequest req) {
+        try {
+            return ResponseEntity.ok(AssumptionResponse.from(
+                    subResourceService.updateAssumption(quotationId, assumptionId, req)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{quotationId}/assumptions/{assumptionId}")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> deleteAssumption(
+            @PathVariable Long quotationId, @PathVariable Long assumptionId) {
+        try {
+            subResourceService.deleteAssumption(quotationId, assumptionId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{quotationId}/payment-milestones")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<?> listPaymentMilestones(@PathVariable Long quotationId) {
+        try {
+            List<PaymentMilestoneResponse> rows = subResourceService.listMilestones(quotationId).stream()
+                    .map(PaymentMilestoneResponse::from).toList();
+            // Body wraps the list with a running percentage total so the
+            // Flutter editor can render the "85% allocated, 15% remaining"
+            // hint without a second round-trip.
+            return ResponseEntity.ok(Map.of(
+                    "milestones", rows,
+                    "totalPercentage", subResourceService.totalMilestonePercentage(quotationId)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{quotationId}/payment-milestones")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> createPaymentMilestone(
+            @PathVariable Long quotationId, @Valid @RequestBody PaymentMilestoneRequest req) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(PaymentMilestoneResponse.from(
+                    subResourceService.createMilestone(quotationId, req)));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to create milestone on quotation {}", quotationId, e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Internal error creating milestone"));
+        }
+    }
+
+    @PutMapping("/{quotationId}/payment-milestones/{milestoneId}")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> updatePaymentMilestone(
+            @PathVariable Long quotationId, @PathVariable Long milestoneId,
+            @Valid @RequestBody PaymentMilestoneRequest req) {
+        try {
+            return ResponseEntity.ok(PaymentMilestoneResponse.from(
+                    subResourceService.updateMilestone(quotationId, milestoneId, req)));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{quotationId}/payment-milestones/{milestoneId}")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<?> deletePaymentMilestone(
+            @PathVariable Long quotationId, @PathVariable Long milestoneId) {
+        try {
+            subResourceService.deleteMilestone(quotationId, milestoneId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    // ── V77 share-link management ─────────────────────────────────────────
+
+    /**
+     * Generate a fresh public_view_token (or rotate an existing one). Used
+     * both at "Send" time and on staff-triggered rotation if a customer
+     * reports a leaked link. Returns the new token so the Flutter UI can
+     * compose a fresh share URL.
+     */
+    @PostMapping("/{id}/regenerate-token")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'LEAD_CREATE')")
+    public ResponseEntity<?> regeneratePublicToken(@PathVariable Long id) {
+        try {
+            java.util.UUID token = publicQuotationService.regenerateToken(id);
+            return ResponseEntity.ok(Map.of("publicViewToken", token.toString()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * Total customer-side hits on the public token-gated endpoint for this
+     * quotation. Powers the "viewed N times" badge on the lead screen.
+     */
+    @GetMapping("/{id}/view-count")
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<?> getViewCount(@PathVariable Long id) {
+        return ResponseEntity.ok(Map.of("viewCount", publicQuotationService.viewCount(id)));
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.wd.api.service;
 
+import com.wd.api.dto.SiteReportDto;
 import com.wd.api.dto.SiteReportSearchFilter;
 import com.wd.api.exception.BusinessException;
 import com.wd.api.exception.ResourceNotFoundException;
@@ -49,10 +50,20 @@ public class SiteReportService {
         this.webhookPublisherService = webhookPublisherService;
     }
 
+    /**
+     * Search site reports with filters and pagination, returning the
+     * customer-facing DTO (flat projectName, submittedByName, etc.). The
+     * raw entity serialises with nested {@code project: { name }} +
+     * {@code submittedBy: { firstName, lastName }} which (a) leaks
+     * lazy-init proxies into JSON and (b) triggers N+1 selects per page.
+     * The DTO is hydrated inside the read-only transaction so the LAZY
+     * collections resolve cleanly before the session closes.
+     */
     @Transactional(readOnly = true)
-    public Page<SiteReport> searchSiteReports(SiteReportSearchFilter filter) {
+    public Page<SiteReportDto> searchSiteReports(SiteReportSearchFilter filter) {
         Specification<SiteReport> spec = buildSpecification(filter);
-        return siteReportRepository.findAll(spec, filter.toPageable());
+        return siteReportRepository.findAll(spec, filter.toPageable())
+                .map(SiteReportDto::new);
     }
 
     private Specification<SiteReport> buildSpecification(SiteReportSearchFilter filter) {
@@ -78,9 +89,16 @@ public class SiteReportService {
                 predicates.add(cb.equal(root.get("reportType"), filter.getReportType()));
             }
 
-            // Filter by reportedById (submittedBy)
-            if (filter.getReportedById() != null) {
-                predicates.add(cb.equal(root.get("submittedBy").get("id"), filter.getReportedById()));
+            // Filter by submitter user id. The DTO carries TWO aliases of
+            // the same field (reportedBy + reportedById) for legacy reasons —
+            // the Flutter provider sends `reportedBy`, but the original
+            // service only honoured `reportedById`. Accept whichever the
+            // caller populated so neither client silently no-ops.
+            Long reporterId = filter.getReportedById() != null
+                    ? filter.getReportedById()
+                    : filter.getReportedBy();
+            if (reporterId != null) {
+                predicates.add(cb.equal(root.get("submittedBy").get("id"), reporterId));
             }
 
             // Filter by title
@@ -121,7 +139,27 @@ public class SiteReportService {
                 .orElseThrow(() -> new ResourceNotFoundException("SiteReport", id));
     }
 
-    @Transactional
+    /**
+     * Create a site report end-to-end: save the parent row, store + persist
+     * each photo, sync to gallery, notify customers, publish a webhook.
+     *
+     * <p>This method is intentionally <b>not</b> {@code @Transactional}.
+     * Site-report creation involves slow file IO (per-photo JPEG re-encoding
+     * via {@link FileStorageService#storeOptimizedImage}) which previously
+     * took ~20 seconds inside a single JPA transaction — long enough that
+     * the hosted Postgres dropped the idle connection mid-transaction and
+     * the final webhook insert blew up with "Connection is closed". Each
+     * {@code repo.save(...)} call below opens its own auto-commit
+     * transaction, which is exactly what we want — no DB connection is
+     * held across the file IO loop.
+     *
+     * <p>Trade-off: not atomic across photos. If the report row saves but
+     * a later photo write fails, you get an orphan report. The previous
+     * design was already non-atomic (file storage is filesystem, not DB)
+     * so this only makes the behaviour explicit. Reconciliation is via
+     * the gallery-sync error key {@code GALLERY_SYNC_FAILED} +
+     * webhook-retry mechanism (separate concern).
+     */
     public SiteReport createReport(SiteReport report, List<MultipartFile> photos, PortalUser submittedBy) {
         // Calculate distance from project if GPS coordinates provided
         if (report.getLatitude() != null && report.getLongitude() != null && report.getProject() != null) {
@@ -132,6 +170,15 @@ public class SiteReportService {
                     project.getLatitude(), project.getLongitude()
                 );
                 report.setDistanceFromProject(distance);
+            } else {
+                // Project has no GPS lock yet → distanceFromProject stays
+                // null. Surface a WARN so ops can prompt admins to set
+                // the GPS lock on the project (V82 introduced the lock
+                // UI). Silent skip used to be invisible.
+                logger.warn(
+                        "SITE_REPORT_NO_PROJECT_GPS projectId={} reportTitle={} — "
+                                + "distanceFromProject will be null until project GPS is locked.",
+                        project.getId(), report.getTitle());
             }
         }
 
@@ -141,7 +188,10 @@ public class SiteReportService {
             int displayOrder = 0;
             for (MultipartFile photo : photos) {
                 String subDir = "site-reports/" + savedReport.getId();
-                String storedPath = fileStorageService.storeFile(photo, subDir);
+                // V84: re-encode the upload (typically a 5–10 MB phone
+                // shot) as a quality-82 JPEG to slash storage by 50–70%.
+                // Falls back to raw store for non-image uploads.
+                String storedPath = fileStorageService.storeOptimizedImage(photo, subDir);
 
                 SiteReportPhoto reportPhoto = new SiteReportPhoto();
                 reportPhoto.setSiteReport(savedReport);
@@ -153,13 +203,27 @@ public class SiteReportService {
                 savedReport.addPhoto(reportPhoto);
             }
 
-            // Auto-sync site report photos to gallery
+            // Auto-sync site report photos to gallery. Failure here used
+            // to be silently swallowed (the original audit flagged it as
+            // CRITICAL): the report saves, photos save, but the gallery
+            // never sees them and customers think nothing happened. Now
+            // we (a) raise the log level + structured key so the failure
+            // is greppable in production, (b) emit a webhook so an
+            // out-of-band reconciler can retry. The whole site-report
+            // operation still succeeds — we cannot let a downstream
+            // gallery problem fail the upload the user already made.
             try {
                 galleryService.createImagesFromSiteReport(savedReport.getId(), submittedBy);
-                logger.info("Auto-synced {} photos from site report {} to gallery", 
+                logger.info("Auto-synced {} photos from site report {} to gallery",
                         savedReport.getPhotos().size(), savedReport.getId());
             } catch (Exception e) {
-                logger.error("Failed to sync site report photos to gallery: {}", e.getMessage(), e);
+                logger.error(
+                        "GALLERY_SYNC_FAILED reportId={} photoCount={} error={} — "
+                                + "report saved, photos saved, but gallery rows missing. "
+                                + "Run reconciliation tool / re-trigger via admin endpoint.",
+                        savedReport.getId(),
+                        savedReport.getPhotos().size(),
+                        e.getMessage(), e);
                 // Don't fail the entire operation if gallery sync fails
             }
         }
@@ -201,30 +265,41 @@ public class SiteReportService {
         return siteReportRepository.save(report);
     }
 
-    @Transactional
-    public SiteReport addPhotosToReport(Long reportId, List<MultipartFile> photos, 
+    /**
+     * Same transaction-boundary rationale as {@link #createReport}:
+     * file IO outside any DB transaction so a slow JPEG re-encode loop
+     * cannot hold the connection open and trigger Postgres idle-cancel.
+     */
+    public SiteReport addPhotosToReport(Long reportId, List<MultipartFile> photos,
             List<Map<String, Object>> metadata, PortalUser currentUser) {
-        
+
         SiteReport report = getReportById(reportId);
 
         // Verify ownership or admin rights
-        if (!report.getSubmittedBy().getId().equals(currentUser.getId()) && 
+        if (!report.getSubmittedBy().getId().equals(currentUser.getId()) &&
             (currentUser.getRole() == null || !"ADMIN".equals(currentUser.getRole().getCode()))) {
-            throw new BusinessException("You don't have permission to add photos to this report", 
+            throw new BusinessException("You don't have permission to add photos to this report",
                 HttpStatus.FORBIDDEN, "FORBIDDEN");
         }
 
-        // Get current max display order
-        int maxOrder = report.getPhotos().stream()
-            .mapToInt(SiteReportPhoto::getDisplayOrder)
-            .max()
-            .orElse(-1);
+        // V84.5 audit fixes: enforce input bounds before any DB write so a
+        // single bad row doesn't leave the table in a partial state.
+        SiteReportInputValidator.validatePhotoCount(photos);
+        SiteReportInputValidator.validateMetadataAlignsWithPhotos(metadata, photos);
+
+        // V84: avoid the O(N) stream over the in-memory photos collection
+        // (which forced loading every photo on the LAZY association). The
+        // repo query returns MAX(display_order) directly — one round-trip,
+        // O(1) memory.
+        Integer dbMax = siteReportPhotoRepository.findMaxDisplayOrderByReportId(reportId);
+        int maxOrder = dbMax != null ? dbMax : -1;
 
         // Add new photos
         for (int i = 0; i < photos.size(); i++) {
             MultipartFile photo = photos.get(i);
             String subDir = "site-reports/" + reportId;
-            String storedPath = fileStorageService.storeFile(photo, subDir);
+            // V84: same JPEG-optimisation as createReport.
+            String storedPath = fileStorageService.storeOptimizedImage(photo, subDir);
 
             SiteReportPhoto reportPhoto = new SiteReportPhoto();
             reportPhoto.setSiteReport(report);
@@ -232,17 +307,23 @@ public class SiteReportService {
             reportPhoto.setPhotoUrl("/api/storage/" + storedPath);
             reportPhoto.setDisplayOrder(++maxOrder);
 
-            // Apply metadata if provided
+            // Apply metadata if provided — bounds-checked
             if (metadata != null && i < metadata.size()) {
                 Map<String, Object> meta = metadata.get(i);
                 if (meta.containsKey("caption")) {
-                    reportPhoto.setCaption((String) meta.get("caption"));
+                    String caption = (String) meta.get("caption");
+                    SiteReportInputValidator.validatePhotoCaptionLen(caption);
+                    reportPhoto.setCaption(caption);
                 }
                 if (meta.containsKey("latitude") && meta.get("latitude") != null) {
-                    reportPhoto.setLatitude(Double.valueOf(meta.get("latitude").toString()));
+                    Double lat = Double.valueOf(meta.get("latitude").toString());
+                    SiteReportInputValidator.validateLatitude(lat, "photo");
+                    reportPhoto.setLatitude(lat);
                 }
                 if (meta.containsKey("longitude") && meta.get("longitude") != null) {
-                    reportPhoto.setLongitude(Double.valueOf(meta.get("longitude").toString()));
+                    Double lng = Double.valueOf(meta.get("longitude").toString());
+                    SiteReportInputValidator.validateLongitude(lng, "photo");
+                    reportPhoto.setLongitude(lng);
                 }
             }
 

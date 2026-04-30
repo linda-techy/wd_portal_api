@@ -85,6 +85,11 @@ public class SecurityConfig {
                                                 // Partnership endpoints (protected - requires ROLE_PARTNER)
                                                 .requestMatchers("/api/partnerships/**").hasRole("PARTNER")
 
+                                                // Public token-gated quotation view (V77). Customer hits the
+                                                // share link without auth; the UUID token in the path is the
+                                                // bearer credential. Unknown / DRAFT tokens return 404.
+                                                .requestMatchers("/public/quotations/**").permitAll()
+
                                                 // All other requests require authentication
                                                 .anyRequest().authenticated())
                                 .sessionManagement(session -> session
