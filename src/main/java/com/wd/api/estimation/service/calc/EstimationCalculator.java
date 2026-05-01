@@ -2,6 +2,7 @@ package com.wd.api.estimation.service.calc;
 
 import com.wd.api.estimation.service.calc.exception.UnsupportedProjectTypeException;
 import com.wd.api.estimation.service.calc.view.AddOnApplied;
+import com.wd.api.estimation.service.calc.view.GovtFeeApplied;
 
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -62,10 +63,22 @@ public final class EstimationCalculator {
         java.math.BigDecimal fluctuationAdjustment = materialPortion
                 .multiply(ctx.marketIndex().compositeIndex().subtract(java.math.BigDecimal.ONE, MC), MC);
 
+        // Step 7: subtotal, fees, discount, GST
+        java.math.BigDecimal subtotal = baseCost.add(customisationCost, MC)
+                .add(siteCost, MC).add(addOnCost, MC).add(fluctuationAdjustment, MC);
+        java.math.BigDecimal govtFees = ctx.govtFees().stream()
+                .map(GovtFeeApplied::lumpAmount)
+                .reduce(zero, (a, b) -> a.add(b, MC));
+        java.math.BigDecimal preTax = subtotal.add(govtFees, MC);
+        java.math.BigDecimal discount = preTax.multiply(ctx.discountPercent(), MC);
+        java.math.BigDecimal taxable = preTax.subtract(discount, MC);
+        java.math.BigDecimal gst = taxable.multiply(ctx.gstRate(), MC);
+        java.math.BigDecimal grandTotal = taxable.add(gst, MC);
+
         return new EstimationBreakdown(
                 chargeableArea, baseCost, customisationCost, siteCost, addOnCost,
                 fluctuationAdjustment,
-                zero, zero, zero, zero, zero, zero,
+                subtotal, govtFees, discount, taxable, gst, grandTotal,
                 new ArrayList<>(), new ArrayList<>());
     }
 }
