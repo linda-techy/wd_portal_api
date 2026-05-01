@@ -46,7 +46,7 @@ public class MarketIndexSnapshot extends BaseEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "weights_json", nullable = false, columnDefinition = "jsonb")
-    private Map<String, String> weightsJson;
+    private Map<String, Object> weightsJson;
 
     @Column(name = "composite_index", nullable = false, precision = 6, scale = 4)
     private BigDecimal compositeIndex;
@@ -81,8 +81,8 @@ public class MarketIndexSnapshot extends BaseEntity {
     public BigDecimal getPaintsRate() { return paintsRate; }
     public void setPaintsRate(BigDecimal paintsRate) { this.paintsRate = paintsRate; }
 
-    public Map<String, String> getWeightsJson() { return weightsJson; }
-    public void setWeightsJson(Map<String, String> weightsJson) { this.weightsJson = weightsJson; }
+    public Map<String, Object> getWeightsJson() { return weightsJson; }
+    public void setWeightsJson(Map<String, Object> weightsJson) { this.weightsJson = weightsJson; }
 
     public BigDecimal getCompositeIndex() { return compositeIndex; }
     public void setCompositeIndex(BigDecimal compositeIndex) { this.compositeIndex = compositeIndex; }

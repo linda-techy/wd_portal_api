@@ -54,7 +54,7 @@ class EstimationPersistenceTest extends TestcontainersPostgresBase {
         mi.setTilesRate(new BigDecimal("38.00"));
         mi.setElectricalRate(new BigDecimal("92.00"));
         mi.setPaintsRate(new BigDecimal("285.00"));
-        mi.setWeightsJson(Map.of("steel", "0.30"));
+        mi.setWeightsJson(Map.<String, Object>of("steel", "0.30"));
         mi.setCompositeIndex(new BigDecimal("1.0000"));
         mi.setActive(true);
         em.persist(mi);
@@ -67,7 +67,7 @@ class EstimationPersistenceTest extends TestcontainersPostgresBase {
         est.setPackageId(pkg.getId());
         est.setRateVersionId(rv.getId());
         est.setMarketIndexId(mi.getId());
-        est.setDimensionsJson(Map.of(
+        est.setDimensionsJson(Map.<String, Object>of(
                 "floors", "[{\"floorName\":\"GF\",\"length\":35,\"width\":30}]",
                 "semiCoveredArea", "0",
                 "openTerraceArea", "0"));

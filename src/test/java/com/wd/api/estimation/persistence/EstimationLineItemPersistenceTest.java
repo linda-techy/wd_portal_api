@@ -34,7 +34,7 @@ class EstimationLineItemPersistenceTest extends TestcontainersPostgresBase {
         est.setEstimationNo("EST-2026-LINE");
         est.setLeadId(lead.getId());
         est.setProjectType(ProjectType.NEW_BUILD);
-        est.setDimensionsJson(Map.of("floors", "[]"));
+        est.setDimensionsJson(Map.<String, Object>of("floors", "[]"));
         est.setStatus(EstimationStatus.DRAFT);
         em.persist(est);
         em.flush();

@@ -31,7 +31,7 @@ class MarketIndexSnapshotPersistenceTest extends TestcontainersPostgresBase {
         snap.setTilesRate(new BigDecimal("38.00"));
         snap.setElectricalRate(new BigDecimal("92.00"));
         snap.setPaintsRate(new BigDecimal("285.00"));
-        snap.setWeightsJson(Map.of(
+        snap.setWeightsJson(Map.<String, Object>of(
                 "steel", "0.30",
                 "cement", "0.20",
                 "sand", "0.12",

@@ -94,7 +94,7 @@ class EstimationImmutabilityTriggerTest extends TestcontainersPostgresBase {
         mi.setTilesRate(new BigDecimal("38.00"));
         mi.setElectricalRate(new BigDecimal("92.00"));
         mi.setPaintsRate(new BigDecimal("285.00"));
-        mi.setWeightsJson(Map.of("steel", "0.30"));
+        mi.setWeightsJson(Map.<String, Object>of("steel", "0.30"));
         mi.setCompositeIndex(new BigDecimal("1.0000"));
         em.persist(mi);
 
@@ -105,7 +105,7 @@ class EstimationImmutabilityTriggerTest extends TestcontainersPostgresBase {
         est.setPackageId(pkg.getId());
         est.setRateVersionId(rv.getId());
         est.setMarketIndexId(mi.getId());
-        est.setDimensionsJson(Map.of("floors", "[]"));
+        est.setDimensionsJson(Map.<String, Object>of("floors", "[]"));
         est.setStatus(EstimationStatus.ACCEPTED);
         est.setGrandTotal(new BigDecimal("1000.00"));
         em.persist(est);

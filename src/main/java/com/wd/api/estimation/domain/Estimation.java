@@ -47,7 +47,7 @@ public class Estimation extends BaseEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "dimensions_json", nullable = false, columnDefinition = "jsonb")
-    private Map<String, String> dimensionsJson;
+    private Map<String, Object> dimensionsJson;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -89,8 +89,8 @@ public class Estimation extends BaseEntity {
     public UUID getMarketIndexId() { return marketIndexId; }
     public void setMarketIndexId(UUID marketIndexId) { this.marketIndexId = marketIndexId; }
 
-    public Map<String, String> getDimensionsJson() { return dimensionsJson; }
-    public void setDimensionsJson(Map<String, String> dimensionsJson) { this.dimensionsJson = dimensionsJson; }
+    public Map<String, Object> getDimensionsJson() { return dimensionsJson; }
+    public void setDimensionsJson(Map<String, Object> dimensionsJson) { this.dimensionsJson = dimensionsJson; }
 
     public EstimationStatus getStatus() { return status; }
     public void setStatus(EstimationStatus status) { this.status = status; }
