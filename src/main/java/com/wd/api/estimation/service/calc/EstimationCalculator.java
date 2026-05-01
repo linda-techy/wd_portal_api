@@ -19,11 +19,20 @@ public final class EstimationCalculator {
     }
 
     private EstimationBreakdown calculateNewBuild(EstimationContext ctx) {
-        // Stub — Tasks 4-13 fill in formula stages.
-        // Returns a zero breakdown so dispatch tests pass; subsequent tasks replace this body.
         java.math.BigDecimal zero = java.math.BigDecimal.ZERO;
+
+        // Step 1: chargeable area
+        java.math.BigDecimal builtUp = ctx.dimensions().floors().stream()
+                .map(f -> f.length().multiply(f.width(), MC))
+                .reduce(zero, (a, b) -> a.add(b, MC));
+        java.math.BigDecimal semi = ctx.dimensions().semiCoveredArea()
+                .multiply(ctx.constants().semiCoveredFactor(), MC);
+        java.math.BigDecimal terrace = ctx.dimensions().openTerraceArea()
+                .multiply(ctx.constants().openTerraceFactor(), MC);
+        java.math.BigDecimal chargeableArea = builtUp.add(semi, MC).add(terrace, MC);
+
         return new EstimationBreakdown(
-                zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero,
+                chargeableArea, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero,
                 new ArrayList<>(), new ArrayList<>());
     }
 }
