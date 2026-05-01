@@ -2,7 +2,9 @@ package com.wd.api.estimation.service.calc;
 
 import com.wd.api.estimation.service.calc.exception.UnsupportedProjectTypeException;
 import com.wd.api.estimation.service.calc.view.AddOnApplied;
+import com.wd.api.estimation.service.calc.view.CustomisationChoice;
 import com.wd.api.estimation.service.calc.view.GovtFeeApplied;
+import com.wd.api.estimation.service.calc.view.SiteFeeApplied;
 
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -75,10 +77,83 @@ public final class EstimationCalculator {
         java.math.BigDecimal gst = taxable.multiply(ctx.gstRate(), MC);
         java.math.BigDecimal grandTotal = taxable.add(gst, MC);
 
+        java.util.List<LineItem> lineItems = new java.util.ArrayList<>();
+        int order = 1;
+        // BASE always emitted
+        lineItems.add(new LineItem(
+                com.wd.api.estimation.domain.enums.LineType.BASE,
+                "Base package cost (" + ctx.pkg().marketingName() + ", "
+                        + chargeableArea.stripTrailingZeros().toPlainString() + " sqft)",
+                ctx.pkg().id(),
+                chargeableArea, "sqft", baseRate, baseCost, order++));
+        // One CUSTOMISATION per choice
+        for (CustomisationChoice c : ctx.customisations()) {
+            java.math.BigDecimal amt = c.deltaRate().multiply(c.applicableArea(), MC);
+            lineItems.add(new LineItem(
+                    com.wd.api.estimation.domain.enums.LineType.CUSTOMISATION,
+                    c.description(), c.optionId(), c.applicableArea(),
+                    pricingUnit(c.pricingMode()), c.deltaRate(), amt, order++));
+        }
+        // One SITE per fee (mode-specific amount)
+        for (SiteFeeApplied f : ctx.siteFees()) {
+            java.math.BigDecimal amt = f.mode() == com.wd.api.estimation.domain.enums.SiteFeeMode.LUMP
+                    ? f.lumpAmount()
+                    : f.perSqftRate().multiply(chargeableArea, MC);
+            lineItems.add(new LineItem(
+                    com.wd.api.estimation.domain.enums.LineType.SITE,
+                    f.name(), f.id(),
+                    f.mode() == com.wd.api.estimation.domain.enums.SiteFeeMode.LUMP ? null : chargeableArea,
+                    f.mode() == com.wd.api.estimation.domain.enums.SiteFeeMode.LUMP ? "lump" : "sqft",
+                    f.mode() == com.wd.api.estimation.domain.enums.SiteFeeMode.LUMP ? null : f.perSqftRate(),
+                    amt, order++));
+        }
+        // One ADDON per add-on
+        for (AddOnApplied a : ctx.addOns()) {
+            lineItems.add(new LineItem(
+                    com.wd.api.estimation.domain.enums.LineType.ADDON,
+                    a.name(), a.id(), null, "lump", null, a.lumpAmount(), order++));
+        }
+        // FLUCTUATION only if non-zero
+        if (fluctuationAdjustment.compareTo(zero) != 0) {
+            lineItems.add(new LineItem(
+                    com.wd.api.estimation.domain.enums.LineType.FLUCTUATION,
+                    "Material price fluctuation (composite "
+                            + ctx.marketIndex().compositeIndex().toPlainString() + ")",
+                    ctx.marketIndex().id(), null, null, null, fluctuationAdjustment, order++));
+        }
+        // One FEE per govt fee
+        for (GovtFeeApplied f : ctx.govtFees()) {
+            lineItems.add(new LineItem(
+                    com.wd.api.estimation.domain.enums.LineType.FEE,
+                    f.name(), f.id(), null, "lump", null, f.lumpAmount(), order++));
+        }
+        // DISCOUNT only if > 0
+        if (discount.compareTo(zero) > 0) {
+            lineItems.add(new LineItem(
+                    com.wd.api.estimation.domain.enums.LineType.DISCOUNT,
+                    "Discount (" + ctx.discountPercent().multiply(new java.math.BigDecimal("100")).toPlainString() + "%)",
+                    null, null, null, null, discount.negate(), order++));
+        }
+        // GST only if > 0
+        if (gst.compareTo(zero) > 0) {
+            lineItems.add(new LineItem(
+                    com.wd.api.estimation.domain.enums.LineType.GST,
+                    "GST (" + ctx.gstRate().multiply(new java.math.BigDecimal("100")).toPlainString() + "%)",
+                    null, null, null, null, gst, order++));
+        }
+
         return new EstimationBreakdown(
                 chargeableArea, baseCost, customisationCost, siteCost, addOnCost,
                 fluctuationAdjustment,
                 subtotal, govtFees, discount, taxable, gst, grandTotal,
-                new ArrayList<>(), new ArrayList<>());
+                lineItems, new ArrayList<>());
+    }
+
+    private static String pricingUnit(com.wd.api.estimation.domain.enums.PricingMode mode) {
+        return switch (mode) {
+            case PER_SQFT -> "sqft";
+            case PER_UNIT -> "unit";
+            case PER_RFT  -> "rft";
+        };
     }
 }
