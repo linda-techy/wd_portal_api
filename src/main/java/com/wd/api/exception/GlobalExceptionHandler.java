@@ -141,6 +141,20 @@ public class GlobalExceptionHandler {
             new ApiError(ex.getMessage(), "INVALID_ARGUMENT", getTraceId(), request.getRequestURI()));
     }
 
+    /**
+     * Maps IllegalStateException to HTTP 422 Unprocessable Entity. Use this for
+     * "the request was syntactically valid but the system is in a state where it
+     * cannot be processed" — e.g. trying to close a non-existent active rate
+     * version, publishing a market index when prerequisite data is missing, or
+     * any service-layer invariant violation that's not the caller's fault.
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalStateException(IllegalStateException ex, HttpServletRequest request) {
+        logWarn("Illegal state", ex, request);
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(
+            new ApiError(ex.getMessage(), "ILLEGAL_STATE", getTraceId(), request.getRequestURI()));
+    }
+
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
         logWarn("Method not supported: " + ex.getMethod(), ex, request);

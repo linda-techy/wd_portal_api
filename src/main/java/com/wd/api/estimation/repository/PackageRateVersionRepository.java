@@ -47,4 +47,12 @@ public interface PackageRateVersionRepository extends JpaRepository<PackageRateV
                 .stream()
                 .findFirst();
     }
+
+    /**
+     * DB-side filter for the admin "list all versions for this package + project type" endpoint.
+     * Append-only history table grows over time — pushing the filter to Postgres avoids the
+     * eager-load + Java-stream-filter pattern.
+     */
+    List<PackageRateVersion> findByPackageIdAndProjectTypeOrderByEffectiveFromDesc(
+            UUID packageId, ProjectType projectType);
 }

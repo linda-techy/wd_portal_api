@@ -4,6 +4,7 @@ import com.wd.api.estimation.domain.MarketIndexSnapshot;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,4 +16,11 @@ public interface MarketIndexSnapshotRepository extends JpaRepository<MarketIndex
      */
     @Query("SELECT s FROM MarketIndexSnapshot s WHERE s.active = true")
     Optional<MarketIndexSnapshot> findActive();
+
+    /**
+     * DB-side ordering for the admin "list snapshots, newest first" endpoint. Append-only
+     * history table grows over time — pushing the sort to Postgres avoids the
+     * eager-load + Java-comparator pattern.
+     */
+    List<MarketIndexSnapshot> findAllByOrderBySnapshotDateDesc();
 }

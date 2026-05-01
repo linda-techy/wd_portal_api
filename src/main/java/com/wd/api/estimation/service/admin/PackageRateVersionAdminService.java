@@ -68,10 +68,9 @@ public class PackageRateVersionAdminService {
 
     @Transactional(readOnly = true)
     public List<RateVersionResponse> list(UUID packageId, ProjectType projectType) {
-        // List all versions for the package + project type
-        return repo.findAll().stream()
-                .filter(rv -> rv.getPackageId().equals(packageId))
-                .filter(rv -> rv.getProjectType() == projectType)
+        // DB-side filter (append-only table grows over time, avoid eager-load + Java filter).
+        return repo.findByPackageIdAndProjectTypeOrderByEffectiveFromDesc(packageId, projectType)
+                .stream()
                 .map(RateVersionResponse::fromEntity)
                 .toList();
     }

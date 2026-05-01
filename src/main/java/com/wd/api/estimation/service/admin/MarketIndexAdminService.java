@@ -76,8 +76,8 @@ public class MarketIndexAdminService {
 
     @Transactional(readOnly = true)
     public List<MarketIndexResponse> list() {
-        return repo.findAll().stream()
-                .sorted((a, b) -> b.getSnapshotDate().compareTo(a.getSnapshotDate()))
+        // DB-side sort (append-only table grows over time, avoid eager-load + Java comparator).
+        return repo.findAllByOrderBySnapshotDateDesc().stream()
                 .map(MarketIndexResponse::fromEntity)
                 .toList();
     }
