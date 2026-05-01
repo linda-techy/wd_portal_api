@@ -1,6 +1,7 @@
 package com.wd.api.estimation.service.calc;
 
 import com.wd.api.estimation.service.calc.exception.UnsupportedProjectTypeException;
+import com.wd.api.estimation.service.calc.view.AddOnApplied;
 
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -42,8 +43,21 @@ public final class EstimationCalculator {
                 .map(c -> c.deltaRate().multiply(c.applicableArea(), MC))
                 .reduce(zero, (a, b) -> a.add(b, MC));
 
+        // Step 4: site work (LUMP or PER_SQFT — XOR enforced at DB level)
+        java.math.BigDecimal siteCost = ctx.siteFees().stream()
+                .map(f -> f.mode() == com.wd.api.estimation.domain.enums.SiteFeeMode.LUMP
+                        ? f.lumpAmount()
+                        : f.perSqftRate().multiply(chargeableArea, MC))
+                .reduce(zero, (a, b) -> a.add(b, MC));
+
+        // Step 5: add-ons (always lump)
+        java.math.BigDecimal addOnCost = ctx.addOns().stream()
+                .map(AddOnApplied::lumpAmount)
+                .reduce(zero, (a, b) -> a.add(b, MC));
+
         return new EstimationBreakdown(
-                chargeableArea, baseCost, customisationCost, zero, zero, zero, zero, zero, zero, zero, zero, zero,
+                chargeableArea, baseCost, customisationCost, siteCost, addOnCost,
+                zero, zero, zero, zero, zero, zero, zero,
                 new ArrayList<>(), new ArrayList<>());
     }
 }
