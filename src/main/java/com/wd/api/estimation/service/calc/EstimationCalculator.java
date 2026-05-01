@@ -14,6 +14,8 @@ import java.util.List;
 public final class EstimationCalculator {
 
     static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);
+    private static final java.math.BigDecimal DISCOUNT_THRESHOLD = new java.math.BigDecimal("0.05");
+    private static final long INDEX_STALE_DAYS = 14;
 
     public EstimationBreakdown calculate(EstimationContext ctx) {
         return switch (ctx.projectType()) {
@@ -142,11 +144,28 @@ public final class EstimationCalculator {
                     null, null, null, null, gst, order++));
         }
 
+        java.util.List<String> warnings = new java.util.ArrayList<>();
+        long indexAgeDays = java.time.temporal.ChronoUnit.DAYS.between(
+                ctx.marketIndex().snapshotDate(), java.time.LocalDate.now());
+        if (indexAgeDays > INDEX_STALE_DAYS) {
+            warnings.add("market-index-stale-14-days");
+        }
+        if (baseCost.compareTo(zero) > 0) {
+            java.math.BigDecimal driftRatio = customisationCost.abs(MC)
+                    .divide(baseCost, 4, java.math.RoundingMode.HALF_UP);
+            if (driftRatio.compareTo(ctx.constants().customisationDriftThreshold()) > 0) {
+                warnings.add("customisation-exceeds-10-percent");
+            }
+        }
+        if (ctx.discountPercent().compareTo(DISCOUNT_THRESHOLD) > 0) {
+            warnings.add("discount-exceeds-threshold");
+        }
+
         return new EstimationBreakdown(
                 chargeableArea, baseCost, customisationCost, siteCost, addOnCost,
                 fluctuationAdjustment,
                 subtotal, govtFees, discount, taxable, gst, grandTotal,
-                lineItems, new ArrayList<>());
+                lineItems, warnings);
     }
 
     private static String pricingUnit(com.wd.api.estimation.domain.enums.PricingMode mode) {
