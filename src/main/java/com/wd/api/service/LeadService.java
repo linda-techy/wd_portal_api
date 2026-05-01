@@ -888,12 +888,6 @@ public class LeadService {
         return metrics;
     }
 
-    public List<Lead> getOverdueFollowUps() {
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        List<String> excludedStatuses = List.of("won", "lost");
-        return leadRepository.findByNextFollowUpBeforeAndLeadStatusNotIn(now, excludedStatuses);
-    }
-
     public List<Lead> getLeadsByStatus(String status) {
         return leadRepository.findByLeadStatus(status);
     }
