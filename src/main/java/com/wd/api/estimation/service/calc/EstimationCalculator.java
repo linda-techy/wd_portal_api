@@ -31,8 +31,14 @@ public final class EstimationCalculator {
                 .multiply(ctx.constants().openTerraceFactor(), MC);
         java.math.BigDecimal chargeableArea = builtUp.add(semi, MC).add(terrace, MC);
 
+        // Step 2: base package cost (uses pinned rate version)
+        java.math.BigDecimal baseRate = ctx.rateVersion().materialRate()
+                .add(ctx.rateVersion().labourRate(), MC)
+                .add(ctx.rateVersion().overheadRate(), MC);
+        java.math.BigDecimal baseCost = chargeableArea.multiply(baseRate, MC);
+
         return new EstimationBreakdown(
-                chargeableArea, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero,
+                chargeableArea, baseCost, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero,
                 new ArrayList<>(), new ArrayList<>());
     }
 }
