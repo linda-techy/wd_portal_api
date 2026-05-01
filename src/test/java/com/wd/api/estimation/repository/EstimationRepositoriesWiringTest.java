@@ -9,6 +9,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Smoke test that every estimation repository bean is wired by Spring Data.
  * If any interface is missing or has the wrong type signature, this test fails on context startup.
+ * Includes the two custom-query repositories — a malformed @Query in either would surface here
+ * as a context-startup failure rather than only at first call site.
  */
 class EstimationRepositoriesWiringTest extends TestcontainersPostgresBase {
 
@@ -20,9 +22,11 @@ class EstimationRepositoriesWiringTest extends TestcontainersPostgresBase {
     @Autowired SiteFeeRepository siteFeeRepo;
     @Autowired GovtFeeRepository govtFeeRepo;
     @Autowired EstimationRepository estimationRepo;
+    @Autowired PackageRateVersionRepository rateVersionRepo;
+    @Autowired MarketIndexSnapshotRepository marketIndexRepo;
 
     @Test
-    void allSimpleRepositories_are_wired() {
+    void allRepositories_are_wired() {
         assertThat(packageRepo).isNotNull();
         assertThat(categoryRepo).isNotNull();
         assertThat(optionRepo).isNotNull();
@@ -31,5 +35,7 @@ class EstimationRepositoriesWiringTest extends TestcontainersPostgresBase {
         assertThat(siteFeeRepo).isNotNull();
         assertThat(govtFeeRepo).isNotNull();
         assertThat(estimationRepo).isNotNull();
+        assertThat(rateVersionRepo).isNotNull();
+        assertThat(marketIndexRepo).isNotNull();
     }
 }
