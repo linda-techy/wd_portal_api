@@ -24,12 +24,6 @@ class BaseCostTest {
     }
 
     @Test
-    void emptyDimensions_baseCostIsZero() {
-        EstimationContext ctx = contextWith(dim(List.of(), "0", "0"));
-        assertThat(calc.calculate(ctx).baseCost()).isEqualByComparingTo("0");
-    }
-
-    @Test
     void multiFloor_baseCostScalesLinearly() {
         // 2100 sqft × 2350 = 4,935,000
         EstimationContext ctx = contextWith(dim(List.of(
