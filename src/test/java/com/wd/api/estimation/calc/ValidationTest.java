@@ -59,6 +59,15 @@ class ValidationTest {
                 .hasMessageContaining("semiCoveredArea");
     }
 
+    @Test
+    void negativeOpenTerraceArea_throwsIllegalArgument() {
+        EstimationContext ctx = ctx(snapshot(),
+                new BigDecimal("1"), new BigDecimal("-1"), List.of());
+        assertThatThrownBy(() -> calc.calculate(ctx))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("openTerraceArea");
+    }
+
     private MarketIndexSnapshotView snapshot() {
         return new MarketIndexSnapshotView(UUID.randomUUID(), LocalDate.now(),
                 new BigDecimal("1.0000"), Map.of());

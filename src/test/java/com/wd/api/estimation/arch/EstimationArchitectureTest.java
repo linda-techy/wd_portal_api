@@ -44,7 +44,17 @@ class EstimationArchitectureTest {
 
     @Test
     void calcPackage_doesNotDependOnEstimationDomainEntities() {
-        // Calc takes view records as input, not entities. Mappers convert at the boundary.
+        // Bans @Entity classes (com.wd.api.estimation.domain) from the calc package.
+        // Mappers (..service.calc.mapping..) are explicitly whitelisted — they're the
+        // entity→view boundary.
+        //
+        // Intentional scope: this rule does NOT cover com.wd.api.estimation.domain.enums.
+        // The pattern uses resideInAPackage("…domain") without trailing "..", so subpackages
+        // are excluded. Enums (LineType, ProjectType, PricingMode, etc.) are pure value
+        // types — they have no JPA annotations and no Hibernate proxy risk. Allowing the
+        // calc package to depend on them avoids an unnecessary "enum-mirror" duplication.
+        // If a real entity ever gets added under domain.enums (it shouldn't), this rule
+        // will need to broaden to "…domain.." with explicit enum allowlist.
         noClasses().that().resideInAPackage("..service.calc..")
                 .and().resideOutsideOfPackage("..service.calc.mapping..")
                 .should().dependOnClassesThat().resideInAPackage("com.wd.api.estimation.domain")

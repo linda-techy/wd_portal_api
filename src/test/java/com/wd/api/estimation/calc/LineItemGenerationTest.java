@@ -86,6 +86,19 @@ class LineItemGenerationTest {
         }
     }
 
+    @Test
+    void discountLineItem_amountIsNegative() {
+        // Discount lines store amount as negative (the calculator emits discount.negate()
+        // so a downstream PDF/UI renderer can sum line-item amounts and get the right total).
+        EstimationContext ctx = ctx(new BigDecimal("0.05"), new BigDecimal("0.18"),
+                List.of(), List.of(), List.of(), List.of(), new BigDecimal("1.0000"));
+        var discountLine = calc.calculate(ctx).lineItems().stream()
+                .filter(li -> li.lineType() == LineType.DISCOUNT)
+                .findFirst()
+                .orElseThrow();
+        assertThat(discountLine.amount()).isLessThan(BigDecimal.ZERO);
+    }
+
     private EstimationContext ctx(
             BigDecimal discountPercent, BigDecimal gstRate,
             List<CustomisationChoice> customs, List<SiteFeeApplied> sites,

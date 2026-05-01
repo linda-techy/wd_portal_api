@@ -8,12 +8,10 @@ import com.wd.api.estimation.service.calc.view.SiteFeeApplied;
 
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
 
 public final class EstimationCalculator {
 
-    static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);
+    private static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);
     private static final java.math.BigDecimal DISCOUNT_THRESHOLD = new java.math.BigDecimal("0.05");
     private static final long INDEX_STALE_DAYS = 14;
 
