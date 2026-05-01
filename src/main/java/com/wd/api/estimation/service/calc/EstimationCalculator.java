@@ -25,6 +25,27 @@ public final class EstimationCalculator {
     }
 
     private EstimationBreakdown calculateNewBuild(EstimationContext ctx) {
+        // Validation
+        if (ctx.marketIndex() == null) {
+            throw new IllegalArgumentException("marketIndex must not be null");
+        }
+        if (ctx.dimensions().semiCoveredArea().signum() < 0) {
+            throw new IllegalArgumentException("semiCoveredArea must not be negative");
+        }
+        if (ctx.dimensions().openTerraceArea().signum() < 0) {
+            throw new IllegalArgumentException("openTerraceArea must not be negative");
+        }
+        for (CustomisationChoice c : ctx.customisations()) {
+            if (c.applicableArea().signum() < 0) {
+                throw new IllegalArgumentException("customisation applicableArea must not be negative: " + c.description());
+            }
+        }
+        if (ctx.dimensions().floors().isEmpty()
+                && ctx.dimensions().semiCoveredArea().signum() == 0
+                && ctx.dimensions().openTerraceArea().signum() == 0) {
+            throw new IllegalArgumentException("dimensions must include at least one floor or non-zero area");
+        }
+
         java.math.BigDecimal zero = java.math.BigDecimal.ZERO;
 
         // Step 1: chargeable area
