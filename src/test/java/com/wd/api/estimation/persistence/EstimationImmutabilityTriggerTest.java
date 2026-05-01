@@ -110,7 +110,7 @@ class EstimationImmutabilityTriggerTest extends TestcontainersPostgresBase {
         em.persist(mi);
 
         Estimation est = new Estimation();
-        est.setEstimationNo("EST-IMMUT-" + UUID.randomUUID());
+        est.setEstimationNo("EST-IM-" + UUID.randomUUID().toString().substring(0, 18));
         est.setLeadId(lead.getId());
         est.setProjectType(ProjectType.NEW_BUILD);
         est.setPackageId(pkg.getId());
