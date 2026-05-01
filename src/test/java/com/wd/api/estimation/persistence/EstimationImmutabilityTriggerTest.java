@@ -10,8 +10,9 @@ import com.wd.api.estimation.domain.enums.ProjectType;
 import com.wd.api.model.Lead;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import jakarta.persistence.EntityManager;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,21 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Verifies the V100 immutability trigger blocks the configured fields once status='ACCEPTED'.
+ *
+ * <p>Test infrastructure notes:
+ * <ul>
+ *   <li>Hibernate's create-drop schema does NOT include the trigger (only Flyway carries DDL),
+ *       so {@link #installTrigger()} runs the V100 SQL once per test class via {@code @BeforeAll}.
+ *   <li>{@code @TestInstance(PER_CLASS)} lets {@code @BeforeAll} be non-static and so use the
+ *       Spring-injected JdbcTemplate.
+ *   <li>Each blocking test ends with a single {@code assertThatThrownBy} — adding more
+ *       assertions after it would hit Postgres' "current transaction is aborted" state because
+ *       the trigger raised inside the test's @Transactional boundary. Keep one assertion per test.
+ * </ul>
+ */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class EstimationImmutabilityTriggerTest extends TestcontainersPostgresBase {
 
     @Autowired
@@ -32,12 +48,8 @@ class EstimationImmutabilityTriggerTest extends TestcontainersPostgresBase {
     @Autowired
     private JdbcTemplate jdbc;
 
-    private static boolean triggerInstalled = false;
-
-    @BeforeEach
-    void installTriggerOnce() {
-        if (triggerInstalled) return;
-        // Install the V100 trigger by hand because tests use Hibernate create-drop, not Flyway.
+    @BeforeAll
+    void installTrigger() {
         jdbc.execute("""
             CREATE OR REPLACE FUNCTION enforce_estimation_accepted_immutability()
             RETURNS TRIGGER AS $$
@@ -63,7 +75,6 @@ class EstimationImmutabilityTriggerTest extends TestcontainersPostgresBase {
                 BEFORE UPDATE ON estimation
                 FOR EACH ROW EXECUTE FUNCTION enforce_estimation_accepted_immutability();
             """);
-        triggerInstalled = true;
     }
 
     private UUID createAcceptedEstimation() {
