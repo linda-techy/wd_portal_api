@@ -37,8 +37,13 @@ public final class EstimationCalculator {
                 .add(ctx.rateVersion().overheadRate(), MC);
         java.math.BigDecimal baseCost = chargeableArea.multiply(baseRate, MC);
 
+        // Step 3: customisation deltas (signed; downgrades subtract)
+        java.math.BigDecimal customisationCost = ctx.customisations().stream()
+                .map(c -> c.deltaRate().multiply(c.applicableArea(), MC))
+                .reduce(zero, (a, b) -> a.add(b, MC));
+
         return new EstimationBreakdown(
-                chargeableArea, baseCost, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero,
+                chargeableArea, baseCost, customisationCost, zero, zero, zero, zero, zero, zero, zero, zero, zero,
                 new ArrayList<>(), new ArrayList<>());
     }
 }
