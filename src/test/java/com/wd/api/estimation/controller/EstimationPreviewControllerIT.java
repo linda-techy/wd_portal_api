@@ -1,12 +1,16 @@
 package com.wd.api.estimation.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wd.api.estimation.domain.CustomisationCategory;
+import com.wd.api.estimation.domain.CustomisationOption;
 import com.wd.api.estimation.domain.EstimationPackage;
 import com.wd.api.estimation.domain.MarketIndexSnapshot;
 import com.wd.api.estimation.domain.PackageRateVersion;
 import com.wd.api.estimation.domain.enums.PackageInternalName;
+import com.wd.api.estimation.domain.enums.PricingMode;
 import com.wd.api.estimation.domain.enums.ProjectType;
 import com.wd.api.estimation.dto.CalculatePreviewRequest;
+import com.wd.api.estimation.dto.CustomisationChoiceDto;
 import com.wd.api.estimation.dto.DimensionsDto;
 import com.wd.api.estimation.dto.FloorDto;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
@@ -55,16 +59,6 @@ class EstimationPreviewControllerIT extends TestcontainersPostgresBase {
         rv.setOverheadRate(new BigDecimal("300.00"));
         rv.setEffectiveFrom(LocalDate.of(2026, 4, 1));
         em.persist(rv);
-
-        // Add a RENOVATION rate version so that service doesn't throw "No active rate version" before calculator
-        PackageRateVersion rvRenovation = new PackageRateVersion();
-        rvRenovation.setPackageId(pkg.getId());
-        rvRenovation.setProjectType(ProjectType.RENOVATION);
-        rvRenovation.setMaterialRate(new BigDecimal("1500.00"));
-        rvRenovation.setLabourRate(new BigDecimal("550.00"));
-        rvRenovation.setOverheadRate(new BigDecimal("300.00"));
-        rvRenovation.setEffectiveFrom(LocalDate.of(2026, 4, 1));
-        em.persist(rvRenovation);
 
         MarketIndexSnapshot mi = new MarketIndexSnapshot();
         mi.setSnapshotDate(LocalDate.now());
@@ -163,6 +157,73 @@ class EstimationPreviewControllerIT extends TestcontainersPostgresBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void happyPath_withCustomisation_returnsLineItem() throws Exception {
+        // Guards C1 fix: ensure the service correctly looks up the option's category and
+        // passes the PricingMode through to the calculator. Before the fix, ANY non-empty
+        // customisations list caused an NPE at line-item generation.
+        CustomisationCategory category = new CustomisationCategory();
+        category.setName("Flooring (test)");
+        category.setPricingMode(PricingMode.PER_SQFT);
+        em.persist(category);
+
+        CustomisationOption option = new CustomisationOption();
+        option.setCategoryId(category.getId());
+        option.setName("Italian Marble (test)");
+        option.setRate(new BigDecimal("950.00"));
+        em.persist(option);
+        em.flush();
+
+        CalculatePreviewRequest req = new CalculatePreviewRequest(
+                ProjectType.NEW_BUILD, packageId, null, null,
+                new DimensionsDto(
+                        List.of(new FloorDto("GF", new BigDecimal("35"), new BigDecimal("30"))),
+                        BigDecimal.ZERO, BigDecimal.ZERO),
+                List.of(new CustomisationChoiceDto(category.getId(), option.getId())),
+                List.of(), List.of(), List.of(),
+                BigDecimal.ZERO, new BigDecimal("0.18"));
+
+        mvc.perform(post("/api/estimations/calculate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                // customisation cost = 950.00 × 1050 sqft = 997,500 (using simplified PR-3 delta semantics)
+                .andExpect(jsonPath("$.customisationCost").value(997500.00))
+                // line items include BASE + CUSTOMISATION + GST (no discount, no fluctuation)
+                .andExpect(jsonPath("$.lineItems[?(@.lineType == 'CUSTOMISATION')]").exists());
+    }
+
+    @Test
+    @WithMockUser
+    void omittingDiscountAndGst_appliesDefaults() throws Exception {
+        // Guards I4 fix: discountPercent (default 0.00) and gstRate (default 0.18) are optional.
+        String json = """
+            {
+              "projectType":"NEW_BUILD",
+              "packageId":"%s",
+              "dimensions":{
+                "floors":[{"floorName":"GF","length":35,"width":30}],
+                "semiCoveredArea":0,
+                "openTerraceArea":0
+              },
+              "customisations":[],
+              "siteFees":[],
+              "addOns":[],
+              "govtFees":[]
+            }
+            """.formatted(packageId);
+
+        mvc.perform(post("/api/estimations/calculate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.discount").value(0))
+                // GST = 2,467,500 × 0.18 = 444,150 (default applied)
+                .andExpect(jsonPath("$.gst").value(444150.00))
+                .andExpect(jsonPath("$.grandTotal").value(2911650.00));
     }
 
     @Test

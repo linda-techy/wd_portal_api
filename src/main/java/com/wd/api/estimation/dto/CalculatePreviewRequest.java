@@ -20,5 +20,7 @@ public record CalculatePreviewRequest(
         @Valid List<SiteFeeRefDto> siteFees,
         @Valid List<AddOnRefDto> addOns,
         @Valid List<GovtFeeRefDto> govtFees,
-        @NotNull @DecimalMin("0.00") @DecimalMax("0.50") BigDecimal discountPercent,
-        @NotNull @DecimalMin("0.00") @DecimalMax("0.50") BigDecimal gstRate) {}
+        // Optional: defaults to 0.00 if omitted (handled in EstimationPreviewService)
+        @DecimalMin("0.00") @DecimalMax("0.50") BigDecimal discountPercent,
+        // Optional: defaults to 0.18 if omitted (handled in EstimationPreviewService)
+        @DecimalMin("0.00") @DecimalMax("0.50") BigDecimal gstRate) {}
