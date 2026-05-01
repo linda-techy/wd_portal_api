@@ -55,9 +55,17 @@ public final class EstimationCalculator {
                 .map(AddOnApplied::lumpAmount)
                 .reduce(zero, (a, b) -> a.add(b, MC));
 
+        // Step 6: market fluctuation overlay (ONLY on material portion)
+        java.math.BigDecimal materialPortion = baseCost
+                .multiply(ctx.rateVersion().materialRate(), MC)
+                .divide(baseRate, 4, java.math.RoundingMode.HALF_UP);
+        java.math.BigDecimal fluctuationAdjustment = materialPortion
+                .multiply(ctx.marketIndex().compositeIndex().subtract(java.math.BigDecimal.ONE, MC), MC);
+
         return new EstimationBreakdown(
                 chargeableArea, baseCost, customisationCost, siteCost, addOnCost,
-                zero, zero, zero, zero, zero, zero, zero,
+                fluctuationAdjustment,
+                zero, zero, zero, zero, zero, zero,
                 new ArrayList<>(), new ArrayList<>());
     }
 }
