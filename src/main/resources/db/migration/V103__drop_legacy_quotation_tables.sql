@@ -20,7 +20,7 @@ DROP TABLE IF EXISTS lead_quotations                  CASCADE;
 DROP TABLE IF EXISTS quotation_item_catalog           CASCADE;
 
 -- The QUOTATION_CATALOG_* permissions are orphaned now. Remove them so the
--- ACL admin UI doesn't show dead entries. Permission rows are owned by
--- `permissions` (sole table — no separate role_permission cleanup needed
--- because of ON DELETE CASCADE on role_permissions.permission_id).
-DELETE FROM permissions WHERE name LIKE 'QUOTATION_CATALOG_%';
+-- ACL admin UI doesn't show dead entries. The permissions table is named
+-- `portal_permissions` (see com.wd.api.config.AppConfig.PERMISSION_TABLE).
+-- Linking tables (role_permissions, etc.) cascade-delete via FK constraints.
+DELETE FROM portal_permissions WHERE name LIKE 'QUOTATION_CATALOG_%';
