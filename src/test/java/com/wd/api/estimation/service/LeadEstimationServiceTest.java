@@ -84,6 +84,11 @@ class LeadEstimationServiceTest extends TestcontainersPostgresBase {
         assertThat(resp.status()).isEqualTo(EstimationStatus.DRAFT);
         assertThat(resp.rateVersionId()).isNotNull();
         assertThat(resp.marketIndexId()).isNotNull();
+        // Sub-resource lists are present (empty on a freshly created estimation)
+        assertThat(resp.inclusions()).isNotNull().isEmpty();
+        assertThat(resp.exclusions()).isNotNull().isEmpty();
+        assertThat(resp.assumptions()).isNotNull().isEmpty();
+        assertThat(resp.paymentMilestones()).isNotNull().isEmpty();
     }
 
     @Test

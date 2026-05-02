@@ -25,13 +25,24 @@ public record LeadEstimationDetailResponse(
         BigDecimal grandTotal,
         LocalDate validUntil,
         LocalDateTime createdAt,
-        List<LineItemDto> lineItems) {
+        List<LineItemDto> lineItems,
+        List<EstimationSubResourceResponse> inclusions,
+        List<EstimationSubResourceResponse> exclusions,
+        List<EstimationSubResourceResponse> assumptions,
+        List<EstimationSubResourceResponse> paymentMilestones) {
 
-    public static LeadEstimationDetailResponse fromEntity(Estimation e, List<LineItemDto> lineItems) {
+    public static LeadEstimationDetailResponse fromEntity(
+            Estimation e,
+            List<LineItemDto> lineItems,
+            List<EstimationSubResourceResponse> inclusions,
+            List<EstimationSubResourceResponse> exclusions,
+            List<EstimationSubResourceResponse> assumptions,
+            List<EstimationSubResourceResponse> paymentMilestones) {
         return new LeadEstimationDetailResponse(
                 e.getId(), e.getEstimationNo(), e.getLeadId(), e.getProjectType(),
                 e.getPackageId(), e.getRateVersionId(), e.getMarketIndexId(), e.getStatus(),
                 e.getSubtotal(), e.getDiscountAmount(), e.getGstAmount(), e.getGrandTotal(),
-                e.getValidUntil(), e.getCreatedAt(), lineItems);
+                e.getValidUntil(), e.getCreatedAt(), lineItems,
+                inclusions, exclusions, assumptions, paymentMilestones);
     }
 }

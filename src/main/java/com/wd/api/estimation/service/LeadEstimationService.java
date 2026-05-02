@@ -5,8 +5,7 @@ import com.wd.api.estimation.domain.Estimation;
 import com.wd.api.estimation.domain.EstimationLineItem;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
 import com.wd.api.estimation.dto.*;
-import com.wd.api.estimation.repository.EstimationLineItemRepository;
-import com.wd.api.estimation.repository.EstimationRepository;
+import com.wd.api.estimation.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,16 +20,28 @@ public class LeadEstimationService {
     private final EstimationPreviewService previewService;
     private final EstimationRepository estimationRepo;
     private final EstimationLineItemRepository lineItemRepo;
+    private final EstimationInclusionRepository inclusionRepo;
+    private final EstimationExclusionRepository exclusionRepo;
+    private final EstimationAssumptionRepository assumptionRepo;
+    private final EstimationPaymentMilestoneRepository milestoneRepo;
     private final ObjectMapper objectMapper;
 
     public LeadEstimationService(
             EstimationPreviewService previewService,
             EstimationRepository estimationRepo,
             EstimationLineItemRepository lineItemRepo,
+            EstimationInclusionRepository inclusionRepo,
+            EstimationExclusionRepository exclusionRepo,
+            EstimationAssumptionRepository assumptionRepo,
+            EstimationPaymentMilestoneRepository milestoneRepo,
             ObjectMapper objectMapper) {
         this.previewService = previewService;
         this.estimationRepo = estimationRepo;
         this.lineItemRepo = lineItemRepo;
+        this.inclusionRepo = inclusionRepo;
+        this.exclusionRepo = exclusionRepo;
+        this.assumptionRepo = assumptionRepo;
+        this.milestoneRepo = milestoneRepo;
         this.objectMapper = objectMapper;
     }
 
@@ -74,7 +85,8 @@ public class LeadEstimationService {
             lineItemRepo.save(row);
         }
 
-        return LeadEstimationDetailResponse.fromEntity(saved, preview.lineItems());
+        return LeadEstimationDetailResponse.fromEntity(saved, preview.lineItems(),
+                List.of(), List.of(), List.of(), List.of());
     }
 
     @Transactional(readOnly = true)
@@ -96,7 +108,28 @@ public class LeadEstimationService {
                         li.getQuantity(), li.getUnit(), li.getUnitRate(),
                         li.getAmount(), li.getDisplayOrder()))
                 .toList();
-        return LeadEstimationDetailResponse.fromEntity(est, lineItems);
+        List<EstimationSubResourceResponse> inclusions = inclusionRepo
+                .findByEstimationIdOrderByDisplayOrderAsc(est.getId()).stream()
+                .map(e -> new EstimationSubResourceResponse(e.getId(), e.getEstimationId(),
+                        e.getLabel(), e.getDescription(), e.getDisplayOrder(), null))
+                .toList();
+        List<EstimationSubResourceResponse> exclusions = exclusionRepo
+                .findByEstimationIdOrderByDisplayOrderAsc(est.getId()).stream()
+                .map(e -> new EstimationSubResourceResponse(e.getId(), e.getEstimationId(),
+                        e.getLabel(), e.getDescription(), e.getDisplayOrder(), null))
+                .toList();
+        List<EstimationSubResourceResponse> assumptions = assumptionRepo
+                .findByEstimationIdOrderByDisplayOrderAsc(est.getId()).stream()
+                .map(e -> new EstimationSubResourceResponse(e.getId(), e.getEstimationId(),
+                        e.getLabel(), e.getDescription(), e.getDisplayOrder(), null))
+                .toList();
+        List<EstimationSubResourceResponse> paymentMilestones = milestoneRepo
+                .findByEstimationIdOrderByDisplayOrderAsc(est.getId()).stream()
+                .map(e -> new EstimationSubResourceResponse(e.getId(), e.getEstimationId(),
+                        e.getLabel(), e.getDescription(), e.getDisplayOrder(), e.getPercentage()))
+                .toList();
+        return LeadEstimationDetailResponse.fromEntity(est, lineItems,
+                inclusions, exclusions, assumptions, paymentMilestones);
     }
 
     @Transactional
