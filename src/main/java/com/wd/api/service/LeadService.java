@@ -5,7 +5,6 @@ import com.wd.api.dto.PaginationParams;
 import com.wd.api.dto.PartnershipReferralRequest;
 import com.wd.api.dto.LeadSearchFilter;
 import com.wd.api.repository.LeadRepository;
-import com.wd.api.repository.LeadQuotationRepository;
 import com.wd.api.util.SpecificationBuilder;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,9 +56,6 @@ public class LeadService {
 
     @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private LeadQuotationRepository leadQuotationRepository;
 
     @Autowired
     private DocumentService documentService;
@@ -1313,24 +1309,8 @@ public class LeadService {
             project.setFloors(lead.getFloors());
             project.setProjectDescription(lead.getProjectDescription());
 
-            // Set Budget
-            if (request.getQuotationId() != null) {
-                Long quoteId = request.getQuotationId();
-                com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(quoteId)
-                        .orElseThrow(() -> new IllegalArgumentException("Quotation not found: " + quoteId));
-
-                if (!quote.getLeadId().equals(lead.getId())) {
-                    throw new IllegalArgumentException("Quotation does not belong to this lead");
-                }
-
-                project.setBudget(quote.getFinalAmount());
-                project.setDesignPackage(quote.getTitle());
-                quote.setStatus("ACCEPTED");
-                quote.setRespondedAt(java.time.LocalDateTime.now());
-                leadQuotationRepository.save(quote);
-            } else {
-                project.setBudget(lead.getBudget());
-            }
+            // Set Budget (legacy quotation lookup removed in C.PR-3 — use lead budget)
+            project.setBudget(lead.getBudget());
 
             com.wd.api.model.CustomerProject savedProject = customerProjectRepository.save(project);
 
@@ -1360,10 +1340,7 @@ public class LeadService {
                 }
             }
 
-            // 5. Migrate Items & Docs
-            if (request.getQuotationId() != null) {
-                migrateQuotationToBoq(request.getQuotationId(), savedProject);
-            }
+            // 5. Migrate Docs
             documentService.migrateLeadDocumentsToProject(lead.getId(), savedProject.getId());
             activityFeedService.linkLeadActivitiesToProject(lead.getId(), savedProject);
 
@@ -1385,36 +1362,6 @@ public class LeadService {
         } catch (Exception e) {
             logger.error("CRITICAL ERROR in lead conversion for lead {}: {}", leadId, e.getMessage(), e);
             throw e;
-        }
-    }
-
-    private void migrateQuotationToBoq(Long quoteId, com.wd.api.model.CustomerProject project) {
-        com.wd.api.model.LeadQuotation quote = leadQuotationRepository.findById(quoteId).orElse(null);
-        if (quote != null && !quote.getItems().isEmpty()) {
-            com.wd.api.model.BoqWorkType defaultWorkType = boqWorkTypeRepository.findByName("General Works")
-                    .orElseGet(() -> {
-                        com.wd.api.model.BoqWorkType wt = new com.wd.api.model.BoqWorkType();
-                        wt.setName("General Works");
-                        wt.setDisplayOrder(1);
-                        return boqWorkTypeRepository.save(wt);
-                    });
-
-            for (com.wd.api.model.LeadQuotationItem quoteItem : quote.getItems()) {
-                com.wd.api.model.BoqItem boqItem = new com.wd.api.model.BoqItem();
-                boqItem.setProject(project);
-                boqItem.setWorkType(defaultWorkType);
-                boqItem.setDescription(quoteItem.getDescription());
-                boqItem.setQuantity(quoteItem.getQuantity());
-                boqItem.setUnitRate(quoteItem.getUnitPrice());
-                boqItem.setUnit("LS");
-                boqItem = boqItemRepository.save(boqItem);
-
-                try {
-                    boqAuditService.logCreate("BOQ_ITEM", boqItem.getId(), project.getId(), null, boqItem);
-                } catch (Exception e) {
-                    logger.warn("Failed to log audit for migrated BOQ item {}: {}", boqItem.getId(), e.getMessage());
-                }
-            }
         }
     }
 
