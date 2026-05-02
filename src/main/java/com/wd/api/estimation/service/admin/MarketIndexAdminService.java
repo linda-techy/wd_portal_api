@@ -43,12 +43,13 @@ public class MarketIndexAdminService {
                 ? computeComposite(req, previous.get())
                 : new BigDecimal("1.0000");
 
-        // Deactivate the previous active row (the partial unique index enforces this at DB level
-        // too, but doing it at service level keeps the intent explicit and surfaces conflicts as
-        // application errors rather than DB constraint violations).
+        // Deactivate the previous active row. saveAndFlush is required (not just save) — the
+        // partial unique index uq_estimation_market_index_active rejects two rows with
+        // is_active=true. Without an immediate flush, Hibernate's action queue inserts the new
+        // row before updating the old one, triggering a constraint violation at commit.
         previous.ifPresent(p -> {
             p.setActive(false);
-            repo.save(p);
+            repo.saveAndFlush(p);
         });
 
         MarketIndexSnapshot snap = new MarketIndexSnapshot();

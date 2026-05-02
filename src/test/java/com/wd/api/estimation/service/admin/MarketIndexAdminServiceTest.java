@@ -116,4 +116,35 @@ class MarketIndexAdminServiceTest extends TestcontainersPostgresBase {
         assertThat(active).isPresent();
         assertThat(active.get().active()).isTrue();
     }
+
+    /**
+     * Regression test for a bug uncovered by B'' live smoke (2026-05-02): without the
+     * saveAndFlush in createSnapshot's deactivation branch, Hibernate's action queue runs
+     * INSERT before UPDATE at commit, violating the partial unique index
+     * uq_estimation_market_index_active.
+     *
+     * Other tests in this class call em.flush() manually between createSnapshot calls,
+     * masking the bug. This test deliberately omits the manual flush so it would fail
+     * (with a constraint violation at commit) if the saveAndFlush were ever reverted.
+     */
+    @Test
+    void create_secondSnapshot_atomicDeactivation_noManualFlush() {
+        service.createSnapshot(new MarketIndexCreateRequest(
+                null, new BigDecimal("62.50"), new BigDecimal("410.00"),
+                new BigDecimal("5800.00"), new BigDecimal("1850.00"),
+                new BigDecimal("38.00"), new BigDecimal("92.00"), new BigDecimal("285.00"),
+                STANDARD_WEIGHTS));
+
+        // No em.flush() here — the second createSnapshot must handle the deactivate→insert
+        // ordering itself via saveAndFlush. If it doesn't, this call throws on commit.
+        MarketIndexResponse second = service.createSnapshot(new MarketIndexCreateRequest(
+                null, new BigDecimal("65.00"), new BigDecimal("410.00"),
+                new BigDecimal("5800.00"), new BigDecimal("1850.00"),
+                new BigDecimal("38.00"), new BigDecimal("92.00"), new BigDecimal("285.00"),
+                STANDARD_WEIGHTS));
+
+        assertThat(second.active()).isTrue();
+        // composite reflects the steel bump: (65/62.5)*0.30 + 1.0*0.70 = 1.012
+        assertThat(second.compositeIndex()).isEqualByComparingTo("1.0120");
+    }
 }
