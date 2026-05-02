@@ -31,7 +31,8 @@ class CalculatePreviewResponseTest {
                 new BigDecimal("444150.00"),
                 new BigDecimal("2911650.00"),
                 List.of(base),
-                List.of("market-index-stale-14-days"));
+                List.of("market-index-stale-14-days"),
+                null, null);
 
         String json = mapper.writeValueAsString(resp);
         assertThat(json).contains("\"chargeableArea\":1050");
@@ -48,7 +49,8 @@ class CalculatePreviewResponseTest {
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO,
-                List.of(), List.of());
+                List.of(), List.of(),
+                null, null);
         String json = mapper.writeValueAsString(resp);
         assertThat(json).contains("\"warnings\":[]");
         assertThat(json).contains("\"lineItems\":[]");

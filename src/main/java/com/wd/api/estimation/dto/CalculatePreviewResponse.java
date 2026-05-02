@@ -17,4 +17,6 @@ public record CalculatePreviewResponse(
         BigDecimal gst,
         BigDecimal grandTotal,
         List<LineItemDto> lineItems,
-        List<String> warnings) {}
+        List<String> warnings,
+        java.util.UUID rateVersionId,
+        java.util.UUID marketIndexId) {}

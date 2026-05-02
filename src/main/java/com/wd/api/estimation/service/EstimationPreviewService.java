@@ -129,7 +129,7 @@ public class EstimationPreviewService {
                 DEFAULTS);
 
         EstimationBreakdown breakdown = calculator.calculate(ctx);
-        return toResponse(breakdown);
+        return toResponse(breakdown, rv.getId(), mi.getId());
     }
 
     private Dimensions toViewDimensions(CalculatePreviewRequest req) {
@@ -194,7 +194,7 @@ public class EstimationPreviewService {
         }).toList();
     }
 
-    private CalculatePreviewResponse toResponse(EstimationBreakdown b) {
+    private CalculatePreviewResponse toResponse(EstimationBreakdown b, UUID rateVersionId, UUID marketIndexId) {
         List<LineItemDto> lines = b.lineItems().stream()
                 .map(this::toLineItemDto)
                 .toList();
@@ -203,7 +203,8 @@ public class EstimationPreviewService {
                 b.siteCost(), b.addOnCost(), b.fluctuationAdjustment(),
                 b.subtotal(), b.govtFees(), b.discount(), b.taxable(),
                 b.gst(), b.grandTotal(),
-                lines, b.warnings());
+                lines, b.warnings(),
+                rateVersionId, marketIndexId);
     }
 
     private LineItemDto toLineItemDto(LineItem li) {
