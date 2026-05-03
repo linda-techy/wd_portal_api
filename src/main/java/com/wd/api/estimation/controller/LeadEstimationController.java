@@ -82,6 +82,12 @@ public class LeadEstimationController {
         return ResponseEntity.ok(ApiResponse.success("Reverted to DRAFT", service.revertToDraft(id)));
     }
 
+    @PatchMapping("/{id}/regenerate-token")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE','LEAD_EDIT')")
+    public ResponseEntity<ApiResponse<LeadEstimationDetailResponse>> regenerateToken(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success("Token regenerated", service.regeneratePublicToken(id)));
+    }
+
     @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     @PreAuthorize("hasAuthority('LEAD_VIEW')")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable UUID id) {
