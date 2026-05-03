@@ -217,6 +217,54 @@ class LeadEstimationServiceTest extends TestcontainersPostgresBase {
         assertThat(byNew).isPresent();
     }
 
+    // ── Sub-project I: revision tests ─────────────────────────────────────────
+
+    @Test
+    void revise_creates_new_estimation_with_parent_estimation_id() {
+        LeadEstimationDetailResponse parent = service.create(standardRequest());
+        assertThat(parent.parentEstimationId()).isNull();
+
+        LeadEstimationDetailResponse child = service.revise(parent.id(), standardRequest());
+        assertThat(child.id()).isNotEqualTo(parent.id());
+        assertThat(child.parentEstimationId()).isEqualTo(parent.id());
+        assertThat(child.status()).isEqualTo(EstimationStatus.DRAFT);
+        assertThat(child.estimationNo()).isNotEqualTo(parent.estimationNo());
+    }
+
+    @Test
+    void revise_rejects_when_parent_is_ACCEPTED() {
+        Lead lead = new Lead();
+        lead.setLeadStatus("proposal_sent");
+        lead.setName("Revise Reject Lead");
+        Lead savedLead = leadRepo.save(lead);
+        em.flush();
+
+        LeadEstimationCreateRequest req = new LeadEstimationCreateRequest(
+                savedLead.getId(), standardRequest().preview(), null);
+        LeadEstimationDetailResponse parent = service.create(req);
+        service.markSent(parent.id());
+        service.markAccepted(parent.id());
+
+        UUID parentId = parent.id();
+        assertThatThrownBy(() -> service.revise(parentId, req))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ACCEPTED");
+    }
+
+    @Test
+    void revise_rejects_when_leadId_does_not_match_parent() {
+        LeadEstimationDetailResponse parent = service.create(standardRequest());
+
+        // Build a request with a different leadId
+        LeadEstimationCreateRequest wrongLeadReq = new LeadEstimationCreateRequest(
+                LEAD_ID + 1, standardRequest().preview(), null);
+
+        UUID parentId = parent.id();
+        assertThatThrownBy(() -> service.revise(parentId, wrongLeadReq))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Cannot reassign lead via revision");
+    }
+
     @Test
     void revertToDraft_works_for_SENT_and_REJECTED_but_throws_for_ACCEPTED() {
         // SENT → DRAFT (allowed)

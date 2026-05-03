@@ -242,6 +242,26 @@ public class LeadEstimationService {
     }
 
     @Transactional
+    public LeadEstimationDetailResponse revise(UUID parentId, LeadEstimationCreateRequest req) {
+        Estimation parent = estimationRepo.findById(parentId).orElseThrow(() ->
+                new IllegalArgumentException("Estimation not found: " + parentId));
+        if (parent.getStatus() != EstimationStatus.DRAFT && parent.getStatus() != EstimationStatus.SENT) {
+            throw new IllegalStateException(
+                    "Can only revise DRAFT or SENT estimations (parent is " + parent.getStatus() + ")");
+        }
+        if (!parent.getLeadId().equals(req.leadId())) {
+            throw new IllegalArgumentException("Cannot reassign lead via revision");
+        }
+        // Reuse existing create() flow which builds an Estimation + line items
+        LeadEstimationDetailResponse created = create(req);
+        // Backfill parent link
+        Estimation child = estimationRepo.findById(created.id()).orElseThrow();
+        child.setParentEstimationId(parent.getId());
+        estimationRepo.save(child);
+        return get(created.id());
+    }
+
+    @Transactional
     public LeadEstimationDetailResponse regeneratePublicToken(UUID estimationId) {
         Estimation e = estimationRepo.findById(estimationId)
                 .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + estimationId));
