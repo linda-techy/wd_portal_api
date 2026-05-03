@@ -1,6 +1,7 @@
 package com.wd.api.estimation.dto;
 
 import com.wd.api.estimation.domain.Estimation;
+import com.wd.api.estimation.domain.enums.EstimationConfidenceLevel;
 import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
 import com.wd.api.estimation.domain.enums.ProjectType;
@@ -43,7 +44,9 @@ public record LeadEstimationDetailResponse(
         boolean isCurrent,
         // N — raw dimensions input from create-time. Empty for budgetary rows.
         // Exposed so the wizard can hydrate when the user clicks Revise.
-        Map<String, Object> dimensionsJson) {
+        Map<String, Object> dimensionsJson,
+        // P — sales-set confidence on budgetary rows; null on line-item rows.
+        EstimationConfidenceLevel confidenceLevel) {
 
     public static LeadEstimationDetailResponse fromEntity(
             Estimation e,
@@ -62,6 +65,7 @@ public record LeadEstimationDetailResponse(
                 e.getPricingMode(), e.getEstimatedAreaSqft(),
                 e.getGrandTotalMin(), e.getGrandTotalMax(),
                 e.isCurrent(),
-                e.getDimensionsJson());
+                e.getDimensionsJson(),
+                e.getConfidenceLevel());
     }
 }

@@ -1,5 +1,6 @@
 package com.wd.api.estimation.dto;
 
+import com.wd.api.estimation.domain.enums.EstimationConfidenceLevel;
 import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.ProjectType;
 import jakarta.validation.Valid;
@@ -25,7 +26,9 @@ public record CalculatePreviewRequest(
         @DecimalMin("0.00") @DecimalMax("0.50") BigDecimal discountPercent,
         @DecimalMin("0.00") @DecimalMax("0.50") BigDecimal gstRate,
         EstimationPricingMode pricingMode,
-        @DecimalMin("100.00") @DecimalMax("100000.00") BigDecimal estimatedAreaSqft) {
+        @DecimalMin("100.00") @DecimalMax("100000.00") BigDecimal estimatedAreaSqft,
+        // P — only used when pricingMode = BUDGETARY. Defaults to MEDIUM if null.
+        EstimationConfidenceLevel confidenceLevel) {
 
     /**
      * Backwards-compatible 11-arg constructor (pre-K). Defaults pricingMode/estimatedAreaSqft to null,
@@ -45,6 +48,6 @@ public record CalculatePreviewRequest(
             BigDecimal gstRate) {
         this(projectType, packageId, rateVersionIdOverride, marketIndexIdOverride,
                 dimensions, customisations, siteFees, addOns, govtFees,
-                discountPercent, gstRate, null, null);
+                discountPercent, gstRate, null, null, null);
     }
 }

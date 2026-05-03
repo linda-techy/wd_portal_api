@@ -1,5 +1,6 @@
 package com.wd.api.estimation.domain;
 
+import com.wd.api.estimation.domain.enums.EstimationConfidenceLevel;
 import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
 import com.wd.api.estimation.domain.enums.ProjectType;
@@ -91,6 +92,10 @@ public class Estimation extends BaseEntity {
     @Column(name = "is_current", nullable = false)
     private boolean isCurrent = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "confidence_level", length = 10)
+    private EstimationConfidenceLevel confidenceLevel;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -153,4 +158,7 @@ public class Estimation extends BaseEntity {
 
     public boolean isCurrent() { return isCurrent; }
     public void setCurrent(boolean current) { this.isCurrent = current; }
+
+    public EstimationConfidenceLevel getConfidenceLevel() { return confidenceLevel; }
+    public void setConfidenceLevel(EstimationConfidenceLevel confidenceLevel) { this.confidenceLevel = confidenceLevel; }
 }

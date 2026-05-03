@@ -8,6 +8,7 @@ import com.wd.api.estimation.domain.MarketIndexSnapshot;
 import com.wd.api.estimation.domain.PackageRateVersion;
 import com.wd.api.estimation.domain.SiteFee;
 import com.wd.api.estimation.domain.EstimationPackage;
+import com.wd.api.estimation.domain.enums.EstimationConfidenceLevel;
 import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.ProjectType;
 import com.wd.api.estimation.dto.CalculatePreviewRequest;
@@ -89,8 +90,6 @@ public class EstimationPreviewService {
         this.govtFeeRepo = govtFeeRepo;
     }
 
-    private static final BigDecimal BUDGETARY_BAND_PERCENT = new BigDecimal("0.10");
-
     @Transactional(readOnly = true)
     public CalculatePreviewResponse preview(CalculatePreviewRequest req) {
         // Early dispatch guard — surface "unsupported project type" before doing any
@@ -136,8 +135,14 @@ public class EstimationPreviewService {
                 .add(rv.getOverheadRate());
         BigDecimal gstRate = req.gstRate() != null ? req.gstRate() : DEFAULT_GST_RATE;
 
+        // P — confidence-driven band, defaults to MEDIUM (±5%) when caller omits it.
+        EstimationConfidenceLevel confidence = req.confidenceLevel() != null
+                ? req.confidenceLevel()
+                : EstimationConfidenceLevel.MEDIUM;
+        BigDecimal bandPercent = confidence.bandPercent;
+
         BudgetaryBreakdown b = calculator.calculateBudgetary(
-                req.estimatedAreaSqft(), baseRate, BUDGETARY_BAND_PERCENT, gstRate);
+                req.estimatedAreaSqft(), baseRate, bandPercent, gstRate);
 
         return new CalculatePreviewResponse(
                 null,                                           // chargeableArea (LINE_ITEM-only)

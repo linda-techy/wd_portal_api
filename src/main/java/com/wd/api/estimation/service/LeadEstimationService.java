@@ -75,6 +75,10 @@ public class LeadEstimationService {
             est.setGrandTotalMin(preview.grandTotalMin());
             est.setGrandTotalMax(preview.grandTotalMax());
             est.setGrandTotal(preview.grandTotalMin());
+            // P — persist sales-set confidence (defaults to MEDIUM when omitted upstream).
+            est.setConfidenceLevel(req.preview().confidenceLevel() != null
+                    ? req.preview().confidenceLevel()
+                    : com.wd.api.estimation.domain.enums.EstimationConfidenceLevel.MEDIUM);
             // dimensions_json is NOT NULL at the DB layer; budgetary stores an empty object.
             est.setDimensionsJson(Map.of());
         } else {
