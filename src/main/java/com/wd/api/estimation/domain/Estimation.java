@@ -69,7 +69,7 @@ public class Estimation extends BaseEntity {
     private LocalDate validUntil;
 
     @Column(name = "public_view_token", nullable = false, columnDefinition = "uuid")
-    private UUID publicViewToken;
+    private UUID publicViewToken = UUID.randomUUID();
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
