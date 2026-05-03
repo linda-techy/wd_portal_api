@@ -6,6 +6,7 @@ import com.wd.api.estimation.domain.EstimationLineItem;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
 import com.wd.api.estimation.dto.*;
 import com.wd.api.estimation.repository.*;
+import com.wd.api.repository.LeadRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ public class LeadEstimationService {
     private final EstimationExclusionRepository exclusionRepo;
     private final EstimationAssumptionRepository assumptionRepo;
     private final EstimationPaymentMilestoneRepository milestoneRepo;
+    private final LeadRepository leadRepo;
     private final ObjectMapper objectMapper;
 
     public LeadEstimationService(
@@ -34,6 +36,7 @@ public class LeadEstimationService {
             EstimationExclusionRepository exclusionRepo,
             EstimationAssumptionRepository assumptionRepo,
             EstimationPaymentMilestoneRepository milestoneRepo,
+            LeadRepository leadRepo,
             ObjectMapper objectMapper) {
         this.previewService = previewService;
         this.estimationRepo = estimationRepo;
@@ -42,6 +45,7 @@ public class LeadEstimationService {
         this.exclusionRepo = exclusionRepo;
         this.assumptionRepo = assumptionRepo;
         this.milestoneRepo = milestoneRepo;
+        this.leadRepo = leadRepo;
         this.objectMapper = objectMapper;
     }
 
@@ -130,6 +134,64 @@ public class LeadEstimationService {
                 .toList();
         return LeadEstimationDetailResponse.fromEntity(est, lineItems,
                 inclusions, exclusions, assumptions, paymentMilestones);
+    }
+
+    @Transactional
+    public LeadEstimationDetailResponse markSent(UUID id) {
+        Estimation e = estimationRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+        if (e.getStatus() != EstimationStatus.DRAFT) {
+            throw new IllegalStateException(
+                    "Can only mark DRAFT estimations as SENT (current: " + e.getStatus() + ")");
+        }
+        e.setStatus(EstimationStatus.SENT);
+        estimationRepo.save(e);
+        return get(id);
+    }
+
+    @Transactional
+    public LeadEstimationDetailResponse markAccepted(UUID id) {
+        Estimation e = estimationRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+        if (e.getStatus() != EstimationStatus.SENT) {
+            throw new IllegalStateException(
+                    "Can only mark SENT estimations as ACCEPTED (current: " + e.getStatus() + ")");
+        }
+        e.setStatus(EstimationStatus.ACCEPTED);
+        estimationRepo.save(e);
+        // On accepted, flip the lead's status to project_won (best-effort).
+        leadRepo.findById(e.getLeadId()).ifPresent(lead -> {
+            if (!"project_won".equalsIgnoreCase(lead.getLeadStatus())) {
+                lead.setLeadStatus("project_won");
+                leadRepo.save(lead);
+            }
+        });
+        return get(id);
+    }
+
+    @Transactional
+    public LeadEstimationDetailResponse markRejected(UUID id) {
+        Estimation e = estimationRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+        if (e.getStatus() != EstimationStatus.SENT) {
+            throw new IllegalStateException(
+                    "Can only mark SENT estimations as REJECTED (current: " + e.getStatus() + ")");
+        }
+        e.setStatus(EstimationStatus.REJECTED);
+        estimationRepo.save(e);
+        return get(id);
+    }
+
+    @Transactional
+    public LeadEstimationDetailResponse revertToDraft(UUID id) {
+        Estimation e = estimationRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+        if (e.getStatus() == EstimationStatus.ACCEPTED) {
+            throw new IllegalStateException("Cannot revert ACCEPTED estimations to DRAFT");
+        }
+        e.setStatus(EstimationStatus.DRAFT);
+        estimationRepo.save(e);
+        return get(id);
     }
 
     @Transactional
