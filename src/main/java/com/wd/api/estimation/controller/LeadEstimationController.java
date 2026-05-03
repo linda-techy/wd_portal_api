@@ -2,9 +2,12 @@ package com.wd.api.estimation.controller;
 
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.estimation.dto.*;
+import com.wd.api.estimation.service.EstimationPdfService;
 import com.wd.api.estimation.service.LeadEstimationService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +21,12 @@ import java.util.UUID;
 public class LeadEstimationController {
 
     private final LeadEstimationService service;
+    private final EstimationPdfService pdfService;
 
-    public LeadEstimationController(LeadEstimationService service) {
+    public LeadEstimationController(LeadEstimationService service,
+                                     EstimationPdfService pdfService) {
         this.service = service;
+        this.pdfService = pdfService;
     }
 
     @PostMapping
@@ -74,5 +80,15 @@ public class LeadEstimationController {
     @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
     public ResponseEntity<ApiResponse<LeadEstimationDetailResponse>> revertToDraft(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Reverted to DRAFT", service.revertToDraft(id)));
+    }
+
+    @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<byte[]> downloadPdf(@PathVariable UUID id) {
+        byte[] pdfBytes = pdfService.generatePdf(id);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "estimation-" + id + ".pdf");
+        return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
 }
