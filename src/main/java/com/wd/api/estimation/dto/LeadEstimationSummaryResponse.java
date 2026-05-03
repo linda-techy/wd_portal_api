@@ -19,7 +19,8 @@ public record LeadEstimationSummaryResponse(
         BigDecimal grandTotal,
         LocalDate validUntil,
         LocalDateTime createdAt,
-        UUID publicViewToken) {
+        UUID publicViewToken,
+        UUID parentEstimationId) {
 
     public static LeadEstimationSummaryResponse fromEntity(Estimation e) {
         return new LeadEstimationSummaryResponse(
@@ -32,6 +33,7 @@ public record LeadEstimationSummaryResponse(
                 e.getGrandTotal(),
                 e.getValidUntil(),
                 e.getCreatedAt(),
-                e.getPublicViewToken());
+                e.getPublicViewToken(),
+                e.getParentEstimationId());
     }
 }
