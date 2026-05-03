@@ -2,6 +2,7 @@ package com.wd.api.estimation.service;
 
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
+import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.dto.EstimationSubResourceResponse;
 import com.wd.api.estimation.dto.LeadEstimationDetailResponse;
 import com.wd.api.estimation.dto.LineItemDto;
@@ -57,26 +58,43 @@ public class EstimationPdfService {
             doc.add(new Paragraph("Project type: " + detail.projectType()));
             doc.add(new Paragraph(" "));
 
-            // ----------------------------------------------------------------
-            // Line items table
-            // ----------------------------------------------------------------
-            doc.add(new Paragraph("Line items", new Font(Font.HELVETICA, 13, Font.BOLD)));
-            PdfPTable lineItemsTable = new PdfPTable(new float[]{4, 1, 1, 1.5f, 1.5f});
-            lineItemsTable.setWidthPercentage(100);
-            for (String h : new String[]{"Description", "Qty", "Unit", "Rate", "Amount"}) {
-                PdfPCell cell = new PdfPCell(new Phrase(h, new Font(Font.HELVETICA, 10, Font.BOLD)));
-                cell.setBackgroundColor(new Color(220, 220, 220));
-                lineItemsTable.addCell(cell);
+            boolean isBudgetary = detail.pricingMode() == EstimationPricingMode.BUDGETARY;
+
+            if (isBudgetary) {
+                // ------------------------------------------------------------
+                // Budgetary mode: estimated area + range; no line items.
+                // ------------------------------------------------------------
+                doc.add(new Paragraph("Budgetary estimate",
+                        new Font(Font.HELVETICA, 13, Font.BOLD)));
+                doc.add(new Paragraph(
+                        "Estimated buildable area: "
+                                + (detail.estimatedAreaSqft() != null
+                                        ? detail.estimatedAreaSqft().toPlainString()
+                                        : "—")
+                                + " sqft"));
+                doc.add(new Paragraph(" "));
+            } else {
+                // ----------------------------------------------------------------
+                // Line items table
+                // ----------------------------------------------------------------
+                doc.add(new Paragraph("Line items", new Font(Font.HELVETICA, 13, Font.BOLD)));
+                PdfPTable lineItemsTable = new PdfPTable(new float[]{4, 1, 1, 1.5f, 1.5f});
+                lineItemsTable.setWidthPercentage(100);
+                for (String h : new String[]{"Description", "Qty", "Unit", "Rate", "Amount"}) {
+                    PdfPCell cell = new PdfPCell(new Phrase(h, new Font(Font.HELVETICA, 10, Font.BOLD)));
+                    cell.setBackgroundColor(new Color(220, 220, 220));
+                    lineItemsTable.addCell(cell);
+                }
+                for (LineItemDto li : detail.lineItems()) {
+                    lineItemsTable.addCell(li.description());
+                    lineItemsTable.addCell(li.quantity() != null ? li.quantity().toPlainString() : "");
+                    lineItemsTable.addCell(li.unit() != null ? li.unit() : "");
+                    lineItemsTable.addCell(li.unitRate() != null ? li.unitRate().toPlainString() : "");
+                    lineItemsTable.addCell(li.amount().toPlainString());
+                }
+                doc.add(lineItemsTable);
+                doc.add(new Paragraph(" "));
             }
-            for (LineItemDto li : detail.lineItems()) {
-                lineItemsTable.addCell(li.description());
-                lineItemsTable.addCell(li.quantity() != null ? li.quantity().toPlainString() : "");
-                lineItemsTable.addCell(li.unit() != null ? li.unit() : "");
-                lineItemsTable.addCell(li.unitRate() != null ? li.unitRate().toPlainString() : "");
-                lineItemsTable.addCell(li.amount().toPlainString());
-            }
-            doc.add(lineItemsTable);
-            doc.add(new Paragraph(" "));
 
             // ----------------------------------------------------------------
             // Sub-resource sections (only if non-empty)
@@ -87,14 +105,31 @@ public class EstimationPdfService {
             renderPaymentMilestones(doc, detail.paymentMilestones());
 
             // ----------------------------------------------------------------
-            // Totals block
+            // Totals block — branched by mode.
             // ----------------------------------------------------------------
-            doc.add(new Paragraph("Subtotal: \u20b9" + detail.subtotal().toPlainString()));
-            doc.add(new Paragraph("Discount: \u20b9" + detail.discountAmount().toPlainString()));
-            doc.add(new Paragraph("GST: \u20b9" + detail.gstAmount().toPlainString()));
-            doc.add(new Paragraph(
-                    "Grand total: \u20b9" + detail.grandTotal().toPlainString(),
-                    new Font(Font.HELVETICA, 14, Font.BOLD)));
+            if (isBudgetary) {
+                String low = detail.grandTotalMin() != null
+                        ? detail.grandTotalMin().toPlainString() : "—";
+                String high = detail.grandTotalMax() != null
+                        ? detail.grandTotalMax().toPlainString() : "—";
+                doc.add(new Paragraph(
+                        "Estimated range (incl. GST): \u20b9" + low + "  \u2013  \u20b9" + high,
+                        new Font(Font.HELVETICA, 14, Font.BOLD)));
+                doc.add(new Paragraph(
+                        "Range = (area \u00d7 base rate) \u00b110%, then GST applied. "
+                                + "Final figure available after detailed estimate.",
+                        new Font(Font.HELVETICA, 9, Font.ITALIC)));
+            } else {
+                doc.add(new Paragraph("Subtotal: \u20b9"
+                        + (detail.subtotal() != null ? detail.subtotal().toPlainString() : "0")));
+                doc.add(new Paragraph("Discount: \u20b9"
+                        + (detail.discountAmount() != null ? detail.discountAmount().toPlainString() : "0")));
+                doc.add(new Paragraph("GST: \u20b9"
+                        + (detail.gstAmount() != null ? detail.gstAmount().toPlainString() : "0")));
+                doc.add(new Paragraph(
+                        "Grand total: \u20b9" + detail.grandTotal().toPlainString(),
+                        new Font(Font.HELVETICA, 14, Font.BOLD)));
+            }
 
             doc.close();
         } catch (DocumentException e) {

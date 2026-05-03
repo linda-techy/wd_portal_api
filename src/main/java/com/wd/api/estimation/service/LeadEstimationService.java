@@ -251,7 +251,9 @@ public class LeadEstimationService {
                     est.getStatus().name(),
                     est.getSubtotal(), est.getDiscountAmount(), est.getGstAmount(),
                     est.getGrandTotal(), est.getValidUntil(), est.getCreatedAt(),
-                    lineItems, inclusions, exclusions, assumptions, paymentMilestones);
+                    lineItems, inclusions, exclusions, assumptions, paymentMilestones,
+                    est.getPricingMode(), est.getEstimatedAreaSqft(),
+                    est.getGrandTotalMin(), est.getGrandTotalMax());
         });
     }
 
