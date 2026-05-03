@@ -37,7 +37,9 @@ public record LeadEstimationDetailResponse(
         EstimationPricingMode pricingMode,
         BigDecimal estimatedAreaSqft,
         BigDecimal grandTotalMin,
-        BigDecimal grandTotalMax) {
+        BigDecimal grandTotalMax,
+        // L — current-estimation indicator. True for the lead's active quote.
+        boolean isCurrent) {
 
     public static LeadEstimationDetailResponse fromEntity(
             Estimation e,
@@ -54,6 +56,7 @@ public record LeadEstimationDetailResponse(
                 e.getParentEstimationId(), lineItems,
                 inclusions, exclusions, assumptions, paymentMilestones,
                 e.getPricingMode(), e.getEstimatedAreaSqft(),
-                e.getGrandTotalMin(), e.getGrandTotalMax());
+                e.getGrandTotalMin(), e.getGrandTotalMax(),
+                e.isCurrent());
     }
 }

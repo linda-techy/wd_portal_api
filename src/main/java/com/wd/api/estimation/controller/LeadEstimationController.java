@@ -2,6 +2,7 @@ package com.wd.api.estimation.controller;
 
 import com.wd.api.dto.ApiResponse;
 import com.wd.api.estimation.dto.*;
+import com.wd.api.estimation.service.EstimationExpiryService;
 import com.wd.api.estimation.service.EstimationPdfService;
 import com.wd.api.estimation.service.LeadEstimationService;
 import jakarta.validation.Valid;
@@ -22,11 +23,22 @@ public class LeadEstimationController {
 
     private final LeadEstimationService service;
     private final EstimationPdfService pdfService;
+    private final EstimationExpiryService expiryService;
 
     public LeadEstimationController(LeadEstimationService service,
-                                     EstimationPdfService pdfService) {
+                                     EstimationPdfService pdfService,
+                                     EstimationExpiryService expiryService) {
         this.service = service;
         this.pdfService = pdfService;
+        this.expiryService = expiryService;
+    }
+
+    /** L — manual trigger; same logic as the nightly @Scheduled job. Admin-only. */
+    @PostMapping("/expire-overdue")
+    @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'ADMIN')")
+    public ResponseEntity<ApiResponse<Integer>> expireOverdue() {
+        int n = expiryService.expireOverdue();
+        return ResponseEntity.ok(ApiResponse.success("Expired " + n + " estimations", n));
     }
 
     @PostMapping

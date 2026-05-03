@@ -88,6 +88,9 @@ public class Estimation extends BaseEntity {
     @Column(name = "grand_total_max", precision = 14, scale = 2)
     private BigDecimal grandTotalMax;
 
+    @Column(name = "is_current", nullable = false)
+    private boolean isCurrent = false;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -147,4 +150,7 @@ public class Estimation extends BaseEntity {
 
     public BigDecimal getGrandTotalMax() { return grandTotalMax; }
     public void setGrandTotalMax(BigDecimal grandTotalMax) { this.grandTotalMax = grandTotalMax; }
+
+    public boolean isCurrent() { return isCurrent; }
+    public void setCurrent(boolean current) { this.isCurrent = current; }
 }

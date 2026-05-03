@@ -87,6 +87,9 @@ public class LeadEstimationService {
 
         Estimation saved = estimationRepo.save(est);
 
+        // L — newly created estimation becomes current (clears any sibling).
+        setCurrentEstimation(saved.getId(), saved.getLeadId());
+
         // Line items only exist for LINE_ITEM mode.
         if (preview.pricingMode() == EstimationPricingMode.LINE_ITEM) {
             for (LineItemDto li : preview.lineItems()) {
@@ -174,6 +177,8 @@ public class LeadEstimationService {
         }
         e.setStatus(EstimationStatus.ACCEPTED);
         estimationRepo.save(e);
+        // L — ACCEPTED becomes the current estimation (overrides any sibling).
+        setCurrentEstimation(e.getId(), e.getLeadId());
         // On accepted, flip the lead's status to project_won (best-effort).
         leadRepo.findById(e.getLeadId()).ifPresent(lead -> {
             if (!"project_won".equalsIgnoreCase(lead.getLeadStatus())) {
@@ -213,7 +218,25 @@ public class LeadEstimationService {
     public void delete(UUID id) {
         Estimation est = estimationRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+        boolean wasCurrent = est.isCurrent();
+        Long leadId = est.getLeadId();
         estimationRepo.delete(est);  // Soft-delete via @SQLDelete on BaseEntity
+        // L — if we just removed the current estimation, promote the next-most-recent.
+        if (wasCurrent) {
+            estimationRepo.findActiveByLeadOrderByCreatedAtDesc(leadId).stream()
+                    .filter(e -> !e.getId().equals(id))
+                    .findFirst()
+                    .ifPresent(replacement -> setCurrentEstimation(replacement.getId(), leadId));
+        }
+    }
+
+    /**
+     * L — atomically marks one estimation as current within a lead. Clears any
+     * existing current first to satisfy the partial-unique index.
+     */
+    private void setCurrentEstimation(UUID estimationId, Long leadId) {
+        estimationRepo.clearCurrentForLead(leadId);
+        estimationRepo.markCurrent(estimationId);
     }
 
     @Transactional(readOnly = true)

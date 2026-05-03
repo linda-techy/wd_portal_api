@@ -37,6 +37,9 @@ public class LeadService {
     private LeadRepository leadRepository;
 
     @Autowired
+    private com.wd.api.estimation.repository.EstimationRepository estimationRepository;
+
+    @Autowired
     private ActivityFeedService activityFeedService;
 
     @Autowired
@@ -305,7 +308,18 @@ public class LeadService {
         // Status
         String status = request.getLeadStatus() != null ? request.getLeadStatus() : existing.getLeadStatus();
         if (status != null && !status.isEmpty()) {
-            leadDetails.setLeadStatus(status.trim().toLowerCase().replace(' ', '_'));
+            String normalized = status.trim().toLowerCase().replace(' ', '_');
+            // L — block manual project_won when no estimation has been accepted.
+            // The estimation-driven flip in LeadEstimationService.markAccepted bypasses this
+            // path entirely (it calls leadRepository.save directly), so this guard only fires
+            // for direct user edits to the lead status.
+            if ("project_won".equals(normalized)
+                    && !"project_won".equalsIgnoreCase(existing.getLeadStatus())
+                    && !estimationRepository.existsAcceptedForLead(id)) {
+                throw new IllegalStateException(
+                        "Cannot mark lead as project_won — no estimation has been accepted yet.");
+            }
+            leadDetails.setLeadStatus(normalized);
         } else {
             leadDetails.setLeadStatus(existing.getLeadStatus());
         }
