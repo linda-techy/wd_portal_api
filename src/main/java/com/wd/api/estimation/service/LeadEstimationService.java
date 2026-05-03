@@ -3,6 +3,7 @@ package com.wd.api.estimation.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wd.api.estimation.domain.Estimation;
 import com.wd.api.estimation.domain.EstimationLineItem;
+import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
 import com.wd.api.estimation.dto.*;
 import com.wd.api.estimation.repository.*;
@@ -63,31 +64,44 @@ public class LeadEstimationService {
         est.setPackageId(req.preview().packageId());
         est.setRateVersionId(preview.rateVersionId());
         est.setMarketIndexId(preview.marketIndexId());
-        est.setDimensionsJson(toDimensionsMap(req.preview().dimensions()));
+        est.setPricingMode(preview.pricingMode());
         est.setStatus(EstimationStatus.DRAFT);
-        est.setSubtotal(preview.subtotal());
-        est.setDiscountAmount(preview.discount());
-        est.setGstAmount(preview.gst());
-        est.setGrandTotal(preview.grandTotal());
         est.setValidUntil(req.validUntil() != null
                 ? req.validUntil()
                 : LocalDate.now().plusDays(30));
 
+        if (preview.pricingMode() == EstimationPricingMode.BUDGETARY) {
+            est.setEstimatedAreaSqft(preview.estimatedAreaSqft());
+            est.setGrandTotalMin(preview.grandTotalMin());
+            est.setGrandTotalMax(preview.grandTotalMax());
+            est.setGrandTotal(preview.grandTotalMin());
+            // dimensions_json is NOT NULL at the DB layer; budgetary stores an empty object.
+            est.setDimensionsJson(Map.of());
+        } else {
+            est.setDimensionsJson(toDimensionsMap(req.preview().dimensions()));
+            est.setSubtotal(preview.subtotal());
+            est.setDiscountAmount(preview.discount());
+            est.setGstAmount(preview.gst());
+            est.setGrandTotal(preview.grandTotal());
+        }
+
         Estimation saved = estimationRepo.save(est);
 
-        // Persist each line item from the preview response.
-        for (LineItemDto li : preview.lineItems()) {
-            EstimationLineItem row = new EstimationLineItem();
-            row.setEstimationId(saved.getId());
-            row.setLineType(li.lineType());
-            row.setDescription(li.description());
-            row.setSourceRefId(li.sourceRefId());
-            row.setQuantity(li.quantity());
-            row.setUnit(li.unit());
-            row.setUnitRate(li.unitRate());
-            row.setAmount(li.amount());
-            row.setDisplayOrder(li.displayOrder());
-            lineItemRepo.save(row);
+        // Line items only exist for LINE_ITEM mode.
+        if (preview.pricingMode() == EstimationPricingMode.LINE_ITEM) {
+            for (LineItemDto li : preview.lineItems()) {
+                EstimationLineItem row = new EstimationLineItem();
+                row.setEstimationId(saved.getId());
+                row.setLineType(li.lineType());
+                row.setDescription(li.description());
+                row.setSourceRefId(li.sourceRefId());
+                row.setQuantity(li.quantity());
+                row.setUnit(li.unit());
+                row.setUnitRate(li.unitRate());
+                row.setAmount(li.amount());
+                row.setDisplayOrder(li.displayOrder());
+                lineItemRepo.save(row);
+            }
         }
 
         return LeadEstimationDetailResponse.fromEntity(saved, preview.lineItems(),

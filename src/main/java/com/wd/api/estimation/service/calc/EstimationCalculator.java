@@ -22,6 +22,40 @@ public final class EstimationCalculator {
         };
     }
 
+    /**
+     * Budgetary mode (K). area × baseRatePerSqft ± bandPercent, then GST applied to both edges.
+     * Independent of EstimationContext (no floor breakdown, no customisations, no fees).
+     */
+    public BudgetaryBreakdown calculateBudgetary(
+            java.math.BigDecimal area,
+            java.math.BigDecimal baseRatePerSqft,
+            java.math.BigDecimal bandPercent,
+            java.math.BigDecimal gstRate) {
+        if (area == null || area.signum() <= 0) {
+            throw new IllegalArgumentException("estimatedAreaSqft must be > 0");
+        }
+        if (baseRatePerSqft == null || baseRatePerSqft.signum() <= 0) {
+            throw new IllegalArgumentException("baseRatePerSqft must be > 0");
+        }
+        if (bandPercent == null || bandPercent.signum() < 0) {
+            throw new IllegalArgumentException("bandPercent must be >= 0");
+        }
+        if (gstRate == null || gstRate.signum() < 0) {
+            throw new IllegalArgumentException("gstRate must be >= 0");
+        }
+        java.math.BigDecimal mid = area.multiply(baseRatePerSqft, MC);
+        java.math.BigDecimal one = java.math.BigDecimal.ONE;
+        java.math.BigDecimal lowPreGst = mid.multiply(one.subtract(bandPercent, MC), MC);
+        java.math.BigDecimal highPreGst = mid.multiply(one.add(bandPercent, MC), MC);
+        java.math.BigDecimal gstMul = one.add(gstRate, MC);
+        java.math.BigDecimal low = lowPreGst.multiply(gstMul, MC).setScale(2, RoundingMode.HALF_UP);
+        java.math.BigDecimal high = highPreGst.multiply(gstMul, MC).setScale(2, RoundingMode.HALF_UP);
+        return new BudgetaryBreakdown(
+                area, baseRatePerSqft,
+                mid.setScale(2, RoundingMode.HALF_UP),
+                low, high);
+    }
+
     private EstimationBreakdown calculateNewBuild(EstimationContext ctx) {
         // Validation
         if (ctx.marketIndex() == null) {

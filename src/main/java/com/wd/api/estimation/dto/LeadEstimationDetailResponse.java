@@ -1,6 +1,7 @@
 package com.wd.api.estimation.dto;
 
 import com.wd.api.estimation.domain.Estimation;
+import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
 import com.wd.api.estimation.domain.enums.ProjectType;
 
@@ -31,7 +32,12 @@ public record LeadEstimationDetailResponse(
         List<EstimationSubResourceResponse> inclusions,
         List<EstimationSubResourceResponse> exclusions,
         List<EstimationSubResourceResponse> assumptions,
-        List<EstimationSubResourceResponse> paymentMilestones) {
+        List<EstimationSubResourceResponse> paymentMilestones,
+        // K — appended for backwards compatibility.
+        EstimationPricingMode pricingMode,
+        BigDecimal estimatedAreaSqft,
+        BigDecimal grandTotalMin,
+        BigDecimal grandTotalMax) {
 
     public static LeadEstimationDetailResponse fromEntity(
             Estimation e,
@@ -46,6 +52,8 @@ public record LeadEstimationDetailResponse(
                 e.getSubtotal(), e.getDiscountAmount(), e.getGstAmount(), e.getGrandTotal(),
                 e.getValidUntil(), e.getCreatedAt(), e.getPublicViewToken(),
                 e.getParentEstimationId(), lineItems,
-                inclusions, exclusions, assumptions, paymentMilestones);
+                inclusions, exclusions, assumptions, paymentMilestones,
+                e.getPricingMode(), e.getEstimatedAreaSqft(),
+                e.getGrandTotalMin(), e.getGrandTotalMax());
     }
 }

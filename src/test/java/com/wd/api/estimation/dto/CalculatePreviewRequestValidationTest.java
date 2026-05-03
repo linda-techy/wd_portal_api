@@ -50,12 +50,16 @@ class CalculatePreviewRequestValidationTest {
     }
 
     @Test
-    void missingDimensions_fails() {
+    void missingDimensions_passesAtValidationLayer() {
+        // K — dimensions is no longer @NotNull at the DTO layer (BUDGETARY mode legitimately
+        // omits it). EstimationPreviewService now does the cross-field check (pricingMode = LINE_ITEM
+        // requires non-null dimensions). Verify that a null-dimensions request no longer fires
+        // the bean-validation constraint.
         CalculatePreviewRequest req = new CalculatePreviewRequest(
                 ProjectType.NEW_BUILD, UUID.randomUUID(), null, null,
                 null, List.of(), List.of(), List.of(), List.of(),
                 BigDecimal.ZERO, new BigDecimal("0.18"));
-        assertThat(v.validate(req)).anyMatch(c -> c.getPropertyPath().toString().equals("dimensions"));
+        assertThat(v.validate(req)).noneMatch(c -> c.getPropertyPath().toString().equals("dimensions"));
     }
 
     @Test

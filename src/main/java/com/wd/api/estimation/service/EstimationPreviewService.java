@@ -8,6 +8,7 @@ import com.wd.api.estimation.domain.MarketIndexSnapshot;
 import com.wd.api.estimation.domain.PackageRateVersion;
 import com.wd.api.estimation.domain.SiteFee;
 import com.wd.api.estimation.domain.EstimationPackage;
+import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.ProjectType;
 import com.wd.api.estimation.dto.CalculatePreviewRequest;
 import com.wd.api.estimation.dto.CalculatePreviewResponse;
@@ -22,6 +23,7 @@ import com.wd.api.estimation.repository.MarketIndexSnapshotRepository;
 import com.wd.api.estimation.repository.PackageRateVersionRepository;
 import com.wd.api.estimation.repository.SiteFeeRepository;
 import com.wd.api.estimation.service.calc.exception.UnsupportedProjectTypeException;
+import com.wd.api.estimation.service.calc.BudgetaryBreakdown;
 import com.wd.api.estimation.service.calc.EstimationBreakdown;
 import com.wd.api.estimation.service.calc.EstimationCalculator;
 import com.wd.api.estimation.service.calc.EstimationContext;
@@ -87,6 +89,8 @@ public class EstimationPreviewService {
         this.govtFeeRepo = govtFeeRepo;
     }
 
+    private static final BigDecimal BUDGETARY_BAND_PERCENT = new BigDecimal("0.10");
+
     @Transactional(readOnly = true)
     public CalculatePreviewResponse preview(CalculatePreviewRequest req) {
         // Early dispatch guard — surface "unsupported project type" before doing any
@@ -94,6 +98,63 @@ public class EstimationPreviewService {
         // findActive(...) with "no active rate version" instead of the correct semantic.
         if (req.projectType() != ProjectType.NEW_BUILD && req.projectType() != ProjectType.COMMERCIAL) {
             throw new UnsupportedProjectTypeException(req.projectType());
+        }
+
+        EstimationPricingMode mode = req.pricingMode() != null
+                ? req.pricingMode()
+                : EstimationPricingMode.LINE_ITEM;
+
+        return switch (mode) {
+            case BUDGETARY -> previewBudgetary(req);
+            case LINE_ITEM -> previewLineItem(req);
+        };
+    }
+
+    private CalculatePreviewResponse previewBudgetary(CalculatePreviewRequest req) {
+        if (req.estimatedAreaSqft() == null) {
+            throw new IllegalArgumentException("estimatedAreaSqft is required when pricingMode = BUDGETARY");
+        }
+        EstimationPackage pkg = packageRepo.findById(req.packageId())
+                .orElseThrow(() -> new IllegalArgumentException("Unknown package id: " + req.packageId()));
+
+        PackageRateVersion rv = req.rateVersionIdOverride() != null
+                ? rateVersionRepo.findById(req.rateVersionIdOverride())
+                        .orElseThrow(() -> new IllegalArgumentException("Unknown rate version id: " + req.rateVersionIdOverride()))
+                : rateVersionRepo.findActive(pkg.getId(), req.projectType(), LocalDate.now())
+                        .orElseThrow(() -> new IllegalStateException("No active rate version for package " + pkg.getId() + " and project type " + req.projectType()));
+
+        // Pin market index for parity with line-item flow even though budgetary doesn't apply
+        // a fluctuation overlay — keeps the recorded market context consistent across modes.
+        MarketIndexSnapshot mi = req.marketIndexIdOverride() != null
+                ? marketIndexRepo.findById(req.marketIndexIdOverride())
+                        .orElseThrow(() -> new IllegalArgumentException("Unknown market index id: " + req.marketIndexIdOverride()))
+                : marketIndexRepo.findActive()
+                        .orElseThrow(() -> new IllegalStateException("No active market index snapshot"));
+
+        BigDecimal baseRate = rv.getMaterialRate()
+                .add(rv.getLabourRate())
+                .add(rv.getOverheadRate());
+        BigDecimal gstRate = req.gstRate() != null ? req.gstRate() : DEFAULT_GST_RATE;
+
+        BudgetaryBreakdown b = calculator.calculateBudgetary(
+                req.estimatedAreaSqft(), baseRate, BUDGETARY_BAND_PERCENT, gstRate);
+
+        return new CalculatePreviewResponse(
+                null,                                           // chargeableArea (LINE_ITEM-only)
+                null, null, null, null, null,                   // baseCost, customisationCost, siteCost, addOnCost, fluctuationAdjustment
+                null, null, null, null, null,                   // subtotal, govtFees, discount, taxable, gst
+                b.grandTotalMin(),                              // grandTotal == min for sortability
+                List.of(), List.of(),                           // lineItems, warnings
+                rv.getId(), mi.getId(),
+                EstimationPricingMode.BUDGETARY,
+                b.area(),
+                b.grandTotalMin(),
+                b.grandTotalMax());
+    }
+
+    private CalculatePreviewResponse previewLineItem(CalculatePreviewRequest req) {
+        if (req.dimensions() == null) {
+            throw new IllegalArgumentException("dimensions is required when pricingMode = LINE_ITEM");
         }
 
         BigDecimal discountPercent = req.discountPercent() != null ? req.discountPercent() : DEFAULT_DISCOUNT_PERCENT;

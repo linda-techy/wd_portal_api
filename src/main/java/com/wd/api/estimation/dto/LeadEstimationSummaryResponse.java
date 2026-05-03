@@ -1,6 +1,7 @@
 package com.wd.api.estimation.dto;
 
 import com.wd.api.estimation.domain.Estimation;
+import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
 import com.wd.api.estimation.domain.enums.ProjectType;
 
@@ -20,7 +21,12 @@ public record LeadEstimationSummaryResponse(
         LocalDate validUntil,
         LocalDateTime createdAt,
         UUID publicViewToken,
-        UUID parentEstimationId) {
+        UUID parentEstimationId,
+        // K — appended for backwards compatibility.
+        EstimationPricingMode pricingMode,
+        BigDecimal estimatedAreaSqft,
+        BigDecimal grandTotalMin,
+        BigDecimal grandTotalMax) {
 
     public static LeadEstimationSummaryResponse fromEntity(Estimation e) {
         return new LeadEstimationSummaryResponse(
@@ -34,6 +40,10 @@ public record LeadEstimationSummaryResponse(
                 e.getValidUntil(),
                 e.getCreatedAt(),
                 e.getPublicViewToken(),
-                e.getParentEstimationId());
+                e.getParentEstimationId(),
+                e.getPricingMode(),
+                e.getEstimatedAreaSqft(),
+                e.getGrandTotalMin(),
+                e.getGrandTotalMax());
     }
 }

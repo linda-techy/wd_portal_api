@@ -1,5 +1,6 @@
 package com.wd.api.estimation.domain;
 
+import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
 import com.wd.api.estimation.domain.enums.ProjectType;
 import com.wd.api.model.BaseEntity;
@@ -74,6 +75,19 @@ public class Estimation extends BaseEntity {
     @Column(name = "parent_estimation_id", columnDefinition = "uuid")
     private UUID parentEstimationId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pricing_mode", nullable = false, length = 20)
+    private EstimationPricingMode pricingMode = EstimationPricingMode.LINE_ITEM;
+
+    @Column(name = "estimated_area_sqft", precision = 10, scale = 2)
+    private BigDecimal estimatedAreaSqft;
+
+    @Column(name = "grand_total_min", precision = 14, scale = 2)
+    private BigDecimal grandTotalMin;
+
+    @Column(name = "grand_total_max", precision = 14, scale = 2)
+    private BigDecimal grandTotalMax;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -121,4 +135,16 @@ public class Estimation extends BaseEntity {
 
     public UUID getParentEstimationId() { return parentEstimationId; }
     public void setParentEstimationId(UUID parentEstimationId) { this.parentEstimationId = parentEstimationId; }
+
+    public EstimationPricingMode getPricingMode() { return pricingMode; }
+    public void setPricingMode(EstimationPricingMode pricingMode) { this.pricingMode = pricingMode; }
+
+    public BigDecimal getEstimatedAreaSqft() { return estimatedAreaSqft; }
+    public void setEstimatedAreaSqft(BigDecimal estimatedAreaSqft) { this.estimatedAreaSqft = estimatedAreaSqft; }
+
+    public BigDecimal getGrandTotalMin() { return grandTotalMin; }
+    public void setGrandTotalMin(BigDecimal grandTotalMin) { this.grandTotalMin = grandTotalMin; }
+
+    public BigDecimal getGrandTotalMax() { return grandTotalMax; }
+    public void setGrandTotalMax(BigDecimal grandTotalMax) { this.grandTotalMax = grandTotalMax; }
 }
