@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record LeadEstimationDetailResponse(
@@ -39,7 +40,10 @@ public record LeadEstimationDetailResponse(
         BigDecimal grandTotalMin,
         BigDecimal grandTotalMax,
         // L — current-estimation indicator. True for the lead's active quote.
-        boolean isCurrent) {
+        boolean isCurrent,
+        // N — raw dimensions input from create-time. Empty for budgetary rows.
+        // Exposed so the wizard can hydrate when the user clicks Revise.
+        Map<String, Object> dimensionsJson) {
 
     public static LeadEstimationDetailResponse fromEntity(
             Estimation e,
@@ -57,6 +61,7 @@ public record LeadEstimationDetailResponse(
                 inclusions, exclusions, assumptions, paymentMilestones,
                 e.getPricingMode(), e.getEstimatedAreaSqft(),
                 e.getGrandTotalMin(), e.getGrandTotalMax(),
-                e.isCurrent());
+                e.isCurrent(),
+                e.getDimensionsJson());
     }
 }
