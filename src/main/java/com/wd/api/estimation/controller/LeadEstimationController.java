@@ -51,4 +51,28 @@ public class LeadEstimationController {
         service.delete(id);
         return ResponseEntity.ok(ApiResponse.success("Estimation deleted", null));
     }
+
+    @PatchMapping("/{id}/mark-sent")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<ApiResponse<LeadEstimationDetailResponse>> markSent(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success("Marked SENT", service.markSent(id)));
+    }
+
+    @PatchMapping("/{id}/mark-accepted")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<ApiResponse<LeadEstimationDetailResponse>> markAccepted(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success("Marked ACCEPTED", service.markAccepted(id)));
+    }
+
+    @PatchMapping("/{id}/mark-rejected")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<ApiResponse<LeadEstimationDetailResponse>> markRejected(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success("Marked REJECTED", service.markRejected(id)));
+    }
+
+    @PatchMapping("/{id}/mark-draft")
+    @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
+    public ResponseEntity<ApiResponse<LeadEstimationDetailResponse>> revertToDraft(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success("Reverted to DRAFT", service.revertToDraft(id)));
+    }
 }
