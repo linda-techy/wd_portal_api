@@ -71,6 +71,9 @@ public class Estimation extends BaseEntity {
     @Column(name = "public_view_token", nullable = false, columnDefinition = "uuid")
     private UUID publicViewToken = UUID.randomUUID();
 
+    @Column(name = "parent_estimation_id", columnDefinition = "uuid")
+    private UUID parentEstimationId;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -115,4 +118,7 @@ public class Estimation extends BaseEntity {
 
     public UUID getPublicViewToken() { return publicViewToken; }
     public void setPublicViewToken(UUID publicViewToken) { this.publicViewToken = publicViewToken; }
+
+    public UUID getParentEstimationId() { return parentEstimationId; }
+    public void setParentEstimationId(UUID parentEstimationId) { this.parentEstimationId = parentEstimationId; }
 }
