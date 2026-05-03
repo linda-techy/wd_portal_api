@@ -8,10 +8,12 @@ import com.wd.api.estimation.dto.LeadEstimationDetailResponse;
 import com.wd.api.estimation.dto.LineItemDto;
 import com.wd.api.model.Lead;
 import com.wd.api.repository.LeadRepository;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -22,10 +24,45 @@ public class EstimationPdfService {
     private final LeadEstimationService leadEstimationService;
     private final LeadRepository leadRepo;
 
+    // Lazy-init: built once on first PDF and reused. Embeds Arial which has the
+    // ₹ (Indian Rupee) glyph at U+20B9; the built-in Helvetica that ships with
+    // OpenPDF does not, so without these a missing-glyph box renders next to every
+    // amount.
+    private BaseFont _baseFontRegular;
+    private BaseFont _baseFontBold;
+
     public EstimationPdfService(LeadEstimationService leadEstimationService,
                                  LeadRepository leadRepo) {
         this.leadEstimationService = leadEstimationService;
         this.leadRepo = leadRepo;
+    }
+
+    private synchronized BaseFont baseFontRegular() {
+        if (_baseFontRegular == null) {
+            _baseFontRegular = loadEmbeddedFont("fonts/Arial.ttf");
+        }
+        return _baseFontRegular;
+    }
+
+    private synchronized BaseFont baseFontBold() {
+        if (_baseFontBold == null) {
+            _baseFontBold = loadEmbeddedFont("fonts/Arial-Bold.ttf");
+        }
+        return _baseFontBold;
+    }
+
+    private BaseFont loadEmbeddedFont(String classpathLocation) {
+        try {
+            byte[] bytes = new ClassPathResource(classpathLocation).getInputStream().readAllBytes();
+            return BaseFont.createFont(classpathLocation, BaseFont.IDENTITY_H, BaseFont.EMBEDDED,
+                    BaseFont.CACHED, bytes, null);
+        } catch (DocumentException | IOException e) {
+            throw new RuntimeException("Failed to load PDF font: " + classpathLocation, e);
+        }
+    }
+
+    private Font font(float size, boolean bold) {
+        return new Font(bold ? baseFontBold() : baseFontRegular(), size);
     }
 
     public byte[] generatePdf(UUID estimationId) {
@@ -41,21 +78,22 @@ public class EstimationPdfService {
             // ----------------------------------------------------------------
             // Header
             // ----------------------------------------------------------------
-            Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD);
-            doc.add(new Paragraph("Walldot Builders", titleFont));
+            doc.add(new Paragraph("Walldot Builders", font(18, true)));
             doc.add(new Paragraph(
-                    "Estimation " + detail.estimationNo() + "  ·  " + detail.status()));
+                    "Estimation " + detail.estimationNo() + "  \u00b7  " + detail.status(),
+                    font(11, false)));
             doc.add(new Paragraph(
-                    "Generated " + LocalDate.now() + "  ·  Valid until " + detail.validUntil()));
+                    "Generated " + LocalDate.now() + "  \u00b7  Valid until " + detail.validUntil(),
+                    font(11, false)));
             doc.add(new Paragraph(" "));
 
             // ----------------------------------------------------------------
             // Lead info block
             // ----------------------------------------------------------------
             if (lead != null) {
-                doc.add(new Paragraph("Lead: " + lead.getName()));
+                doc.add(new Paragraph("Lead: " + lead.getName(), font(11, false)));
             }
-            doc.add(new Paragraph("Project type: " + detail.projectType()));
+            doc.add(new Paragraph("Project type: " + detail.projectType(), font(11, false)));
             doc.add(new Paragraph(" "));
 
             boolean isBudgetary = detail.pricingMode() == EstimationPricingMode.BUDGETARY;
@@ -64,33 +102,37 @@ public class EstimationPdfService {
                 // ------------------------------------------------------------
                 // Budgetary mode: estimated area + range; no line items.
                 // ------------------------------------------------------------
-                doc.add(new Paragraph("Budgetary estimate",
-                        new Font(Font.HELVETICA, 13, Font.BOLD)));
+                doc.add(new Paragraph("Budgetary estimate", font(13, true)));
                 doc.add(new Paragraph(
                         "Estimated buildable area: "
                                 + (detail.estimatedAreaSqft() != null
                                         ? detail.estimatedAreaSqft().toPlainString()
-                                        : "—")
-                                + " sqft"));
+                                        : "\u2014")
+                                + " sqft",
+                        font(11, false)));
                 doc.add(new Paragraph(" "));
             } else {
                 // ----------------------------------------------------------------
                 // Line items table
                 // ----------------------------------------------------------------
-                doc.add(new Paragraph("Line items", new Font(Font.HELVETICA, 13, Font.BOLD)));
+                doc.add(new Paragraph("Line items", font(13, true)));
                 PdfPTable lineItemsTable = new PdfPTable(new float[]{4, 1, 1, 1.5f, 1.5f});
                 lineItemsTable.setWidthPercentage(100);
                 for (String h : new String[]{"Description", "Qty", "Unit", "Rate", "Amount"}) {
-                    PdfPCell cell = new PdfPCell(new Phrase(h, new Font(Font.HELVETICA, 10, Font.BOLD)));
+                    PdfPCell cell = new PdfPCell(new Phrase(h, font(10, true)));
                     cell.setBackgroundColor(new Color(220, 220, 220));
                     lineItemsTable.addCell(cell);
                 }
                 for (LineItemDto li : detail.lineItems()) {
-                    lineItemsTable.addCell(li.description());
-                    lineItemsTable.addCell(li.quantity() != null ? li.quantity().toPlainString() : "");
-                    lineItemsTable.addCell(li.unit() != null ? li.unit() : "");
-                    lineItemsTable.addCell(li.unitRate() != null ? li.unitRate().toPlainString() : "");
-                    lineItemsTable.addCell(li.amount().toPlainString());
+                    lineItemsTable.addCell(new PdfPCell(new Phrase(li.description(), font(10, false))));
+                    lineItemsTable.addCell(new PdfPCell(new Phrase(
+                            li.quantity() != null ? li.quantity().toPlainString() : "", font(10, false))));
+                    lineItemsTable.addCell(new PdfPCell(new Phrase(
+                            li.unit() != null ? li.unit() : "", font(10, false))));
+                    lineItemsTable.addCell(new PdfPCell(new Phrase(
+                            li.unitRate() != null ? li.unitRate().toPlainString() : "", font(10, false))));
+                    lineItemsTable.addCell(new PdfPCell(new Phrase(
+                            "\u20b9" + li.amount().toPlainString(), font(10, false))));
                 }
                 doc.add(lineItemsTable);
                 doc.add(new Paragraph(" "));
@@ -109,26 +151,29 @@ public class EstimationPdfService {
             // ----------------------------------------------------------------
             if (isBudgetary) {
                 String low = detail.grandTotalMin() != null
-                        ? detail.grandTotalMin().toPlainString() : "—";
+                        ? detail.grandTotalMin().toPlainString() : "\u2014";
                 String high = detail.grandTotalMax() != null
-                        ? detail.grandTotalMax().toPlainString() : "—";
+                        ? detail.grandTotalMax().toPlainString() : "\u2014";
                 doc.add(new Paragraph(
                         "Estimated range (incl. GST): \u20b9" + low + "  \u2013  \u20b9" + high,
-                        new Font(Font.HELVETICA, 14, Font.BOLD)));
+                        font(14, true)));
                 doc.add(new Paragraph(
                         "Range = (area \u00d7 base rate) \u00b110%, then GST applied. "
                                 + "Final figure available after detailed estimate.",
-                        new Font(Font.HELVETICA, 9, Font.ITALIC)));
+                        font(9, false)));
             } else {
                 doc.add(new Paragraph("Subtotal: \u20b9"
-                        + (detail.subtotal() != null ? detail.subtotal().toPlainString() : "0")));
+                        + (detail.subtotal() != null ? detail.subtotal().toPlainString() : "0"),
+                        font(11, false)));
                 doc.add(new Paragraph("Discount: \u20b9"
-                        + (detail.discountAmount() != null ? detail.discountAmount().toPlainString() : "0")));
+                        + (detail.discountAmount() != null ? detail.discountAmount().toPlainString() : "0"),
+                        font(11, false)));
                 doc.add(new Paragraph("GST: \u20b9"
-                        + (detail.gstAmount() != null ? detail.gstAmount().toPlainString() : "0")));
+                        + (detail.gstAmount() != null ? detail.gstAmount().toPlainString() : "0"),
+                        font(11, false)));
                 doc.add(new Paragraph(
                         "Grand total: \u20b9" + detail.grandTotal().toPlainString(),
-                        new Font(Font.HELVETICA, 14, Font.BOLD)));
+                        font(14, true)));
             }
 
             doc.close();
@@ -146,13 +191,13 @@ public class EstimationPdfService {
                                      List<EstimationSubResourceResponse> items)
             throws DocumentException {
         if (items == null || items.isEmpty()) return;
-        doc.add(new Paragraph(title, new Font(Font.HELVETICA, 13, Font.BOLD)));
+        doc.add(new Paragraph(title, font(13, true)));
         for (EstimationSubResourceResponse item : items) {
             String line = "  \u2022 " + item.label();
             if (item.description() != null && !item.description().isBlank()) {
                 line += " \u2014 " + item.description();
             }
-            doc.add(new Paragraph(line));
+            doc.add(new Paragraph(line, font(11, false)));
         }
         doc.add(new Paragraph(" "));
     }
@@ -161,18 +206,20 @@ public class EstimationPdfService {
                                           List<EstimationSubResourceResponse> items)
             throws DocumentException {
         if (items == null || items.isEmpty()) return;
-        doc.add(new Paragraph("Payment milestones", new Font(Font.HELVETICA, 13, Font.BOLD)));
+        doc.add(new Paragraph("Payment milestones", font(13, true)));
         PdfPTable t = new PdfPTable(new float[]{1, 4, 1.5f});
         t.setWidthPercentage(60);
         for (String h : new String[]{"#", "Milestone", "%"}) {
-            PdfPCell cell = new PdfPCell(new Phrase(h, new Font(Font.HELVETICA, 10, Font.BOLD)));
+            PdfPCell cell = new PdfPCell(new Phrase(h, font(10, true)));
             t.addCell(cell);
         }
         int i = 1;
         for (EstimationSubResourceResponse m : items) {
-            t.addCell(String.valueOf(i++));
-            t.addCell(m.label());
-            t.addCell(m.percentage() != null ? m.percentage().toPlainString() + "%" : "");
+            t.addCell(new PdfPCell(new Phrase(String.valueOf(i++), font(10, false))));
+            t.addCell(new PdfPCell(new Phrase(m.label(), font(10, false))));
+            t.addCell(new PdfPCell(new Phrase(
+                    m.percentage() != null ? m.percentage().toPlainString() + "%" : "",
+                    font(10, false))));
         }
         doc.add(t);
         doc.add(new Paragraph(" "));
