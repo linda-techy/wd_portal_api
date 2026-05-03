@@ -1,6 +1,7 @@
 package com.wd.api.estimation.dto;
 
 import com.wd.api.estimation.domain.Estimation;
+import com.wd.api.estimation.domain.enums.DiscountApprovalStatus;
 import com.wd.api.estimation.domain.enums.EstimationConfidenceLevel;
 import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
@@ -46,7 +47,13 @@ public record LeadEstimationDetailResponse(
         // Exposed so the wizard can hydrate when the user clicks Revise.
         Map<String, Object> dimensionsJson,
         // P — sales-set confidence on budgetary rows; null on line-item rows.
-        EstimationConfidenceLevel confidenceLevel) {
+        EstimationConfidenceLevel confidenceLevel,
+        // O — discount approval trail. Fields below are null when discount is at or below threshold.
+        BigDecimal discountPercent,
+        DiscountApprovalStatus discountApprovalStatus,
+        Long discountApprovedByUserId,
+        LocalDateTime discountApprovedAt,
+        String discountApprovalNotes) {
 
     public static LeadEstimationDetailResponse fromEntity(
             Estimation e,
@@ -66,6 +73,11 @@ public record LeadEstimationDetailResponse(
                 e.getGrandTotalMin(), e.getGrandTotalMax(),
                 e.isCurrent(),
                 e.getDimensionsJson(),
-                e.getConfidenceLevel());
+                e.getConfidenceLevel(),
+                e.getDiscountPercent(),
+                e.getDiscountApprovalStatus(),
+                e.getDiscountApprovedByUserId(),
+                e.getDiscountApprovedAt(),
+                e.getDiscountApprovalNotes());
     }
 }

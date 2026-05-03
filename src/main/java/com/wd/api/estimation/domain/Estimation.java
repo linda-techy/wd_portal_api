@@ -1,5 +1,6 @@
 package com.wd.api.estimation.domain;
 
+import com.wd.api.estimation.domain.enums.DiscountApprovalStatus;
 import com.wd.api.estimation.domain.enums.EstimationConfidenceLevel;
 import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
@@ -14,6 +15,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
@@ -96,6 +98,22 @@ public class Estimation extends BaseEntity {
     @Column(name = "confidence_level", length = 10)
     private EstimationConfidenceLevel confidenceLevel;
 
+    @Column(name = "discount_percent", precision = 5, scale = 4)
+    private BigDecimal discountPercent;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "discount_approval_status", length = 20)
+    private DiscountApprovalStatus discountApprovalStatus;
+
+    @Column(name = "discount_approved_by_user_id")
+    private Long discountApprovedByUserId;
+
+    @Column(name = "discount_approved_at")
+    private LocalDateTime discountApprovedAt;
+
+    @Column(name = "discount_approval_notes", columnDefinition = "TEXT")
+    private String discountApprovalNotes;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -161,4 +179,19 @@ public class Estimation extends BaseEntity {
 
     public EstimationConfidenceLevel getConfidenceLevel() { return confidenceLevel; }
     public void setConfidenceLevel(EstimationConfidenceLevel confidenceLevel) { this.confidenceLevel = confidenceLevel; }
+
+    public BigDecimal getDiscountPercent() { return discountPercent; }
+    public void setDiscountPercent(BigDecimal discountPercent) { this.discountPercent = discountPercent; }
+
+    public DiscountApprovalStatus getDiscountApprovalStatus() { return discountApprovalStatus; }
+    public void setDiscountApprovalStatus(DiscountApprovalStatus discountApprovalStatus) { this.discountApprovalStatus = discountApprovalStatus; }
+
+    public Long getDiscountApprovedByUserId() { return discountApprovedByUserId; }
+    public void setDiscountApprovedByUserId(Long discountApprovedByUserId) { this.discountApprovedByUserId = discountApprovedByUserId; }
+
+    public LocalDateTime getDiscountApprovedAt() { return discountApprovedAt; }
+    public void setDiscountApprovedAt(LocalDateTime discountApprovedAt) { this.discountApprovedAt = discountApprovedAt; }
+
+    public String getDiscountApprovalNotes() { return discountApprovalNotes; }
+    public void setDiscountApprovalNotes(String discountApprovalNotes) { this.discountApprovalNotes = discountApprovalNotes; }
 }

@@ -1,6 +1,7 @@
 package com.wd.api.estimation.dto;
 
 import com.wd.api.estimation.domain.Estimation;
+import com.wd.api.estimation.domain.enums.DiscountApprovalStatus;
 import com.wd.api.estimation.domain.enums.EstimationConfidenceLevel;
 import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
@@ -31,7 +32,9 @@ public record LeadEstimationSummaryResponse(
         // L — current-estimation indicator.
         boolean isCurrent,
         // P — sales-set confidence (only on budgetary rows).
-        EstimationConfidenceLevel confidenceLevel) {
+        EstimationConfidenceLevel confidenceLevel,
+        // O — discount approval status (null when no approval needed).
+        DiscountApprovalStatus discountApprovalStatus) {
 
     public static LeadEstimationSummaryResponse fromEntity(Estimation e) {
         return new LeadEstimationSummaryResponse(
@@ -51,6 +54,7 @@ public record LeadEstimationSummaryResponse(
                 e.getGrandTotalMin(),
                 e.getGrandTotalMax(),
                 e.isCurrent(),
-                e.getConfidenceLevel());
+                e.getConfidenceLevel(),
+                e.getDiscountApprovalStatus());
     }
 }

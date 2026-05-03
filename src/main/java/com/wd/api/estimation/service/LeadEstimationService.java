@@ -1,8 +1,10 @@
 package com.wd.api.estimation.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import com.wd.api.estimation.domain.Estimation;
 import com.wd.api.estimation.domain.EstimationLineItem;
+import com.wd.api.estimation.domain.enums.DiscountApprovalStatus;
 import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.domain.enums.EstimationStatus;
 import com.wd.api.estimation.dto.*;
@@ -19,6 +21,9 @@ import java.util.UUID;
 
 @Service
 public class LeadEstimationService {
+
+    @Value("${estimation.discount.approval-threshold-percent:0.05}")
+    private java.math.BigDecimal discountApprovalThreshold;
 
     private final EstimationPreviewService previewService;
     private final EstimationRepository estimationRepo;
@@ -87,6 +92,15 @@ public class LeadEstimationService {
             est.setDiscountAmount(preview.discount());
             est.setGstAmount(preview.gst());
             est.setGrandTotal(preview.grandTotal());
+        }
+
+        // O — record discount % from the preview request and gate the row if above threshold.
+        java.math.BigDecimal reqDiscount = req.preview().discountPercent();
+        if (reqDiscount != null) {
+            est.setDiscountPercent(reqDiscount);
+            if (reqDiscount.compareTo(discountApprovalThreshold) > 0) {
+                est.setDiscountApprovalStatus(DiscountApprovalStatus.PENDING);
+            }
         }
 
         Estimation saved = estimationRepo.save(est);
@@ -166,7 +180,54 @@ public class LeadEstimationService {
             throw new IllegalStateException(
                     "Can only mark DRAFT estimations as SENT (current: " + e.getStatus() + ")");
         }
+        // O — block send when discount above threshold hasn't been approved yet.
+        DiscountApprovalStatus approval = e.getDiscountApprovalStatus();
+        if (approval == DiscountApprovalStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Discount above " + discountApprovalThreshold.multiply(new java.math.BigDecimal("100")).stripTrailingZeros().toPlainString()
+                            + "% requires manager approval before sending.");
+        }
+        if (approval == DiscountApprovalStatus.REJECTED) {
+            throw new IllegalStateException(
+                    "Discount approval was rejected. Revise the estimation with a lower discount before sending.");
+        }
         e.setStatus(EstimationStatus.SENT);
+        estimationRepo.save(e);
+        return get(id);
+    }
+
+    @Transactional
+    public LeadEstimationDetailResponse approveDiscount(UUID id, Long approverUserId, String notes) {
+        Estimation e = estimationRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+        if (e.getDiscountApprovalStatus() == null) {
+            throw new IllegalStateException("Discount on this estimation does not require approval.");
+        }
+        if (e.getDiscountApprovalStatus() == DiscountApprovalStatus.APPROVED) {
+            throw new IllegalStateException("Discount is already approved.");
+        }
+        e.setDiscountApprovalStatus(DiscountApprovalStatus.APPROVED);
+        e.setDiscountApprovedByUserId(approverUserId);
+        e.setDiscountApprovedAt(java.time.LocalDateTime.now());
+        if (notes != null && !notes.isBlank()) e.setDiscountApprovalNotes(notes);
+        estimationRepo.save(e);
+        return get(id);
+    }
+
+    @Transactional
+    public LeadEstimationDetailResponse rejectDiscount(UUID id, Long approverUserId, String notes) {
+        if (notes == null || notes.isBlank()) {
+            throw new IllegalArgumentException("A reason is required when rejecting a discount.");
+        }
+        Estimation e = estimationRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+        if (e.getDiscountApprovalStatus() == null) {
+            throw new IllegalStateException("Discount on this estimation does not require approval.");
+        }
+        e.setDiscountApprovalStatus(DiscountApprovalStatus.REJECTED);
+        e.setDiscountApprovedByUserId(approverUserId);
+        e.setDiscountApprovedAt(java.time.LocalDateTime.now());
+        e.setDiscountApprovalNotes(notes);
         estimationRepo.save(e);
         return get(id);
     }

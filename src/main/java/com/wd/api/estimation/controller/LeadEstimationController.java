@@ -5,12 +5,15 @@ import com.wd.api.estimation.dto.*;
 import com.wd.api.estimation.service.EstimationExpiryService;
 import com.wd.api.estimation.service.EstimationPdfService;
 import com.wd.api.estimation.service.LeadEstimationService;
+import com.wd.api.model.PortalUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -98,6 +101,35 @@ public class LeadEstimationController {
     @PreAuthorize("hasAnyAuthority('LEAD_CREATE','LEAD_EDIT')")
     public ResponseEntity<ApiResponse<LeadEstimationDetailResponse>> regenerateToken(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Token regenerated", service.regeneratePublicToken(id)));
+    }
+
+    /** O — approver-only. Clears PENDING and lets the row transition to SENT. */
+    @PostMapping("/{id}/approve-discount")
+    @PreAuthorize("hasAuthority('ESTIMATION_DISCOUNT_APPROVE')")
+    public ResponseEntity<ApiResponse<LeadEstimationDetailResponse>> approveDiscount(
+            @PathVariable UUID id,
+            @RequestBody(required = false) DiscountApprovalRequest body) {
+        Long approver = currentUserId();
+        String notes = body != null ? body.notes() : null;
+        return ResponseEntity.ok(ApiResponse.success(
+                "Discount approved", service.approveDiscount(id, approver, notes)));
+    }
+
+    /** O — approver-only. Notes required (rejection reason). Sales must revise to retry. */
+    @PostMapping("/{id}/reject-discount")
+    @PreAuthorize("hasAuthority('ESTIMATION_DISCOUNT_APPROVE')")
+    public ResponseEntity<ApiResponse<LeadEstimationDetailResponse>> rejectDiscount(
+            @PathVariable UUID id,
+            @RequestBody DiscountApprovalRequest body) {
+        Long approver = currentUserId();
+        return ResponseEntity.ok(ApiResponse.success(
+                "Discount rejected", service.rejectDiscount(id, approver, body != null ? body.notes() : null)));
+    }
+
+    private Long currentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof PortalUser pu) return pu.getId();
+        throw new IllegalStateException("Could not determine current user");
     }
 
     @PostMapping("/{parentId}/revise")

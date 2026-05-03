@@ -142,3 +142,12 @@ company:
 customer-api:
   webhook-url: ${CUSTOMER_API_WEBHOOK_URL:http://localhost:8081/internal/portal-events}
   webhook-secret: ${PORTAL_WEBHOOK_SECRET:}
+
+# ── Estimation discount approval gate (sub-project O) ────────────
+# Discounts above the threshold mark the estimation PENDING_APPROVAL on save and
+# block the DRAFT → SENT transition until a user with the named permission
+# approves. Threshold is a fraction (0.05 = 5%).
+estimation:
+  discount:
+    approval-threshold-percent: ${ESTIMATION_DISCOUNT_APPROVAL_THRESHOLD:0.05}
+    approver-permission: ${ESTIMATION_DISCOUNT_APPROVER_PERMISSION:ESTIMATION_DISCOUNT_APPROVE}
