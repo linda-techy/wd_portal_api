@@ -25,6 +25,7 @@ public record LeadEstimationDetailResponse(
         BigDecimal grandTotal,
         LocalDate validUntil,
         LocalDateTime createdAt,
+        UUID publicViewToken,
         List<LineItemDto> lineItems,
         List<EstimationSubResourceResponse> inclusions,
         List<EstimationSubResourceResponse> exclusions,
@@ -42,7 +43,7 @@ public record LeadEstimationDetailResponse(
                 e.getId(), e.getEstimationNo(), e.getLeadId(), e.getProjectType(),
                 e.getPackageId(), e.getRateVersionId(), e.getMarketIndexId(), e.getStatus(),
                 e.getSubtotal(), e.getDiscountAmount(), e.getGstAmount(), e.getGrandTotal(),
-                e.getValidUntil(), e.getCreatedAt(), lineItems,
+                e.getValidUntil(), e.getCreatedAt(), e.getPublicViewToken(), lineItems,
                 inclusions, exclusions, assumptions, paymentMilestones);
     }
 }
