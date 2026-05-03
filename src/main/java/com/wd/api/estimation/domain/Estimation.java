@@ -68,6 +68,9 @@ public class Estimation extends BaseEntity {
     @Column(name = "valid_until")
     private LocalDate validUntil;
 
+    @Column(name = "public_view_token", nullable = false, columnDefinition = "uuid")
+    private UUID publicViewToken;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -109,4 +112,7 @@ public class Estimation extends BaseEntity {
 
     public LocalDate getValidUntil() { return validUntil; }
     public void setValidUntil(LocalDate validUntil) { this.validUntil = validUntil; }
+
+    public UUID getPublicViewToken() { return publicViewToken; }
+    public void setPublicViewToken(UUID publicViewToken) { this.publicViewToken = publicViewToken; }
 }
