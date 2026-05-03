@@ -17,7 +17,6 @@ class EstimationRepositoriesWiringTest extends TestcontainersPostgresBase {
     @Autowired EstimationPackageRepository packageRepo;
     @Autowired CustomisationCategoryRepository categoryRepo;
     @Autowired CustomisationOptionRepository optionRepo;
-    @Autowired PackageDefaultCustomisationRepository defaultRepo;
     @Autowired AddonRepository addonRepo;
     @Autowired SiteFeeRepository siteFeeRepo;
     @Autowired GovtFeeRepository govtFeeRepo;
@@ -30,7 +29,6 @@ class EstimationRepositoriesWiringTest extends TestcontainersPostgresBase {
         assertThat(packageRepo).isNotNull();
         assertThat(categoryRepo).isNotNull();
         assertThat(optionRepo).isNotNull();
-        assertThat(defaultRepo).isNotNull();
         assertThat(addonRepo).isNotNull();
         assertThat(siteFeeRepo).isNotNull();
         assertThat(govtFeeRepo).isNotNull();
