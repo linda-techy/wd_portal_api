@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -199,6 +200,54 @@ public class LeadEstimationService {
         Estimation est = estimationRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
         estimationRepo.delete(est);  // Soft-delete via @SQLDelete on BaseEntity
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<PublicEstimationResponse> getByPublicToken(UUID token) {
+        return estimationRepo.findByPublicViewToken(token).map(est -> {
+            List<LineItemDto> lineItems = lineItemRepo
+                    .findByEstimationIdOrderByDisplayOrderAsc(est.getId()).stream()
+                    .map(li -> new LineItemDto(
+                            li.getLineType(), li.getDescription(), li.getSourceRefId(),
+                            li.getQuantity(), li.getUnit(), li.getUnitRate(),
+                            li.getAmount(), li.getDisplayOrder()))
+                    .toList();
+            List<EstimationSubResourceResponse> inclusions = inclusionRepo
+                    .findByEstimationIdOrderByDisplayOrderAsc(est.getId()).stream()
+                    .map(e -> new EstimationSubResourceResponse(e.getId(), e.getEstimationId(),
+                            e.getLabel(), e.getDescription(), e.getDisplayOrder(), null))
+                    .toList();
+            List<EstimationSubResourceResponse> exclusions = exclusionRepo
+                    .findByEstimationIdOrderByDisplayOrderAsc(est.getId()).stream()
+                    .map(e -> new EstimationSubResourceResponse(e.getId(), e.getEstimationId(),
+                            e.getLabel(), e.getDescription(), e.getDisplayOrder(), null))
+                    .toList();
+            List<EstimationSubResourceResponse> assumptions = assumptionRepo
+                    .findByEstimationIdOrderByDisplayOrderAsc(est.getId()).stream()
+                    .map(e -> new EstimationSubResourceResponse(e.getId(), e.getEstimationId(),
+                            e.getLabel(), e.getDescription(), e.getDisplayOrder(), null))
+                    .toList();
+            List<EstimationSubResourceResponse> paymentMilestones = milestoneRepo
+                    .findByEstimationIdOrderByDisplayOrderAsc(est.getId()).stream()
+                    .map(e -> new EstimationSubResourceResponse(e.getId(), e.getEstimationId(),
+                            e.getLabel(), e.getDescription(), e.getDisplayOrder(), e.getPercentage()))
+                    .toList();
+            return new PublicEstimationResponse(
+                    est.getId(), est.getEstimationNo(), est.getProjectType(),
+                    est.getStatus().name(),
+                    est.getSubtotal(), est.getDiscountAmount(), est.getGstAmount(),
+                    est.getGrandTotal(), est.getValidUntil(), est.getCreatedAt(),
+                    lineItems, inclusions, exclusions, assumptions, paymentMilestones);
+        });
+    }
+
+    @Transactional
+    public LeadEstimationDetailResponse regeneratePublicToken(UUID estimationId) {
+        Estimation e = estimationRepo.findById(estimationId)
+                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + estimationId));
+        e.setPublicViewToken(UUID.randomUUID());
+        estimationRepo.save(e);
+        return get(estimationId);
     }
 
     private String generateEstimationNo() {

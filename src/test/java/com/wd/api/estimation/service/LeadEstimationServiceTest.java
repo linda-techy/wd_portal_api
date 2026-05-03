@@ -5,6 +5,7 @@ import com.wd.api.estimation.domain.enums.EstimationStatus;
 import com.wd.api.estimation.domain.enums.PackageInternalName;
 import com.wd.api.estimation.domain.enums.ProjectType;
 import com.wd.api.estimation.dto.*;
+import com.wd.api.estimation.repository.EstimationRepository;
 import com.wd.api.model.Lead;
 import com.wd.api.repository.LeadRepository;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
@@ -18,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +31,7 @@ class LeadEstimationServiceTest extends TestcontainersPostgresBase {
     @Autowired private EntityManager em;
     @Autowired private LeadEstimationService service;
     @Autowired private LeadRepository leadRepo;
+    @Autowired private EstimationRepository estimationRepo;
 
     private static final Long LEAD_ID = 1L;
 
@@ -167,6 +170,51 @@ class LeadEstimationServiceTest extends TestcontainersPostgresBase {
 
         LeadEstimationDetailResponse rejected = service.markRejected(created.id());
         assertThat(rejected.status()).isEqualTo(EstimationStatus.REJECTED);
+    }
+
+    // ── Sub-project H: public token tests ─────────────────────────────────────
+
+    @Test
+    void getByPublicToken_returns_response_when_token_matches() {
+        LeadEstimationDetailResponse created = service.create(standardRequest());
+        UUID token = created.publicViewToken();
+        assertThat(token).isNotNull();
+
+        Optional<PublicEstimationResponse> result = service.getByPublicToken(token);
+        assertThat(result).isPresent();
+        assertThat(result.get().id()).isEqualTo(created.id());
+        assertThat(result.get().estimationNo()).isEqualTo(created.estimationNo());
+        // leadId must NOT appear in the public response
+        assertThat(result.get().grandTotal()).isPositive();
+    }
+
+    @Test
+    void getByPublicToken_returns_empty_when_token_does_not_match() {
+        Optional<PublicEstimationResponse> result = service.getByPublicToken(UUID.randomUUID());
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void regeneratePublicToken_changes_token_and_old_token_returns_empty() {
+        LeadEstimationDetailResponse created = service.create(standardRequest());
+        UUID oldToken = created.publicViewToken();
+
+        LeadEstimationDetailResponse updated = service.regeneratePublicToken(created.id());
+        UUID newToken = updated.publicViewToken();
+
+        assertThat(newToken).isNotNull().isNotEqualTo(oldToken);
+
+        // Force Hibernate to flush so the unique-index constraint is satisfied
+        em.flush();
+        em.clear();
+
+        // Old token must now return empty (repository uses @Where deleted_at IS NULL
+        // but here we verify the token column truly changed)
+        Optional<PublicEstimationResponse> byOld = service.getByPublicToken(oldToken);
+        assertThat(byOld).isEmpty();
+
+        Optional<PublicEstimationResponse> byNew = service.getByPublicToken(newToken);
+        assertThat(byNew).isPresent();
     }
 
     @Test
