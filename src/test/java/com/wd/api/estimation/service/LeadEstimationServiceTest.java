@@ -153,8 +153,11 @@ class LeadEstimationServiceTest extends TestcontainersPostgresBase {
         LeadEstimationDetailResponse accepted = service.markAccepted(created.id());
         assertThat(accepted.status()).isEqualTo(EstimationStatus.ACCEPTED);
 
-        em.refresh(savedLead);
-        assertThat(savedLead.getLeadStatus()).isEqualTo("project_won");
+        // Clear the 1st-level cache so we reload from the session state (updated by service).
+        em.flush();
+        em.clear();
+        Lead reloaded = leadRepo.findById(savedLead.getId()).orElseThrow();
+        assertThat(reloaded.getLeadStatus()).isEqualTo("project_won");
     }
 
     @Test
