@@ -6,6 +6,7 @@ import com.wd.api.estimation.domain.enums.EstimationPricingMode;
 import com.wd.api.estimation.dto.EstimationSubResourceResponse;
 import com.wd.api.estimation.dto.LeadEstimationDetailResponse;
 import com.wd.api.estimation.dto.LineItemDto;
+import com.wd.api.estimation.util.IndianNumberFormatter;
 import com.wd.api.model.Lead;
 import com.wd.api.repository.LeadRepository;
 import org.springframework.core.io.ClassPathResource;
@@ -106,7 +107,7 @@ public class EstimationPdfService {
                 doc.add(new Paragraph(
                         "Estimated buildable area: "
                                 + (detail.estimatedAreaSqft() != null
-                                        ? detail.estimatedAreaSqft().toPlainString()
+                                        ? IndianNumberFormatter.formatWholeRupee(detail.estimatedAreaSqft())
                                         : "\u2014")
                                 + " sqft",
                         font(11, false)));
@@ -126,13 +127,13 @@ public class EstimationPdfService {
                 for (LineItemDto li : detail.lineItems()) {
                     lineItemsTable.addCell(new PdfPCell(new Phrase(li.description(), font(10, false))));
                     lineItemsTable.addCell(new PdfPCell(new Phrase(
-                            li.quantity() != null ? li.quantity().toPlainString() : "", font(10, false))));
+                            li.quantity() != null ? IndianNumberFormatter.formatWithPaisa(li.quantity()) : "", font(10, false))));
                     lineItemsTable.addCell(new PdfPCell(new Phrase(
                             li.unit() != null ? li.unit() : "", font(10, false))));
                     lineItemsTable.addCell(new PdfPCell(new Phrase(
-                            li.unitRate() != null ? li.unitRate().toPlainString() : "", font(10, false))));
+                            li.unitRate() != null ? "\u20b9" + IndianNumberFormatter.formatWithPaisa(li.unitRate()) : "", font(10, false))));
                     lineItemsTable.addCell(new PdfPCell(new Phrase(
-                            "\u20b9" + li.amount().toPlainString(), font(10, false))));
+                            "\u20b9" + IndianNumberFormatter.formatWithPaisa(li.amount()), font(10, false))));
                 }
                 doc.add(lineItemsTable);
                 doc.add(new Paragraph(" "));
@@ -151,9 +152,9 @@ public class EstimationPdfService {
             // ----------------------------------------------------------------
             if (isBudgetary) {
                 String low = detail.grandTotalMin() != null
-                        ? detail.grandTotalMin().toPlainString() : "\u2014";
+                        ? IndianNumberFormatter.formatWithPaisa(detail.grandTotalMin()) : "\u2014";
                 String high = detail.grandTotalMax() != null
-                        ? detail.grandTotalMax().toPlainString() : "\u2014";
+                        ? IndianNumberFormatter.formatWithPaisa(detail.grandTotalMax()) : "\u2014";
                 doc.add(new Paragraph(
                         "Estimated range (incl. GST): \u20b9" + low + "  \u2013  \u20b9" + high,
                         font(14, true)));
@@ -162,17 +163,17 @@ public class EstimationPdfService {
                                 + "Final figure available after detailed estimate.",
                         font(9, false)));
             } else {
-                doc.add(new Paragraph("Subtotal: \u20b9"
-                        + (detail.subtotal() != null ? detail.subtotal().toPlainString() : "0"),
-                        font(11, false)));
-                doc.add(new Paragraph("Discount: \u20b9"
-                        + (detail.discountAmount() != null ? detail.discountAmount().toPlainString() : "0"),
-                        font(11, false)));
-                doc.add(new Paragraph("GST: \u20b9"
-                        + (detail.gstAmount() != null ? detail.gstAmount().toPlainString() : "0"),
+                doc.add(new Paragraph(
+                        "Subtotal: \u20b9" + IndianNumberFormatter.formatWithPaisa(detail.subtotal()),
                         font(11, false)));
                 doc.add(new Paragraph(
-                        "Grand total: \u20b9" + detail.grandTotal().toPlainString(),
+                        "Discount: \u20b9" + IndianNumberFormatter.formatWithPaisa(detail.discountAmount()),
+                        font(11, false)));
+                doc.add(new Paragraph(
+                        "GST: \u20b9" + IndianNumberFormatter.formatWithPaisa(detail.gstAmount()),
+                        font(11, false)));
+                doc.add(new Paragraph(
+                        "Grand total: \u20b9" + IndianNumberFormatter.formatWithPaisa(detail.grandTotal()),
                         font(14, true)));
             }
 
