@@ -111,4 +111,16 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
                         @org.springframework.data.repository.query.Param("projectId") Long projectId);
 
         List<Task> findByMilestoneId(Long milestoneId);
+
+        // ===== S1 PR2 (monsoon warnings) =====
+
+        /**
+         * Find every task on the given project whose {@code monsoon_sensitive} flag
+         * is true. Used by {@code MonsoonWarningService} to compute schedule
+         * overlap warnings against the project's monsoon window.
+         */
+        @org.springframework.data.jpa.repository.Query("SELECT t FROM Task t " +
+                        "WHERE t.project.id = :projectId AND t.monsoonSensitive = true")
+        List<Task> findAllByProjectIdAndMonsoonSensitiveTrue(
+                        @org.springframework.data.repository.query.Param("projectId") Long projectId);
 }

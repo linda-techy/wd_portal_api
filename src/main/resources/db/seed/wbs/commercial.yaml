@@ -1,0 +1,120 @@
+code: COMMERCIAL
+projectType: COMMERCIAL
+name: Commercial Default
+description: Default WBS for commercial buildings (offices, retail). Larger structural envelope, more MEP.
+phases:
+  - sequence: 1
+    name: Substructure
+    tasks:
+      - id: -101
+        sequence: 1
+        name: Site Mobilization
+        durationDays: 5
+        floorLoop: NONE
+        predecessors: []
+      - id: -102
+        sequence: 2
+        name: Excavation & Shoring
+        durationDays: 8
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -101
+            lagDays: 0
+      - id: -103
+        sequence: 3
+        name: Foundation
+        durationDays: 12
+        isPaymentMilestone: true
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -102
+            lagDays: 0
+  - sequence: 2
+    name: Structural
+    tasks:
+      - id: -201
+        sequence: 1
+        name: Column & Beam Casting
+        durationDays: 6
+        monsoonSensitive: true
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -103
+            lagDays: 0
+      - id: -202
+        sequence: 2
+        name: Slab Casting
+        durationDays: 5
+        monsoonSensitive: true
+        isPaymentMilestone: true
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -201
+            lagDays: 0
+      - id: -203
+        sequence: 3
+        name: Cladding / Facade
+        durationDays: 10
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -202
+            lagDays: 2
+  - sequence: 3
+    name: MEP
+    tasks:
+      - id: -301
+        sequence: 1
+        name: HVAC Rough-in
+        durationDays: 8
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -203
+            lagDays: 0
+      - id: -302
+        sequence: 2
+        name: Electrical & Data Rough-in
+        durationDays: 6
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -203
+            lagDays: 0
+      - id: -303
+        sequence: 3
+        name: Plumbing & Fire
+        durationDays: 6
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -203
+            lagDays: 0
+  - sequence: 4
+    name: Finishes & Handover
+    tasks:
+      - id: -401
+        sequence: 1
+        name: Interior Finishes
+        durationDays: 12
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -301
+            lagDays: 1
+          - predecessorTaskId: -302
+            lagDays: 1
+          - predecessorTaskId: -303
+            lagDays: 1
+      - id: -402
+        sequence: 2
+        name: Snag & Commissioning
+        durationDays: 5
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -401
+            lagDays: 0
+      - id: -403
+        sequence: 3
+        name: Handover
+        durationDays: 1
+        isPaymentMilestone: true
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -402
+            lagDays: 0
