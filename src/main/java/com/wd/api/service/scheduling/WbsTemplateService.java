@@ -103,8 +103,10 @@ public class WbsTemplateService {
                 .orElseThrow(() -> new EntityNotFoundException("WbsTemplate " + existingId));
         int nextVersion = templates.findMaxVersionForCode(prev.getCode()).orElse(0) + 1;
 
-        // Deactivate previous before flushing the new active row to avoid
-        // tripping the partial unique index inside a single TX.
+        // The partial unique index uk_wbs_template_one_active_per_code (V116)
+        // enforces "at most one is_active=TRUE row per code". We deactivate the
+        // existing active version and flush BEFORE inserting the new active one
+        // to avoid the index conflict within a single transaction.
         prev.setIsActive(Boolean.FALSE);
         templates.save(prev);
         templates.flush();
