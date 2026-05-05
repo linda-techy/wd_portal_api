@@ -9,13 +9,22 @@
 -- Idempotent: ON CONFLICT DO NOTHING throughout (matches V32/V46/V48/V50/V52
 -- convention).
 --
--- Note on grant cardinality: the matrix references SUPER_ADMIN and ARCHITECT
--- role codes which are not present in this environment's portal_roles
--- (V5 seeds ADMIN, ARCHITECT_DESIGNER, etc.). The INNER JOIN in the grant
--- statement silently skips grants for any role code that does not exist.
--- This is intentional: when those roles are added in a future migration,
--- a re-run of an updated R__ companion (or a new seed migration) can
--- backfill them.
+-- Note on grant cardinality: V5 baseline seeds these roles:
+-- ADMIN, PROJECT_MANAGER, SITE_ENGINEER, FINANCE_OFFICER,
+-- ARCHITECT_DESIGNER, INTERIOR_DESIGNER, PROCUREMENT_OFFICER.
+-- The S1 spec matrix references SUPER_ADMIN and ARCHITECT (not
+-- ARCHITECT_DESIGNER); both are no-ops here because the INNER JOIN
+-- below drops them.
+--
+-- SUPER_ADMIN is declared in PortalRoleCode and used by isAdmin();
+-- seeding it is out of scope for S1 PR2 (cross-cutting role-taxonomy
+-- change) and tracked separately. ARCHITECT in the spec matrix is a
+-- stale reference to ARCHITECT_DESIGNER — see the amended spec.
+--
+-- Today's reachable grant count from the matrix below: 34 (matrix
+-- cells minus the missing roles). When SUPER_ADMIN is seeded in a
+-- future migration (and the spec is re-aligned), an updated R__
+-- companion or a new seed migration can backfill the dropped grants.
 -- ===========================================================================
 
 -- 1) Role rows
