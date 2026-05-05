@@ -81,7 +81,13 @@ class TaskPredecessorServiceTest {
                 service.replacePredecessors(5L, List.of(
                         new TaskPredecessorService.PredecessorEntry(5L, 0))))
                 .isInstanceOf(TaskGraphValidator.CycleDetectedException.class);
+        // Pin the validate-first / mutate-never contract: a refactor that
+        // moved deleteBySuccessorId(taskId) ahead of the cycle check would
+        // silently destroy production rows while these tests still passed
+        // without these assertions.
         verify(predecessorRepo, never()).save(any());
+        verify(predecessorRepo, never()).deleteBySuccessorId(anyLong());
+        verify(taskRepo, never()).save(any());
     }
 
     @Test
@@ -98,5 +104,7 @@ class TaskPredecessorServiceTest {
                         new TaskPredecessorService.PredecessorEntry(3L, 0))))
                 .isInstanceOf(TaskGraphValidator.CycleDetectedException.class);
         verify(predecessorRepo, never()).save(any());
+        verify(predecessorRepo, never()).deleteBySuccessorId(anyLong());
+        verify(taskRepo, never()).save(any());
     }
 }
