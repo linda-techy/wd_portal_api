@@ -87,4 +87,45 @@ class CpmServiceTest extends TestcontainersPostgresBase {
         assertThat(aOut.getLsDate()).isEqualTo(aOut.getEsDate());
         assertThat(cOut.getLfDate()).isEqualTo(cOut.getEfDate());
     }
+
+    @Test
+    void diamond_AtoBC_thenBCtoD_longerBranchIsCriticalAndShortHasFloat() {
+        // A->B (5d), A->C (8d), B->D, C->D (D=2d). C-branch longer -> C critical, B has float = 8-5 = 3.
+        CustomerProject p = newProject(LocalDate.of(2026, 6, 1));
+        Task a = newTask(p, "A", 4);
+        Task b = newTask(p, "B", 5);
+        Task c = newTask(p, "C", 8);
+        Task d = newTask(p, "D", 2);
+        link(b, a, 0);
+        link(c, a, 0);
+        link(d, b, 0);
+        link(d, c, 0);
+
+        cpm.recompute(p.getId());
+
+        Task bOut = tasks.findById(b.getId()).orElseThrow();
+        Task cOut = tasks.findById(c.getId()).orElseThrow();
+        assertThat(cOut.getIsCritical()).as("longer branch C is critical").isTrue();
+        assertThat(bOut.getIsCritical()).as("shorter branch B is not critical").isFalse();
+        assertThat(bOut.getTotalFloatDays()).isEqualTo(3);
+        assertThat(cOut.getTotalFloatDays()).isZero();
+    }
+
+    @Test
+    void multiLeaf_bothLeavesEndAtProjectFinish() {
+        // A->B and A->C with B and C as parallel leaves of equal length.
+        CustomerProject p = newProject(LocalDate.of(2026, 6, 1));
+        Task a = newTask(p, "A", 3);
+        Task b = newTask(p, "B", 4);
+        Task c = newTask(p, "C", 4);
+        link(b, a, 0);
+        link(c, a, 0);
+
+        cpm.recompute(p.getId());
+
+        Task bOut = tasks.findById(b.getId()).orElseThrow();
+        Task cOut = tasks.findById(c.getId()).orElseThrow();
+        assertThat(bOut.getLfDate()).isEqualTo(cOut.getLfDate());
+        assertThat(bOut.getLfDate()).isEqualTo(bOut.getEfDate()); // both leaves at project finish
+    }
 }
