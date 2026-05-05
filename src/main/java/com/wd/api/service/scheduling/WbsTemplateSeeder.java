@@ -1,6 +1,7 @@
 package com.wd.api.service.scheduling;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.wd.api.model.enums.FloorLoop;
 import com.wd.api.model.scheduling.WbsTemplate;
 import com.wd.api.model.scheduling.WbsTemplatePhase;
@@ -12,7 +13,6 @@ import com.wd.api.repository.scheduling.WbsTemplateTaskPredecessorRepository;
 import com.wd.api.repository.scheduling.WbsTemplateTaskRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -51,12 +51,13 @@ public class WbsTemplateSeeder implements CommandLineRunner {
     private final WbsTemplateTaskRepository tasks;
     private final WbsTemplateTaskPredecessorRepository preds;
 
-    public WbsTemplateSeeder(@Qualifier("scheduleYamlMapper") ObjectMapper yaml,
-                             WbsTemplateRepository templates,
+    public WbsTemplateSeeder(WbsTemplateRepository templates,
                              WbsTemplatePhaseRepository phases,
                              WbsTemplateTaskRepository tasks,
                              WbsTemplateTaskPredecessorRepository preds) {
-        this.yaml = yaml;
+        // Private YAML mapper instance — see ScheduleSeedingConfig javadoc for
+        // why we don't expose this as a Spring ObjectMapper bean.
+        this.yaml = new ObjectMapper(new YAMLFactory());
         this.templates = templates;
         this.phases = phases;
         this.tasks = tasks;
