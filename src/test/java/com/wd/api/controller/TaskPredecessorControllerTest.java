@@ -45,7 +45,7 @@ class TaskPredecessorControllerTest extends TestcontainersPostgresBase {
     }
 
     @Test
-    @WithMockUser(authorities = "GANTT_EDIT")
+    @WithMockUser(authorities = "TASK_EDIT")
     void put_cycleRejected_returns400_onSelfLoop() throws Exception {
         // Self-loop is rejected before any DB access — no need for fixture data.
         PredecessorListRequest req = new PredecessorListRequest(List.of(
@@ -57,7 +57,7 @@ class TaskPredecessorControllerTest extends TestcontainersPostgresBase {
     }
 
     @Test
-    @WithMockUser(authorities = "GANTT_EDIT")
+    @WithMockUser(authorities = "TASK_EDIT")
     void put_invalidPayload_returns400() throws Exception {
         // null predecessorId in entry
         String bad = "{\"predecessors\":[{\"predecessorId\":null,\"lagDays\":0}]}";
@@ -68,7 +68,7 @@ class TaskPredecessorControllerTest extends TestcontainersPostgresBase {
     }
 
     @Test
-    @WithMockUser(authorities = "GANTT_EDIT")
+    @WithMockUser(authorities = "TASK_EDIT")
     void put_taskNotFound_returns400() throws Exception {
         // Predecessor and successor are different IDs and no cycle, but the tasks
         // don't exist in the DB so the dual-write step throws IllegalArgumentException
@@ -76,6 +76,19 @@ class TaskPredecessorControllerTest extends TestcontainersPostgresBase {
         PredecessorListRequest req = new PredecessorListRequest(List.of(
                 new PredecessorListRequest.Entry(999_999_001L, 0)));
         mvc.perform(put("/api/tasks/999999002/predecessors")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(authorities = "TASK_CREATE")
+    void put_taskCreateAuthority_alsoAllowed_returns400_onSelfLoop() throws Exception {
+        // Confirms hasAnyAuthority semantics: TASK_CREATE alone reaches the handler
+        // (gets past @PreAuthorize) and then the self-loop is rejected with 400.
+        PredecessorListRequest req = new PredecessorListRequest(List.of(
+                new PredecessorListRequest.Entry(2L, 0)));
+        mvc.perform(put("/api/tasks/2/predecessors")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest());

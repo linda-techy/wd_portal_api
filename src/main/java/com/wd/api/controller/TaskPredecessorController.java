@@ -23,7 +23,7 @@ public class TaskPredecessorController {
     }
 
     @PutMapping
-    @PreAuthorize("hasAuthority('GANTT_EDIT')")
+    @PreAuthorize("hasAnyAuthority('TASK_EDIT','TASK_CREATE')")
     public List<TaskPredecessor> replace(@PathVariable Long taskId,
                                          @Valid @RequestBody PredecessorListRequest req) {
         List<TaskPredecessorService.PredecessorEntry> entries = req.predecessors().stream()
