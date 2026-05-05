@@ -1,0 +1,74 @@
+# Kerala holidays 2028. Leap year. Lunar dates per Kerala Government Holidays Gazette 2028.
+year: 2028
+holidays:
+  - code: IN_REPUBLIC_DAY
+    name: Republic Day
+    date: 2028-01-26
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_MAY_DAY
+    name: May Day
+    date: 2028-05-01
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_INDEPENDENCE_DAY
+    name: Independence Day
+    date: 2028-08-15
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_GANDHI_JAYANTI
+    name: Gandhi Jayanti
+    date: 2028-10-02
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_CHRISTMAS
+    name: Christmas
+    date: 2028-12-25
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_RAMZAN
+    name: Ramzan (Eid al-Fitr)
+    date: 2028-02-26
+    scope: NATIONAL
+    recurrence: LUNAR
+  - code: IN_BAKRID
+    name: Bakrid (Eid al-Adha)
+    date: 2028-05-05
+    scope: NATIONAL
+    recurrence: LUNAR
+  - code: KL_VISHU
+    name: Vishu
+    date: 2028-04-14
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY1
+    name: Uthradam (Onam Eve)
+    date: 2028-09-02
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY2
+    name: Thiruvonam
+    date: 2028-09-03
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY3
+    name: Avittam (Third Onam)
+    date: 2028-09-04
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY4
+    name: Chathayam (Fourth Onam)
+    date: 2028-09-05
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_PIRAVI
+    name: Kerala Piravi
+    date: 2028-11-01
+    scope: STATE
+    scopeRef: KL
+    recurrence: FIXED_DATE
