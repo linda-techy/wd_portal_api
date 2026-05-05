@@ -333,4 +333,34 @@ class WbsTemplateClonerServiceTest extends TestcontainersPostgresBase {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("already has a WBS");
     }
+
+    @Test
+    void cloner_setsDependsOnTaskIdForSinglePredecessorTasks() {
+        // The fixture template has a NONE → PER_FLOOR fan-out: Foundation (NONE)
+        // is the sole predecessor of Slab Casting (PER_FLOOR), one edge per
+        // floor. Each Slab Casting Floor N has exactly 1 predecessor → its
+        // legacy dependsOnTaskId should mirror Foundation's id.
+        // Foundation itself has 0 predecessors → its dependsOnTaskId stays null.
+        Fixture f = buildFixture("FIX_DEPENDS_ON");
+        CustomerProject project = newProject(null);
+        cloner.cloneInto(project, f.template.getId(), 2);
+
+        Task foundation = tasks.findByProjectId(project.getId()).stream()
+                .filter(t -> "Foundation".equals(t.getTitle()))
+                .findFirst().orElseThrow();
+        Task slabFloor0 = tasks.findByProjectId(project.getId()).stream()
+                .filter(t -> "Slab Casting — Floor 0".equals(t.getTitle()))
+                .findFirst().orElseThrow();
+
+        // Single-predecessor task → legacy mirror set.
+        assertThat(slabFloor0.getDependsOnTaskId())
+                .as("Slab Casting Floor 0 has exactly 1 predecessor (Foundation); "
+                        + "legacy dependsOnTaskId must mirror it")
+                .isEqualTo(foundation.getId());
+
+        // Zero-predecessor task → legacy mirror stays null.
+        assertThat(foundation.getDependsOnTaskId())
+                .as("Foundation has 0 predecessors; legacy dependsOnTaskId must be null")
+                .isNull();
+    }
 }
