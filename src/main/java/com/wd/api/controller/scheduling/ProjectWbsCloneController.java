@@ -59,4 +59,14 @@ public class ProjectWbsCloneController {
     public ResponseEntity<String> handleBadInput(IllegalArgumentException e) {
         return ResponseEntity.badRequest().body(e.getMessage());
     }
+
+    /**
+     * Maps the cloner's "already has a WBS" guard to 409 Conflict. Without this
+     * a second POST would silently double the WBS — phases, tasks, and
+     * predecessor edges all duplicated, with no un-clone available.
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleConflict(IllegalStateException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
 }

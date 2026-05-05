@@ -130,4 +130,24 @@ class ProjectWbsCloneControllerTest extends TestcontainersPostgresBase {
                         .content(mapper.writeValueAsString(req)))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @WithMockUser(authorities = "PROJECT_WBS_CLONE")
+    void clone_alreadyHasWbs_returns409() throws Exception {
+        Long templateId = buildTemplate();
+        CustomerProject project = newProject(2);
+        WbsCloneRequest req = new WbsCloneRequest(templateId, 2);
+
+        // First clone succeeds.
+        mvc.perform(post("/api/projects/{projectId}/wbs/clone-from-template", project.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(req)))
+                .andExpect(status().isOk());
+
+        // Second clone must be rejected with 409 Conflict, not silently double the WBS.
+        mvc.perform(post("/api/projects/{projectId}/wbs/clone-from-template", project.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(req)))
+                .andExpect(status().isConflict());
+    }
 }

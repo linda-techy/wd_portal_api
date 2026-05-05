@@ -84,6 +84,13 @@ public class WbsTemplateClonerService {
         if (project == null || project.getId() == null) {
             throw new IllegalArgumentException("project must be persisted");
         }
+        // Single-shot guard: a second clone would silently double the WBS
+        // (duplicate phases, tasks, predecessor edges) with no un-clone
+        // available. Reject before doing any insert.
+        if (milestones.existsByProjectId(project.getId())) {
+            throw new IllegalStateException(
+                    "Project " + project.getId() + " already has a WBS; clone is single-shot");
+        }
         int floors = resolveFloorCount(project, floorCount);
 
         WbsTemplate template = templates.findById(templateId)

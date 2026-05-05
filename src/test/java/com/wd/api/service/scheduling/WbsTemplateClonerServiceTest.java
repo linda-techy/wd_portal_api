@@ -319,4 +319,18 @@ class WbsTemplateClonerServiceTest extends TestcontainersPostgresBase {
         assertThatThrownBy(() -> cloner.cloneInto(project, 999_999L, 2))
                 .isInstanceOf(jakarta.persistence.EntityNotFoundException.class);
     }
+
+    @Test
+    void cloneTwice_throwsIllegalState() {
+        Fixture f = buildFixture("FIX_CLONE_TWICE");
+        CustomerProject project = newProject(null);
+
+        // First clone succeeds.
+        cloner.cloneInto(project, f.template.getId(), 2);
+
+        // Second clone should be rejected, not silently double the WBS.
+        assertThatThrownBy(() -> cloner.cloneInto(project, f.template.getId(), 2))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("already has a WBS");
+    }
 }
