@@ -8,7 +8,10 @@ import org.hibernate.annotations.Where;
 @SQLDelete(sql = "UPDATE task_predecessor SET deleted_at = NOW() WHERE id = ? AND version = ?")
 @Where(clause = "deleted_at IS NULL")
 @Entity
-@Table(name = "task_predecessor")
+@Table(name = "task_predecessor",
+       uniqueConstraints = @UniqueConstraint(
+               name = "uq_task_predecessor_pair",
+               columnNames = {"successor_id", "predecessor_id"}))
 public class TaskPredecessor extends BaseEntity {
 
     @Id

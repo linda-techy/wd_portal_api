@@ -38,5 +38,19 @@ public interface HolidayRepository extends JpaRepository<Holiday, Long> {
             @Param("scope") HolidayScope scope,
             @Param("scopeRef") String scopeRef);
 
-    List<Holiday> findByScopeAndDate_Year(HolidayScope scope, int year);
+    @Query("""
+        SELECT h FROM Holiday h
+        WHERE h.scope = :scope
+          AND h.date BETWEEN :start AND :end
+        ORDER BY h.date ASC
+        """)
+    List<Holiday> findByScopeAndDate_Year(
+            @Param("scope") HolidayScope scope,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end);
+
+    /** Convenience overload that derives Jan 1 .. Dec 31 from a year. */
+    default List<Holiday> findByScopeAndDate_Year(HolidayScope scope, int year) {
+        return findByScopeAndDate_Year(scope, LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31));
+    }
 }
