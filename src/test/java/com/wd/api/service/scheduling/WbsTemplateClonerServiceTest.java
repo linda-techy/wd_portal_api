@@ -1,6 +1,7 @@
 package com.wd.api.service.scheduling;
 
 import com.wd.api.model.CustomerProject;
+import com.wd.api.model.ProjectMilestone;
 import com.wd.api.model.Task;
 import com.wd.api.model.enums.FloorLoop;
 import com.wd.api.model.scheduling.TaskPredecessor;
@@ -9,6 +10,7 @@ import com.wd.api.model.scheduling.WbsTemplatePhase;
 import com.wd.api.model.scheduling.WbsTemplateTask;
 import com.wd.api.model.scheduling.WbsTemplateTaskPredecessor;
 import com.wd.api.repository.CustomerProjectRepository;
+import com.wd.api.repository.ProjectMilestoneRepository;
 import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.scheduling.WbsTemplatePhaseRepository;
@@ -51,6 +53,7 @@ class WbsTemplateClonerServiceTest extends TestcontainersPostgresBase {
     @Autowired private TaskRepository tasks;
     @Autowired private TaskPredecessorRepository taskPreds;
     @Autowired private CustomerProjectRepository projects;
+    @Autowired private ProjectMilestoneRepository milestones;
 
     @PersistenceContext private EntityManager em;
 
@@ -245,6 +248,20 @@ class WbsTemplateClonerServiceTest extends TestcontainersPostgresBase {
                     .findFirst().orElseThrow();
             assertThat(slab.getMonsoonSensitive())
                     .as("Slab Casting Floor %d", floor).isTrue();
+            // roleHint must NOT leak into description (it's a role code, not
+            // user-facing copy). Cloned tasks start with no description.
+            assertThat(slab.getDescription())
+                    .as("Slab Casting Floor %d description must be null "
+                            + "(roleHint is not user-facing copy)", floor)
+                    .isNull();
+        }
+
+        // Same invariant for milestones: phase.roleHint must not leak into
+        // ProjectMilestone.description.
+        for (ProjectMilestone m : milestones.findByProjectId(project.getId())) {
+            assertThat(m.getDescription())
+                    .as("Milestone %s description must be null", m.getName())
+                    .isNull();
         }
     }
 

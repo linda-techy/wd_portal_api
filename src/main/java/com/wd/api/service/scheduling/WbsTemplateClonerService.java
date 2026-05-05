@@ -108,10 +108,12 @@ public class WbsTemplateClonerService {
         int tasksCreated = 0;
 
         for (WbsTemplatePhase phase : templatePhases) {
+            // roleHint is a role code (e.g. PROJECT_MANAGER, SCHEDULER), not a
+            // user-facing description. Leave description null and let the
+            // admin UI populate it explicitly.
             ProjectMilestone milestone = ProjectMilestone.builder()
                     .project(project)
                     .name(phase.getName())
-                    .description(phase.getRoleHint())
                     .amount(BigDecimal.ZERO)
                     .status("PENDING")
                     .build();
@@ -234,7 +236,8 @@ public class WbsTemplateClonerService {
         Task t = new Task();
         String suffix = floorIndex >= 0 ? " — Floor " + floorIndex : "";
         t.setTitle(src.getName() + suffix);
-        t.setDescription(src.getRoleHint());
+        // Do NOT copy roleHint into description; roleHint is a role code, not
+        // user-facing copy. Let the admin UI populate descriptions explicitly.
         t.setStatus(Task.TaskStatus.PENDING);
         t.setPriority(Task.TaskPriority.MEDIUM);
         t.setProject(project);
