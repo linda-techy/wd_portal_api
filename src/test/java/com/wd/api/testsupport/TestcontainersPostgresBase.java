@@ -40,6 +40,7 @@ public abstract class TestcontainersPostgresBase {
         // storageBasePath: required by BrochureController and FileDownloadController.
         // Use /tmp/test-storage for tests — it's ephemeral and isolated per run.
         registry.add("storageBasePath", () -> "/tmp/test-storage");
+        registry.add("spring.profiles.active", () -> "test");
         // app.email.enabled: disable email sending in tests to avoid mail server dependency.
         registry.add("app.email.enabled", () -> "false");
         // app.rate-limiting.enabled: disable rate limiting to prevent 429 in tests.
