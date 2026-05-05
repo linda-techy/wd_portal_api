@@ -1,0 +1,78 @@
+code: INTERIOR_FITOUT
+projectType: INTERIOR_FITOUT
+name: Interior Fitout Default
+description: Default WBS for interior fitouts. No structural work; carpentry, electrical, finishing.
+phases:
+  - sequence: 1
+    name: Survey & Demolition
+    tasks:
+      - id: -101
+        sequence: 1
+        name: Site Survey & Measurement
+        durationDays: 2
+        floorLoop: NONE
+        predecessors: []
+      - id: -102
+        sequence: 2
+        name: Demolition / Strip-out
+        durationDays: 4
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -101
+            lagDays: 0
+  - sequence: 2
+    name: Carpentry & MEP
+    tasks:
+      - id: -201
+        sequence: 1
+        name: Civil & False Ceiling Frame
+        durationDays: 6
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -102
+            lagDays: 0
+      - id: -202
+        sequence: 2
+        name: Electrical & Lighting Rough-in
+        durationDays: 4
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -201
+            lagDays: 0
+      - id: -203
+        sequence: 3
+        name: Carpentry & Joinery
+        durationDays: 10
+        isPaymentMilestone: true
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -202
+            lagDays: 0
+  - sequence: 3
+    name: Finishing & Handover
+    tasks:
+      - id: -301
+        sequence: 1
+        name: Painting & Polishing
+        durationDays: 5
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -203
+            lagDays: 0
+      - id: -302
+        sequence: 2
+        name: Furnishings & Snag
+        durationDays: 4
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -301
+            lagDays: 0
+      - id: -303
+        sequence: 3
+        name: Handover
+        durationDays: 1
+        isPaymentMilestone: true
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -302
+            lagDays: 0

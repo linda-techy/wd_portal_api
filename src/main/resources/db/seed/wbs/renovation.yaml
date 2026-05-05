@@ -1,0 +1,61 @@
+code: RENOVATION
+projectType: RENOVATION
+name: Renovation Default
+description: Default WBS for residential renovation. Smaller scope; concentrated on civil + finishes.
+phases:
+  - sequence: 1
+    name: Assessment
+    tasks:
+      - id: -101
+        sequence: 1
+        name: Site Assessment & Scope Lock
+        durationDays: 2
+        floorLoop: NONE
+        predecessors: []
+  - sequence: 2
+    name: Execution
+    tasks:
+      - id: -201
+        sequence: 1
+        name: Civil Work
+        durationDays: 8
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -101
+            lagDays: 0
+      - id: -202
+        sequence: 2
+        name: Plumbing & Electrical Updates
+        durationDays: 4
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -201
+            lagDays: 0
+      - id: -203
+        sequence: 3
+        name: Finishes
+        durationDays: 7
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -202
+            lagDays: 0
+  - sequence: 3
+    name: Handover
+    tasks:
+      - id: -301
+        sequence: 1
+        name: Snag & Cleaning
+        durationDays: 2
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -203
+            lagDays: 0
+      - id: -302
+        sequence: 2
+        name: Handover
+        durationDays: 1
+        isPaymentMilestone: true
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -301
+            lagDays: 0

@@ -1,0 +1,148 @@
+code: RESIDENTIAL
+projectType: RESIDENTIAL
+name: Residential Default
+description: Default WBS for ground+N residential builds in Kerala. Phases ordered Substructure → Superstructure → MEP → Finishing → Handover.
+phases:
+  - sequence: 1
+    name: Substructure
+    roleHint: SITE_ENGINEER
+    monsoonSensitive: false
+    tasks:
+      - id: -101
+        sequence: 1
+        name: Excavation
+        roleHint: SITE_ENGINEER
+        durationDays: 4
+        weightFactor: 4
+        monsoonSensitive: false
+        isPaymentMilestone: false
+        floorLoop: NONE
+        predecessors: []
+      - id: -102
+        sequence: 2
+        name: PCC (Plain Cement Concrete)
+        durationDays: 2
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -101
+            lagDays: 0
+      - id: -103
+        sequence: 3
+        name: Foundation (Raft / Footings)
+        durationDays: 7
+        weightFactor: 9
+        isPaymentMilestone: true
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -102
+            lagDays: 1
+  - sequence: 2
+    name: Superstructure
+    roleHint: SITE_ENGINEER
+    tasks:
+      - id: -201
+        sequence: 1
+        name: Column Casting
+        durationDays: 3
+        floorLoop: PER_FLOOR
+        monsoonSensitive: true
+        predecessors:
+          - predecessorTaskId: -103
+            lagDays: 0
+      - id: -202
+        sequence: 2
+        name: Slab Casting
+        durationDays: 4
+        monsoonSensitive: true
+        isPaymentMilestone: true
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -201
+            lagDays: 0
+      - id: -203
+        sequence: 3
+        name: Block Work
+        durationDays: 6
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -202
+            lagDays: 1
+  - sequence: 3
+    name: MEP (Mechanical / Electrical / Plumbing)
+    roleHint: SITE_ENGINEER
+    tasks:
+      - id: -301
+        sequence: 1
+        name: Electrical Rough-in
+        durationDays: 4
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -203
+            lagDays: 0
+      - id: -302
+        sequence: 2
+        name: Plumbing
+        durationDays: 4
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -203
+            lagDays: 0
+  - sequence: 4
+    name: Finishing
+    roleHint: SITE_ENGINEER
+    tasks:
+      - id: -401
+        sequence: 1
+        name: Plastering
+        durationDays: 6
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -301
+            lagDays: 1
+          - predecessorTaskId: -302
+            lagDays: 1
+      - id: -402
+        sequence: 2
+        name: Flooring
+        durationDays: 5
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -401
+            lagDays: 0
+      - id: -403
+        sequence: 3
+        name: Painting
+        durationDays: 5
+        floorLoop: PER_FLOOR
+        predecessors:
+          - predecessorTaskId: -402
+            lagDays: 0
+  - sequence: 5
+    name: Handover
+    roleHint: PROJECT_MANAGER
+    tasks:
+      - id: -501
+        sequence: 1
+        name: Snag List
+        durationDays: 3
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -403
+            lagDays: 0
+      - id: -502
+        sequence: 2
+        name: Cleaning
+        durationDays: 2
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -501
+            lagDays: 0
+      - id: -503
+        sequence: 3
+        name: Handover
+        durationDays: 1
+        isPaymentMilestone: true
+        floorLoop: NONE
+        predecessors:
+          - predecessorTaskId: -502
+            lagDays: 0
