@@ -25,6 +25,12 @@ public final class TaskGraphValidator {
      * <p>Algorithm: walk the predecessors-of graph starting at
      * {@code predecessor}. If {@code successor} is reachable, the new edge
      * would close a cycle.
+     *
+     * <p><b>Contract on {@code predecessorsOf}:</b> the function must always
+     * return a non-null {@link List} (use {@link List#of()} for "no
+     * predecessors"). Returning {@code null} is treated as a programming
+     * error and triggers {@link IllegalArgumentException} — fail fast rather
+     * than silently coercing to empty.
      */
     public static void assertNoCycle(
             Long successorId,
@@ -49,7 +55,13 @@ public final class TaskGraphValidator {
                         "Cycle: predecessor " + predecessorId
                         + " transitively depends on successor " + successorId);
             }
-            for (Long pred : predecessorsOf.apply(current)) {
+            List<Long> preds = predecessorsOf.apply(current);
+            if (preds == null) {
+                throw new IllegalArgumentException(
+                        "predecessorsOf returned null for task id " + current
+                        + "; contract requires a non-null list (use List.of() for none)");
+            }
+            for (Long pred : preds) {
                 if (!visited.contains(pred)) stack.push(pred);
             }
         }

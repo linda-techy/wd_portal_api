@@ -2,6 +2,8 @@ package com.wd.api.service.scheduling;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -66,5 +68,44 @@ class TaskGraphValidatorTest {
                 4L, List.of(2L, 3L));
         assertThatCode(() -> TaskGraphValidator.assertNoCycle(4L, 5L, graph(g)))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    void parallelEdge_isNotACycle() {
+        // Existing edge: 2's predecessors include 1 (i.e., 1 -> 2 already exists).
+        // Adding the same edge again (successor=2, predecessor=1) is a duplicate,
+        // not a cycle, and must not be rejected by the validator.
+        // The dedup is the caller's responsibility; we only check for cycles.
+        Map<Long, List<Long>> g = Map.of(2L, List.of(1L));
+        assertThatCode(() -> TaskGraphValidator.assertNoCycle(2L, 1L, graph(g)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void longChain_doesNotStackOverflow() {
+        // Build a 500-node linear chain: 1 -> 2 -> 3 -> ... -> 500
+        // (i.e., predecessors-of(k) = [k-1] for k in 2..500).
+        // Then assertNoCycle(successor=1, predecessor=500): walking from 500
+        // back through predecessors reaches 499, 498, ..., 1, closing a cycle.
+        // The explicit-stack DFS must handle this without StackOverflowError.
+        Map<Long, List<Long>> chain = new HashMap<>();
+        for (long k = 2; k <= 500; k++) {
+            List<Long> preds = new ArrayList<>();
+            preds.add(k - 1);
+            chain.put(k, preds);
+        }
+        assertThatThrownBy(() ->
+                TaskGraphValidator.assertNoCycle(1L, 500L, graph(chain)))
+                .isInstanceOf(TaskGraphValidator.CycleDetectedException.class);
+    }
+
+    @Test
+    void nullPredecessorList_isHandledExplicitly() {
+        // Contract: predecessorsOf must always return a non-null list. If a
+        // caller mis-implements it, fail fast with IllegalArgumentException
+        // rather than NPEing or silently treating null as empty.
+        assertThatThrownBy(() ->
+                TaskGraphValidator.assertNoCycle(2L, 1L, id -> null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }
