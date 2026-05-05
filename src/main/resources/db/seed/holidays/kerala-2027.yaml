@@ -1,0 +1,74 @@
+# Kerala holidays 2027. Lunar dates per Kerala Government Holidays Gazette 2027.
+year: 2027
+holidays:
+  - code: IN_REPUBLIC_DAY
+    name: Republic Day
+    date: 2027-01-26
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_MAY_DAY
+    name: May Day
+    date: 2027-05-01
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_INDEPENDENCE_DAY
+    name: Independence Day
+    date: 2027-08-15
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_GANDHI_JAYANTI
+    name: Gandhi Jayanti
+    date: 2027-10-02
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_CHRISTMAS
+    name: Christmas
+    date: 2027-12-25
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_RAMZAN
+    name: Ramzan (Eid al-Fitr)
+    date: 2027-03-10
+    scope: NATIONAL
+    recurrence: LUNAR
+  - code: IN_BAKRID
+    name: Bakrid (Eid al-Adha)
+    date: 2027-05-17
+    scope: NATIONAL
+    recurrence: LUNAR
+  - code: KL_VISHU
+    name: Vishu
+    date: 2027-04-14
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY1
+    name: Uthradam (Onam Eve)
+    date: 2027-09-14
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY2
+    name: Thiruvonam
+    date: 2027-09-15
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY3
+    name: Avittam (Third Onam)
+    date: 2027-09-16
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY4
+    name: Chathayam (Fourth Onam)
+    date: 2027-09-17
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_PIRAVI
+    name: Kerala Piravi
+    date: 2027-11-01
+    scope: STATE
+    scopeRef: KL
+    recurrence: FIXED_DATE

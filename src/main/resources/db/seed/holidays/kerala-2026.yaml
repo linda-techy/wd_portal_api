@@ -1,0 +1,80 @@
+# Kerala holidays 2026.
+# Source: Kerala State Government Public Holidays Gazette 2026.
+# Verified 2026-05-05 against the spec section "3. Holiday + working-day".
+# All dates ISO-8601. Lunar holidays (Onam, Vishu, Bakrid, Ramzan) are
+# explicit per year — no calendar math.
+year: 2026
+holidays:
+  # ── National ──
+  - code: IN_REPUBLIC_DAY
+    name: Republic Day
+    date: 2026-01-26
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_MAY_DAY
+    name: May Day
+    date: 2026-05-01
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_INDEPENDENCE_DAY
+    name: Independence Day
+    date: 2026-08-15
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_GANDHI_JAYANTI
+    name: Gandhi Jayanti
+    date: 2026-10-02
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_CHRISTMAS
+    name: Christmas
+    date: 2026-12-25
+    scope: NATIONAL
+    recurrence: FIXED_DATE
+  - code: IN_RAMZAN
+    name: Ramzan (Eid al-Fitr)
+    date: 2026-03-21
+    scope: NATIONAL
+    recurrence: LUNAR
+  - code: IN_BAKRID
+    name: Bakrid (Eid al-Adha)
+    date: 2026-05-27
+    scope: NATIONAL
+    recurrence: LUNAR
+  # ── Kerala state ──
+  - code: KL_VISHU
+    name: Vishu
+    date: 2026-04-14
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY1
+    name: Uthradam (Onam Eve)
+    date: 2026-08-26
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY2
+    name: Thiruvonam
+    date: 2026-08-27
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY3
+    name: Avittam (Third Onam)
+    date: 2026-08-28
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_ONAM_DAY4
+    name: Chathayam (Fourth Onam)
+    date: 2026-08-29
+    scope: STATE
+    scopeRef: KL
+    recurrence: LUNAR
+  - code: KL_PIRAVI
+    name: Kerala Piravi
+    date: 2026-11-01
+    scope: STATE
+    scopeRef: KL
+    recurrence: FIXED_DATE

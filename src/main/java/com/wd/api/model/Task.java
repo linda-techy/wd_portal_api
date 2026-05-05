@@ -97,6 +97,9 @@ public class Task extends BaseEntity {
     @Column(name = "actual_end_date")
     private LocalDate actualEndDate;
 
+    @Column(name = "monsoon_sensitive", nullable = false)
+    private Boolean monsoonSensitive = Boolean.FALSE;
+
     // Constructors
     public Task() {
     }
@@ -242,6 +245,11 @@ public class Task extends BaseEntity {
 
     public LocalDate getActualEndDate() { return actualEndDate; }
     public void setActualEndDate(LocalDate actualEndDate) { this.actualEndDate = actualEndDate; }
+
+    public Boolean getMonsoonSensitive() { return monsoonSensitive; }
+    public void setMonsoonSensitive(Boolean monsoonSensitive) {
+        this.monsoonSensitive = monsoonSensitive == null ? Boolean.FALSE : monsoonSensitive;
+    }
 
     // Enums
     public enum TaskStatus {

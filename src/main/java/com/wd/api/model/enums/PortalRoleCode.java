@@ -16,6 +16,11 @@ public final class PortalRoleCode {
     public static final String INTERIOR_DESIGNER = "INTERIOR_DESIGNER";
     public static final String PROCUREMENT_OFFICER = "PROCUREMENT_OFFICER";
 
+    // S1 PR1 additions (DB seed lands in PR2)
+    public static final String SCHEDULER = "SCHEDULER";
+    public static final String QUANTITY_SURVEYOR = "QUANTITY_SURVEYOR";
+    public static final String MANAGEMENT = "MANAGEMENT";
+
     public static boolean isAdmin(String roleCode) {
         return ADMIN.equalsIgnoreCase(roleCode) || SUPER_ADMIN.equalsIgnoreCase(roleCode);
     }

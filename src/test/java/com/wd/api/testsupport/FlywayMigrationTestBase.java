@@ -6,16 +6,26 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * Shared base class for portal-api integration tests that need a real Postgres.
- * Starts a Postgres 16 container once per JVM via static initializer.
- * Ryuk sidecar tears it down at JVM exit.
+ * Base class for tests that need a real Postgres for migration regression
+ * testing.
+ *
+ * <p>Note: this codebase's V1__baseline_schema.sql is documentation-only —
+ * the V1-era schema is bootstrapped by Hibernate from @Entity definitions,
+ * THEN Flyway runs V2+ on top. Running Flyway against a truly empty Postgres
+ * fails at V2 (it expects tables that V1 was supposed to have created).
+ *
+ * <p>For test purposes we therefore mirror the production "first boot"
+ * behaviour: Hibernate creates the full schema from entities (which already
+ * includes the JPA mappings of the new V112+ tables), and the migration test
+ * exercises the V113 SQL body directly via JdbcTemplate — that's the
+ * behaviour the SQL itself implements, and idempotency is preserved.
  */
 @SpringBootTest
-public abstract class TestcontainersPostgresBase {
+public abstract class FlywayMigrationTestBase {
 
     protected static final PostgreSQLContainer<?> POSTGRES =
             new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("portalapi_test")
+                    .withDatabaseName("portalapi_migration_test")
                     .withUsername("test")
                     .withPassword("test");
 
@@ -28,29 +38,16 @@ public abstract class TestcontainersPostgresBase {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
-        // Use create-drop for tests: Hibernate generates the full schema from entity classes.
-        // V1__baseline_schema.sql is "documentation-only" and contains no DDL, so Flyway is disabled
-        // to avoid V1 baseline complexity. For production, Flyway manages migrations; tests just need
-        // the schema and data that entities define (no need for V2+ migrations in test context).
+        // Mirror TestcontainersPostgresBase: Hibernate owns schema, Flyway off.
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("spring.flyway.enabled", () -> "false");
         registry.add("jwt.secret", () -> "test-secret-do-not-use-in-prod-0123456789abcdef0123456789abcdef");
         registry.add("jwt.access-token-expiration", () -> "3600000");
         registry.add("jwt.refresh-token-expiration", () -> "604800000");
-        // storageBasePath: required by BrochureController and FileDownloadController.
-        // Use /tmp/test-storage for tests — it's ephemeral and isolated per run.
         registry.add("storageBasePath", () -> "/tmp/test-storage");
-        registry.add("spring.profiles.active", () -> "test");
-        // app.email.enabled: disable email sending in tests to avoid mail server dependency.
         registry.add("app.email.enabled", () -> "false");
-        // app.rate-limiting.enabled: disable rate limiting to prevent 429 in tests.
         registry.add("app.rate-limiting.enabled", () -> "false");
-        // Silence Jackson errors on lazy Hibernate proxies returned by controllers.
         registry.add("spring.jackson.serialization.fail-on-empty-beans", () -> "false");
-        // Run schema-postgres.sql AFTER Hibernate has created the entity tables,
-        // so we can add Postgres-specific functions/sequences that reference them.
-        // Renamed from schema.sql to avoid it being auto-loaded by the H2-based
-        // ApiApplicationTests (which uses application-test.yml).
         registry.add("spring.sql.init.mode", () -> "always");
         registry.add("spring.sql.init.schema-locations", () -> "classpath:schema-postgres.sql");
         registry.add("spring.jpa.defer-datasource-initialization", () -> "true");
