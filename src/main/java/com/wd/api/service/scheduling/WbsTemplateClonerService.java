@@ -215,6 +215,11 @@ public class WbsTemplateClonerService {
         t.setProject(project);
         t.setMilestoneId(milestone.getId());
         t.setMonsoonSensitive(Boolean.TRUE.equals(src.getMonsoonSensitive()));
+        // S3 PR1: carry weight + duration onto the materialized Task. Both
+        // are nullable on Task; ProjectProgressService.effectiveWeight handles
+        // the null fallback chain (weight ?? duration_days ?? 1).
+        t.setWeight(src.getWeightFactor());
+        t.setDurationDays(src.getDurationDays());
         // For S1, leave start/end null — CPM (S2) computes them. dueDate is
         // mandatory on the entity; fall back to project start + duration.
         LocalDate base = project.getStartDate() != null ? project.getStartDate() : LocalDate.now();
