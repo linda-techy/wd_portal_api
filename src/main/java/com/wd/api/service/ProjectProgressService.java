@@ -60,9 +60,11 @@ public class ProjectProgressService {
          *   pct                = completed / total × 100   (HALF_UP @ 2dp)
          * </pre>
          *
-         * Empty project = 0%. A task counts as completed when its status
-         * is COMPLETED or DONE; PR2 will tighten this to require photo
-         * evidence before status can reach COMPLETED.
+         * Empty project = 0%. CANCELLED tasks are filtered entirely —
+         * they contribute to neither numerator nor denominator (cancelled
+         * scope must not penalize progress). A task counts as completed
+         * when its status is COMPLETED; PR2 will tighten this to require
+         * photo evidence before status can reach COMPLETED.
          */
         public ProjectProgressDTO calculateProjectProgress(Long projectId) {
                 logger.info("Calculating progress for project ID: {}", projectId);
@@ -92,13 +94,31 @@ public class ProjectProgressService {
                 long totalWeight = 0L;
                 long completedWeight = 0L;
                 int completedCount = 0;
+                int activeCount = 0;
                 for (Task t : tasks) {
+                        // Spec: CANCELLED tasks don't count toward progress
+                        // (no work done) and aren't denominators either —
+                        // filter them out entirely.
+                        if (t.getStatus() == Task.TaskStatus.CANCELLED) continue;
                         int w = effectiveWeight(t);
                         totalWeight += w;
+                        activeCount++;
                         if (isCompleted(t)) {
                                 completedWeight += w;
                                 completedCount++;
                         }
+                }
+
+                if (totalWeight == 0L) {
+                        // All tasks are cancelled — treat like an empty
+                        // project: 0% with no active denominator.
+                        dto.setOverallProgress(BigDecimal.ZERO);
+                        dto.setTaskProgress(BigDecimal.ZERO);
+                        dto.setTotalTasks(0);
+                        dto.setCompletedTasks(0);
+                        dto.setTotalMilestones(0);
+                        dto.setCompletedMilestones(0);
+                        return dto;
                 }
 
                 BigDecimal pct = BigDecimal.valueOf(completedWeight)
@@ -107,13 +127,13 @@ public class ProjectProgressService {
 
                 dto.setOverallProgress(pct);
                 dto.setTaskProgress(pct);
-                dto.setTotalTasks(tasks.size());
+                dto.setTotalTasks(activeCount);
                 dto.setCompletedTasks(completedCount);
                 dto.setTotalMilestones(0);
                 dto.setCompletedMilestones(0);
 
                 logger.info("Progress for project {}: {}% ({}/{} tasks completed by weight)",
-                                projectId, pct, completedCount, tasks.size());
+                                projectId, pct, completedCount, activeCount);
 
                 return dto;
         }

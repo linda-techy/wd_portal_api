@@ -140,6 +140,24 @@ class ProjectProgressServiceWeightedTest extends TestcontainersPostgresBase {
     }
 
     @Test
+    void cancelledTasks_areExcludedFromBothNumeratorAndDenominator() {
+        // 100-weight project with 1 task fully completed (weight 50) and
+        // 1 task cancelled (weight 50). Expected: 100% — only the active
+        // 50-weight task counts in the denominator, and it's complete.
+        // Spec: CANCELLED tasks are filtered entirely (not counted as
+        // incomplete) so cancelling scope doesn't drop the project %.
+        CustomerProject p = newProject();
+        newTask(p, Task.TaskStatus.COMPLETED, 50, null);
+        newTask(p, Task.TaskStatus.CANCELLED, 50, null);
+
+        ProjectProgressDTO dto = service.calculateProjectProgress(p.getId());
+
+        assertThat(dto.getOverallProgress()).isEqualByComparingTo(new BigDecimal("100.00"));
+        assertThat(dto.getCompletedTasks()).isEqualTo(1);  // only the active counts
+        assertThat(dto.getTotalTasks()).isEqualTo(1);      // CANCELLED filtered from denominator too
+    }
+
+    @Test
     void legacyHybrid_isRemoved_noMilestoneOrBudgetWeightingRemains() {
         // The post-rewrite DTO has milestoneProgress / budgetProgress
         // unset (null) — the rewrite computes a single weight-based
