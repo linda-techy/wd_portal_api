@@ -4,9 +4,17 @@ import com.wd.api.dto.DelayLogSearchFilter;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.DelayLog;
 import com.wd.api.model.PortalUser;
+import com.wd.api.model.Task;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.DelayLogRepository;
 import com.wd.api.repository.PortalUserRepository;
+import com.wd.api.repository.ProjectScheduleConfigRepository;
+import com.wd.api.repository.TaskRepository;
+import com.wd.api.service.scheduling.CpmService;
+import com.wd.api.service.scheduling.HandoverShiftDetector;
+import com.wd.api.service.scheduling.HolidayService;
+import com.wd.api.service.scheduling.WorkingDayCalculator;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,10 +25,13 @@ import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +48,22 @@ public class DelayLogService {
 
     @Autowired
     private WebhookPublisherService webhookPublisherService;
+
+    // ── S3 PR3 — apply delay → recompute CPM → alert handover shift ──────
+    @Autowired
+    private TaskRepository taskRepository;
+
+    @Autowired
+    private HolidayService holidayService;
+
+    @Autowired
+    private CpmService cpmService;
+
+    @Autowired
+    private HandoverShiftDetector handoverShiftDetector;
+
+    @Autowired
+    private ProjectScheduleConfigRepository scheduleConfigRepo;
 
     @Transactional(readOnly = true)
     public Page<DelayLog> searchDelayLogs(DelayLogSearchFilter filter) {
@@ -199,5 +226,76 @@ public class DelayLogService {
                 .collect(Collectors.groupingBy(
                         DelayLog::getDelayType,
                         Collectors.summingLong(d -> ChronoUnit.DAYS.between(d.getFromDate(), d.getToDate()) + 1)));
+    }
+
+    // ── S3 PR3 — apply delay to pending tasks, recompute CPM, alert ─────────
+
+    /**
+     * Applies a project-scoped delay's duration to every PENDING task on the
+     * project: shifts both {@code startDate} and {@code endDate} forward by
+     * {@code delay.durationDays} working days, preserving the task's original
+     * working-day duration. Tasks already started, completed, or cancelled
+     * are not mutated.
+     *
+     * <p>Package-private constructor is exposed for unit tests; production
+     * code uses {@link #newApplier(Long)} which resolves the project's
+     * {@code sundayWorking} flag from {@link ProjectScheduleConfig}.
+     */
+    static class DelayApplier {
+        private final TaskRepository taskRepository;
+        private final HolidayService holidayService;
+        private final boolean sundayWorking;
+
+        DelayApplier(TaskRepository taskRepository,
+                     HolidayService holidayService,
+                     boolean sundayWorking) {
+            this.taskRepository = taskRepository;
+            this.holidayService = holidayService;
+            this.sundayWorking = sundayWorking;
+        }
+
+        void applyDelayToTasks(DelayLog delay) {
+            if (delay == null || delay.getDurationDays() == null || delay.getDurationDays() <= 0) return;
+            if (delay.getProject() == null || delay.getProject().getId() == null) return;
+            Long projectId = delay.getProject().getId();
+            int days = delay.getDurationDays();
+
+            List<Task> tasks = taskRepository.findByProjectId(projectId);
+            // Holiday window: from earliest task start to latest task end + days buffer.
+            LocalDate winStart = tasks.stream()
+                    .map(Task::getStartDate)
+                    .filter(Objects::nonNull)
+                    .min(Comparator.naturalOrder())
+                    .orElse(LocalDate.now());
+            LocalDate winEnd = tasks.stream()
+                    .map(Task::getEndDate)
+                    .filter(Objects::nonNull)
+                    .max(Comparator.naturalOrder())
+                    .orElse(winStart)
+                    .plusDays(Math.max(days, 30) * 2L);
+            Set<LocalDate> holidays = holidayService.holidaysFor(projectId, winStart, winEnd);
+
+            for (Task t : tasks) {
+                if (t.getStatus() != Task.TaskStatus.PENDING) continue;
+                if (t.getStartDate() == null || t.getEndDate() == null) continue;
+
+                int origDuration = WorkingDayCalculator
+                        .workingDaysBetween(t.getStartDate(), t.getEndDate(), holidays, sundayWorking);
+                LocalDate newStart = WorkingDayCalculator
+                        .addWorkingDays(t.getStartDate(), days, holidays, sundayWorking);
+                LocalDate newEnd = WorkingDayCalculator
+                        .addWorkingDays(newStart, origDuration, holidays, sundayWorking);
+                t.setStartDate(newStart);
+                t.setEndDate(newEnd);
+                taskRepository.save(t);
+            }
+        }
+    }
+
+    private DelayApplier newApplier(Long projectId) {
+        boolean sundayWorking = scheduleConfigRepo.findByProjectId(projectId)
+                .map(c -> Boolean.TRUE.equals(c.getSundayWorking()))
+                .orElse(false);
+        return new DelayApplier(taskRepository, holidayService, sundayWorking);
     }
 }
