@@ -62,11 +62,16 @@ public class GanttController {
             Integer progressPercent = body.get("progressPercent") != null
                     ? Integer.parseInt(body.get("progressPercent").toString())
                     : null;
-            Long dependsOnTaskId = body.get("dependsOnTaskId") != null
-                    ? Long.parseLong(body.get("dependsOnTaskId").toString())
-                    : null;
 
-            Task updated = ganttService.updateTaskSchedule(taskId, startDate, endDate, progressPercent, dependsOnTaskId);
+            // S2 PR2: legacy dependsOnTaskId field is silently ignored.
+            // Predecessor edits flow through PUT /tasks/{id}/predecessors (S1).
+            // Logged at INFO so we can observe rolling-deploy traffic and
+            // confirm clients have stopped sending the field.
+            if (body.containsKey("dependsOnTaskId")) {
+                logger.info("Ignored deprecated field 'dependsOnTaskId' on PUT /tasks/{}/schedule", taskId);
+            }
+
+            Task updated = ganttService.updateTaskSchedule(taskId, startDate, endDate, progressPercent);
             return ResponseEntity.ok(ApiResponse.success("Task schedule updated successfully", updated));
 
         } catch (IllegalArgumentException e) {

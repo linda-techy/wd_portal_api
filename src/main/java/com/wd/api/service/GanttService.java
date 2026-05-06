@@ -1,6 +1,8 @@
 package com.wd.api.service;
 
 import com.wd.api.model.Task;
+import com.wd.api.model.scheduling.TaskPredecessor;
+import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +18,11 @@ import java.util.*;
  *
  * Design notes:
  * - Portal API owns all mutations; customer API is read-only.
- * - Circular dependency detection uses iterative traversal (no recursion limit issues).
+ * - S2 PR2 dropped the legacy single-predecessor column. Predecessor
+ *   edits now flow through {@code PUT /tasks/{id}/predecessors}
+ *   (added in S1) — this service no longer touches the predecessor
+ *   graph. Cycle detection lives in
+ *   {@link com.wd.api.service.scheduling.TaskGraphValidator}.
  */
 @Service
 public class GanttService {
@@ -25,6 +31,9 @@ public class GanttService {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private TaskPredecessorRepository taskPredecessorRepository;
 
     @Autowired
     private com.wd.api.service.scheduling.CpmService cpmService;
@@ -58,6 +67,17 @@ public class GanttService {
         int countForProgress = 0;
         int overdueTasks = 0;
 
+        // Single-pass predecessor lookup so per-task DTOs don't re-query.
+        Map<Long, List<Long>> predecessorIdsByTaskId = new HashMap<>();
+        if (!tasks.isEmpty()) {
+            List<Long> taskIds = tasks.stream().map(Task::getId).toList();
+            for (TaskPredecessor tp : taskPredecessorRepository.findBySuccessorIdIn(taskIds)) {
+                predecessorIdsByTaskId
+                        .computeIfAbsent(tp.getSuccessorId(), k -> new ArrayList<>())
+                        .add(tp.getPredecessorId());
+            }
+        }
+
         List<Map<String, Object>> taskDtos = new ArrayList<>();
 
         for (Task t : tasks) {
@@ -86,7 +106,8 @@ public class GanttService {
                 countForProgress++;
             }
 
-            taskDtos.add(buildTaskDto(t, overdue));
+            taskDtos.add(buildTaskDto(t, overdue,
+                    predecessorIdsByTaskId.getOrDefault(t.getId(), List.of())));
         }
 
         int overallProgress = countForProgress > 0 ? totalProgress / countForProgress : 0;
@@ -110,14 +131,15 @@ public class GanttService {
      * Validations:
      * 1. endDate >= startDate (when both are provided)
      * 2. progressPercent in [0, 100]
-     * 3. No circular dependency in dependsOnTaskId chain
+     *
+     * <p>Predecessor edits go through PUT /tasks/{id}/predecessors
+     * (handled by TaskPredecessorService) — no longer accepted here.
      */
     @Transactional
     public Task updateTaskSchedule(Long taskId,
                                    LocalDate startDate,
                                    LocalDate endDate,
-                                   Integer progressPercent,
-                                   Long dependsOnTaskId) {
+                                   Integer progressPercent) {
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found: " + taskId));
@@ -132,18 +154,9 @@ public class GanttService {
             throw new IllegalArgumentException("progressPercent must be between 0 and 100");
         }
 
-        // Validate no circular dependency
-        if (dependsOnTaskId != null) {
-            if (dependsOnTaskId.equals(taskId)) {
-                throw new IllegalArgumentException("A task cannot depend on itself");
-            }
-            detectCircularDependency(taskId, dependsOnTaskId);
-        }
-
         task.setStartDate(startDate);
         task.setEndDate(endDate);
         if (progressPercent != null) task.setProgressPercent(progressPercent);
-        task.setDependsOnTaskId(dependsOnTaskId);
 
         Task saved = taskRepository.save(task);
         // S2 PR1: schedule mutations change CPM inputs; keep denormalized columns consistent.
@@ -157,27 +170,7 @@ public class GanttService {
     // Helpers
     // ──────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Walk the dependsOn chain from {@code candidateId} and ensure {@code taskId}
-     * does not appear (which would form a cycle).
-     */
-    private void detectCircularDependency(Long taskId, Long candidateId) {
-        Set<Long> visited = new HashSet<>();
-        Long current = candidateId;
-
-        while (current != null) {
-            if (!visited.add(current)) break; // already visited — chain has its own cycle
-            if (current.equals(taskId)) {
-                throw new IllegalArgumentException(
-                        "Circular dependency detected: task " + taskId + " is already in the dependency chain");
-            }
-            Task dep = taskRepository.findById(current).orElse(null);
-            if (dep == null) break;
-            current = dep.getDependsOnTaskId();
-        }
-    }
-
-    private Map<String, Object> buildTaskDto(Task t, boolean overdue) {
+    private Map<String, Object> buildTaskDto(Task t, boolean overdue, List<Long> predecessorIds) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", t.getId());
         dto.put("title", t.getTitle());
@@ -187,7 +180,7 @@ public class GanttService {
         dto.put("endDate", t.getEndDate());
         dto.put("dueDate", t.getDueDate());
         dto.put("progressPercent", t.getProgressPercent() != null ? t.getProgressPercent() : 0);
-        dto.put("dependsOnTaskId", t.getDependsOnTaskId());
+        dto.put("predecessorIds", predecessorIds);
         dto.put("overdue", overdue);
         return dto;
     }

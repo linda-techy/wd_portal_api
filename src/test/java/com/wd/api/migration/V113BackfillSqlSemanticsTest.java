@@ -1,6 +1,7 @@
 package com.wd.api.migration;
 
 import com.wd.api.testsupport.FlywayMigrationTestBase;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -35,6 +36,14 @@ class V113BackfillSqlSemanticsTest extends FlywayMigrationTestBase {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @AfterEach
+    void dropLegacyColumnIfPresent() {
+        // DDL is auto-committed and outlives @Transactional rollback, so the
+        // ALTER TABLE ADD COLUMN we use to seed pre-V121 state would otherwise
+        // leak across tests in the same JVM. Drop it deterministically.
+        jdbc.execute("ALTER TABLE tasks DROP COLUMN IF EXISTS depends_on_task_id");
+    }
+
     private static String loadV113Sql() throws IOException {
         ClassPathResource resource =
                 new ClassPathResource("db/migration/V113__backfill_task_predecessor.sql");
@@ -42,6 +51,13 @@ class V113BackfillSqlSemanticsTest extends FlywayMigrationTestBase {
     }
 
     private void seedFixture() {
+        // S2 PR2 dropped Task.dependsOnTaskId from the JPA entity, so
+        // Hibernate's create-drop schema no longer includes the column.
+        // V113 itself ran in production BEFORE V121's drop — so we must
+        // re-create the column here to faithfully exercise V113's SQL
+        // body. (See V121DropDependsOnTaskIdTest for the same trick.)
+        jdbc.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS depends_on_task_id BIGINT");
+
         // Insert a tiny customer_projects row so FK constraints pass.
         jdbc.update("""
             INSERT INTO customer_projects (id, project_uuid, name, location, is_design_agreement_signed,
@@ -116,6 +132,9 @@ class V113BackfillSqlSemanticsTest extends FlywayMigrationTestBase {
     void backfill_skipsDanglingForeignKeyRows() throws IOException {
         // Targeted scenario: a single task with depends_on_task_id pointing
         // to a non-existent task. V113's INNER JOIN tasks p must drop the row.
+        // Re-add the dropped-by-V121 column so the V113 SQL body has something
+        // to read.
+        jdbc.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS depends_on_task_id BIGINT");
         jdbc.update("""
             INSERT INTO customer_projects (id, project_uuid, name, location, is_design_agreement_signed,
                                            created_at, updated_at, version)

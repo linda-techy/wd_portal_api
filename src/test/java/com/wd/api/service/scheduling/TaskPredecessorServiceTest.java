@@ -7,7 +7,7 @@ import com.wd.api.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.api.AfterEach;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -15,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -26,6 +25,7 @@ class TaskPredecessorServiceTest {
 
     @Mock private TaskPredecessorRepository predecessorRepo;
     @Mock private TaskRepository taskRepo;
+    @Mock private CpmService cpmService;
     @InjectMocks private TaskPredecessorService service;
 
     private Task task(long id) {
@@ -41,28 +41,30 @@ class TaskPredecessorServiceTest {
     }
 
     @Test
-    void replacePredecessors_withSinglePred_dualWritesDependsOnTaskId() {
+    void replacePredecessors_withSinglePred_persistsEdge() {
         lenient().when(predecessorRepo.findBySuccessorId(anyLong())).thenReturn(List.of());
         when(predecessorRepo.save(any(TaskPredecessor.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.replacePredecessors(2L, List.of(new TaskPredecessorService.PredecessorEntry(1L, 0)));
 
-        ArgumentCaptor<Task> captor = ArgumentCaptor.forClass(Task.class);
-        verify(taskRepo).save(captor.capture());
-        assertThat(captor.getValue().getDependsOnTaskId()).isEqualTo(1L);
+        verify(predecessorRepo).deleteBySuccessorId(2L);
+        verify(predecessorRepo).save(any(TaskPredecessor.class));
+        // S2 PR2 dropped Task.dependsOnTaskId; the service no longer dual-writes
+        // the legacy column. task_predecessor is the canonical edge store.
+        verify(taskRepo, never()).save(any());
     }
 
     @Test
-    void replacePredecessors_withZeroPreds_setsDependsOnTaskIdNull() {
+    void replacePredecessors_withZeroPreds_clearsExistingEdges() {
         service.replacePredecessors(2L, List.of());
 
-        ArgumentCaptor<Task> captor = ArgumentCaptor.forClass(Task.class);
-        verify(taskRepo).save(captor.capture());
-        assertThat(captor.getValue().getDependsOnTaskId()).isNull();
+        verify(predecessorRepo).deleteBySuccessorId(2L);
+        verify(predecessorRepo, never()).save(any(TaskPredecessor.class));
+        verify(taskRepo, never()).save(any());
     }
 
     @Test
-    void replacePredecessors_withTwoPreds_setsDependsOnTaskIdNull() {
+    void replacePredecessors_withTwoPreds_persistsBothEdges() {
         lenient().when(predecessorRepo.findBySuccessorId(anyLong())).thenReturn(List.of());
         when(predecessorRepo.save(any(TaskPredecessor.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -70,9 +72,9 @@ class TaskPredecessorServiceTest {
                 new TaskPredecessorService.PredecessorEntry(1L, 0),
                 new TaskPredecessorService.PredecessorEntry(2L, 0)));
 
-        ArgumentCaptor<Task> captor = ArgumentCaptor.forClass(Task.class);
-        verify(taskRepo).save(captor.capture());
-        assertThat(captor.getValue().getDependsOnTaskId()).isNull();
+        verify(predecessorRepo).deleteBySuccessorId(3L);
+        verify(predecessorRepo, times(2)).save(any(TaskPredecessor.class));
+        verify(taskRepo, never()).save(any());
     }
 
     @Test

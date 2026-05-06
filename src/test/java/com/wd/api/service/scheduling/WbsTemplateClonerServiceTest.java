@@ -352,12 +352,12 @@ class WbsTemplateClonerServiceTest extends TestcontainersPostgresBase {
     }
 
     @Test
-    void cloner_setsDependsOnTaskIdForSinglePredecessorTasks() {
+    void cloner_writesPredecessorEdgesIntoTaskPredecessorTable() {
         // The fixture template has a NONE → PER_FLOOR fan-out: Foundation (NONE)
         // is the sole predecessor of Slab Casting (PER_FLOOR), one edge per
-        // floor. Each Slab Casting Floor N has exactly 1 predecessor → its
-        // legacy dependsOnTaskId should mirror Foundation's id.
-        // Foundation itself has 0 predecessors → its dependsOnTaskId stays null.
+        // floor. After S2 PR2 dropped Task.dependsOnTaskId, the canonical
+        // predecessor store is task_predecessor — assert the expected rows
+        // are persisted there.
         Fixture f = buildFixture("FIX_DEPENDS_ON");
         CustomerProject project = newProject(null);
         cloner.cloneInto(project, f.template.getId(), 2);
@@ -369,15 +369,17 @@ class WbsTemplateClonerServiceTest extends TestcontainersPostgresBase {
                 .filter(t -> "Slab Casting — Floor 0".equals(t.getTitle()))
                 .findFirst().orElseThrow();
 
-        // Single-predecessor task → legacy mirror set.
-        assertThat(slabFloor0.getDependsOnTaskId())
-                .as("Slab Casting Floor 0 has exactly 1 predecessor (Foundation); "
-                        + "legacy dependsOnTaskId must mirror it")
-                .isEqualTo(foundation.getId());
+        // Slab Casting Floor 0 has exactly 1 predecessor edge → Foundation.
+        List<TaskPredecessor> slabPreds = taskPreds.findBySuccessorId(slabFloor0.getId());
+        assertThat(slabPreds)
+                .as("Slab Casting Floor 0 must have exactly one predecessor edge to Foundation")
+                .hasSize(1);
+        assertThat(slabPreds.get(0).getPredecessorId()).isEqualTo(foundation.getId());
 
-        // Zero-predecessor task → legacy mirror stays null.
-        assertThat(foundation.getDependsOnTaskId())
-                .as("Foundation has 0 predecessors; legacy dependsOnTaskId must be null")
-                .isNull();
+        // Foundation has 0 predecessors.
+        List<TaskPredecessor> foundationPreds = taskPreds.findBySuccessorId(foundation.getId());
+        assertThat(foundationPreds)
+                .as("Foundation has 0 predecessors")
+                .isEmpty();
     }
 }
