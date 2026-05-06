@@ -78,13 +78,6 @@ public class Task extends BaseEntity {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    /**
-     * Optional dependency: this task cannot start before the referenced task finishes.
-     * Stored as a plain FK column to avoid circular JPA proxy issues.
-     */
-    @Column(name = "depends_on_task_id")
-    private Long dependsOnTaskId;
-
     @Column(name = "progress_percent")
     private Integer progressPercent = 0;
 
@@ -237,14 +230,6 @@ public class Task extends BaseEntity {
 
     public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
-    }
-
-    public Long getDependsOnTaskId() {
-        return dependsOnTaskId;
-    }
-
-    public void setDependsOnTaskId(Long dependsOnTaskId) {
-        this.dependsOnTaskId = dependsOnTaskId;
     }
 
     public Integer getProgressPercent() {

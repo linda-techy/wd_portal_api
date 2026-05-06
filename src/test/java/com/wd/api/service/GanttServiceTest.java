@@ -1,6 +1,7 @@
 package com.wd.api.service;
 
 import com.wd.api.model.Task;
+import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,12 @@ class GanttServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
+
+    @Mock
+    private TaskPredecessorRepository taskPredecessorRepository;
+
+    @Mock
+    private com.wd.api.service.scheduling.CpmService cpmService;
 
     @InjectMocks
     private GanttService ganttService;
@@ -129,7 +136,7 @@ class GanttServiceTest {
                 1L,
                 LocalDate.now().plusDays(5),
                 LocalDate.now().plusDays(2), // before start
-                0, null))
+                0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("endDate must be on or after startDate");
     }
@@ -141,29 +148,16 @@ class GanttServiceTest {
         when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
 
         assertThatThrownBy(() -> ganttService.updateTaskSchedule(
-                1L, null, null, 150, null))
+                1L, null, null, 150))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("progressPercent must be between 0 and 100");
     }
 
-    @Test
-    void updateTaskSchedule_circularDependency_throwsIllegalArgumentException() {
-        // Task A depends on Task B; now we try to make Task B depend on Task A → circular
-        Task taskA = task(1L, Task.TaskStatus.PENDING, LocalDate.now(), LocalDate.now().plusDays(5), 0);
-        Task taskB = task(2L, Task.TaskStatus.PENDING, LocalDate.now(), LocalDate.now().plusDays(5), 0);
-        taskB.setDependsOnTaskId(1L); // B → A
-
-        when(taskRepository.findById(2L)).thenReturn(Optional.of(taskB));
-        // detectCircularDependency: walk from candidate=2, find it depends on 1 (= taskId being updated)
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(taskA));
-        taskA.setDependsOnTaskId(null);
-
-        // We're updating taskA (id=1) to depend on taskB (id=2)
-        // Chain: candidate=2 → dependsOn=1 (taskId), so circular
-        assertThatThrownBy(() -> ganttService.updateTaskSchedule(1L, null, null, null, 2L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Circular dependency detected");
-    }
+    // S2 PR2 dropped Task.dependsOnTaskId. Cycle detection now lives in
+    // TaskGraphValidator and is exercised through TaskPredecessorService /
+    // TaskPredecessorServiceTest — predecessor edits do NOT flow through
+    // GanttService.updateTaskSchedule any more. The legacy circular-dep
+    // test case has been removed accordingly.
 
     @Test
     void updateTaskSchedule_validUpdate_savesTask() {
@@ -174,7 +168,7 @@ class GanttServiceTest {
         LocalDate newStart = LocalDate.now();
         LocalDate newEnd   = LocalDate.now().plusDays(30);
 
-        Task result = ganttService.updateTaskSchedule(1L, newStart, newEnd, 25, null);
+        Task result = ganttService.updateTaskSchedule(1L, newStart, newEnd, 25);
 
         assertThat(result.getStartDate()).isEqualTo(newStart);
         assertThat(result.getEndDate()).isEqualTo(newEnd);

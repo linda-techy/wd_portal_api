@@ -14,12 +14,10 @@ import java.util.Objects;
 /**
  * Manages the multi-predecessor join table {@code task_predecessor}.
  *
- * <p>S1 dual-writes the legacy {@code Task.dependsOnTaskId} column:
- * <ul>
- *   <li>exactly one predecessor → mirror it to {@code dependsOnTaskId}</li>
- *   <li>zero or 2+ predecessors → set {@code dependsOnTaskId = null}</li>
- * </ul>
- * The legacy column is dropped in S2.
+ * <p>S2 dropped the legacy {@code Task.dependsOnTaskId} column;
+ * {@code task_predecessor} is the canonical edge store from this point
+ * on. CPM denormalized columns are kept consistent via a recompute hook
+ * after every mutation.
  */
 @Service
 public class TaskPredecessorService {
@@ -70,17 +68,9 @@ public class TaskPredecessorService {
             saved.add(predecessorRepo.save(row));
         }
 
-        // 3) Dual-write to legacy column.
+        // S2 PR1: keep CPM denormalized columns consistent on every graph mutation.
         Task t = taskRepo.findById(successorId)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found: " + successorId));
-        if (saved.size() == 1) {
-            t.setDependsOnTaskId(saved.get(0).getPredecessorId());
-        } else {
-            t.setDependsOnTaskId(null);
-        }
-        taskRepo.save(t);
-
-        // S2 PR1: keep CPM denormalized columns consistent on every graph mutation.
         if (t.getProject() != null && t.getProject().getId() != null) {
             cpmService.recompute(t.getProject().getId());
         }

@@ -44,7 +44,7 @@ class GanttServiceCpmHookTest extends TestcontainersPostgresBase {
         t = tasks.save(t);
 
         ganttService.updateTaskSchedule(
-                t.getId(), LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 5), 0, null);
+                t.getId(), LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 5), 0);
 
         verify(cpm, atLeastOnce()).recompute(p.getId());
     }

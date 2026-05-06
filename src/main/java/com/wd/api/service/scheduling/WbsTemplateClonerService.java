@@ -184,10 +184,6 @@ public class WbsTemplateClonerService {
             }
         }
 
-        // Dual-write to legacy Task.dependsOnTaskId for tasks with exactly one
-        // predecessor (mirrors TaskPredecessorService behaviour from PR1).
-        applyLegacyDependsOnDualWrite(project.getId());
-
         log.info("Cloned WBS template {} v{} into project {}: {} milestones, {} tasks, {} predecessors",
                  template.getCode(), template.getVersion(), project.getId(),
                  milestonesCreated, tasksCreated, predsCreated);
@@ -198,30 +194,6 @@ public class WbsTemplateClonerService {
         TaskPredecessor row = new TaskPredecessor(successorId, predecessorId, lagDays);
         row.setDepType(depType);
         taskPredecessorRepo.save(row);
-    }
-
-    /**
-     * For every task in the just-cloned project, if it has exactly one row in
-     * task_predecessor, mirror that predecessor id onto Task.depends_on_task_id;
-     * otherwise leave it null. Matches the contract enforced by
-     * {@link TaskPredecessorService#replacePredecessors}.
-     */
-    private void applyLegacyDependsOnDualWrite(Long projectId) {
-        taskRepo.flush();
-        taskPredecessorRepo.flush();
-        for (Task t : taskRepo.findByProjectId(projectId)) {
-            long n = taskPredecessorRepo.countBySuccessorId(t.getId());
-            if (n == 1L) {
-                List<TaskPredecessor> ps = taskPredecessorRepo.findBySuccessorId(t.getId());
-                if (!ps.isEmpty()) {
-                    Long onlyPred = ps.get(0).getPredecessorId();
-                    if (!onlyPred.equals(t.getDependsOnTaskId())) {
-                        t.setDependsOnTaskId(onlyPred);
-                        taskRepo.save(t);
-                    }
-                }
-            }
-        }
     }
 
     private int resolveFloorCount(CustomerProject project, Integer requested) {
