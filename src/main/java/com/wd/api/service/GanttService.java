@@ -26,6 +26,9 @@ public class GanttService {
     @Autowired
     private TaskRepository taskRepository;
 
+    @Autowired
+    private com.wd.api.service.scheduling.CpmService cpmService;
+
     // ──────────────────────────────────────────────────────────────────────────
     // Read
     // ──────────────────────────────────────────────────────────────────────────
@@ -142,7 +145,12 @@ public class GanttService {
         if (progressPercent != null) task.setProgressPercent(progressPercent);
         task.setDependsOnTaskId(dependsOnTaskId);
 
-        return taskRepository.save(task);
+        Task saved = taskRepository.save(task);
+        // S2 PR1: schedule mutations change CPM inputs; keep denormalized columns consistent.
+        if (saved.getProject() != null && saved.getProject().getId() != null) {
+            cpmService.recompute(saved.getProject().getId());
+        }
+        return saved;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
