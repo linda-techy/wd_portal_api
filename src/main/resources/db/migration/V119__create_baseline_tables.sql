@@ -50,5 +50,8 @@ CREATE TABLE task_baseline (
     CONSTRAINT uq_task_baseline_pair UNIQUE (baseline_id, task_id)
 );
 
-CREATE INDEX idx_task_baseline_baseline_id ON task_baseline(baseline_id);
+-- Note: no separate idx_task_baseline_baseline_id — the
+-- UNIQUE (baseline_id, task_id) constraint on uq_task_baseline_pair
+-- already creates a composite btree with baseline_id as the leading
+-- column, which subsumes any baseline_id-only lookup.
 CREATE INDEX idx_task_baseline_task_id     ON task_baseline(task_id);
