@@ -19,12 +19,13 @@ CREATE TABLE project_baseline (
     project_start_date    DATE         NOT NULL,
     project_finish_date   DATE         NOT NULL,
     -- BaseEntity audit columns (matches V112 / V115 convention)
-    created_at            TIMESTAMP    NOT NULL DEFAULT NOW(),
-    updated_at            TIMESTAMP    NOT NULL DEFAULT NOW(),
-    created_by            BIGINT,
-    updated_by            BIGINT,
-    deleted_at            TIMESTAMP,
-    version               BIGINT       NOT NULL DEFAULT 0
+    created_at              TIMESTAMP,
+    updated_at              TIMESTAMP,
+    created_by_user_id      BIGINT,
+    updated_by_user_id      BIGINT,
+    deleted_at              TIMESTAMP,
+    deleted_by_user_id      BIGINT,
+    version                 BIGINT     NOT NULL DEFAULT 1
 );
 
 CREATE INDEX idx_project_baseline_project_id ON project_baseline(project_id);
@@ -39,12 +40,13 @@ CREATE TABLE task_baseline (
     baseline_end            DATE       NOT NULL,
     baseline_duration_days  INT        NOT NULL,
     -- BaseEntity audit columns
-    created_at              TIMESTAMP  NOT NULL DEFAULT NOW(),
-    updated_at              TIMESTAMP  NOT NULL DEFAULT NOW(),
-    created_by              BIGINT,
-    updated_by              BIGINT,
+    created_at              TIMESTAMP,
+    updated_at              TIMESTAMP,
+    created_by_user_id      BIGINT,
+    updated_by_user_id      BIGINT,
     deleted_at              TIMESTAMP,
-    version                 BIGINT     NOT NULL DEFAULT 0,
+    deleted_by_user_id      BIGINT,
+    version                 BIGINT     NOT NULL DEFAULT 1,
     CONSTRAINT uq_task_baseline_pair UNIQUE (baseline_id, task_id)
 );
 
