@@ -116,6 +116,23 @@ public class Task extends BaseEntity {
     @Column(name = "monsoon_sensitive", nullable = false)
     private Boolean monsoonSensitive = Boolean.FALSE;
 
+    // ===== Weighted-progress columns (V122) =====
+
+    /**
+     * Optional scheduler override for progress weighting.
+     * Null means "fall back to duration_days, then 1".
+     */
+    @Column(name = "weight")
+    private Integer weight;
+
+    /**
+     * Planned working-day duration. Populated by the WBS cloner from
+     * the source template task; backfilled for pre-existing tasks at
+     * boot via TaskDurationBackfiller. Null for tasks with no dates.
+     */
+    @Column(name = "duration_days")
+    private Integer durationDays;
+
     // Constructors
     public Task() {
     }
@@ -281,6 +298,12 @@ public class Task extends BaseEntity {
     public void setMonsoonSensitive(Boolean monsoonSensitive) {
         this.monsoonSensitive = monsoonSensitive == null ? Boolean.FALSE : monsoonSensitive;
     }
+
+    public Integer getWeight() { return weight; }
+    public void setWeight(Integer weight) { this.weight = weight; }
+
+    public Integer getDurationDays() { return durationDays; }
+    public void setDurationDays(Integer durationDays) { this.durationDays = durationDays; }
 
     // Enums
     public enum TaskStatus {
