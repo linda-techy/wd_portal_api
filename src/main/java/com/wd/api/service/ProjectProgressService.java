@@ -18,8 +18,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service for calculating and managing project progress
- * Implements hybrid progress tracking based on milestones, tasks, and budget
+ * Service for calculating and managing project progress.
+ *
+ * <p>S3 PR1 rewrite: replaces the legacy hybrid 40/30/30 algorithm
+ * (milestone × 0.40 + task × 0.30 + budget × 0.30) with a single
+ * task-weight-based percentage. See
+ * {@link #calculateProjectProgress(Long)} for the formula.
  */
 @Service
 @Transactional
@@ -43,8 +47,24 @@ public class ProjectProgressService {
         private ProjectTypeTemplateRepository typeTemplateRepository;
 
         /**
-         * Calculate overall project progress using hybrid method
-         * Formula: Overall = (Milestone × 0.40) + (Task × 0.30) + (Budget × 0.30)
+         * Calculate overall project progress using weight-based formula.
+         *
+         * <p>S3 PR1 rewrite: the legacy hybrid 40/30/30 (milestone × 0.40 +
+         * task × 0.30 + budget × 0.30) was replaced with a single
+         * task-weight-based percentage:
+         *
+         * <pre>
+         *   effectiveWeight(t) = t.weight ?? t.durationDays ?? 1
+         *   total              = sum effectiveWeight over all tasks
+         *   completed          = sum effectiveWeight over completed tasks
+         *   pct                = completed / total × 100   (HALF_UP @ 2dp)
+         * </pre>
+         *
+         * Empty project = 0%. CANCELLED tasks are filtered entirely —
+         * they contribute to neither numerator nor denominator (cancelled
+         * scope must not penalize progress). A task counts as completed
+         * when its status is COMPLETED; PR2 will tighten this to require
+         * photo evidence before status can reach COMPLETED.
          */
         public ProjectProgressDTO calculateProjectProgress(Long projectId) {
                 logger.info("Calculating progress for project ID: {}", projectId);
@@ -52,153 +72,88 @@ public class ProjectProgressService {
                 CustomerProject project = projectRepository.findById(projectId)
                                 .orElseThrow(() -> new RuntimeException("Project not found with ID: " + projectId));
 
-                // Get weights (default: 40-30-30)
-                BigDecimal milestoneWeight = project.getMilestoneWeight() != null ? project.getMilestoneWeight()
-                                : new BigDecimal("0.40");
-                BigDecimal taskWeight = project.getTaskWeight() != null ? project.getTaskWeight()
-                                : new BigDecimal("0.30");
-                BigDecimal budgetWeight = project.getBudgetWeight() != null ? project.getBudgetWeight()
-                                : new BigDecimal("0.30");
+                List<Task> tasks = taskRepository.findByProjectId(projectId);
 
-                // Calculate individual progress components
-                BigDecimal milestoneProgress = calculateMilestoneProgress(projectId);
-                BigDecimal taskProgress = calculateTaskProgress(projectId);
-                BigDecimal budgetProgress = calculateBudgetProgress(projectId);
-
-                // Calculate weighted overall progress
-                BigDecimal overallProgress = milestoneProgress.multiply(milestoneWeight)
-                                .add(taskProgress.multiply(taskWeight))
-                                .add(budgetProgress.multiply(budgetWeight))
-                                .setScale(2, RoundingMode.HALF_UP);
-
-                // Build DTO
                 ProjectProgressDTO dto = new ProjectProgressDTO();
                 dto.setProjectId(projectId);
-                dto.setOverallProgress(overallProgress);
-                dto.setMilestoneProgress(milestoneProgress);
-                dto.setTaskProgress(taskProgress);
-                dto.setBudgetProgress(budgetProgress);
                 dto.setLastUpdate(LocalDateTime.now());
-                dto.setCalculationMethod(project.getProgressCalculationMethod());
-                dto.setMilestoneWeight(milestoneWeight);
-                dto.setTaskWeight(taskWeight);
-                dto.setBudgetWeight(budgetWeight);
-
-                // Add counts
-                List<ProjectMilestone> milestones = milestoneRepository.findByProjectId(projectId);
-                dto.setTotalMilestones(milestones.size());
-                dto.setCompletedMilestones((int) milestones.stream()
-                                .filter(m -> "COMPLETED".equals(m.getStatus()))
-                                .count());
-
-                List<Task> tasks = taskRepository.findByProjectId(projectId);
-                dto.setTotalTasks(tasks.size());
-                dto.setCompletedTasks((int) tasks.stream()
-                                .filter(t -> "COMPLETED".equals(t.getStatus().name())
-                                                || "DONE".equals(t.getStatus().name()))
-                                .count());
-
+                dto.setCalculationMethod("WEIGHTED_TASK");
                 dto.setTotalBudget(project.getBudget());
-                dto.setSpentAmount(calculateTotalSpent(projectId));
+                dto.setSpentAmount(BigDecimal.ZERO);
+                // Pre-PR1 callers (DashboardService.budgetUtilizationPct)
+                // read CustomerProject.milestoneProgress / .budgetProgress
+                // as non-null. The new weighted algorithm doesn't compute
+                // milestone/budget components, so ZERO is the
+                // semantically-correct legacy-field value while preserving
+                // the non-null contract.
+                dto.setMilestoneProgress(BigDecimal.ZERO);
+                dto.setBudgetProgress(BigDecimal.ZERO);
 
-                logger.info("Progress calculation completed for project {}: Overall={}%, Milestone={}%, Task={}%, Budget={}%",
-                                projectId, overallProgress, milestoneProgress, taskProgress, budgetProgress);
+                if (tasks.isEmpty()) {
+                        dto.setOverallProgress(BigDecimal.ZERO);
+                        dto.setTaskProgress(BigDecimal.ZERO);
+                        dto.setTotalTasks(0);
+                        dto.setCompletedTasks(0);
+                        dto.setTotalMilestones(0);
+                        dto.setCompletedMilestones(0);
+                        return dto;
+                }
+
+                long totalWeight = 0L;
+                long completedWeight = 0L;
+                int completedCount = 0;
+                int activeCount = 0;
+                for (Task t : tasks) {
+                        // Spec: CANCELLED tasks don't count toward progress
+                        // (no work done) and aren't denominators either —
+                        // filter them out entirely.
+                        if (t.getStatus() == Task.TaskStatus.CANCELLED) continue;
+                        int w = effectiveWeight(t);
+                        totalWeight += w;
+                        activeCount++;
+                        if (isCompleted(t)) {
+                                completedWeight += w;
+                                completedCount++;
+                        }
+                }
+
+                if (totalWeight == 0L) {
+                        // All tasks are cancelled — treat like an empty
+                        // project: 0% with no active denominator.
+                        dto.setOverallProgress(BigDecimal.ZERO);
+                        dto.setTaskProgress(BigDecimal.ZERO);
+                        dto.setTotalTasks(0);
+                        dto.setCompletedTasks(0);
+                        dto.setTotalMilestones(0);
+                        dto.setCompletedMilestones(0);
+                        return dto;
+                }
+
+                BigDecimal pct = BigDecimal.valueOf(completedWeight)
+                                .multiply(BigDecimal.valueOf(100))
+                                .divide(BigDecimal.valueOf(totalWeight), 2, RoundingMode.HALF_UP);
+
+                dto.setOverallProgress(pct);
+                dto.setTaskProgress(pct);
+                dto.setTotalTasks(activeCount);
+                dto.setCompletedTasks(completedCount);
+                dto.setTotalMilestones(0);
+                dto.setCompletedMilestones(0);
+
+                logger.info("Progress for project {}: {}% ({}/{} tasks completed by weight)",
+                                projectId, pct, completedCount, activeCount);
 
                 return dto;
         }
 
-        /**
-         * Calculate progress based on milestone completion
-         * Weighted average of completed milestone percentages
-         */
-        private BigDecimal calculateMilestoneProgress(Long projectId) {
-                List<ProjectMilestone> milestones = milestoneRepository.findByProjectId(projectId);
-
-                if (milestones.isEmpty()) {
-                        return BigDecimal.ZERO;
-                }
-
-                // Calculate weighted sum of milestone completions
-                BigDecimal totalWeight = BigDecimal.ZERO;
-                BigDecimal weightedSum = BigDecimal.ZERO;
-
-                for (ProjectMilestone milestone : milestones) {
-                        BigDecimal weight = milestone.getWeightPercentage() != null
-                                        ? milestone.getWeightPercentage()
-                                        : milestone.getMilestonePercentage();
-
-                        if (weight == null) {
-                                weight = new BigDecimal("100").divide(new BigDecimal(milestones.size()), 2,
-                                                RoundingMode.HALF_UP);
-                        }
-
-                        BigDecimal completion = milestone.getCompletionPercentage() != null
-                                        ? milestone.getCompletionPercentage()
-                                        : ("COMPLETED".equals(milestone.getStatus()) ? new BigDecimal("100")
-                                                        : BigDecimal.ZERO);
-
-                        totalWeight = totalWeight.add(weight);
-                        weightedSum = weightedSum
-                                        .add(weight.multiply(completion).divide(new BigDecimal("100"), 4,
-                                                        RoundingMode.HALF_UP));
-                }
-
-                if (totalWeight.compareTo(BigDecimal.ZERO) == 0) {
-                        return BigDecimal.ZERO;
-                }
-
-                return weightedSum.multiply(new BigDecimal("100"))
-                                .divide(totalWeight, 2, RoundingMode.HALF_UP);
+        private static int effectiveWeight(Task t) {
+                if (t.getWeight() != null) return t.getWeight();
+                if (t.getDurationDays() != null) return t.getDurationDays();
+                return 1;
         }
 
-        /**
-         * Calculate progress based on task completion
-         * Simple percentage of completed tasks
-         */
-        private BigDecimal calculateTaskProgress(Long projectId) {
-                List<Task> tasks = taskRepository.findByProjectId(projectId);
-
-                if (tasks.isEmpty()) {
-                        return BigDecimal.ZERO;
-                }
-
-                long completedCount = tasks.stream()
-                                .filter(t -> "COMPLETED".equals(t.getStatus().name())
-                                                || "DONE".equals(t.getStatus().name()))
-                                .count();
-
-                return new BigDecimal(completedCount)
-                                .multiply(new BigDecimal("100"))
-                                .divide(new BigDecimal(tasks.size()), 2, RoundingMode.HALF_UP);
-        }
-
-        /**
-         * Calculate progress based on budget utilization
-         * Compares spent amount to total budget
-         */
-        private BigDecimal calculateBudgetProgress(Long projectId) {
-                CustomerProject project = projectRepository.findById(projectId).orElse(null);
-                if (project == null || project.getBudget() == null
-                                || project.getBudget().compareTo(BigDecimal.ZERO) == 0) {
-                        return BigDecimal.ZERO;
-                }
-
-                BigDecimal totalSpent = calculateTotalSpent(projectId);
-                BigDecimal progress = totalSpent.multiply(new BigDecimal("100"))
-                                .divide(project.getBudget(), 2, RoundingMode.HALF_UP);
-
-                // Cap at 100%
-                return progress.min(new BigDecimal("100"));
-        }
-
-        /**
-         * Calculate total amount spent on project
-         * Note: This is a simplified calculation. In production, you'd query from
-         * payment_schedules or other financial tables linked to projects.
-         */
-        private BigDecimal calculateTotalSpent(Long projectId) {
-                // For now, return zero as budget tracking will be based on other sources
-                return BigDecimal.ZERO;
+        private static boolean isCompleted(Task t) {
+                return t.getStatus() == Task.TaskStatus.COMPLETED;
         }
 
         /**
