@@ -153,9 +153,7 @@ public class ProjectProgressService {
         }
 
         private static boolean isCompleted(Task t) {
-                if (t.getStatus() == null) return false;
-                String name = t.getStatus().name();
-                return "COMPLETED".equals(name) || "DONE".equals(name);
+                return t.getStatus() == Task.TaskStatus.COMPLETED;
         }
 
         /**

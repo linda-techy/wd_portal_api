@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   <li>effectiveWeight = weight ?? duration_days ?? 1</li>
  *   <li>completedWeight / totalWeight × 100, rounded HALF_UP to 2 dp</li>
  *   <li>Empty project = 0%</li>
- *   <li>Status COMPLETED or DONE both count as completed</li>
+ *   <li>Status COMPLETED counts as completed; CANCELLED is filtered out</li>
  * </ul>
  *
  * <p>The legacy 40/30/30 hybrid path must NOT be reachable for the
@@ -123,20 +123,6 @@ class ProjectProgressServiceWeightedTest extends TestcontainersPostgresBase {
         assertThat(dto.getOverallProgress()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(dto.getTotalTasks()).isEqualTo(0);
         assertThat(dto.getCompletedTasks()).isEqualTo(0);
-    }
-
-    @Test
-    void doneStatus_alsoCountsAsCompleted() {
-        CustomerProject p = newProject();
-        newTask(p, Task.TaskStatus.PENDING, 10, null);
-        // Task.TaskStatus has no DONE today; if a downstream PR adds it,
-        // this test enforces the lenient match. For now the COMPLETED arm
-        // is exercised by other tests, and isCompleted handles both names
-        // by string equality. (see ProjectProgressService.isCompleted)
-        newTask(p, Task.TaskStatus.COMPLETED, 10, null);
-
-        ProjectProgressDTO dto = service.calculateProjectProgress(p.getId());
-        assertThat(dto.getOverallProgress()).isEqualByComparingTo(new BigDecimal("50.00"));
     }
 
     @Test
