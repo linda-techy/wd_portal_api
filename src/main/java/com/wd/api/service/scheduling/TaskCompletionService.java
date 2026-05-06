@@ -1,5 +1,6 @@
 package com.wd.api.service.scheduling;
 
+import com.wd.api.dto.scheduling.PendingApprovalRowDto;
 import com.wd.api.exception.ResourceNotFoundException;
 import com.wd.api.model.Task;
 import com.wd.api.model.enums.ReportType;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * S3 PR2 — Completion-gate FSM.
@@ -112,6 +115,29 @@ public class TaskCompletionService {
         Task saved = taskRepo.save(t);
         cpmService.recompute(t.getProject().getId());
         return saved;
+    }
+
+    /**
+     * S3 PR2 — PM Approval Inbox query. Pulls tasks in PENDING_PM_APPROVAL
+     * for projects the caller is a member of and joins each row with the
+     * most recent geotagged COMPLETION SiteReport's first photo URL.
+     */
+    @Transactional(readOnly = true)
+    public List<PendingApprovalRowDto> findPendingApprovalsForUser(Long userId) {
+        List<Task> pending = taskRepo.findPendingPmApprovalForUser(userId);
+        List<PendingApprovalRowDto> out = new ArrayList<>(pending.size());
+        for (Task t : pending) {
+            String photoUrl = siteReportRepo
+                    .findFirstByTaskIdAndReportTypeOrderByReportDateDesc(t.getId(), ReportType.COMPLETION)
+                    .flatMap(sr -> sr.getPhotos().stream().findFirst())
+                    .map(p -> p.getPhotoUrl())
+                    .orElse(null);
+            out.add(new PendingApprovalRowDto(
+                    t.getId(), t.getTitle(),
+                    t.getProject().getId(), t.getProject().getName(),
+                    t.getActualEndDate(), photoUrl));
+        }
+        return out;
     }
 
     private boolean hasGeotaggedCompletionPhoto(Long taskId) {
