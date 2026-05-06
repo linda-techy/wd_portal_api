@@ -46,6 +46,15 @@ public class SiteReport extends BaseEntity {
     @JoinColumn(name = "site_visit_id")
     private SiteVisit siteVisit;
 
+    /**
+     * S3 PR2: links the report to a specific task when the report serves as
+     * completion evidence (reportType=COMPLETION) or task-scoped issue log
+     * (reportType=ISSUE). Nullable so DAILY_PROGRESS reports stay project-
+     * scoped without a task linkage.
+     */
+    @Column(name = "task_id")
+    private Long taskId;
+
     @Column(length = 100)
     private String weather;
 
@@ -161,6 +170,9 @@ public class SiteReport extends BaseEntity {
     public void setSiteVisit(SiteVisit siteVisit) {
         this.siteVisit = siteVisit;
     }
+
+    public Long getTaskId() { return taskId; }
+    public void setTaskId(Long taskId) { this.taskId = taskId; }
 
     public String getWeather() {
         return weather;
