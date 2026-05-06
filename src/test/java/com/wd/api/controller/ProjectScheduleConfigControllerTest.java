@@ -57,7 +57,7 @@ class ProjectScheduleConfigControllerTest extends TestcontainersPostgresBase {
     @WithMockUser(authorities = "HOLIDAY_VIEW")
     void put_withoutEditAuthority_returns403() throws Exception {
         ProjectScheduleConfigDto dto = new ProjectScheduleConfigDto(
-                42L, true, (short) 601, (short) 930, "KL-EKM");
+                42L, true, (short) 601, (short) 930, "KL-EKM", false);
         mvc.perform(put("/api/projects/42/schedule-config")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(dto)))
@@ -68,7 +68,7 @@ class ProjectScheduleConfigControllerTest extends TestcontainersPostgresBase {
     @WithMockUser(authorities = "PROJECT_SCHEDULE_CONFIG_EDIT")
     void put_withEditAuthority_returns200() throws Exception {
         ProjectScheduleConfigDto dto = new ProjectScheduleConfigDto(
-                42L, true, (short) 601, (short) 930, "KL-EKM");
+                42L, true, (short) 601, (short) 930, "KL-EKM", false);
         mvc.perform(put("/api/projects/42/schedule-config")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(dto)))
