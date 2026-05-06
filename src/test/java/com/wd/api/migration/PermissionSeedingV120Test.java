@@ -41,7 +41,14 @@ class PermissionSeedingV120Test extends FlywayMigrationTestBase {
         // Flyway. So we (a) defensively delete any pre-existing rows for the codes
         // we care about, then (b) plain INSERT (no ON CONFLICT — the column has no
         // unique constraint in the create-drop schema).
-        jdbc.update("DELETE FROM portal_role_permissions");
+        // Narrow scope: only the rows that V120 will (re)create. A blanket
+        // DELETE FROM portal_role_permissions would wipe the whole join table
+        // for the test container — risky if any DDL elsewhere auto-commits and
+        // leaks the wipe out of @Transactional rollback.
+        jdbc.execute(
+                "DELETE FROM portal_role_permissions rp " +
+                "USING portal_permissions p " +
+                "WHERE rp.permission_id = p.id AND p.name = 'PROJECT_BASELINE_APPROVE'");
         jdbc.update("DELETE FROM portal_permissions WHERE name = 'PROJECT_BASELINE_APPROVE'");
         jdbc.update("DELETE FROM portal_roles WHERE code IN ('ADMIN','PROJECT_MANAGER','SCHEDULER')");
         jdbc.update("INSERT INTO portal_roles(name, description, code) VALUES " +
