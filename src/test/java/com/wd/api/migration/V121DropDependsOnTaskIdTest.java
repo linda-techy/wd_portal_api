@@ -1,6 +1,7 @@
 package com.wd.api.migration;
 
 import com.wd.api.testsupport.FlywayMigrationTestBase;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -30,6 +31,16 @@ class V121DropDependsOnTaskIdTest extends FlywayMigrationTestBase {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @AfterEach
+    void dropLegacyColumnIfPresent() {
+        // DDL is auto-committed and outlives @Transactional rollback. For this
+        // test specifically the assertion is the same as the test's purpose —
+        // post-V121 the column is gone — so this also locks the schema back
+        // to the expected post-V121 state regardless of test ordering or any
+        // mid-test failure.
+        jdbc.execute("ALTER TABLE tasks DROP COLUMN IF EXISTS depends_on_task_id");
+    }
 
     private static String loadV121Sql() throws IOException {
         ClassPathResource resource =

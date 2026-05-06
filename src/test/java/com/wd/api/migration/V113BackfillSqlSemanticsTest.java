@@ -1,6 +1,7 @@
 package com.wd.api.migration;
 
 import com.wd.api.testsupport.FlywayMigrationTestBase;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -34,6 +35,14 @@ class V113BackfillSqlSemanticsTest extends FlywayMigrationTestBase {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @AfterEach
+    void dropLegacyColumnIfPresent() {
+        // DDL is auto-committed and outlives @Transactional rollback, so the
+        // ALTER TABLE ADD COLUMN we use to seed pre-V121 state would otherwise
+        // leak across tests in the same JVM. Drop it deterministically.
+        jdbc.execute("ALTER TABLE tasks DROP COLUMN IF EXISTS depends_on_task_id");
+    }
 
     private static String loadV113Sql() throws IOException {
         ClassPathResource resource =
