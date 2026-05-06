@@ -5,6 +5,7 @@ import com.wd.api.model.ProjectMilestone;
 import com.wd.api.model.Task;
 import com.wd.api.repository.ProjectMilestoneRepository;
 import com.wd.api.repository.TaskRepository;
+import com.wd.api.service.scheduling.CpmService;
 import com.wd.api.service.wbs.ProgressRollupService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -21,8 +22,9 @@ class TaskProgressUpdateServiceTest {
     private final ProjectMilestoneRepository milestoneRepo = Mockito.mock(ProjectMilestoneRepository.class);
     private final ProgressRollupService rollup = new ProgressRollupService();
     private final ActivityFeedService activityFeed = Mockito.mock(ActivityFeedService.class);
+    private final CpmService cpmService = Mockito.mock(CpmService.class);
     private final TaskProgressUpdateService service =
-            new TaskProgressUpdateService(taskRepo, milestoneRepo, rollup, activityFeed);
+            new TaskProgressUpdateService(taskRepo, milestoneRepo, rollup, activityFeed, cpmService);
 
     private Task taskWithProgress(int currentProgress, Task.TaskStatus status) {
         Task t = new Task();

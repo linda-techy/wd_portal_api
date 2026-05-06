@@ -4,6 +4,7 @@ import com.wd.api.model.PortalUser;
 import com.wd.api.model.Task;
 import com.wd.api.repository.ProjectMilestoneRepository;
 import com.wd.api.repository.TaskRepository;
+import com.wd.api.service.scheduling.CpmService;
 import com.wd.api.service.wbs.ProgressRollupService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,15 +18,18 @@ public class TaskProgressUpdateService {
     private final ProjectMilestoneRepository milestoneRepo;
     private final ProgressRollupService rollup;
     private final ActivityFeedService activityFeed;
+    private final CpmService cpmService;
 
     public TaskProgressUpdateService(TaskRepository taskRepo,
                                       ProjectMilestoneRepository milestoneRepo,
                                       ProgressRollupService rollup,
-                                      ActivityFeedService activityFeed) {
+                                      ActivityFeedService activityFeed,
+                                      CpmService cpmService) {
         this.taskRepo = taskRepo;
         this.milestoneRepo = milestoneRepo;
         this.rollup = rollup;
         this.activityFeed = activityFeed;
+        this.cpmService = cpmService;
     }
 
     @Transactional
@@ -48,6 +52,15 @@ public class TaskProgressUpdateService {
         }
 
         Task saved = taskRepo.save(task);
+
+        // CPM recompute: any path that mutates actualStart/EndDate (and progress
+        // updates can auto-stamp actualEndDate on COMPLETED transitions) must
+        // refresh ES/EF/LS/LF/totalFloat/isCritical so the Gantt critical-path
+        // UI in PR3 stays in sync. Mirrors the unconditional pattern used by
+        // TaskPredecessorService and GanttService.
+        if (saved.getProject() != null && saved.getProject().getId() != null) {
+            cpmService.recompute(saved.getProject().getId());
+        }
 
         // Recompute parent milestone progress when source = COMPUTED
         if (saved.getMilestoneId() != null) {
