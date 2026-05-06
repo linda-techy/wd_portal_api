@@ -213,6 +213,51 @@ class CpmServiceTest extends TestcontainersPostgresBase {
     }
 
     @Test
+    void slippedPastDeadline_producesNegativeFloat_andIsCritical() {
+        // Construct a scenario where a non-leaf task's derived ls falls before
+        // its es — i.e., negative total float.
+        //
+        // Layout:
+        //   A (parallel, no edges, duration 5d, planned only) → drives projectFinish.
+        //   B → C chain (B precedes C). Both B and C have actualEndDate set, but
+        //        C's actualEnd is EARLIER than B's actualEnd (sloppy real-world data,
+        //        or a long-duration task whose successor was crashed early).
+        //
+        // Engineer the dates so that during the backward pass:
+        //   projectFinish = A.ef (the long parallel path).
+        //   C is a leaf → C.lf = projectFinish, C.ls = projectFinish - duration_C.
+        //   B's lf = C.ls - lag = projectFinish - duration_C.
+        //   With duration_C large enough, B.lf < B.ef, hence B.ls < B.es. Negative float.
+        //
+        // Concrete numbers (project starts Mon 2026-06-01, no holidays, Sunday off):
+        //   A: planned duration 30d → A.ef ~ 2026-07-08.
+        //   B: planned duration 2d, actualEnd 2026-06-09 (B.ef=2026-06-09, B.es=2026-06-06ish).
+        //   C: planned duration 25d, actualEnd 2026-06-05 (earlier than B's). C.ef=2026-06-05,
+        //      C.es = 2026-06-05 - 25wd. C.lf = projectFinish = ~2026-07-08;
+        //      C.ls = projectFinish - 25wd ≈ 2026-06-04.
+        //   B.lf = C.ls = ~2026-06-04 — which is BEFORE B.ef=2026-06-09.
+        //   B.ls = B.lf - 2wd ≈ 2026-06-02, while B.es = ~2026-06-06.
+        //   ⇒ B.ls < B.es → negative float. Old code throws IllegalArgumentException
+        //     in WorkingDayCalculator.workingDaysBetween(B.es, B.ls, ...).
+        CustomerProject p = newProject(LocalDate.of(2026, 6, 1));
+        newTask(p, "A", 30);  // long parallel path → drives projectFinish
+        Task b = newTask(p, "B", 2);
+        Task c = newTask(p, "C", 25);
+        b.setActualEndDate(LocalDate.of(2026, 6, 9));
+        c.setActualEndDate(LocalDate.of(2026, 6, 5)); // earlier than B's actualEnd
+        tasks.save(b);
+        tasks.save(c);
+        link(c, b, 0);
+
+        cpm.recompute(p.getId());
+
+        Task bOut = tasks.findById(b.getId()).orElseThrow();
+        // Negative float on B (slipped past its derived deadline).
+        assertThat(bOut.getTotalFloatDays()).as("B float should be negative").isLessThan(0);
+        assertThat(bOut.getIsCritical()).as("negative-float task is critical").isTrue();
+    }
+
+    @Test
     void multiLeaf_bothLeavesEndAtProjectFinish() {
         // A->B and A->C with B and C as parallel leaves of equal length.
         CustomerProject p = newProject(LocalDate.of(2026, 6, 1));

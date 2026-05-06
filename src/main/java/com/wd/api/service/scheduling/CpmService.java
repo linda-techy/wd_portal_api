@@ -193,11 +193,22 @@ public class CpmService {
         }
 
         // ---- Float + critical flag ----
+        // CPM theory permits negative total float — it's the canonical signal
+        // of a task that has slipped past its latest-allowable date. Compute
+        // symmetrically: workingDaysBetween throws when end<start, so flip the
+        // bounds and negate when ls < es. Treat negative-float tasks as
+        // critical (floatDays <= 0), matching PM-tooling convention.
         for (Task t : byId.values()) {
-            int floatDays = WorkingDayCalculator.workingDaysBetween(
-                    t.getEsDate(), t.getLsDate(), holidays, sundayWorking);
+            int floatDays;
+            if (t.getLsDate().isBefore(t.getEsDate())) {
+                floatDays = -WorkingDayCalculator.workingDaysBetween(
+                        t.getLsDate(), t.getEsDate(), holidays, sundayWorking);
+            } else {
+                floatDays = WorkingDayCalculator.workingDaysBetween(
+                        t.getEsDate(), t.getLsDate(), holidays, sundayWorking);
+            }
             t.setTotalFloatDays(floatDays);
-            t.setIsCritical(floatDays == 0);
+            t.setIsCritical(floatDays <= 0);
         }
 
         // ---- Persist (single batched UPDATE; bypasses JPA per-row roundtrips) ----
