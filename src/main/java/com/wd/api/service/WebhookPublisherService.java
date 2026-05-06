@@ -134,6 +134,36 @@ public class WebhookPublisherService {
                 LocalDateTime.now()));
     }
 
+    /**
+     * S3 PR3 — Customer's expected handover date moved by more than the
+     * configured threshold (3 working days). Fired by HandoverShiftDetector
+     * after a CPM recompute sees a material shift relative to the last
+     * alerted date (or, on first-ever alert, relative to the approved baseline).
+     *
+     * @param projectId         project whose handover shifted
+     * @param oldDate           prior reference date (last-alerted or baseline)
+     * @param newDate           new max(task.ef_date) after the recompute
+     * @param shiftWorkingDays  signed working-day delta — positive = later, negative = earlier
+     */
+    public void publishHandoverShifted(Long projectId, java.time.LocalDate oldDate,
+                                        java.time.LocalDate newDate, int shiftWorkingDays) {
+        String direction = shiftWorkingDays >= 0 ? "later" : "earlier";
+        int magnitude = Math.abs(shiftWorkingDays);
+        String summary = String.format(
+                "Your project's expected handover has shifted from %s to %s "
+              + "(approximately %d working day%s %s).",
+                oldDate, newDate, magnitude, magnitude == 1 ? "" : "s", direction);
+        publish(new PortalWebhookPayload(
+                "HANDOVER_SHIFT", projectId, null, projectId,
+                summary,
+                Map.of(
+                        "oldDate", oldDate.toString(),
+                        "newDate", newDate.toString(),
+                        "shiftWorkingDays", String.valueOf(shiftWorkingDays),
+                        "direction", direction),
+                LocalDateTime.now()));
+    }
+
     // ───────────────────────── Internal ────────────────────────────
 
     /**
