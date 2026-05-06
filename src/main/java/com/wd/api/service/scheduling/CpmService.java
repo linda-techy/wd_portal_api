@@ -10,11 +10,19 @@ import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.ProjectScheduleConfigRepository;
 import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -45,17 +53,23 @@ public class CpmService {
     private final CustomerProjectRepository projectRepo;
     private final ProjectScheduleConfigRepository configRepo;
     private final HolidayService holidayService;
+    private final JdbcTemplate jdbc;
+
+    @PersistenceContext
+    private EntityManager em;
 
     public CpmService(TaskRepository taskRepo,
                       TaskPredecessorRepository predRepo,
                       CustomerProjectRepository projectRepo,
                       ProjectScheduleConfigRepository configRepo,
-                      HolidayService holidayService) {
+                      HolidayService holidayService,
+                      JdbcTemplate jdbc) {
         this.taskRepo = taskRepo;
         this.predRepo = predRepo;
         this.projectRepo = projectRepo;
         this.configRepo = configRepo;
         this.holidayService = holidayService;
+        this.jdbc = jdbc;
     }
 
     /**
@@ -76,9 +90,13 @@ public class CpmService {
         Map<Long, Task> byId = new HashMap<>();
         for (Task t : tasks) byId.put(t.getId(), t);
 
-        // Build edges in both directions for traversal.
-        List<TaskPredecessor> edges = new ArrayList<>();
-        for (Task t : tasks) edges.addAll(predRepo.findBySuccessorId(t.getId()));
+        // Build edges in both directions for traversal. Fetch all in one query
+        // (avoids N+1 across the task list).
+        List<Long> taskIds = new ArrayList<>(tasks.size());
+        for (Task t : tasks) taskIds.add(t.getId());
+        List<TaskPredecessor> edges = taskIds.isEmpty()
+                ? List.of()
+                : predRepo.findBySuccessorIdIn(taskIds);
 
         Map<Long, List<TaskPredecessor>> incoming = new HashMap<>();   // successor -> its preds
         Map<Long, List<TaskPredecessor>> outgoing = new HashMap<>();   // predecessor -> its succs
@@ -182,8 +200,40 @@ public class CpmService {
             t.setIsCritical(floatDays == 0);
         }
 
-        // ---- Persist + observability ----
-        taskRepo.saveAll(byId.values());
+        // ---- Persist (single batched UPDATE; bypasses JPA per-row roundtrips) ----
+        // Detach the JPA-managed entities BEFORE issuing the JDBC batch so that
+        // (a) JPA does not auto-flush its dirty-checked UPDATEs on top of ours
+        //     (the entity instances are dirty from our in-memory mutations), and
+        // (b) downstream reads in the same transaction reload from DB and
+        //     see the new column values.
+        List<Task> persistOrder = new ArrayList<>(byId.values());
+        for (Task t : persistOrder) em.detach(t);
+        jdbc.batchUpdate(
+                "UPDATE tasks SET es_date = ?, ef_date = ?, ls_date = ?, lf_date = ?, " +
+                        "total_float_days = ?, is_critical = ?, " +
+                        "actual_start_date = ?, actual_end_date = ? " +
+                        "WHERE id = ?",
+                new BatchPreparedStatementSetter() {
+                    @Override
+                    public void setValues(PreparedStatement ps, int i) throws SQLException {
+                        Task t = persistOrder.get(i);
+                        setDate(ps, 1, t.getEsDate());
+                        setDate(ps, 2, t.getEfDate());
+                        setDate(ps, 3, t.getLsDate());
+                        setDate(ps, 4, t.getLfDate());
+                        if (t.getTotalFloatDays() == null) ps.setNull(5, Types.INTEGER);
+                        else ps.setInt(5, t.getTotalFloatDays());
+                        ps.setBoolean(6, Boolean.TRUE.equals(t.getIsCritical()));
+                        setDate(ps, 7, t.getActualStartDate());
+                        setDate(ps, 8, t.getActualEndDate());
+                        ps.setLong(9, t.getId());
+                    }
+
+                    @Override
+                    public int getBatchSize() {
+                        return persistOrder.size();
+                    }
+                });
 
         long durMs = System.currentTimeMillis() - t0;
         log.info("CPM recompute: project={} tasks={} duration={}ms",
@@ -233,6 +283,12 @@ public class CpmService {
     }
 
     // ─── helpers ──────────────────────────────────────────────────────────
+
+    /** Bind a nullable LocalDate to a JDBC parameter. */
+    private static void setDate(PreparedStatement ps, int idx, LocalDate value) throws SQLException {
+        if (value == null) ps.setNull(idx, Types.DATE);
+        else ps.setDate(idx, Date.valueOf(value));
+    }
 
     /** Working-day duration derived from start/end. Floors at 0; never negative. */
     private static int durationDays(Task t) {
