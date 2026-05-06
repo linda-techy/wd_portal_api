@@ -42,6 +42,33 @@ public final class WorkingDayCalculator {
     }
 
     /**
+     * Returns {@code start} minus {@code days} working days (backward).
+     * Symmetric inverse of {@link #addWorkingDays}: for any non-negative {@code n},
+     * {@code subtractWorkingDays(addWorkingDays(d, n, h, s), n, h, s) == d}.
+     *
+     * @param start          first day; counts as day 0 (returned when {@code days == 0})
+     * @param days           non-negative count of working days to retreat
+     * @param holidays       set of dates to skip
+     * @param sundayWorking  if true, Sundays are working days
+     * @throws IllegalArgumentException if {@code days < 0}
+     */
+    public static LocalDate subtractWorkingDays(
+            LocalDate start, int days, Set<LocalDate> holidays, boolean sundayWorking) {
+        if (days < 0) {
+            throw new IllegalArgumentException("days must be >= 0, got " + days);
+        }
+        LocalDate cursor = start;
+        int retreated = 0;
+        while (retreated < days) {
+            cursor = cursor.minusDays(1);
+            if (isWorkingDay(cursor, holidays, sundayWorking)) {
+                retreated++;
+            }
+        }
+        return cursor;
+    }
+
+    /**
      * Returns the count of working-day increments between {@code start} (inclusive)
      * and {@code end} (inclusive). For two consecutive working days the result is 1.
      *

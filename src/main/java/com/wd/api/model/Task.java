@@ -97,6 +97,29 @@ public class Task extends BaseEntity {
     @Column(name = "actual_end_date")
     private LocalDate actualEndDate;
 
+    @Column(name = "actual_start_date")
+    private LocalDate actualStartDate;
+
+    // ===== CPM columns (V118; populated by CpmService.recompute) =====
+
+    @Column(name = "es_date")
+    private LocalDate esDate;
+
+    @Column(name = "ef_date")
+    private LocalDate efDate;
+
+    @Column(name = "ls_date")
+    private LocalDate lsDate;
+
+    @Column(name = "lf_date")
+    private LocalDate lfDate;
+
+    @Column(name = "total_float_days")
+    private Integer totalFloatDays;
+
+    @Column(name = "is_critical", nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT FALSE")
+    private Boolean isCritical = Boolean.FALSE;
+
     @Column(name = "monsoon_sensitive", nullable = false)
     private Boolean monsoonSensitive = Boolean.FALSE;
 
@@ -245,6 +268,29 @@ public class Task extends BaseEntity {
 
     public LocalDate getActualEndDate() { return actualEndDate; }
     public void setActualEndDate(LocalDate actualEndDate) { this.actualEndDate = actualEndDate; }
+
+    public LocalDate getActualStartDate() { return actualStartDate; }
+    public void setActualStartDate(LocalDate actualStartDate) { this.actualStartDate = actualStartDate; }
+
+    public LocalDate getEsDate() { return esDate; }
+    public void setEsDate(LocalDate esDate) { this.esDate = esDate; }
+
+    public LocalDate getEfDate() { return efDate; }
+    public void setEfDate(LocalDate efDate) { this.efDate = efDate; }
+
+    public LocalDate getLsDate() { return lsDate; }
+    public void setLsDate(LocalDate lsDate) { this.lsDate = lsDate; }
+
+    public LocalDate getLfDate() { return lfDate; }
+    public void setLfDate(LocalDate lfDate) { this.lfDate = lfDate; }
+
+    public Integer getTotalFloatDays() { return totalFloatDays; }
+    public void setTotalFloatDays(Integer totalFloatDays) { this.totalFloatDays = totalFloatDays; }
+
+    public Boolean getIsCritical() { return isCritical; }
+    public void setIsCritical(Boolean isCritical) {
+        this.isCritical = isCritical == null ? Boolean.FALSE : isCritical;
+    }
 
     public Boolean getMonsoonSensitive() { return monsoonSensitive; }
     public void setMonsoonSensitive(Boolean monsoonSensitive) {
