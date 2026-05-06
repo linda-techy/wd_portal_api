@@ -112,6 +112,54 @@ class CpmServiceTest extends TestcontainersPostgresBase {
     }
 
     @Test
+    void laggedPredecessor_BesEqualsAefPlusLag() {
+        // A->B with 2-day lag.
+        CustomerProject p = newProject(LocalDate.of(2026, 6, 1));
+        Task a = newTask(p, "A", 3);
+        Task b = newTask(p, "B", 2);
+        link(b, a, 2);
+
+        cpm.recompute(p.getId());
+
+        Task aOut = tasks.findById(a.getId()).orElseThrow();
+        Task bOut = tasks.findById(b.getId()).orElseThrow();
+        // B.es = A.ef + 2 working days
+        assertThat(bOut.getEsDate())
+                .isEqualTo(WorkingDayCalculator.addWorkingDays(aOut.getEfDate(), 2, java.util.Set.of(), false));
+    }
+
+    @Test
+    void chainAcrossSunday_efSkipsSunday() {
+        // A->B starting Friday with 1d duration each. A finishes Friday (or skips into Mon).
+        // Goal: B's EF must skip the intervening Sunday.
+        CustomerProject p = newProject(LocalDate.of(2026, 6, 5)); // Friday
+        Task a = newTask(p, "A", 1);
+        Task b = newTask(p, "B", 1);
+        link(b, a, 0);
+
+        cpm.recompute(p.getId());
+
+        Task bOut = tasks.findById(b.getId()).orElseThrow();
+        // Sunday 2026-06-07 must NOT appear in any es/ef.
+        assertThat(bOut.getEsDate()).isNotEqualTo(LocalDate.of(2026, 6, 7));
+        assertThat(bOut.getEfDate()).isNotEqualTo(LocalDate.of(2026, 6, 7));
+    }
+
+    @Test
+    void cycle_definsivelyThrows_whenGraphContainsOne() {
+        // Bypass S1's validator by inserting raw rows directly.
+        CustomerProject p = newProject(LocalDate.of(2026, 6, 1));
+        Task a = newTask(p, "A", 2);
+        Task b = newTask(p, "B", 2);
+        preds.save(new TaskPredecessor(b.getId(), a.getId(), 0));
+        preds.save(new TaskPredecessor(a.getId(), b.getId(), 0)); // cycle
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> cpm.recompute(p.getId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("cycle");
+    }
+
+    @Test
     void multiLeaf_bothLeavesEndAtProjectFinish() {
         // A->B and A->C with B and C as parallel leaves of equal length.
         CustomerProject p = newProject(LocalDate.of(2026, 6, 1));
