@@ -164,6 +164,19 @@ public class DelayLogService {
         String category = saved.getReasonCategory() != null ? saved.getReasonCategory() : saved.getDelayType();
         webhookPublisherService.publishDelayReported(projectId, saved.getId(), category);
 
+        // S3 PR3 — apply delay to pending tasks, recompute CPM, then alert
+        // customer if the handover date moved beyond the threshold.
+        try {
+            newApplier(projectId).applyDelayToTasks(saved);
+            cpmService.recompute(projectId);
+            handoverShiftDetector.checkAndAlert(projectId);
+        } catch (Exception ex) {
+            // Recompute / alert failures must never roll back the delay write.
+            LoggerFactory.getLogger(DelayLogService.class)
+                    .error("CPM/handover hook failed after logDelay: project={} delay={}",
+                            projectId, saved.getId(), ex);
+        }
+
         return saved;
     }
 
@@ -179,7 +192,24 @@ public class DelayLogService {
         }
 
         existing.setToDate(endDate);
-        return delayLogRepository.save(existing);
+        DelayLog saved = delayLogRepository.save(existing);
+
+        // S3 PR3 — closing a delay can change a task's effective duration; mirror
+        // the logDelay hook chain so a handover-shift alert fires if needed.
+        Long projectId = existing.getProject() != null ? existing.getProject().getId() : null;
+        if (projectId != null) {
+            try {
+                newApplier(projectId).applyDelayToTasks(existing);
+                cpmService.recompute(projectId);
+                handoverShiftDetector.checkAndAlert(projectId);
+            } catch (Exception ex) {
+                LoggerFactory.getLogger(DelayLogService.class)
+                        .error("CPM/handover hook failed after closeDelay: project={} delay={}",
+                                projectId, existing.getId(), ex);
+            }
+        }
+
+        return saved;
     }
 
     @Transactional
