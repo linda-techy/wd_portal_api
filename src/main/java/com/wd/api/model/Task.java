@@ -117,7 +117,7 @@ public class Task extends BaseEntity {
     @Column(name = "total_float_days")
     private Integer totalFloatDays;
 
-    @Column(name = "is_critical", nullable = false)
+    @Column(name = "is_critical", nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT FALSE")
     private Boolean isCritical = Boolean.FALSE;
 
     @Column(name = "monsoon_sensitive", nullable = false)
