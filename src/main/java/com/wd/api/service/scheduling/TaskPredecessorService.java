@@ -26,11 +26,14 @@ public class TaskPredecessorService {
 
     private final TaskPredecessorRepository predecessorRepo;
     private final TaskRepository taskRepo;
+    private final CpmService cpmService;
 
     public TaskPredecessorService(TaskPredecessorRepository predecessorRepo,
-                                  TaskRepository taskRepo) {
+                                  TaskRepository taskRepo,
+                                  CpmService cpmService) {
         this.predecessorRepo = predecessorRepo;
         this.taskRepo = taskRepo;
+        this.cpmService = cpmService;
     }
 
     /** A predecessor entry as supplied by the controller — id + lag in days. */
@@ -76,6 +79,11 @@ public class TaskPredecessorService {
             t.setDependsOnTaskId(null);
         }
         taskRepo.save(t);
+
+        // S2 PR1: keep CPM denormalized columns consistent on every graph mutation.
+        if (t.getProject() != null && t.getProject().getId() != null) {
+            cpmService.recompute(t.getProject().getId());
+        }
 
         return saved;
     }
