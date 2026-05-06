@@ -146,7 +146,7 @@ class CpmServiceTest extends TestcontainersPostgresBase {
     }
 
     @Test
-    void cycle_definsivelyThrows_whenGraphContainsOne() {
+    void cycle_defensivelyThrows_whenGraphContainsOne() {
         // Bypass S1's validator by inserting raw rows directly.
         CustomerProject p = newProject(LocalDate.of(2026, 6, 1));
         Task a = newTask(p, "A", 2);
