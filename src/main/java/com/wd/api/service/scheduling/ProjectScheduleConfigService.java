@@ -30,7 +30,8 @@ public class ProjectScheduleConfigService {
     public ProjectScheduleConfigDto get(Long projectId) {
         return configRepo.findByProjectId(projectId)
                 .map(this::toDto)
-                .orElseGet(() -> new ProjectScheduleConfigDto(projectId, false, (short) 601, (short) 930, null));
+                .orElseGet(() -> new ProjectScheduleConfigDto(
+                        projectId, false, (short) 601, (short) 930, null, false));
     }
 
     @Transactional
@@ -45,6 +46,7 @@ public class ProjectScheduleConfigService {
         if (dto.monsoonStartMonthDay() != null) cfg.setMonsoonStartMonthDay(dto.monsoonStartMonthDay());
         if (dto.monsoonEndMonthDay() != null) cfg.setMonsoonEndMonthDay(dto.monsoonEndMonthDay());
         cfg.setDistrictCode(dto.districtCode());
+        if (dto.requiresPmApproval() != null) cfg.setRequiresPmApproval(dto.requiresPmApproval());
         ProjectScheduleConfig saved = configRepo.save(cfg);
         holidayService.evictProject(projectId);
         return toDto(saved);
@@ -85,6 +87,7 @@ public class ProjectScheduleConfigService {
                 c.getSundayWorking(),
                 c.getMonsoonStartMonthDay(),
                 c.getMonsoonEndMonthDay(),
-                c.getDistrictCode());
+                c.getDistrictCode(),
+                c.getRequiresPmApproval());
     }
 }
