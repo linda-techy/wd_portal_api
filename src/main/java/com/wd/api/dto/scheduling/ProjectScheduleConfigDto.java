@@ -5,4 +5,5 @@ public record ProjectScheduleConfigDto(
         Boolean sundayWorking,
         Short monsoonStartMonthDay,
         Short monsoonEndMonthDay,
-        String districtCode) { }
+        String districtCode,
+        Boolean requiresPmApproval) { }

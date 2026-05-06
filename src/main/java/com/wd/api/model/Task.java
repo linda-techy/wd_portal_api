@@ -116,6 +116,13 @@ public class Task extends BaseEntity {
     @Column(name = "monsoon_sensitive", nullable = false)
     private Boolean monsoonSensitive = Boolean.FALSE;
 
+    /**
+     * S3 PR2: PM-supplied reason when a completion submission is rejected and
+     * the task bounces back to IN_PROGRESS. Cleared on successful approval.
+     */
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
     // ===== Weighted-progress columns (V122) =====
 
     /**
@@ -305,10 +312,14 @@ public class Task extends BaseEntity {
     public Integer getDurationDays() { return durationDays; }
     public void setDurationDays(Integer durationDays) { this.durationDays = durationDays; }
 
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
     // Enums
     public enum TaskStatus {
         PENDING,
         IN_PROGRESS,
+        PENDING_PM_APPROVAL,
         COMPLETED,
         CANCELLED
     }

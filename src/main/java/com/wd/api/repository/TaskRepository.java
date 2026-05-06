@@ -123,4 +123,22 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
                         "WHERE t.project.id = :projectId AND t.monsoonSensitive = true")
         List<Task> findAllByProjectIdAndMonsoonSensitiveTrue(
                         @org.springframework.data.repository.query.Param("projectId") Long projectId);
+
+        /**
+         * S3 PR2 — pending-approval inbox for PMs. Returns tasks in
+         * PENDING_PM_APPROVAL across all projects where the caller is a
+         * project_member (any role). The controller layer guards the
+         * endpoint with TASK_COMPLETION_APPROVE; this query scopes results
+         * to the caller's own projects.
+         */
+        @org.springframework.data.jpa.repository.Query(
+                        "SELECT t FROM Task t " +
+                        "WHERE t.status = com.wd.api.model.Task.TaskStatus.PENDING_PM_APPROVAL " +
+                        "  AND EXISTS (" +
+                        "    SELECT 1 FROM ProjectMember pm " +
+                        "    WHERE pm.project.id = t.project.id AND pm.portalUser.id = :userId" +
+                        "  ) " +
+                        "ORDER BY t.actualEndDate DESC")
+        List<Task> findPendingPmApprovalForUser(
+                        @org.springframework.data.repository.query.Param("userId") Long userId);
 }

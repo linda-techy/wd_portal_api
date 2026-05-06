@@ -30,6 +30,9 @@ public class ProjectScheduleConfig extends BaseEntity {
     @Column(name = "district_code", length = 16)
     private String districtCode;
 
+    @Column(name = "requires_pm_approval", nullable = false)
+    private Boolean requiresPmApproval = Boolean.FALSE;
+
     public ProjectScheduleConfig() {}
 
     public Long getId() { return id; }
@@ -44,4 +47,9 @@ public class ProjectScheduleConfig extends BaseEntity {
     public void setMonsoonEndMonthDay(Short monsoonEndMonthDay) { this.monsoonEndMonthDay = monsoonEndMonthDay; }
     public String getDistrictCode() { return districtCode; }
     public void setDistrictCode(String districtCode) { this.districtCode = districtCode; }
+
+    public Boolean getRequiresPmApproval() { return requiresPmApproval; }
+    public void setRequiresPmApproval(Boolean requiresPmApproval) {
+        this.requiresPmApproval = requiresPmApproval == null ? Boolean.FALSE : requiresPmApproval;
+    }
 }
