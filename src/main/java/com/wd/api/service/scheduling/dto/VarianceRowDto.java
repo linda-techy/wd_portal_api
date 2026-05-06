@@ -8,7 +8,7 @@ import java.time.LocalDate;
  * <p>plannedStart/plannedEnd are the CPM-computed dates from
  * {@code task.es_date} / {@code task.ef_date}. baselineStart/baselineEnd
  * come from the frozen {@code task_baseline} snapshot. Deltas are in
- * working days; positive = slip, null when an actual or baseline is
+ * calendar days; positive = slip, null when an actual or baseline is
  * missing.
  */
 public record VarianceRowDto(

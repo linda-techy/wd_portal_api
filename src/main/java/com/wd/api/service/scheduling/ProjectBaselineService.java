@@ -72,6 +72,9 @@ public class ProjectBaselineService {
 
         List<TaskBaseline> snapshots = new ArrayList<>(tasks.size());
         for (Task t : tasks) {
+            // baseline_duration_days is calendar days between es and ef (matches the
+            // variance deltas in VarianceRowDto). Working-day duration is recoverable
+            // at read time via WorkingDayCalculator if ever needed.
             int durationDays = (int) ChronoUnit.DAYS.between(t.getEsDate(), t.getEfDate());
             snapshots.add(new TaskBaseline(
                     saved.getId(),
