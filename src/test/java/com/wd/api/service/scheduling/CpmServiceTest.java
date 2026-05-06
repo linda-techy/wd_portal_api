@@ -160,6 +160,59 @@ class CpmServiceTest extends TestcontainersPostgresBase {
     }
 
     @Test
+    void completedTask_actualEndOnly_esDerivedFromActualEndMinusDuration() {
+        CustomerProject p = newProject(LocalDate.of(2026, 6, 1));
+        Task a = newTask(p, "A", 5);
+        a.setActualEndDate(LocalDate.of(2026, 6, 10));   // completed
+        a.setActualStartDate(null);                       // not recorded
+        tasks.save(a);
+
+        cpm.recompute(p.getId());
+        Task aOut = tasks.findById(a.getId()).orElseThrow();
+
+        assertThat(aOut.getEfDate()).isEqualTo(LocalDate.of(2026, 6, 10));
+        assertThat(aOut.getEsDate())
+                .isEqualTo(WorkingDayCalculator.subtractWorkingDays(
+                        LocalDate.of(2026, 6, 10), 5, java.util.Set.of(), false));
+    }
+
+    @Test
+    void completedTask_bothActuals_esEqualsActualStart_efEqualsActualEnd() {
+        CustomerProject p = newProject(LocalDate.of(2026, 6, 1));
+        Task a = newTask(p, "A", 5);
+        a.setActualStartDate(LocalDate.of(2026, 6, 2));
+        a.setActualEndDate(LocalDate.of(2026, 6, 9));
+        tasks.save(a);
+
+        cpm.recompute(p.getId());
+        Task aOut = tasks.findById(a.getId()).orElseThrow();
+
+        assertThat(aOut.getEsDate()).isEqualTo(LocalDate.of(2026, 6, 2));
+        assertThat(aOut.getEfDate()).isEqualTo(LocalDate.of(2026, 6, 9));
+    }
+
+    @Test
+    void inProgressTask_actualStartOnly_efIsTodayPlusRemaining() {
+        // Task started 3 working days ago with 5-day duration -> 2 remaining.
+        LocalDate today = LocalDate.now();
+        LocalDate started = WorkingDayCalculator.subtractWorkingDays(today, 3, java.util.Set.of(), false);
+
+        CustomerProject p = newProject(started);
+        Task a = newTask(p, "A", 5);
+        a.setActualStartDate(started);
+        a.setActualEndDate(null); // still in progress
+        tasks.save(a);
+
+        cpm.recompute(p.getId());
+        Task aOut = tasks.findById(a.getId()).orElseThrow();
+
+        assertThat(aOut.getEsDate()).isEqualTo(started);
+        // EF = today + 2 remaining working days
+        assertThat(aOut.getEfDate())
+                .isEqualTo(WorkingDayCalculator.addWorkingDays(today, 2, java.util.Set.of(), false));
+    }
+
+    @Test
     void multiLeaf_bothLeavesEndAtProjectFinish() {
         // A->B and A->C with B and C as parallel leaves of equal length.
         CustomerProject p = newProject(LocalDate.of(2026, 6, 1));
