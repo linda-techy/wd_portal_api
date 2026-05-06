@@ -141,4 +141,18 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
                         "ORDER BY t.actualEndDate DESC")
         List<Task> findPendingPmApprovalForUser(
                         @org.springframework.data.repository.query.Param("userId") Long userId);
+
+        // ===== S3 PR3 (handover-shift detector) =====
+
+        /**
+         * Maximum EF (early-finish) date across all tasks of a project.
+         * Populated by CpmService.recompute. Used by HandoverShiftDetector
+         * to determine the project's current customer-visible handover date.
+         * Returns Optional.empty() when the project has no tasks at all OR
+         * every task lacks an EF date.
+         */
+        @org.springframework.data.jpa.repository.Query(
+                        "SELECT MAX(t.efDate) FROM Task t WHERE t.project.id = :projectId")
+        java.util.Optional<java.time.LocalDate> findMaxEfDateByProjectId(
+                        @org.springframework.data.repository.query.Param("projectId") Long projectId);
 }
