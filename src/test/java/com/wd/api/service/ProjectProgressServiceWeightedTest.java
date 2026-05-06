@@ -159,17 +159,20 @@ class ProjectProgressServiceWeightedTest extends TestcontainersPostgresBase {
 
     @Test
     void legacyHybrid_isRemoved_noMilestoneOrBudgetWeightingRemains() {
-        // The post-rewrite DTO has milestoneProgress / budgetProgress
-        // unset (null) — the rewrite computes a single weight-based
-        // overall and does not populate the legacy breakdown fields.
-        // This guards against the old 40/30/30 path being re-introduced.
+        // The post-rewrite DTO sets milestoneProgress / budgetProgress to
+        // ZERO — the rewrite computes a single weight-based overall and
+        // does not populate the legacy breakdown fields. Pre-PR1 callers
+        // (DashboardService) read these as non-null; PR1 preserves the
+        // non-null contract while semantically zeroing them out since the
+        // new algorithm doesn't compute milestone/budget weights. This
+        // also guards against the old 40/30/30 path being re-introduced.
         CustomerProject p = newProject();
         newTask(p, Task.TaskStatus.COMPLETED, 1, null);
 
         ProjectProgressDTO dto = service.calculateProjectProgress(p.getId());
 
-        assertThat(dto.getMilestoneProgress()).isNull();
-        assertThat(dto.getBudgetProgress()).isNull();
+        assertThat(dto.getMilestoneProgress()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(dto.getBudgetProgress()).isEqualByComparingTo(BigDecimal.ZERO);
         // taskProgress mirrors overallProgress in the rewrite — kept for
         // backward-compat of the existing DTO field, no separate calc.
         assertThat(dto.getTaskProgress()).isEqualByComparingTo(new BigDecimal("100.00"));

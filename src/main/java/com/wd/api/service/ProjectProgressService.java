@@ -80,6 +80,14 @@ public class ProjectProgressService {
                 dto.setCalculationMethod("WEIGHTED_TASK");
                 dto.setTotalBudget(project.getBudget());
                 dto.setSpentAmount(BigDecimal.ZERO);
+                // Pre-PR1 callers (DashboardService.budgetUtilizationPct)
+                // read CustomerProject.milestoneProgress / .budgetProgress
+                // as non-null. The new weighted algorithm doesn't compute
+                // milestone/budget components, so ZERO is the
+                // semantically-correct legacy-field value while preserving
+                // the non-null contract.
+                dto.setMilestoneProgress(BigDecimal.ZERO);
+                dto.setBudgetProgress(BigDecimal.ZERO);
 
                 if (tasks.isEmpty()) {
                         dto.setOverallProgress(BigDecimal.ZERO);
