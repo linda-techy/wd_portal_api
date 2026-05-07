@@ -194,12 +194,16 @@ public class DelayLogService {
         existing.setToDate(endDate);
         DelayLog saved = delayLogRepository.save(existing);
 
-        // S3 PR3 — closing a delay can change a task's effective duration; mirror
-        // the logDelay hook chain so a handover-shift alert fires if needed.
+        // S3 PR3 — closing a delay records that the delay window has ended; it
+        // must NOT re-apply the delay duration to PENDING tasks. logDelay
+        // already shifted them when the delay was first recorded — re-applying
+        // the same durationDays here would silently double-shift in the common
+        // UI flow (POST /delay-logs with durationDays=5, then close).
+        // CPM recompute still runs so any independent date changes propagate,
+        // and the handover-shift detector still alerts customers if needed.
         Long projectId = existing.getProject() != null ? existing.getProject().getId() : null;
         if (projectId != null) {
             try {
-                newApplier(projectId).applyDelayToTasks(existing);
                 cpmService.recompute(projectId);
                 handoverShiftDetector.checkAndAlert(projectId);
             } catch (Exception ex) {

@@ -2,6 +2,7 @@ package com.wd.api.service;
 
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.DelayLog;
+import com.wd.api.model.Task;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.DelayLogRepository;
 import com.wd.api.repository.PortalUserRepository;
@@ -20,11 +21,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -109,5 +112,44 @@ class DelayLogServiceCpmHookTest {
         InOrder ord = inOrder(cpmService, handoverShiftDetector);
         ord.verify(cpmService).recompute(11L);
         ord.verify(handoverShiftDetector).checkAndAlert(11L);
+    }
+
+    /**
+     * Regression: when a delay was created with a non-null {@code durationDays}
+     * (the typical UI flow — POST /delay-logs with durationDays=5), {@code logDelay}
+     * already shifted every PENDING task forward by that many working days.
+     * {@code closeDelay} must NOT shift them again — re-applying the same
+     * duration on the same row is a silent double-shift bug.
+     */
+    @Test
+    void closeDelay_doesNotDoubleShiftPendingTasks() {
+        DelayLog existing = DelayLog.builder()
+                .id(99L)
+                .project(project)
+                .delayType("WEATHER")
+                .fromDate(LocalDate.of(2026, 6, 1))
+                .durationDays(5)  // non-null — this is the bug trigger
+                .build();
+        when(delayLogRepository.findById(99L)).thenReturn(Optional.of(existing));
+
+        Task pendingTask = new Task();
+        pendingTask.setId(1L);
+        pendingTask.setProject(project);
+        pendingTask.setStatus(Task.TaskStatus.PENDING);
+        pendingTask.setStartDate(LocalDate.of(2026, 6, 15));
+        pendingTask.setEndDate(LocalDate.of(2026, 6, 20));
+        // The applier (if it were invoked) would look up tasks via
+        // taskRepository.findByProjectId(projectId). Stub a non-empty list
+        // leniently — the whole point of this test is to assert the applier
+        // is NOT invoked, so this stub is intentionally unused after the fix.
+        lenient().when(taskRepository.findByProjectId(11L)).thenReturn(List.of(pendingTask));
+
+        service.closeDelay(99L, LocalDate.of(2026, 6, 6));
+
+        // closeDelay must NOT re-apply the delay duration to the task.
+        verify(taskRepository, never()).save(any(Task.class));
+        // CPM recompute IS still called (independent change driver).
+        verify(cpmService).recompute(11L);
+        verify(handoverShiftDetector).checkAndAlert(11L);
     }
 }
