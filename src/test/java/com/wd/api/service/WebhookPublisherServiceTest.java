@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -160,6 +161,59 @@ class WebhookPublisherServiceTest {
         webhookPublisherService.retryFailedEvents();
 
         verify(eventLogRepository, never()).save(any());
+    }
+
+    // ── publishHandoverShifted (S3 PR3) ───────────────────────────────────────
+
+    @Test
+    void publishHandoverShifted_buildsPayloadWithSignedShiftAndDirectionMetadata() {
+        WebhookEventLog mutable = pendingLog("HANDOVER_SHIFT");
+        when(eventLogRepository.save(any(WebhookEventLog.class))).thenReturn(mutable);
+
+        webhookPublisherService.publishHandoverShifted(42L,
+                LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 8), 5);
+
+        ArgumentCaptor<WebhookEventLog> captor = ArgumentCaptor.forClass(WebhookEventLog.class);
+        verify(eventLogRepository, atLeastOnce()).save(captor.capture());
+        WebhookEventLog persisted = captor.getAllValues().get(0);
+
+        assertThat(persisted.getEventType()).isEqualTo("HANDOVER_SHIFT");
+        assertThat(persisted.getProjectId()).isEqualTo(42L);
+        assertThat(persisted.getReferenceId()).isEqualTo(42L);
+        assertThat(persisted.getPayload()).contains("\"shiftWorkingDays\":\"5\"");
+        assertThat(persisted.getPayload()).contains("\"direction\":\"later\"");
+        assertThat(persisted.getPayload()).contains("approximately 5 working days later");
+    }
+
+    @Test
+    void publishHandoverShifted_negativeShift_setsEarlierDirection() {
+        WebhookEventLog mutable = pendingLog("HANDOVER_SHIFT");
+        when(eventLogRepository.save(any(WebhookEventLog.class))).thenReturn(mutable);
+
+        webhookPublisherService.publishHandoverShifted(42L,
+                LocalDate.of(2026, 7, 8), LocalDate.of(2026, 7, 1), -5);
+
+        ArgumentCaptor<WebhookEventLog> captor = ArgumentCaptor.forClass(WebhookEventLog.class);
+        verify(eventLogRepository, atLeastOnce()).save(captor.capture());
+        WebhookEventLog persisted = captor.getAllValues().get(0);
+
+        assertThat(persisted.getPayload()).contains("\"direction\":\"earlier\"");
+        assertThat(persisted.getPayload()).contains("\"shiftWorkingDays\":\"-5\"");
+        assertThat(persisted.getPayload()).contains("approximately 5 working days earlier");
+    }
+
+    @Test
+    void publishHandoverShifted_singularDay_dropsTrailingS() {
+        WebhookEventLog mutable = pendingLog("HANDOVER_SHIFT");
+        when(eventLogRepository.save(any(WebhookEventLog.class))).thenReturn(mutable);
+
+        webhookPublisherService.publishHandoverShifted(42L,
+                LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 2), 1);
+
+        ArgumentCaptor<WebhookEventLog> captor = ArgumentCaptor.forClass(WebhookEventLog.class);
+        verify(eventLogRepository, atLeastOnce()).save(captor.capture());
+        assertThat(captor.getAllValues().get(0).getPayload())
+                .contains("approximately 1 working day later");
     }
 
     @Test

@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
+import java.time.LocalDate;
+
 @SQLDelete(sql = "UPDATE project_schedule_config SET deleted_at = NOW() WHERE id = ? AND version = ?")
 @Where(clause = "deleted_at IS NULL")
 @Entity
@@ -33,6 +35,9 @@ public class ProjectScheduleConfig extends BaseEntity {
     @Column(name = "requires_pm_approval", nullable = false)
     private Boolean requiresPmApproval = Boolean.FALSE;
 
+    @Column(name = "last_alerted_handover_date")
+    private LocalDate lastAlertedHandoverDate;
+
     public ProjectScheduleConfig() {}
 
     public Long getId() { return id; }
@@ -51,5 +56,10 @@ public class ProjectScheduleConfig extends BaseEntity {
     public Boolean getRequiresPmApproval() { return requiresPmApproval; }
     public void setRequiresPmApproval(Boolean requiresPmApproval) {
         this.requiresPmApproval = requiresPmApproval == null ? Boolean.FALSE : requiresPmApproval;
+    }
+
+    public LocalDate getLastAlertedHandoverDate() { return lastAlertedHandoverDate; }
+    public void setLastAlertedHandoverDate(LocalDate lastAlertedHandoverDate) {
+        this.lastAlertedHandoverDate = lastAlertedHandoverDate;
     }
 }
