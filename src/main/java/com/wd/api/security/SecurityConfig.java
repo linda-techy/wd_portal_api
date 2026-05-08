@@ -54,6 +54,13 @@ public class SecurityConfig {
         @Value("${spring.profiles.active:local}")
         private String activeProfile;
 
+        /**
+         * Comma-separated list of IP addresses permitted to call /internal/** (e.g. the customer-API host).
+         * Mirrors the customer-API SecurityConfig pattern; HMAC verification is enforced at the controller layer.
+         */
+        @Value("${internal.allowed-ips:127.0.0.1,::1}")
+        private String internalAllowedIps;
+
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
@@ -90,6 +97,10 @@ public class SecurityConfig {
                                                 // /public/estimations/** — Sub-project H estimation share links
                                                 .requestMatchers("/public/**").permitAll()
 
+                                                // Internal endpoints — IP-allowlisted at the security layer; controllers
+                                                // additionally enforce HMAC-SHA256 verification on the request body.
+                                                .requestMatchers("/internal/**").access(internalIpAccessManager())
+
                                                 // All other requests require authentication
                                                 .anyRequest().authenticated())
                                 .sessionManagement(session -> session
@@ -101,6 +112,24 @@ public class SecurityConfig {
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
+        }
+
+        /**
+         * Restricts /internal/** to the IP addresses listed in internal.allowed-ips.
+         * Falls back to 127.0.0.1 and ::1 (loopback) if not configured.
+         * Mirrors the customer-API InternalIpFilter pattern.
+         */
+        private org.springframework.security.authorization.AuthorizationManager<
+                        org.springframework.security.web.access.intercept.RequestAuthorizationContext> internalIpAccessManager() {
+                List<String> allowedIps = Arrays.stream(internalAllowedIps.split(","))
+                                .map(String::trim)
+                                .filter(ip -> !ip.isEmpty())
+                                .collect(Collectors.toList());
+                return (authentication, context) -> {
+                        String remoteAddr = context.getRequest().getRemoteAddr();
+                        boolean allowed = allowedIps.contains(remoteAddr);
+                        return new org.springframework.security.authorization.AuthorizationDecision(allowed);
+                };
         }
 
         @Bean
