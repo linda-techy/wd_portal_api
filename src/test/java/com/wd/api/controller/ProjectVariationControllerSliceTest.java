@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wd.api.dto.CrCostRequest;
 import com.wd.api.dto.CrRejectRequest;
 import com.wd.api.dto.CrScheduleRequest;
+import com.wd.api.dto.changerequest.ChangeRequestMergeResult;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.ProjectVariation;
@@ -11,6 +12,7 @@ import com.wd.api.model.enums.VariationStatus;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.ProjectVariationRepository;
+import com.wd.api.service.changerequest.ChangeRequestMergeService;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +20,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -34,12 +41,21 @@ class ProjectVariationControllerSliceTest extends TestcontainersPostgresBase {
     @Autowired private CustomerProjectRepository projectRepo;
     @Autowired private PortalUserRepository userRepo;
     @Autowired private ProjectVariationRepository crRepo;
+    /**
+     * S4 PR2 wires ChangeRequestMergeService into ProjectVariationService.schedule.
+     * The slice test only exercises HTTP / security envelopes, so the merge is
+     * mocked to a no-op result.
+     */
+    @MockitoBean private ChangeRequestMergeService mergeService;
 
     private Long projectId;
     private Long crId;
 
     @BeforeEach
     void setup() {
+        when(mergeService.mergeIntoWbs(anyLong(), anyLong(), any()))
+                .thenReturn(new ChangeRequestMergeResult(0, 0, 0, true));
+
         CustomerProject p = new CustomerProject();
         p.setName("ctrl-" + UUID.randomUUID());
         p.setLocation("L"); p.setProjectUuid(UUID.randomUUID());
