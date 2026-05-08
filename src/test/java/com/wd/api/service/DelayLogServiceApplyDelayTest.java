@@ -4,6 +4,7 @@ import com.wd.api.model.CustomerProject;
 import com.wd.api.model.DelayLog;
 import com.wd.api.model.Task;
 import com.wd.api.repository.TaskRepository;
+import com.wd.api.service.scheduling.DelayApplier;
 import com.wd.api.service.scheduling.HolidayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link DelayLogService.DelayApplier}: shifts every PENDING
+ * Unit tests for {@link DelayApplier}: shifts every PENDING
  * task on the project forward by the delay's duration in working days,
  * preserving the task's original working-day duration.
  */
@@ -36,11 +37,11 @@ class DelayLogServiceApplyDelayTest {
     @Mock private TaskRepository taskRepository;
     @Mock private HolidayService holidayService;
 
-    private DelayLogService.DelayApplier applier;
+    private DelayApplier applier;
 
     @BeforeEach
     void setUp() {
-        applier = new DelayLogService.DelayApplier(taskRepository, holidayService, /*sundayWorking*/ false);
+        applier = new DelayApplier(taskRepository, holidayService, /*sundayWorking*/ false);
         lenient().when(holidayService.holidaysFor(eq(99L), any(), any())).thenReturn(Set.of());
     }
 
