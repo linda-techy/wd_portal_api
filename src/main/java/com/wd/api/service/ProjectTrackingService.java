@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -21,6 +20,7 @@ public class ProjectTrackingService {
     private final ProjectVariationRepository variationRepository;
     private final CustomerProjectRepository projectRepository;
     private final PortalUserRepository userRepository;
+    private final ProjectVariationService projectVariationService;
 
     // ===== PROJECT PHASES =====
 
@@ -123,34 +123,25 @@ public class ProjectTrackingService {
         return java.util.Objects.requireNonNull(savedVariation);
     }
 
+    /** @deprecated Use {@link ProjectVariationService#submit(Long, Long)}. Removed in S5. */
+    @Deprecated
     @Transactional
     public ProjectVariation submitForApproval(Long variationId) {
-        Long vId = java.util.Objects.requireNonNull(variationId);
-        ProjectVariation variation = variationRepository.findById(vId)
-                .orElseThrow(() -> new RuntimeException("Variation not found"));
-
-        variation.setStatus(VariationStatus.CUSTOMER_APPROVAL_PENDING);
-        ProjectVariation savedVariation = variationRepository.save(variation);
-        return java.util.Objects.requireNonNull(savedVariation);
+        return projectVariationService.submit(java.util.Objects.requireNonNull(variationId), null);
     }
 
+    /**
+     * @deprecated Kept as a thin delegate to {@link ProjectVariationService}
+     * so legacy callers keep working. Will be removed in S5.
+     */
+    @Deprecated
     @Transactional
-    public ProjectVariation approveVariation(Long variationId, Long approvedById, boolean approve) {
+    public ProjectVariation approveVariation(Long variationId, Long approverId, boolean approve) {
         Long vId = java.util.Objects.requireNonNull(variationId);
-        ProjectVariation variation = variationRepository.findById(vId)
-                .orElseThrow(() -> new RuntimeException("Variation not found"));
-
-        Long aId = java.util.Objects.requireNonNull(approvedById);
-        PortalUser approvedBy = userRepository.findById(aId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        variation.setApprovedBy(approvedBy);
-        variation.setApprovedAt(LocalDateTime.now());
-        variation.setClientApproved(approve);
-        variation.setStatus(approve ? VariationStatus.APPROVED : VariationStatus.REJECTED);
-
-        ProjectVariation savedVariation = variationRepository.save(variation);
-        return java.util.Objects.requireNonNull(savedVariation);
+        if (approve) {
+            return projectVariationService.approveByCustomer(vId, null, null, null);
+        }
+        return projectVariationService.reject(vId, "Rejected via legacy approveVariation API", approverId);
     }
 
     // ===== PROJECT HEALTH METRICS =====
