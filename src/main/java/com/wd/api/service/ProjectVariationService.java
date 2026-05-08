@@ -296,7 +296,20 @@ public class ProjectVariationService {
         return submit(id, null);
     }
 
-    /** @deprecated Use {@link #approveByCustomer(Long, Long, String, String)}. Removed in S5. */
+    /**
+     * Legacy shim for the deprecated /variations/{id}/approve endpoint.
+     *
+     * <p><b>Behavior change post-S4 PR1:</b> this method now delegates to
+     * {@link #approveByCustomer} which is state-machine-gated. It will throw
+     * {@link IllegalStateException} (mapped to HTTP 422) if the CR is not
+     * in {@link VariationStatus#CUSTOMER_APPROVAL_PENDING}. Pre-PR1 callers
+     * that approved CRs from {@code DRAFT} or {@code PENDING_APPROVAL}
+     * will see this fail.
+     *
+     * @deprecated Removed in S5. Callers should use the new
+     *     state-machine-aware endpoints (submit, cost, sendToCustomer,
+     *     approve, etc.).
+     */
     @Deprecated
     @Transactional
     public ProjectVariation approveVariation(Long id, Long approverId) {
