@@ -1,6 +1,7 @@
 package com.wd.api.service;
 
 import com.wd.api.model.Lead;
+import com.wd.api.model.ProjectVariation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,10 @@ import org.springframework.stereotype.Service;
 
 import com.wd.api.model.Task;
 import com.wd.api.model.TaskAlert;
+
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 @Service
 public class EmailService {
@@ -605,5 +610,202 @@ public class EmailService {
     private void logEmailSimulation(String to, String subject, String body) {
         logger.info("[EMAIL SIMULATION] TO: {} | SUBJECT: {}", to, subject);
         // body omitted intentionally — may contain plaintext passwords or customer PII
+    }
+
+    /**
+     * Sends a 6-digit OTP to a customer for change-request approval.
+     * Multipart: HTML body with plain-text alternative for SPF/DKIM/DMARC friendliness.
+     *
+     * @param to                recipient email address
+     * @param customerName      "First Last" — already trimmed by CustomerUserLookup
+     * @param otpCode           6-digit numeric, plaintext (NEVER logged)
+     * @param cr                the change request being approved
+     * @param expiresInMinutes  matches OtpService expiry window (15)
+     */
+    @Async
+    public void sendCrApprovalOtp(String to, String customerName, String otpCode,
+                                  ProjectVariation cr, int expiresInMinutes) {
+        String crTitle = deriveCrTitle(cr);
+        String crDescription = cr.getDescription() != null ? cr.getDescription() : "";
+        String costImpact = formatRupeesSigned(crCostImpact(cr));
+        String timeImpact = crTimeImpactWorkingDays(cr) + " working days";
+
+        String subject = "Approve change request: " + crTitle;
+        String html = buildCrApprovalOtpHtml(customerName, crTitle, costImpact, timeImpact,
+                                             otpCode, expiresInMinutes);
+        String plain = buildCrApprovalOtpPlainText(customerName, crTitle, crDescription,
+                                                   costImpact, timeImpact, otpCode, expiresInMinutes);
+
+        if (emailEnabled && mailSender != null) {
+            try {
+                jakarta.mail.internet.MimeMessage mime = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
+                helper.setFrom(fromEmail, "Walldot Builders");
+                helper.setTo(to);
+                helper.setSubject(subject);
+                helper.setText(plain, html);  // plain alternative, then HTML
+                mailSender.send(mime);
+                logger.info("CR approval OTP email sent to {} for CR id={}", to, cr.getId());
+            } catch (Exception e) {
+                logger.error("Failed to send CR approval OTP email to {} (CR id={})", to, cr.getId(), e);
+                // Do NOT log the OTP code in any branch.
+                logEmailSimulation(to, subject, "[OTP email — body omitted for security]");
+            }
+        } else {
+            logger.info("[EMAIL SIMULATION] CR approval OTP would be sent to {} for CR id={}", to, cr.getId());
+            logEmailSimulation(to, subject, "[OTP email — body omitted for security]");
+        }
+    }
+
+    // ── Template builders (package-private for test access) ─────────────────
+
+    String buildCrApprovalOtpHtml(String customerName, String crTitle,
+                                  String costImpact, String timeImpact,
+                                  String otpCode, int expiresInMinutes) {
+        return """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <title>Approve change request</title>
+            </head>
+            <body style="margin:0;padding:0;background:#F4F5F7;font-family:'Segoe UI',Arial,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0" style="background:#F4F5F7;padding:40px 0;">
+                <tr><td align="center">
+                  <table width="580" cellpadding="0" cellspacing="0"
+                         style="background:#ffffff;border-radius:12px;overflow:hidden;
+                                box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+                    <tr><td style="background:linear-gradient(135deg,#E84545,#2A2A3A);
+                                   padding:36px 40px;text-align:center;">
+                      <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">
+                        Walldot Builders
+                      </h1>
+                      <p style="margin:6px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">
+                        Change Request Approval
+                      </p>
+                    </td></tr>
+                    <tr><td style="padding:40px 48px;">
+                      <h2 style="margin:0 0 16px;color:#2A2A3A;font-size:22px;font-weight:700;">
+                        Approve change request
+                      </h2>
+                      <p style="margin:0 0 12px;color:#555;font-size:15px;line-height:1.6;">
+                        Hi <strong>%s</strong>,
+                      </p>
+                      <p style="margin:0 0 18px;color:#555;font-size:15px;line-height:1.6;">
+                        Your project team is requesting your approval for the following change:
+                      </p>
+                      <table width="100%%" cellpadding="0" cellspacing="0"
+                             style="background:#FAFAFC;border-radius:8px;padding:18px;margin-bottom:24px;">
+                        <tr><td>
+                          <p style="margin:0 0 8px;font-size:15px;color:#2A2A3A;">
+                            <strong>%s</strong>
+                          </p>
+                          <p style="margin:0 0 4px;color:#666;font-size:14px;">
+                            Cost impact: <strong>%s</strong>
+                          </p>
+                          <p style="margin:0;color:#666;font-size:14px;">
+                            Time impact: <strong>%s</strong>
+                          </p>
+                        </td></tr>
+                      </table>
+                      <p style="margin:0 0 8px;color:#555;font-size:15px;">
+                        Enter this 6-digit code in the customer app to approve:
+                      </p>
+                      <div style="background:#FFF8F0;border:1px solid #FFD9A0;border-radius:8px;
+                                  padding:18px;text-align:center;margin-bottom:24px;">
+                        <p style="margin:0;color:#7A4A00;font-size:30px;font-weight:700;letter-spacing:6px;">
+                          %s
+                        </p>
+                      </div>
+                      <p style="margin:0 0 8px;color:#888;font-size:13px;">
+                        This code expires in <strong>%d minutes</strong>.
+                      </p>
+                      <div style="border-top:1px solid #EEEEEE;padding-top:16px;margin-top:20px;">
+                        <p style="margin:0;color:#AAA;font-size:12px;line-height:1.6;">
+                          If you didn't expect this email, you can safely ignore it.
+                          Your project will not change unless you enter this code.
+                        </p>
+                      </div>
+                    </td></tr>
+                    <tr><td style="background:#F8F9FA;padding:20px 48px;
+                                   border-top:1px solid #EEEEEE;text-align:center;">
+                      <p style="margin:0;color:#AAA;font-size:12px;">
+                        \u00a9 2026 Walldot Builders LLP \u00b7 Kerala, India
+                      </p>
+                    </td></tr>
+                  </table>
+                </td></tr>
+              </table>
+            </body>
+            </html>
+            """.formatted(customerName, crTitle, costImpact, timeImpact, otpCode, expiresInMinutes);
+    }
+
+    String buildCrApprovalOtpPlainText(String customerName, String crTitle, String crDescription,
+                                        String costImpact, String timeImpact,
+                                        String otpCode, int expiresInMinutes) {
+        return String.format("""
+                Hi %s,
+
+                Your project team is requesting your approval for the following change:
+
+                Title:        %s
+                Description:  %s
+                Cost impact:  %s
+                Time impact:  %s
+
+                Enter this 6-digit code in the Walldot customer app to approve:
+
+                    %s
+
+                This code expires in %d minutes.
+
+                If you didn't expect this email, you can safely ignore it. Your project will
+                not change unless you enter this code.
+
+                -- Walldot Builders
+                """, customerName, crTitle, crDescription, costImpact, timeImpact, otpCode, expiresInMinutes);
+    }
+
+    // ── ProjectVariation field accessors (PR1 ships getCostImpact/getTimeImpactWorkingDays;
+    //    these wrappers isolate the dependency and make merge-order failures legible.) ──
+
+    private String deriveCrTitle(ProjectVariation cr) {
+        // PR1 adds a dedicated `title` column. Until then, fall back to a truncation of description.
+        try {
+            var m = cr.getClass().getMethod("getTitle");
+            Object t = m.invoke(cr);
+            if (t instanceof String s && !s.isBlank()) return s;
+        } catch (ReflectiveOperationException ignored) { }
+        String desc = cr.getDescription() != null ? cr.getDescription() : "(untitled change)";
+        return desc.length() > 60 ? desc.substring(0, 57) + "..." : desc;
+    }
+
+    private BigDecimal crCostImpact(ProjectVariation cr) {
+        try {
+            var m = cr.getClass().getMethod("getCostImpact");
+            Object v = m.invoke(cr);
+            if (v instanceof BigDecimal bd) return bd;
+        } catch (ReflectiveOperationException ignored) { }
+        return cr.getEstimatedAmount() == null ? BigDecimal.ZERO : cr.getEstimatedAmount();
+    }
+
+    private int crTimeImpactWorkingDays(ProjectVariation cr) {
+        try {
+            var m = cr.getClass().getMethod("getTimeImpactWorkingDays");
+            Object v = m.invoke(cr);
+            if (v instanceof Integer i) return i;
+        } catch (ReflectiveOperationException ignored) { }
+        return 0;
+    }
+
+    private String formatRupeesSigned(BigDecimal amount) {
+        if (amount == null) amount = BigDecimal.ZERO;
+        NumberFormat fmt = NumberFormat.getInstance(new Locale("en", "IN"));
+        fmt.setMinimumFractionDigits(0);
+        fmt.setMaximumFractionDigits(0);
+        String formatted = fmt.format(amount.abs());
+        String sign = amount.signum() >= 0 ? "+" : "-";
+        return sign + "\u20b9" + formatted;
     }
 }
