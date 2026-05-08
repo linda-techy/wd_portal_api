@@ -2,6 +2,7 @@ package com.wd.api.migration;
 
 import com.wd.api.testsupport.FlywayMigrationTestBase;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -24,6 +25,13 @@ class V129MigrationTest extends FlywayMigrationTestBase {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @BeforeEach
+    void prepare() {
+        // Ensure clean slate even if a prior test class in the same JVM left otp_tokens behind
+        // (the Postgres container is JVM-shared via FlywayMigrationTestBase).
+        jdbc.execute("DROP TABLE IF EXISTS otp_tokens");
+    }
 
     @AfterEach
     void cleanup() {
