@@ -49,6 +49,7 @@ public class CrInternalController {
 
     public record RequestOtpBody(Long crId, Long customerUserId) {}
     public record ApproveBody(Long crId, Long customerUserId, String otpCode, String customerIp) {}
+    public record CrLookupBody(Long crId) {}
 
     @PostMapping("/cr-request-otp")
     public ResponseEntity<Map<String, Object>> requestOtp(@RequestBody String rawBody,
@@ -89,6 +90,32 @@ public class CrInternalController {
                 body.crId(), body.customerUserId(), outcome.hash(), body.customerIp());
         }
         return ResponseEntity.ok(Map.of("status", outcome.result().name()));
+    }
+
+    /**
+     * Resolve a CR id to its owning project id. Used by customer-API to enforce
+     * that the authenticated customer owns the project of the CR they're trying
+     * to act on, before forwarding /cr-request-otp or /cr-approve calls. Without
+     * this lookup, customer-API would have to either reach into portal's
+     * project_variations table directly (cross-DB read) or trust the client.
+     */
+    @PostMapping("/cr-project-id")
+    public ResponseEntity<Map<String, Object>> getCrProjectId(@RequestBody String rawBody,
+                                                               HttpServletRequest request) {
+        if (!hmac.verify(rawBody, request.getHeader(SIG_HEADER))) {
+            return ResponseEntity.status(401).body(Map.of("error", "INVALID_SIGNATURE"));
+        }
+        CrLookupBody body = parse(rawBody, CrLookupBody.class);
+        ProjectVariation cr = projectVariationRepository.findById(body.crId())
+            .orElseThrow(() -> new NoSuchElementException("CR not found: " + body.crId()));
+        if (cr.getProject() == null) {
+            // Should never happen given project_id is NOT NULL on project_variations,
+            // but guard anyway so we don't NPE in service code on a corrupt row.
+            return ResponseEntity.status(404).body(Map.of("error", "CR_HAS_NO_PROJECT"));
+        }
+        return ResponseEntity.ok(Map.of(
+            "crId", cr.getId(),
+            "projectId", cr.getProject().getId()));
     }
 
     private static <T> T parse(String body, Class<T> type) {

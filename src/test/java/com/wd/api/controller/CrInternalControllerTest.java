@@ -1,6 +1,7 @@
 package com.wd.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wd.api.model.CustomerProject;
 import com.wd.api.model.ProjectVariation;
 import com.wd.api.repository.ProjectVariationRepository;
 import com.wd.api.security.InternalHmacVerifier;
@@ -121,6 +122,34 @@ class CrInternalControllerTest extends TestcontainersPostgresBase {
             .andExpect(jsonPath("$.status").value("WRONG_CODE"));
 
         verify(projectVariationService, never()).approveByCustomer(any(), any(), any(), any());
+    }
+
+    @Test
+    void crProjectIdReturnsProjectIdForKnownCr() throws Exception {
+        CustomerProject project = new CustomerProject();
+        project.setId(99L);
+        ProjectVariation cr = new ProjectVariation();
+        cr.setId(42L);
+        cr.setProject(project);
+        when(projectVariationRepository.findById(42L)).thenReturn(Optional.of(cr));
+
+        mvc.perform(post("/internal/cr-project-id")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Portal-Signature", "sha256=ok")
+                .content(json.writeValueAsString(Map.of("crId", 42))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.crId").value(42))
+            .andExpect(jsonPath("$.projectId").value(99));
+    }
+
+    @Test
+    void crProjectIdRejectsInvalidSignature() throws Exception {
+        when(hmac.verify(anyString(), anyString())).thenReturn(false);
+        mvc.perform(post("/internal/cr-project-id")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Portal-Signature", "sha256=bad")
+                .content(json.writeValueAsString(Map.of("crId", 42))))
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
