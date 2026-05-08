@@ -48,6 +48,38 @@ public class ProjectVariation extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "cost_impact", precision = 15, scale = 2)
+    private BigDecimal costImpact;
+
+    @Column(name = "time_impact_working_days")
+    private Integer timeImpactWorkingDays;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
+
+    @Column(name = "costed_at")
+    private LocalDateTime costedAt;
+
+    @Column(name = "sent_to_customer_at")
+    private LocalDateTime sentToCustomerAt;
+
+    // approvedAt already declared above — left as-is.
+
+    @Column(name = "scheduled_at")
+    private LocalDateTime scheduledAt;
+
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
     @Override
     @PrePersist
     protected void onCreate() {
