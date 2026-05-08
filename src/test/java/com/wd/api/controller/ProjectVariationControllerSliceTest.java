@@ -202,16 +202,15 @@ class ProjectVariationControllerSliceTest extends TestcontainersPostgresBase {
     }
 
     @Test
-    @WithMockUser(authorities = {"CR_SUBMIT"})
-    void illegalTransition_DraftToSchedule_409() throws Exception {
-        // CR is DRAFT (per @BeforeEach); schedule needs APPROVED.
-        // Use the schedule endpoint with proper authority.
+    @WithMockUser(authorities = {"CR_SCHEDULE"})
+    void illegalTransition_DraftToSchedule_returns422() throws Exception {
+        // CR is in DRAFT (per @BeforeEach); CR_SCHEDULE permission allows the
+        // request through authority gating; the state machine then rejects
+        // DRAFT -> SCHEDULED with IllegalStateException, which
+        // GlobalExceptionHandler maps to 422 Unprocessable Entity.
         mvc.perform(post("/api/projects/{p}/change-requests/{c}/schedule", projectId, crId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"anchorTaskId\":1}")
-                        .with(req -> { req.addHeader("X-Test-Authority","CR_SCHEDULE"); return req; }))
-                // CR_SUBMIT alone -> 403, not 409. This test omitted; use the dedicated 409 case
-                // via a controller-level test in a follow-up if needed.
-                .andExpect(status().isForbidden());
+                        .content("{\"anchorTaskId\":1}"))
+                .andExpect(status().isUnprocessableEntity());
     }
 }
