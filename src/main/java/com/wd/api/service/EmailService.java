@@ -767,36 +767,26 @@ public class EmailService {
                 """, customerName, crTitle, crDescription, costImpact, timeImpact, otpCode, expiresInMinutes);
     }
 
-    // ── ProjectVariation field accessors (PR1 ships getCostImpact/getTimeImpactWorkingDays;
-    //    these wrappers isolate the dependency and make merge-order failures legible.) ──
+    // ── ProjectVariation field accessors ──
+    // PR1 has landed costImpact and timeImpactWorkingDays as concrete fields on
+    // ProjectVariation, so we call the Lombok-generated getters directly.
+    // Direct calls fail loudly at compile time if the getters ever rename —
+    // which is what we want, vs. the previous reflective lookups that swallowed
+    // ReflectiveOperationException and silently fell back to defaults.
 
     private String deriveCrTitle(ProjectVariation cr) {
-        // PR1 adds a dedicated `title` column. Until then, fall back to a truncation of description.
-        try {
-            var m = cr.getClass().getMethod("getTitle");
-            Object t = m.invoke(cr);
-            if (t instanceof String s && !s.isBlank()) return s;
-        } catch (ReflectiveOperationException ignored) { }
+        // ProjectVariation has no dedicated `title` column; truncate the description.
         String desc = cr.getDescription() != null ? cr.getDescription() : "(untitled change)";
         return desc.length() > 60 ? desc.substring(0, 57) + "..." : desc;
     }
 
     private BigDecimal crCostImpact(ProjectVariation cr) {
-        try {
-            var m = cr.getClass().getMethod("getCostImpact");
-            Object v = m.invoke(cr);
-            if (v instanceof BigDecimal bd) return bd;
-        } catch (ReflectiveOperationException ignored) { }
-        return cr.getEstimatedAmount() == null ? BigDecimal.ZERO : cr.getEstimatedAmount();
+        return cr.getCostImpact() != null ? cr.getCostImpact() : BigDecimal.ZERO;
     }
 
     private int crTimeImpactWorkingDays(ProjectVariation cr) {
-        try {
-            var m = cr.getClass().getMethod("getTimeImpactWorkingDays");
-            Object v = m.invoke(cr);
-            if (v instanceof Integer i) return i;
-        } catch (ReflectiveOperationException ignored) { }
-        return 0;
+        Integer v = cr.getTimeImpactWorkingDays();
+        return v == null ? 0 : v;
     }
 
     private String formatRupeesSigned(BigDecimal amount) {
