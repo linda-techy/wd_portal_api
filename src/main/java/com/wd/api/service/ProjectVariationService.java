@@ -10,6 +10,7 @@ import com.wd.api.repository.ChangeRequestApprovalHistoryRepository;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.ProjectVariationRepository;
+import com.wd.api.service.changerequest.ChangeRequestMergeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +39,7 @@ public class ProjectVariationService {
     @Autowired private CustomerProjectRepository projectRepository;
     @Autowired private PortalUserRepository portalUserRepository;
     @Autowired private ChangeRequestApprovalHistoryRepository historyRepository;
+    @Autowired private ChangeRequestMergeService changeRequestMergeService;
 
     // ---- search / list / detail (unchanged behaviour) ----
 
@@ -174,12 +176,18 @@ public class ProjectVariationService {
         ProjectVariation cr = load(crId);
         assertSource(cr, EnumSet.of(VariationStatus.APPROVED), "schedule");
         VariationStatus from = cr.getStatus();
+        // S4 PR2: merge the CR's proposed scope into the WBS BEFORE flipping
+        // the status. Same @Transactional context — a cycle / illegal-anchor
+        // / FK violation inside the merge rolls back the entire transaction,
+        // leaving the CR in APPROVED so the scheduler can retry. The merge
+        // service is APPROVED-gated and reads its own copy of the CR via
+        // findById, so we must not have flipped status yet.
+        changeRequestMergeService.mergeIntoWbs(crId, anchorTaskId, actorUserId);
         cr.setStatus(VariationStatus.SCHEDULED);
         cr.setScheduledAt(LocalDateTime.now());
         ProjectVariation saved = variationRepository.save(cr);
         appendHistory(saved, from, VariationStatus.SCHEDULED, actorUserId, null, null, null,
                 "anchorTaskId=" + anchorTaskId);
-        // PR2 wires WBS merge here.
         return saved;
     }
 

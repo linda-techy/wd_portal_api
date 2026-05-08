@@ -4,13 +4,20 @@ import com.wd.api.model.CustomerProject;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.ProjectVariation;
 import com.wd.api.model.enums.VariationStatus;
+import com.wd.api.dto.changerequest.ChangeRequestMergeResult;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.ProjectVariationRepository;
+import com.wd.api.service.changerequest.ChangeRequestMergeService;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -28,6 +35,15 @@ class ProjectVariationServiceStateMachineTest extends TestcontainersPostgresBase
     @Autowired private ProjectVariationRepository crRepo;
     @Autowired private CustomerProjectRepository projectRepo;
     @Autowired private PortalUserRepository userRepo;
+    /**
+     * S4 PR2 wires {@link ChangeRequestMergeService} into
+     * {@link ProjectVariationService#schedule}. The state-machine test only
+     * cares about the legal/illegal transition envelope, not the merge
+     * semantics — covered by ChangeRequestMergeServiceTest. We mock the merge
+     * to a no-op result so the test's bogus anchor task ids do not trip the
+     * "anchor not in project" guard in production code.
+     */
+    @MockitoBean private ChangeRequestMergeService mergeService;
 
     private Long projectId;
     private Long actorUserId;
@@ -35,6 +51,10 @@ class ProjectVariationServiceStateMachineTest extends TestcontainersPostgresBase
 
     @BeforeEach
     void setup() {
+        // Stub the merge so schedule()'s PR2 hook is a no-op for state-machine tests.
+        when(mergeService.mergeIntoWbs(anyLong(), anyLong(), any()))
+                .thenReturn(new ChangeRequestMergeResult(0, 0, 0, true));
+
         CustomerProject p = new CustomerProject();
         p.setName("svc-sm-" + UUID.randomUUID());
         p.setLocation("Loc");
