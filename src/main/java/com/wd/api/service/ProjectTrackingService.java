@@ -129,7 +129,7 @@ public class ProjectTrackingService {
         ProjectVariation variation = variationRepository.findById(vId)
                 .orElseThrow(() -> new RuntimeException("Variation not found"));
 
-        variation.setStatus(VariationStatus.PENDING_APPROVAL);
+        variation.setStatus(VariationStatus.CUSTOMER_APPROVAL_PENDING);
         ProjectVariation savedVariation = variationRepository.save(variation);
         return java.util.Objects.requireNonNull(savedVariation);
     }

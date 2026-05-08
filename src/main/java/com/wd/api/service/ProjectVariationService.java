@@ -166,9 +166,9 @@ public class ProjectVariationService {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
 
-        if (existing.getStatus() != VariationStatus.PENDING_APPROVAL) {
+        if (existing.getStatus() != VariationStatus.CUSTOMER_APPROVAL_PENDING) {
             throw new IllegalStateException(
-                    "Variation must be in PENDING_APPROVAL status to approve. Current status: " + existing.getStatus());
+                    "Variation must be in CUSTOMER_APPROVAL_PENDING status to approve. Current status: " + existing.getStatus());
         }
 
         PortalUser approver = portalUserRepository
@@ -188,9 +188,9 @@ public class ProjectVariationService {
         ProjectVariation existing = variationRepository.findById(Objects.requireNonNull(id, "Variation ID is required"))
                 .orElseThrow(() -> new IllegalArgumentException("Variation not found: " + id));
 
-        if (existing.getStatus() != VariationStatus.PENDING_APPROVAL) {
+        if (existing.getStatus() != VariationStatus.CUSTOMER_APPROVAL_PENDING) {
             throw new IllegalStateException(
-                    "Variation must be in PENDING_APPROVAL status to reject. Current status: " + existing.getStatus());
+                    "Variation must be in CUSTOMER_APPROVAL_PENDING status to reject. Current status: " + existing.getStatus());
         }
 
         existing.setStatus(VariationStatus.REJECTED);
@@ -211,7 +211,7 @@ public class ProjectVariationService {
                     "Only DRAFT variations can be submitted for approval. Current status: " + existing.getStatus());
         }
 
-        existing.setStatus(VariationStatus.PENDING_APPROVAL);
+        existing.setStatus(VariationStatus.CUSTOMER_APPROVAL_PENDING);
         return variationRepository.save(existing);
     }
 }

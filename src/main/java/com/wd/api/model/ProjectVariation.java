@@ -42,7 +42,7 @@ public class ProjectVariation extends BaseEntity {
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(length = 20, nullable = false)
+    @Column(length = 40, nullable = false)
     private VariationStatus status = VariationStatus.DRAFT;
 
     @Column(columnDefinition = "TEXT")
