@@ -35,8 +35,9 @@ class OtpServiceVerifyTest {
     @Test
     void verifyReturnsNoActiveTokenWhenRepoEmpty() {
         when(repo.findActive("CR_APPROVAL", 42L, 7L)).thenReturn(Optional.empty());
-        assertThat(service.verify("CR_APPROVAL", 42L, 7L, "123456"))
-            .isEqualTo(OtpVerifyResult.NO_ACTIVE_TOKEN);
+        OtpVerifyOutcome outcome = service.verify("CR_APPROVAL", 42L, 7L, "123456");
+        assertThat(outcome.result()).isEqualTo(OtpVerifyResult.NO_ACTIVE_TOKEN);
+        assertThat(outcome.hash()).isNull();
     }
 
     @Test
@@ -45,8 +46,9 @@ class OtpServiceVerifyTest {
         t.setExpiresAt(LocalDateTime.now().minusMinutes(1));
         when(repo.findActive(any(), any(), any())).thenReturn(Optional.of(t));
 
-        assertThat(service.verify("CR_APPROVAL", 42L, 7L, "123456"))
-            .isEqualTo(OtpVerifyResult.EXPIRED);
+        OtpVerifyOutcome outcome = service.verify("CR_APPROVAL", 42L, 7L, "123456");
+        assertThat(outcome.result()).isEqualTo(OtpVerifyResult.EXPIRED);
+        assertThat(outcome.hash()).isEqualTo(sha256("123456"));
         assertThat(t.getUsedAt()).isNull();
         verify(repo, never()).save(any());
     }
@@ -56,8 +58,9 @@ class OtpServiceVerifyTest {
         OtpToken t = token("123456");
         when(repo.findActive(any(), any(), any())).thenReturn(Optional.of(t));
 
-        assertThat(service.verify("CR_APPROVAL", 42L, 7L, "123456"))
-            .isEqualTo(OtpVerifyResult.VERIFIED);
+        OtpVerifyOutcome outcome = service.verify("CR_APPROVAL", 42L, 7L, "123456");
+        assertThat(outcome.result()).isEqualTo(OtpVerifyResult.VERIFIED);
+        assertThat(outcome.hash()).isEqualTo(sha256("123456"));
         assertThat(t.getUsedAt()).isNotNull();
         verify(repo).save(t);
     }
@@ -67,8 +70,9 @@ class OtpServiceVerifyTest {
         OtpToken t = token("123456");
         when(repo.findActive(any(), any(), any())).thenReturn(Optional.of(t));
 
-        assertThat(service.verify("CR_APPROVAL", 42L, 7L, "999999"))
-            .isEqualTo(OtpVerifyResult.WRONG_CODE);
+        OtpVerifyOutcome outcome = service.verify("CR_APPROVAL", 42L, 7L, "999999");
+        assertThat(outcome.result()).isEqualTo(OtpVerifyResult.WRONG_CODE);
+        assertThat(outcome.hash()).isEqualTo(sha256("123456"));
         assertThat(t.getAttempts()).isEqualTo(1);
         assertThat(t.getUsedAt()).isNull();
     }
@@ -79,8 +83,9 @@ class OtpServiceVerifyTest {
         t.setAttempts(2);
         when(repo.findActive(any(), any(), any())).thenReturn(Optional.of(t));
 
-        assertThat(service.verify("CR_APPROVAL", 42L, 7L, "999999"))
-            .isEqualTo(OtpVerifyResult.MAX_ATTEMPTS);
+        OtpVerifyOutcome outcome = service.verify("CR_APPROVAL", 42L, 7L, "999999");
+        assertThat(outcome.result()).isEqualTo(OtpVerifyResult.MAX_ATTEMPTS);
+        assertThat(outcome.hash()).isEqualTo(sha256("123456"));
         assertThat(t.getAttempts()).isEqualTo(3);
     }
 
@@ -89,8 +94,26 @@ class OtpServiceVerifyTest {
         OtpToken t = token("123456");
         t.setAttempts(3);
         when(repo.findActive(any(), any(), any())).thenReturn(Optional.of(t));
-        assertThat(service.verify("CR_APPROVAL", 42L, 7L, "123456"))
-            .isEqualTo(OtpVerifyResult.MAX_ATTEMPTS);
+        OtpVerifyOutcome outcome = service.verify("CR_APPROVAL", 42L, 7L, "123456");
+        assertThat(outcome.result()).isEqualTo(OtpVerifyResult.MAX_ATTEMPTS);
+        assertThat(outcome.hash()).isEqualTo(sha256("123456"));
+    }
+
+    @Test
+    void verifyReturnedHashIsCapturedBeforeStateMutation() {
+        // The hash returned from verify() should be the value of code_hash at the
+        // moment of the check, even after we set used_at on the row. This is the
+        // anti-race property the redesign exists to provide.
+        OtpToken t = token("123456");
+        String originalHash = t.getCodeHash();
+        when(repo.findActive(any(), any(), any())).thenReturn(Optional.of(t));
+
+        OtpVerifyOutcome outcome = service.verify("CR_APPROVAL", 42L, 7L, "123456");
+        assertThat(outcome.result()).isEqualTo(OtpVerifyResult.VERIFIED);
+        assertThat(outcome.hash()).isEqualTo(originalHash);
+        // After verify, the row is consumed (used_at set). A separate lookup
+        // would no longer find an active row — but our outcome already has the hash.
+        assertThat(t.getUsedAt()).isNotNull();
     }
 
     private OtpToken token(String plaintext) {

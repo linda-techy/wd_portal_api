@@ -67,36 +67,37 @@ public class OtpService {
     }
 
     @Transactional
-    public OtpVerifyResult verify(String targetType, Long targetId,
-                                  Long customerUserId, String plaintextCode) {
+    public OtpVerifyOutcome verify(String targetType, Long targetId,
+                                   Long customerUserId, String plaintextCode) {
         Optional<OtpToken> opt = repo.findActive(targetType, targetId, customerUserId);
-        if (opt.isEmpty()) return OtpVerifyResult.NO_ACTIVE_TOKEN;
+        if (opt.isEmpty()) return new OtpVerifyOutcome(OtpVerifyResult.NO_ACTIVE_TOKEN, null);
 
         OtpToken t = opt.get();
-        if (t.getExpiresAt().isBefore(LocalDateTime.now())) return OtpVerifyResult.EXPIRED;
-        if (t.getAttempts() >= t.getMaxAttempts()) return OtpVerifyResult.MAX_ATTEMPTS;
+        // Capture the hash BEFORE any state change. After we set used_at the
+        // row drops out of findActive, so a later hashFor() lookup would race
+        // with concurrent submits. Returning the hash here is atomic w.r.t.
+        // the row we actually checked.
+        String hashAtCheckTime = t.getCodeHash();
 
-        if (!sha256(plaintextCode).equals(t.getCodeHash())) {
+        if (t.getExpiresAt().isBefore(LocalDateTime.now())) {
+            return new OtpVerifyOutcome(OtpVerifyResult.EXPIRED, hashAtCheckTime);
+        }
+        if (t.getAttempts() >= t.getMaxAttempts()) {
+            return new OtpVerifyOutcome(OtpVerifyResult.MAX_ATTEMPTS, hashAtCheckTime);
+        }
+
+        if (!sha256(plaintextCode).equals(hashAtCheckTime)) {
             t.setAttempts(t.getAttempts() + 1);
             repo.save(t);
-            return t.getAttempts() >= t.getMaxAttempts()
+            OtpVerifyResult result = t.getAttempts() >= t.getMaxAttempts()
                 ? OtpVerifyResult.MAX_ATTEMPTS
                 : OtpVerifyResult.WRONG_CODE;
+            return new OtpVerifyOutcome(result, hashAtCheckTime);
         }
 
         t.setUsedAt(LocalDateTime.now());
         repo.save(t);
-        return OtpVerifyResult.VERIFIED;
-    }
-
-    /** Returns the SHA-256 hex of the most recently used token. Caller already
-     *  asked verify() and got VERIFIED. */
-    public String hashFor(String targetType, Long targetId, Long customerUserId) {
-        return repo.findActive(targetType, targetId, customerUserId)
-            .map(OtpToken::getCodeHash)
-            // findActive filters used_at IS NULL, so once consumed it returns empty.
-            // Caller should grab the hash from the verify() flow instead.
-            .orElse(null);
+        return new OtpVerifyOutcome(OtpVerifyResult.VERIFIED, hashAtCheckTime);
     }
 
     // ── internals ─────────────────────────────────────────────────

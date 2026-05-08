@@ -7,6 +7,7 @@ import com.wd.api.security.InternalHmacVerifier;
 import com.wd.api.service.ProjectVariationService;
 import com.wd.api.service.scheduling.OtpRateLimitException;
 import com.wd.api.service.scheduling.OtpService;
+import com.wd.api.service.scheduling.OtpVerifyOutcome;
 import com.wd.api.service.scheduling.OtpVerifyResult;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,8 +92,7 @@ class CrInternalControllerTest extends TestcontainersPostgresBase {
     @Test
     void approveReturnsVerifiedAndTriggersCustomerApproval() throws Exception {
         when(otpService.verify(eq("CR_APPROVAL"), eq(42L), eq(7L), eq("123456")))
-            .thenReturn(OtpVerifyResult.VERIFIED);
-        when(otpService.hashFor(any(), any(), any())).thenReturn("hash-x");
+            .thenReturn(new OtpVerifyOutcome(OtpVerifyResult.VERIFIED, "hash-x"));
 
         mvc.perform(post("/internal/cr-approve")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -103,12 +103,13 @@ class CrInternalControllerTest extends TestcontainersPostgresBase {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("VERIFIED"));
 
-        verify(projectVariationService).approveByCustomer(eq(42L), eq(7L), anyString(), eq("1.2.3.4"));
+        verify(projectVariationService).approveByCustomer(eq(42L), eq(7L), eq("hash-x"), eq("1.2.3.4"));
     }
 
     @Test
     void approveReturnsWrongCodeAndDoesNotTransition() throws Exception {
-        when(otpService.verify(any(), any(), any(), any())).thenReturn(OtpVerifyResult.WRONG_CODE);
+        when(otpService.verify(any(), any(), any(), any()))
+            .thenReturn(new OtpVerifyOutcome(OtpVerifyResult.WRONG_CODE, "hash-x"));
 
         mvc.perform(post("/internal/cr-approve")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -124,7 +125,8 @@ class CrInternalControllerTest extends TestcontainersPostgresBase {
 
     @Test
     void approveReturnsExpiredFromVerify() throws Exception {
-        when(otpService.verify(any(), any(), any(), any())).thenReturn(OtpVerifyResult.EXPIRED);
+        when(otpService.verify(any(), any(), any(), any()))
+            .thenReturn(new OtpVerifyOutcome(OtpVerifyResult.EXPIRED, "hash-x"));
         mvc.perform(post("/internal/cr-approve")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Portal-Signature", "sha256=ok")

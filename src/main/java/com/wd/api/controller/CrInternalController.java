@@ -6,6 +6,7 @@ import com.wd.api.security.InternalHmacVerifier;
 import com.wd.api.service.ProjectVariationService;
 import com.wd.api.service.scheduling.OtpRateLimitException;
 import com.wd.api.service.scheduling.OtpService;
+import com.wd.api.service.scheduling.OtpVerifyOutcome;
 import com.wd.api.service.scheduling.OtpVerifyResult;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -77,16 +78,17 @@ public class CrInternalController {
         }
         ApproveBody body = parse(rawBody, ApproveBody.class);
 
-        // Capture hash BEFORE verify(), since verify() consumes the active token.
-        String hash = otpService.hashFor(TARGET_TYPE, body.crId(), body.customerUserId());
-        OtpVerifyResult result = otpService.verify(
+        // verify() returns both the result enum AND the matched hash atomically,
+        // so there's no race window between "look up active token" and "consume
+        // active token" — the hash is captured before any state mutation.
+        OtpVerifyOutcome outcome = otpService.verify(
             TARGET_TYPE, body.crId(), body.customerUserId(), body.otpCode());
 
-        if (result == OtpVerifyResult.VERIFIED) {
+        if (outcome.result() == OtpVerifyResult.VERIFIED) {
             projectVariationService.approveByCustomer(
-                body.crId(), body.customerUserId(), hash, body.customerIp());
+                body.crId(), body.customerUserId(), outcome.hash(), body.customerIp());
         }
-        return ResponseEntity.ok(Map.of("status", result.name()));
+        return ResponseEntity.ok(Map.of("status", outcome.result().name()));
     }
 
     private static <T> T parse(String body, Class<T> type) {
