@@ -1,5 +1,6 @@
 package com.wd.api.service;
 
+import com.wd.api.dto.changerequest.ChangeRequestMergeResult;
 import com.wd.api.model.ChangeRequestApprovalHistory;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.PortalUser;
@@ -8,16 +9,21 @@ import com.wd.api.model.enums.VariationStatus;
 import com.wd.api.repository.ChangeRequestApprovalHistoryRepository;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.PortalUserRepository;
+import com.wd.api.service.changerequest.ChangeRequestMergeService;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
 class ProjectVariationServiceHistoryTest extends TestcontainersPostgresBase {
 
@@ -25,6 +31,7 @@ class ProjectVariationServiceHistoryTest extends TestcontainersPostgresBase {
     @Autowired private ChangeRequestApprovalHistoryRepository historyRepo;
     @Autowired private CustomerProjectRepository projectRepo;
     @Autowired private PortalUserRepository userRepo;
+    @MockitoBean private ChangeRequestMergeService mergeService;
 
     private Long projectId;
     private Long actorId;
@@ -32,6 +39,9 @@ class ProjectVariationServiceHistoryTest extends TestcontainersPostgresBase {
 
     @BeforeEach
     void setup() {
+        when(mergeService.mergeIntoWbs(anyLong(), anyLong(), any()))
+                .thenReturn(new ChangeRequestMergeResult(0, 0, 0, true));
+
         CustomerProject p = new CustomerProject();
         p.setName("hist-" + UUID.randomUUID());
         p.setLocation("L");
