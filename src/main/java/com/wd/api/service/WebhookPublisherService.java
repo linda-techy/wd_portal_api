@@ -164,6 +164,47 @@ public class WebhookPublisherService {
                 LocalDateTime.now()));
     }
 
+    /**
+     * S6 PR2 — daily reminder for an upcoming, due-today, or overdue payment
+     * stage. Fired by {@link com.wd.api.scheduler.PaymentMilestoneReminderJob}.
+     * One webhook per (stage, kind) per lifetime — guarded by the
+     * {@code payment_stage_reminder_sent} unique constraint at the call site.
+     *
+     * <p>{@code referenceId} is set to the stage id, matching the convention
+     * used by {@link #publishInvoiceIssued} (referenceId = the entity the
+     * customer would deep-link to). {@code customerId} is left {@code null}
+     * here — the customer-API's {@code WebhookIngestionService.resolveRecipients}
+     * already falls through to "all CUSTOMER members of project X" when
+     * customerId is null.
+     *
+     * @param kind T_MINUS_3 / DUE_TODAY / OVERDUE
+     * @param ctx  pure-data carrier from the job (stage id, name, due date, amount, project id)
+     */
+    public void publishPaymentMilestoneDue(com.wd.api.model.enums.ReminderKind kind,
+                                            com.wd.api.scheduler.PaymentMilestoneReminderJob.ReminderContext ctx) {
+        Map<String, String> meta = Map.of(
+                "reminderKind",        kind.name(),
+                "stageId",             ctx.stageId() != null ? ctx.stageId().toString() : "",
+                "stageNumber",         ctx.stageNumber() != null ? ctx.stageNumber().toString() : "",
+                "stageName",           ctx.stageName() != null ? ctx.stageName() : "",
+                "dueDate",             ctx.dueDate() != null ? ctx.dueDate().toString() : "",
+                "netPayableAmount",    ctx.netPayableAmount() != null ? ctx.netPayableAmount().toPlainString() : "0"
+        );
+        // Summary is a server-side fallback; the customer-API renders the real
+        // title/body via ContractValueFormatter on its side, so this string is
+        // mostly a debug aid in webhook_event_log rows.
+        String summary = String.format("Payment reminder (%s): Stage %s — %s",
+                kind.name(), ctx.stageNumber(), ctx.stageName());
+        publish(new PortalWebhookPayload(
+                "PAYMENT_MILESTONE_DUE",
+                ctx.projectId(),
+                /* customerId */ null,
+                /* referenceId */ ctx.stageId(),
+                summary,
+                meta,
+                LocalDateTime.now()));
+    }
+
     // ───────────────────────── Internal ────────────────────────────
 
     /**

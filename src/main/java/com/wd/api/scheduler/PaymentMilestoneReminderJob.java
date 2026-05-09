@@ -94,9 +94,19 @@ public class PaymentMilestoneReminderJob {
         LocalDate due = stage.getDueDate();
         if (due == null) return null;
 
+        // Defence-in-depth: the SQL filter already excludes PAID + ON_HOLD,
+        // but the spec is explicit ("PAID NEVER fires, ON_HOLD NEVER fires"),
+        // so re-check in-memory in case a future schema/query change leaks one
+        // through.
+        com.wd.api.model.enums.PaymentStageStatus status = stage.getStatus();
+        if (status == com.wd.api.model.enums.PaymentStageStatus.PAID
+                || status == com.wd.api.model.enums.PaymentStageStatus.ON_HOLD) {
+            return null;
+        }
+
         if (due.equals(today.plusDays(3))) return ReminderKind.T_MINUS_3;
         if (due.equals(today))             return ReminderKind.DUE_TODAY;
-        if (due.isBefore(today) && stage.getStatus() == com.wd.api.model.enums.PaymentStageStatus.OVERDUE) {
+        if (due.isBefore(today) && status == com.wd.api.model.enums.PaymentStageStatus.OVERDUE) {
             return ReminderKind.OVERDUE;
         }
         return null;
