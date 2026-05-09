@@ -28,7 +28,11 @@ class PaymentStageRepositoryReminderQueryTest extends TestcontainersPostgresBase
 
     @BeforeEach
     void setUp() {
-        stageRepo.deleteAll();
+        // NB: we don't deleteAll() here — other integration tests may have left
+        // payment_stages referenced by boq_invoices, and the FK from boq_invoices
+        // (no CASCADE) makes a global cleanup intractable. Instead we tag every
+        // stage with a unique stage-name prefix and assert containment, not
+        // exact-list equality.
         // customer_projects.location is NOT NULL; project_uuid is UNIQUE.
         project = new CustomerProject();
         project.setName("S6-PR2 reminder-query fixture");
@@ -43,20 +47,27 @@ class PaymentStageRepositoryReminderQueryTest extends TestcontainersPostgresBase
     /** Returns only stages whose status is NOT in (PAID, ON_HOLD) and whose due_date is non-null. */
     @Test
     void findCandidatesForReminder_filtersByStatusAndDueDate() {
-        save("DUE +3", LocalDate.of(2026, 5, 13), PaymentStageStatus.DUE, 1);
-        save("DUE today", TODAY, PaymentStageStatus.DUE, 2);
-        save("OVERDUE", LocalDate.of(2026, 5, 8), PaymentStageStatus.OVERDUE, 3);
-        save("PAID", LocalDate.of(2026, 5, 13), PaymentStageStatus.PAID, 4);
-        save("ON_HOLD", LocalDate.of(2026, 5, 13), PaymentStageStatus.ON_HOLD, 5);
-        save("INVOICED past", LocalDate.of(2026, 5, 8), PaymentStageStatus.INVOICED, 6);
-        save("UPCOMING null due", null, PaymentStageStatus.UPCOMING, 7);
+        // Unique tag so we can isolate this test's rows from any pre-existing
+        // payment_stages in the shared Postgres container.
+        String tag = "S6PR2-" + UUID.randomUUID().toString().substring(0, 8) + "-";
+        save(tag + "DUE+3", LocalDate.of(2026, 5, 13), PaymentStageStatus.DUE, 1);
+        save(tag + "DUEtoday", TODAY, PaymentStageStatus.DUE, 2);
+        save(tag + "OVERDUE", LocalDate.of(2026, 5, 8), PaymentStageStatus.OVERDUE, 3);
+        save(tag + "PAID", LocalDate.of(2026, 5, 13), PaymentStageStatus.PAID, 4);
+        save(tag + "ONHOLD", LocalDate.of(2026, 5, 13), PaymentStageStatus.ON_HOLD, 5);
+        save(tag + "INVOICEDpast", LocalDate.of(2026, 5, 8), PaymentStageStatus.INVOICED, 6);
+        save(tag + "UPCOMINGnull", null, PaymentStageStatus.UPCOMING, 7);
 
-        List<PaymentStage> candidates = stageRepo.findCandidatesForReminder();
+        List<PaymentStage> candidates = stageRepo.findCandidatesForReminder().stream()
+                .filter(s -> s.getStageName() != null && s.getStageName().startsWith(tag))
+                .toList();
 
         // Stages 1, 2, 3, 6 qualify (status NOT in PAID/ON_HOLD AND due_date IS NOT NULL).
         // Stage 7 is excluded (due_date IS NULL). Stages 4 and 5 are excluded by status.
         assertThat(candidates).extracting(PaymentStage::getStageName)
-                .containsExactlyInAnyOrder("DUE +3", "DUE today", "OVERDUE", "INVOICED past");
+                .containsExactlyInAnyOrder(
+                        tag + "DUE+3", tag + "DUEtoday",
+                        tag + "OVERDUE", tag + "INVOICEDpast");
     }
 
     private void save(String name, LocalDate due, PaymentStageStatus status, int num) {
