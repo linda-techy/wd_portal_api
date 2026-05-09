@@ -31,8 +31,13 @@ class PaymentStageReminderSentRepositoryTest extends TestcontainersPostgresBase 
     void setUp() {
         repo.deleteAll();
         // Minimal fixture — a project, a BOQ, and one payment stage.
+        // NB: customer_projects has NOT NULL on `location` and a UNIQUE on
+        // `project_uuid`, so seed both. (Plan fixture omitted these — discovered
+        // at test-run time, fixed in-task per the executor's stop-condition rules.)
         CustomerProject project = new CustomerProject();
         project.setName("S6-PR2 fixture project");
+        project.setLocation("Bengaluru");
+        project.setProjectUuid(java.util.UUID.randomUUID());
         project = projectRepo.save(project);
 
         BoqDocument boq = new BoqDocument();
