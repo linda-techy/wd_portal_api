@@ -23,6 +23,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -54,6 +55,7 @@ public class CpmService {
     private final ProjectScheduleConfigRepository configRepo;
     private final HolidayService holidayService;
     private final JdbcTemplate jdbc;
+    private final Clock clock;
 
     @PersistenceContext
     private EntityManager em;
@@ -63,13 +65,15 @@ public class CpmService {
                       CustomerProjectRepository projectRepo,
                       ProjectScheduleConfigRepository configRepo,
                       HolidayService holidayService,
-                      JdbcTemplate jdbc) {
+                      JdbcTemplate jdbc,
+                      Clock clock) {
         this.taskRepo = taskRepo;
         this.predRepo = predRepo;
         this.projectRepo = projectRepo;
         this.configRepo = configRepo;
         this.holidayService = holidayService;
         this.jdbc = jdbc;
+        this.clock = clock;
     }
 
     /**
@@ -136,7 +140,7 @@ public class CpmService {
                 }
             } else if (t.getActualStartDate() != null) {
                 // In progress: ES anchored, EF projected from today + remaining days.
-                LocalDate today = LocalDate.now();
+                LocalDate today = LocalDate.now(clock);
                 t.setEsDate(t.getActualStartDate());
                 int worked = (today.isBefore(t.getActualStartDate()))
                         ? 0
@@ -318,7 +322,7 @@ public class CpmService {
                 .map(Task::getStartDate)
                 .filter(d -> d != null)
                 .min(Comparator.naturalOrder())
-                .orElse(LocalDate.now());
+                .orElse(LocalDate.now(clock));
     }
 
     /**
