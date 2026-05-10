@@ -50,6 +50,14 @@ secrets/
 firebase-service-account.json
 **/firebase-service-account.json
 
+# Profile-specific Spring YAMLs contain credentials in defaults — keep locally only
+src/main/resources/application-local.yml
+src/main/resources/application-staging.yml
+src/main/resources/application-production.yml
+
+# .env.example contains a real MAIL_PASSWORD as a default — treat as secret
+.env.example
+
 ### Logs ###
 *.log
 server_logs.txt
