@@ -3,6 +3,7 @@ package com.wd.api.service;
 import com.wd.api.dto.ActivityFeedDTO;
 import com.wd.api.dto.ProjectSummaryDTO;
 import com.wd.api.model.CustomerProject;
+import com.wd.api.model.Task;
 import com.wd.api.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -59,7 +60,7 @@ public class ProjectAggregationService {
 
                 // 3. Execution Stats
                 int totalTasks = taskRepository.countByProjectId(projectId);
-                int completedTasks = taskRepository.countByProjectIdAndStatus(projectId, "COMPLETED");
+                int completedTasks = taskRepository.countByProjectIdAndStatus(projectId, Task.TaskStatus.COMPLETED);
                 int overdueTasks = taskRepository.countOverdueByProjectId(projectId, LocalDate.now());
                 int activeDelays = delayLogRepository.countActiveByProjectId(projectId);
 

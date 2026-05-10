@@ -34,7 +34,13 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
         // Aggregation Queries
         int countByProjectId(Long projectId);
 
-        int countByProjectIdAndStatus(Long projectId, String status);
+        // status is the Task.TaskStatus enum, not a String — Spring Data JPA's
+        // derived-query mapper rejects `String` against an Enum-typed column
+        // and throws InvalidDataAccessApiUsageException at call time. Earlier
+        // callers passed "COMPLETED" as a literal String which crashed
+        // /api/projects/360/{id} (Project 360 summary). Surfaced via the
+        // portal-features Playwright suite (Tier 6).
+        int countByProjectIdAndStatus(Long projectId, Task.TaskStatus status);
 
         // ===== Task Deadline Alert Queries (V11 Alert System) =====
         // Note: These queries leverage indexes created in V10 migration

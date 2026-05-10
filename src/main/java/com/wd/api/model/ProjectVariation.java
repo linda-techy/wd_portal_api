@@ -26,7 +26,9 @@ public class ProjectVariation extends BaseEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
 
-    @Column(name = "estimated_amount", precision = 15, scale = 2, nullable = false)
+    // V132 dropped NOT NULL — the v2 path uses cost_impact as the source of
+    // truth. estimated_amount stays nullable for legacy read paths.
+    @Column(name = "estimated_amount", precision = 15, scale = 2)
     private BigDecimal estimatedAmount;
 
     @Builder.Default

@@ -35,7 +35,14 @@ public interface SiteVisitRepository extends JpaRepository<SiteVisit, Long>, Jpa
     /**
      * Find all currently active visits across all projects
      */
-    @Query("SELECT sv FROM SiteVisit sv WHERE sv.visitStatus = 'CHECKED_IN' ORDER BY sv.checkInTime DESC")
+    // JOIN FETCH project + visitedBy to avoid the N+1 storm — SiteVisitService.mapToDTO
+    // touches both lazy associations for every row, so the default lazy-load
+    // pattern was producing ~100s response times on a small dataset.
+    // Surfaced via the portal-features Playwright suite (Tier 6).
+    @Query("SELECT sv FROM SiteVisit sv " +
+           "LEFT JOIN FETCH sv.project " +
+           "LEFT JOIN FETCH sv.visitedBy " +
+           "WHERE sv.visitStatus = 'CHECKED_IN' ORDER BY sv.checkInTime DESC")
     List<SiteVisit> findAllActiveVisits();
 
     /**

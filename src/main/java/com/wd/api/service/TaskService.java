@@ -97,16 +97,17 @@ public class TaskService {
             assignedSpec = (root, query, cb) -> cb.equal(root.get("assignedTo").get("id"), filter.getAssignedTo());
         }
 
-        // Project filter
+        // Project filter — Task uses @ManyToOne CustomerProject project, not
+        // a raw projectId column, so the JPA path must navigate the relationship.
         Specification<Task> projectSpec = null;
         if (filter.getProjectId() != null) {
-            projectSpec = (root, query, cb) -> cb.equal(root.get("projectId"), filter.getProjectId());
+            projectSpec = (root, query, cb) -> cb.equal(root.get("project").get("id"), filter.getProjectId());
         }
 
-        // Lead filter
+        // Lead filter — same: Task has @ManyToOne Lead lead, not a leadId column.
         Specification<Task> leadSpec = null;
         if (filter.getLeadId() != null) {
-            leadSpec = (root, query, cb) -> cb.equal(root.get("leadId"), filter.getLeadId());
+            leadSpec = (root, query, cb) -> cb.equal(root.get("lead").get("id"), filter.getLeadId());
         }
 
         // Created by filter
