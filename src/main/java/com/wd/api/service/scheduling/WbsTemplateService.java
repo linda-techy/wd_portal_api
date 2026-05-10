@@ -54,7 +54,20 @@ public class WbsTemplateService {
     @Transactional(readOnly = true)
     public List<WbsTemplateDto> list(boolean includeInactive) {
         List<WbsTemplate> rows = includeInactive ? templates.findAll() : templates.findByIsActiveTrue();
-        return rows.stream().map(this::toDto).toList();
+        // Don't descend into phases/tasks/predecessors for the list view —
+        // toDto() does N×M×K queries (phases per template, tasks per phase,
+        // predecessors per task) which puts the small-dataset response time
+        // in the ~15s range. The list endpoint only needs the template
+        // header. Callers that need the full hierarchy use get() / getActiveByCode().
+        // Surfaced via the portal-features Playwright suite (Tier 6).
+        return rows.stream().map(this::toListDto).toList();
+    }
+
+    /** Lightweight list-view projection — no child loading. */
+    private WbsTemplateDto toListDto(WbsTemplate t) {
+        return new WbsTemplateDto(t.getId(), t.getCode(), t.getProjectType(), t.getName(),
+                t.getDescription(), t.getVersion(), t.getIsActive(),
+                java.util.List.of(), t.getUpdatedAt());
     }
 
     @Transactional(readOnly = true)
