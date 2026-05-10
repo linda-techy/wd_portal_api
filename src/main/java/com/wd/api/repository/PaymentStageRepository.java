@@ -34,4 +34,17 @@ public interface PaymentStageRepository extends JpaRepository<PaymentStage, Long
            "AND s.status IN ('UPCOMING','DUE') AND s.invoice IS NULL " +
            "ORDER BY s.stageNumber ASC")
     List<PaymentStage> findEligibleForCreditApplication(@Param("projectId") Long projectId);
+
+    /**
+     * S6 PR2 — candidate stages for the daily reminder job. A candidate is any
+     * stage that is still "live" (not PAID, not ON_HOLD) AND has a non-null
+     * due_date. The job classifies each candidate's reminder kind in Java
+     * (T_MINUS_3 / DUE_TODAY / OVERDUE) based on the injected Clock — so the
+     * date math is testable without a flaky DB-clock dependency.
+     */
+    @Query("SELECT s FROM PaymentStage s " +
+           "WHERE s.status NOT IN ('PAID','ON_HOLD') " +
+           "AND s.dueDate IS NOT NULL " +
+           "ORDER BY s.id ASC")
+    List<PaymentStage> findCandidatesForReminder();
 }
