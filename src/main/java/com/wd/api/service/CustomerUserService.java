@@ -322,10 +322,18 @@ public class CustomerUserService {
     }
 
     /**
-     * Delete customer
-     * Checks for associated projects before deletion
+     * Delete customer.
+     *
+     * Behavior:
+     * - Rejects (IllegalStateException) when the customer still has active projects.
+     * - Soft-deactivates (enabled=false) and preserves the customer row when any
+     *   Lead references it via customer_user_id — lead history must survive.
+     * - Hard-deletes only when no leads or projects reference the customer.
+     *
+     * @return true when the customer was soft-deactivated (lead history preserved),
+     *         false when hard-deleted.
      */
-    public void deleteCustomer(Long id) {
+    public boolean deleteCustomer(Long id) {
         if (id == null)
             throw new IllegalArgumentException("Customer ID cannot be null");
         final Long customerId = id;
@@ -339,17 +347,17 @@ public class CustomerUserService {
                     "Cannot delete customer with " + activeProjectCount + " active projects. Please delete the projects first.");
         }
 
-        // Check for linked leads — soft-delete instead of hard delete
+        // Linked leads — soft-deactivate so the lead row keeps its customer_user_id reference.
         if (leadRepository.existsByCustomerUserId(customerId)) {
             customer.setEnabled(false);
             customerUserRepository.save(customer);
             logger.info("Customer {} deactivated (has linked leads) — ID: {}", customer.getEmail(), customerId);
-            throw new IllegalStateException(
-                    "Customer has linked leads. Account deactivated instead of deleted.");
+            return true;
         }
 
         customerUserRepository.delete(customer);
         logger.info("Customer deleted successfully — ID: {}", customerId);
+        return false;
     }
 
     // ==================== Private Validation Methods ====================

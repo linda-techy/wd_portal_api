@@ -156,9 +156,12 @@ public class CustomerController {
     @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<?> deleteCustomer(@PathVariable Long id) {
         try {
-            customerUserService.deleteCustomer(id);
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Customer deleted successfully");
+            boolean deactivated = customerUserService.deleteCustomer(id);
+            Map<String, Object> response = new HashMap<>();
+            response.put("deactivated", deactivated);
+            response.put("message", deactivated
+                    ? "Customer deactivated to preserve linked lead history."
+                    : "Customer deleted successfully");
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             logger.warn("Customer not found for deletion: {}", id);
