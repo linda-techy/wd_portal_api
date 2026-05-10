@@ -6,12 +6,16 @@ import com.wd.api.model.scheduling.TaskPredecessor;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
+import com.wd.api.repository.ProjectScheduleConfigRepository;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +27,29 @@ class CpmServiceTest extends TestcontainersPostgresBase {
     @Autowired private TaskRepository tasks;
     @Autowired private TaskPredecessorRepository preds;
     @Autowired private CustomerProjectRepository projects;
+    @Autowired private ProjectScheduleConfigRepository configRepo;
+    @Autowired private HolidayService holidayService;
+    @Autowired private JdbcTemplate jdbc;
+    @Autowired private jakarta.persistence.EntityManager em;
+
+    /** Build a CpmService whose "today" is pinned to {@code fixedToday} (system zone). */
+    private CpmService cpmAt(LocalDate fixedToday) {
+        Clock fixed = Clock.fixed(
+                fixedToday.atStartOfDay(ZoneId.systemDefault()).toInstant(),
+                ZoneId.systemDefault());
+        CpmService s = new CpmService(tasks, preds, projects, configRepo, holidayService, jdbc, fixed);
+        // CpmService uses @PersistenceContext on em — Spring would inject it on the
+        // bean, but our manual instance needs it set reflectively for in-progress
+        // task computations that flush via the EntityManager.
+        try {
+            var f = CpmService.class.getDeclaredField("em");
+            f.setAccessible(true);
+            f.set(s, em);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+        return s;
+    }
 
     private CustomerProject newProject(LocalDate start) {
         CustomerProject p = new CustomerProject();
@@ -194,7 +221,11 @@ class CpmServiceTest extends TestcontainersPostgresBase {
     @Test
     void inProgressTask_actualStartOnly_efIsTodayPlusRemaining() {
         // Task started 3 working days ago with 5-day duration -> 2 remaining.
-        LocalDate today = LocalDate.now();
+        // Pin "today" to a fixed Monday so the math is independent of the day the
+        // suite runs on — earlier draft used LocalDate.now() and failed on Sundays
+        // because subtractWorkingDays/workingDaysBetween's anchor convention diverged
+        // when "today" was itself a non-working day.
+        LocalDate today = LocalDate.of(2026, 6, 8); // Monday, no holidays
         LocalDate started = WorkingDayCalculator.subtractWorkingDays(today, 3, java.util.Set.of(), false);
 
         CustomerProject p = newProject(started);
@@ -203,7 +234,7 @@ class CpmServiceTest extends TestcontainersPostgresBase {
         a.setActualEndDate(null); // still in progress
         tasks.save(a);
 
-        cpm.recompute(p.getId());
+        cpmAt(today).recompute(p.getId());
         Task aOut = tasks.findById(a.getId()).orElseThrow();
 
         assertThat(aOut.getEsDate()).isEqualTo(started);
