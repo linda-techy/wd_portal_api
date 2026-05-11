@@ -326,46 +326,51 @@ public class CustomerUserService {
     }
 
     /**
-     * Delete customer.
-     *
-     * Behavior:
-     * - Rejects (IllegalStateException) when the customer still has active projects.
-     * - Soft-deactivates (enabled=false) and preserves the customer row when any
-     *   Lead references it via customer_user_id — lead history must survive.
-     * - Hard-deletes only when no leads or projects reference the customer.
-     *
-     * @return true when the customer was soft-deactivated (lead history preserved),
-     *         false when hard-deleted.
+     * Hard-delete a customer. Strict: rejects (IllegalStateException) whenever
+     * the customer is still referenced by active projects, leads, or project
+     * memberships — the caller is expected to deactivate via
+     * {@link #setCustomerEnabled(Long, boolean)} for the "hide but keep history"
+     * case.
      */
-    public boolean deleteCustomer(Long id) {
+    public void deleteCustomer(Long id) {
         if (id == null)
             throw new IllegalArgumentException("Customer ID cannot be null");
         final Long customerId = id;
         CustomerUser customer = customerUserRepository.findById(customerId)
                 .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + customerId + " not found"));
 
-        // Check for active (non-deleted) projects
         int activeProjectCount = customerProjectRepository.countByCustomer_IdAndDeletedAtIsNull(customerId);
-        if (activeProjectCount > 0) {
-            throw new IllegalStateException(
-                    "Cannot delete customer with " + activeProjectCount + " active projects. Please delete the projects first.");
-        }
-
-        // Linked records that block hard delete (FK from leads or project_members) —
-        // soft-deactivate so referencing rows keep their customer_id / customer_user_id.
         boolean hasLeads = leadRepository.existsByCustomerUserId(customerId);
         boolean hasMemberships = projectMemberRepository.existsByCustomerId(customerId);
-        if (hasLeads || hasMemberships) {
-            customer.setEnabled(false);
-            customerUserRepository.save(customer);
-            logger.info("Customer {} deactivated (leads={}, memberships={}) — ID: {}",
-                    customer.getEmail(), hasLeads, hasMemberships, customerId);
-            return true;
+
+        if (activeProjectCount > 0 || hasLeads || hasMemberships) {
+            List<String> blockers = new ArrayList<>();
+            if (activeProjectCount > 0) blockers.add(activeProjectCount + " active project(s)");
+            if (hasLeads) blockers.add("linked lead(s)");
+            if (hasMemberships) blockers.add("project membership(s)");
+            throw new IllegalStateException(
+                    "Cannot delete customer — still referenced by " + String.join(", ", blockers)
+                            + ". Deactivate the customer instead to preserve history.");
         }
 
         customerUserRepository.delete(customer);
         logger.info("Customer deleted successfully — ID: {}", customerId);
-        return false;
+    }
+
+    /**
+     * Toggle a customer's enabled flag. Always succeeds for an existing
+     * customer — independent of references.
+     */
+    public CustomerUser setCustomerEnabled(Long id, boolean enabled) {
+        if (id == null)
+            throw new IllegalArgumentException("Customer ID cannot be null");
+        CustomerUser customer = customerUserRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + id + " not found"));
+        if (Boolean.valueOf(enabled).equals(customer.getEnabled())) return customer;
+        customer.setEnabled(enabled);
+        CustomerUser saved = customerUserRepository.save(customer);
+        logger.info("Customer {} {} — ID: {}", customer.getEmail(), enabled ? "activated" : "deactivated", id);
+        return saved;
     }
 
     // ==================== Private Validation Methods ====================

@@ -19,7 +19,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -156,24 +155,45 @@ public class CustomerController {
     @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<?> deleteCustomer(@PathVariable Long id) {
         try {
-            boolean deactivated = customerUserService.deleteCustomer(id);
-            Map<String, Object> response = new HashMap<>();
-            response.put("deactivated", deactivated);
-            response.put("message", deactivated
-                    ? "Customer deactivated to preserve linked history (leads or project memberships)."
-                    : "Customer deleted successfully");
-            return ResponseEntity.ok(response);
+            customerUserService.deleteCustomer(id);
+            return ResponseEntity.ok(Map.of("message", "Customer deleted successfully"));
         } catch (IllegalArgumentException e) {
             logger.warn("Customer not found for deletion: {}", id);
             return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {
-            logger.warn("Cannot delete customer with associated projects: {}", id);
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(errorResponse);
+            logger.warn("Cannot delete customer {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
             logger.error("Error deleting customer with ID: {}", id, e);
             return ResponseEntity.internalServerError().body("Error deleting customer");
+        }
+    }
+
+    /**
+     * Toggle a customer's active state. Body: { "enabled": true|false }.
+     * Independent of any FK references — always works on an existing customer.
+     */
+    @PatchMapping("/{id}/enabled")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_EDIT', 'CUSTOMER_DELETE')")
+    public ResponseEntity<?> setCustomerEnabled(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        Object raw = body.get("enabled");
+        if (!(raw instanceof Boolean)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Field 'enabled' must be a boolean"));
+        }
+        boolean enabled = (Boolean) raw;
+        try {
+            CustomerUser updated = customerUserService.setCustomerEnabled(id, enabled);
+            return ResponseEntity.ok(Map.of(
+                    "enabled", Boolean.TRUE.equals(updated.getEnabled()),
+                    "message", enabled ? "Customer activated" : "Customer deactivated"));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Customer not found for enable toggle: {}", id);
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("Error toggling enabled on customer {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of("message", "Error updating customer"));
         }
     }
 
