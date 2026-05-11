@@ -160,7 +160,7 @@ public class CustomerController {
             Map<String, Object> response = new HashMap<>();
             response.put("deactivated", deactivated);
             response.put("message", deactivated
-                    ? "Customer deactivated to preserve linked lead history."
+                    ? "Customer deactivated to preserve linked history (leads or project memberships)."
                     : "Customer deleted successfully");
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {

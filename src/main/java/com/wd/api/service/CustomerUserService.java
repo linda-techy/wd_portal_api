@@ -9,6 +9,7 @@ import com.wd.api.repository.CustomerUserRepository;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.CustomerRoleRepository;
 import com.wd.api.repository.LeadRepository;
+import com.wd.api.repository.ProjectMemberRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +58,9 @@ public class CustomerUserService {
 
     @Autowired
     private LeadRepository leadRepository;
+
+    @Autowired
+    private ProjectMemberRepository projectMemberRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -347,11 +351,15 @@ public class CustomerUserService {
                     "Cannot delete customer with " + activeProjectCount + " active projects. Please delete the projects first.");
         }
 
-        // Linked leads — soft-deactivate so the lead row keeps its customer_user_id reference.
-        if (leadRepository.existsByCustomerUserId(customerId)) {
+        // Linked records that block hard delete (FK from leads or project_members) —
+        // soft-deactivate so referencing rows keep their customer_id / customer_user_id.
+        boolean hasLeads = leadRepository.existsByCustomerUserId(customerId);
+        boolean hasMemberships = projectMemberRepository.existsByCustomerId(customerId);
+        if (hasLeads || hasMemberships) {
             customer.setEnabled(false);
             customerUserRepository.save(customer);
-            logger.info("Customer {} deactivated (has linked leads) — ID: {}", customer.getEmail(), customerId);
+            logger.info("Customer {} deactivated (leads={}, memberships={}) — ID: {}",
+                    customer.getEmail(), hasLeads, hasMemberships, customerId);
             return true;
         }
 
