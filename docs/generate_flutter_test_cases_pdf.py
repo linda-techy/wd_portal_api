@@ -3019,6 +3019,240 @@ add(dict(
 ))
 
 
+# ============================== 37. HSN/SAC, AGREED, 409 CONFLICT (FA/BOQ) =
+add(dict(
+    id="F-HSN-001",
+    title="HSN/SAC visible + editable on BOQ line row",
+    screen="lib/screens/boq/boq_line_editor.dart",
+    role="ESTIMATOR", priority="P1", type="Functional",
+    pre="BOQ line list view.",
+    steps=[
+        "Open a line; inspect form.",
+    ],
+    expected="HSN/SAC text field with input formatter restricting to 4–8 digits. "
+             "Pre-filled from selected material's hsn_sac_code (V137). "
+             "Save fails with 'invalid HSN' if regex violates.",
+    flutter_gap="F-G37 — HSN now shown on row chip too.",
+))
+add(dict(
+    id="F-AGREED-001",
+    title="AGREED BOQ line shows lock icon; rate field disabled",
+    screen="lib/screens/boq/boq_line_editor.dart",
+    role="ESTIMATOR", priority="P1", type="Business Rule",
+    pre="Line state=AGREED; stage-1 invoice raised.",
+    steps=[
+        "Try to edit unit rate.",
+    ],
+    expected="Rate field disabled with tooltip 'Locked after invoice — raise a "
+             "Change Order'. CO button appears.",
+))
+add(dict(
+    id="F-409-001",
+    title="Final Account stale edit shows 409 conflict UX",
+    screen="lib/screens/final_account/final_account_editor.dart",
+    role="PROJECT_MANAGER", priority="P1", type="Concurrency",
+    pre="User A and B both have FA open; B saves first.",
+    steps=[
+        "User A taps Save.",
+    ],
+    expected="Banner 'Final Account changed by another user' with two buttons: "
+             "'Discard and reload' (refetch + replace local form) and 'Keep my "
+             "edits' (download fresh + show inline diff). No silent overwrite.",
+    flutter_gap="F-G23 — wires backend 409 to a usable client flow.",
+))
+
+# ============================== 38. PROJECT DELETE / CUSTOMER LIFECYCLE ===
+add(dict(
+    id="F-PRJ-DEL-001",
+    title="Admin-only Delete Project — typed-confirmation dialog",
+    screen="lib/screens/projects/project_detail_screen.dart",
+    role="ADMIN", priority="P1", type="Security",
+    pre="Project P-77 detail open; viewer is ADMIN.",
+    steps=[
+        "Tap kebab → Delete Project.",
+    ],
+    expected="Dialog: 'Type project code WD-77 to confirm'. Delete disabled until "
+             "exact match. After delete, route pops to project list; toast "
+             "confirms; project hidden from list.",
+))
+add(dict(
+    id="F-PRJ-DEL-002",
+    title="Non-admin does not see Delete Project entry",
+    screen="lib/screens/projects/project_detail_screen.dart",
+    role="PROJECT_MANAGER", priority="P1", type="RBAC",
+    pre="Same project, role=PM.",
+    steps=[
+        "Open kebab.",
+    ],
+    expected="Delete Project not rendered (not just disabled). UI does not leak "
+             "the option's existence.",
+))
+add(dict(
+    id="F-CST-LC-001",
+    title="Customer kebab shows Activate/Deactivate, no Delete (regress 1aa1fb46)",
+    screen="lib/screens/customers/customer_list_screen.dart",
+    role="ADMIN", priority="P1", type="Refactor regression",
+    pre="Customer list.",
+    steps=[
+        "Open row kebab.",
+    ],
+    expected="Only Activate or Deactivate is shown (mutex on state). Delete is "
+             "absent from kebab. Delete reachable only from a separate confirm "
+             "flow (7e04b70d).",
+))
+add(dict(
+    id="F-CST-LC-002",
+    title="Server outcome surfaced — Deleted vs Deactivated toast (regress ad2632d9)",
+    screen="lib/screens/customers/customer_list_screen.dart",
+    role="ADMIN", priority="P1", type="UX",
+    pre="Customer has linked lead.",
+    steps=[
+        "Perform delete on a deletable customer.",
+        "Perform delete on a customer with linked lead.",
+    ],
+    expected="Toast text differs: 'Customer deleted' vs 'Customer deactivated "
+             "(has linked records)'. List row removed or recoloured accordingly.",
+))
+
+# ============================== 39. IDEMPOTENCY KEYS IN OUTBOX =============
+add(dict(
+    id="F-IDM-001",
+    title="Outbox attaches X-Idempotency-Key on financial mutations",
+    screen="lib/services/outbox_service.dart",
+    role="any", priority="P1", type="Functional",
+    pre="Offline; user marks stage certified; outbox enqueues.",
+    steps=[
+        "Reconnect; outbox drains.",
+        "Force a retry of the same entry.",
+    ],
+    expected="Each outbox row carries a stable UUID v4 idempotency key generated "
+             "at enqueue time. Retry uses same key. Backend dedupes; ledger shows "
+             "exactly one effect.",
+    flutter_gap="F-G22 — must cover stage certify, payment confirm, invoice raise.",
+))
+add(dict(
+    id="F-IDM-002",
+    title="Idempotency key persists across app kill / device reboot",
+    screen="lib/services/outbox_service.dart + Drift schema",
+    role="any", priority="P1", type="Reliability",
+    pre="Outbox row with key 'k1' pending.",
+    steps=[
+        "Kill app; reboot device; open app.",
+    ],
+    expected="Row still has 'k1'; drain uses same key. Drift schema persists "
+             "the column; key never regenerated on resume.",
+))
+
+# ============================== 40. FCM PUSH ROUTING / DEDUP ===============
+add(dict(
+    id="F-FCM-DL-001",
+    title="STAGE_DUE push deep-links to PaymentSchedule with stage scrolled-into-view",
+    screen="lib/services/push_notification_service.dart",
+    role="any", priority="P1", type="Functional",
+    pre="Backgrounded; server emits payload {type:'STAGE_DUE', stageId:42, projectId:7}.",
+    steps=[
+        "Tap notification.",
+    ],
+    expected="App resumes; navigates to PaymentScheduleScreen of project 7; "
+             "stage 42 row is scrolled into view and visually highlighted "
+             "for 2s. If deep-link fails, falls back to landing with toast.",
+    flutter_gap="F-G31 — confirm route table covers STAGE_DUE, INVOICE_RAISED, "
+                "LEAD_ASSIGNED, FA_AGREED.",
+))
+add(dict(
+    id="F-FCM-DL-002",
+    title="Two pushes within window — only one in-app banner",
+    screen="lib/services/push_notification_service.dart",
+    role="any", priority="P2", type="UX",
+    pre="App foregrounded.",
+    steps=[
+        "Server emits two STAGE_DUE for same stage within 1 min.",
+    ],
+    expected="Client de-dupes by stageId+kind+yyyymmdd; only one banner; "
+             "subsequent suppressed (mirrors server INSERT-ON-CONFLICT dedup).",
+))
+
+# ============================== 41. MONEY FORMATTING / I18N ===============
+add(dict(
+    id="F-MONEY-001",
+    title="Money fields render as Indian lakh/crore with 2dp",
+    screen="lib/utils/money_format.dart (or shared)",
+    role="any", priority="P1", type="Localisation",
+    pre="Amount 12,345,678.5 paise.",
+    steps=[
+        "Render in invoice, BOQ summary, dashboard tile.",
+    ],
+    expected="Display '₹1,23,45,678.51' (Indian grouping). HALF_UP at 2dp matches "
+             "server MoneyMath. Negative values prefixed with '-' not '()'.",
+    flutter_gap="F-G28 — shared Indian numeral formatter still missing in places.",
+))
+add(dict(
+    id="F-MONEY-002",
+    title="Cumulative GST roll-up matches server within 1 paise",
+    screen="lib/screens/invoice/invoice_preview_screen.dart",
+    role="FINANCE", priority="P1", type="Regression",
+    pre="50-line invoice in preview.",
+    steps=[
+        "Compare on-screen total vs server-issued PDF.",
+    ],
+    expected="Difference ≤ ₹0.01 on both subtotal and GST.",
+))
+
+# ============================== 42. LEAD INTERACTIONS UI (V133) ===========
+add(dict(
+    id="F-LEAD-INT-001",
+    title="Lead detail shows interactions timeline + next-follow-up chip",
+    screen="lib/screens/leads/lead_detail_screen.dart",
+    role="SALES", priority="P1", type="Functional",
+    pre="Lead with 3 interactions: CALL, WHATSAPP, EMAIL.",
+    steps=[
+        "Open lead.",
+    ],
+    expected="Timeline ordered desc by occurred_at; channel icon + outcome + "
+             "notes preview. Next-follow-up chip turns red when overdue. Add "
+             "Interaction CTA visible.",
+))
+add(dict(
+    id="F-LEAD-INT-002",
+    title="Quick-log Interaction sheet — minimal taps to record CALL outcome",
+    screen="lib/screens/leads/quick_log_interaction_sheet.dart",
+    role="SALES", priority="P2", type="UX",
+    pre="Lead detail open.",
+    steps=[
+        "Tap Quick-log → CALL → No answer → Save.",
+    ],
+    expected="Bottom sheet with channel chips, outcome chips, optional notes, "
+             "next-follow-up date picker. Total ≤ 3 taps for the common case.",
+))
+
+# ============================== 43. RESPONSIVE / OFFLINE ON WEB ============
+add(dict(
+    id="F-WEB-001",
+    title="Web build hides offline-only entry points",
+    screen="lib/app_shell.dart + offline gates",
+    role="any", priority="P2", type="UX / Web",
+    pre="Build kIsWeb=true.",
+    steps=[
+        "Inspect drawer + dashboard.",
+    ],
+    expected="Pending Sync, My Tasks (offline mode), Outbox screen are hidden "
+             "on web (F-G30). A small disclaimer 'Offline mode unavailable on "
+             "web — use mobile app for field work' shown in profile.",
+))
+add(dict(
+    id="F-RESP-001",
+    title="BOQ table → cards transition at < 600px",
+    screen="lib/screens/boq/boq_list_screen.dart",
+    role="any", priority="P2", type="Responsive",
+    pre="DevTools at 1200px then 360px.",
+    steps=[
+        "Resize.",
+    ],
+    expected="DataTable layout on wide. Card list with horizontal-scroll chips "
+             "on narrow. No clipped totals; no horizontal overflow indicator.",
+))
+
+
 # ---------------------------------------------------------------------------
 # Flutter implementation gaps register
 # ---------------------------------------------------------------------------
@@ -3063,6 +3297,13 @@ GAPS = [
     ("F-G38", "Subcontract list", "Retention only in detail; missing from card row in list view."),
     ("F-G39", "GPS", "No mock-location detection client-side for site reports / visits."),
     ("F-G40", "Evidence", "No client-side EXIF inspection / time-jump plausibility check."),
+    ("F-G44", "BOQ Editor", "HSN/SAC inherit-on-material-select not wired in editor; estimator has to retype."),
+    ("F-G45", "Concurrency UX", "Backend 409 on Final Account, AGREED rate, and BOQ approve lacks dedicated client banner / diff view in places."),
+    ("F-G46", "Project Lifecycle", "Admin delete typed-confirmation dialog not enforced; risk of accidental tap-through on sensitive action."),
+    ("F-G47", "Customer Lifecycle", "Toast text not differentiated for Delete vs Deactivate outcomes when server returns 200 in both cases."),
+    ("F-G48", "Idempotency", "Outbox idempotency-key persistence across reboot relies on Drift column not yet confirmed for every mutation type."),
+    ("F-G49", "Push routing", "STAGE_DUE / INVOICE_RAISED / FA_AGREED / LEAD_ASSIGNED deep-link table not exhaustive; fallback may surface as no-op."),
+    ("F-G50", "Indian numerals", "[CLOSED] All NumberFormat.currency(symbol:'₹') call sites now pass locale:'en_IN' — lakh/crore grouping consistent across 11 screens (BOQ, FA, deductions, payment schedule, VO, stage payments, project detail, etc.)."),
 ]
 
 

@@ -101,6 +101,24 @@ public class BoqService {
             Material material = materialRepository.findById(request.materialId())
                     .orElseThrow(() -> new IllegalArgumentException("Material not found: " + request.materialId()));
             item.setMaterial(material);
+
+            // G-61: inherit HSN/SAC from the material master when the BOQ
+            // author left it blank. Material is the source of truth — every
+            // tax-invoice line built from this BOQ row will reference the
+            // same HSN, instead of each author re-typing it.
+            if ((item.getHsnSacCode() == null || item.getHsnSacCode().isBlank())
+                    && material.getHsnSacCode() != null
+                    && !material.getHsnSacCode().isBlank()) {
+                item.setHsnSacCode(material.getHsnSacCode());
+            }
+        }
+
+        // G-21/G-61: post-inheritance, HSN/SAC must be present — Indian GST
+        // law requires it on every tax-invoice line.
+        if (item.getHsnSacCode() == null || item.getHsnSacCode().isBlank()) {
+            throw new IllegalArgumentException(
+                    "HSN/SAC code is required (provide it explicitly or pick a material whose "
+                            + "master has an HSN/SAC code set).");
         }
 
         item = boqItemRepository.save(item);
@@ -177,6 +195,16 @@ public class BoqService {
             Material material = materialRepository.findById(request.materialId())
                     .orElseThrow(() -> new IllegalArgumentException("Material not found"));
             item.setMaterial(material);
+
+            // G-61: same inherit-on-blank rule on update — only when the
+            // request did not explicitly set hsnSacCode AND the line was
+            // previously blank.
+            if (request.hsnSacCode() == null
+                    && (item.getHsnSacCode() == null || item.getHsnSacCode().isBlank())
+                    && material.getHsnSacCode() != null
+                    && !material.getHsnSacCode().isBlank()) {
+                item.setHsnSacCode(material.getHsnSacCode());
+            }
         }
 
         item = boqItemRepository.save(item);

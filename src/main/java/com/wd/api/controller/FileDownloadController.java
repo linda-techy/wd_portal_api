@@ -85,6 +85,18 @@ public class FileDownloadController {
 
             logger.debug("File download request - URI: {}, Path: {}", requestURI, requestPath);
 
+            // G-63: defence-in-depth against path traversal. Reject obvious
+            // attacks (raw `..` segments, NUL bytes, absolute paths) BEFORE
+            // resolving — even though normalize+startsWith below would also
+            // catch them, an early reject keeps suspicious paths out of the
+            // filesystem syscall layer.
+            if (requestPath.contains("\0")
+                    || hasParentSegment(requestPath)
+                    || isAbsolutePathInput(requestPath)) {
+                logger.warn("Suspicious file-download path rejected: {}", requestPath);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
             // Build full file path
             Path filePath = Paths.get(storageBasePath).resolve(requestPath).normalize();
 
@@ -105,6 +117,21 @@ public class FileDownloadController {
             Resource resource = new UrlResource(uri);
             if (!resource.exists() || !resource.isReadable()) {
                 logger.debug("File not found or not readable: {}", filePath);
+                return ResponseEntity.notFound().build();
+            }
+
+            // G-63: symlink-safe re-check. .normalize() does NOT follow
+            // symlinks — a malicious symlink under storageBasePath could
+            // point at /etc/passwd. toRealPath() resolves the symlink chain;
+            // we then re-verify containment under the real base.
+            try {
+                Path realFile = filePath.toRealPath();
+                Path realBase = basePath.toRealPath();
+                if (!realFile.startsWith(realBase)) {
+                    logger.warn("Symlink escape blocked: {} -> {}", filePath, realFile);
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                }
+            } catch (java.nio.file.NoSuchFileException nsfe) {
                 return ResponseEntity.notFound().build();
             }
 
@@ -135,5 +162,31 @@ public class FileDownloadController {
             logger.error("Error serving file: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    /** Returns true if any path segment is exactly "..". This catches both
+     *  forward-slash and back-slash separated inputs, including encoded
+     *  variants that survived URLDecoder (e.g. URLDecoder leaves "%2e%2e"
+     *  alone if the request used "%252e%252e"). Package-private for unit
+     *  testing — the rejection rule is security-critical enough to deserve
+     *  direct coverage independent of the controller wiring. */
+    static boolean hasParentSegment(String path) {
+        for (String seg : path.replace('\\', '/').split("/")) {
+            if ("..".equals(seg.trim())) return true;
+        }
+        return false;
+    }
+
+    /** Reject inputs that look like absolute paths on either POSIX or
+     *  Windows (a leading "/" is OK on POSIX layouts because the controller
+     *  pre-strips it; this catches drive letters and UNC roots). */
+    static boolean isAbsolutePathInput(String path) {
+        if (path.length() >= 2 && Character.isLetter(path.charAt(0)) && path.charAt(1) == ':') {
+            return true; // C:\... on Windows
+        }
+        if (path.startsWith("//") || path.startsWith("\\\\")) {
+            return true; // \\server\share UNC
+        }
+        return false;
     }
 }

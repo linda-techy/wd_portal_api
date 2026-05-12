@@ -15,6 +15,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -173,5 +175,77 @@ class IdempotencyFilterTest extends TestcontainersPostgresBase {
                         .content("{}"));
 
         assertThat(repo.findById("k-out-of-scope")).isEmpty();
+    }
+
+    /** G-57: replaying the same key with a different body must surface a 409
+     *  with a stable machine-readable code, not silently return the original
+     *  cached 2xx. */
+    @Test @WithMockUser(authorities = "DELAY_CREATE")
+    void sameKeyWithDifferentBodyReturnsConflict() throws Exception {
+        String path = "/api/projects/" + projectId + "/delays";
+        String originalBody = validDelayJson();
+
+        // Seed a cache row with the hash of `originalBody`.
+        repo.save(IdempotencyResponse.builder()
+                .idempotencyKey("k-conflict")
+                .requestMethod("POST").requestPath(path)
+                .responseStatus(201)
+                .responseBody("{\"id\":99,\"original\":true}")
+                .responseContentType("application/json")
+                .requestBodyHash(sha256Hex(originalBody))
+                .cachedAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusHours(24))
+                .build());
+
+        // Replay with a tampered body but the same key.
+        String tampered = json.writeValueAsString(Map.of(
+                "delayType", "MATERIAL_SHORTAGE",
+                "fromDate", "2026-05-08",
+                "reasonText", "different reason"));
+
+        mvc.perform(post(path)
+                        .header("Idempotency-Key", "k-conflict")
+                        .contentType("application/json")
+                        .content(tampered))
+                .andExpect(status().is(409))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "IDEMPOTENCY_KEY_REPLAYED_WITH_DIFFERENT_BODY")));
+
+        // Original cache row untouched.
+        IdempotencyResponse stillThere = repo.findById("k-conflict").orElseThrow();
+        assertThat(stillThere.getResponseBody()).contains("original");
+    }
+
+    /** G-57: replaying the same key with the same body still replays the
+     *  cached response (regression — must not over-correct). */
+    @Test @WithMockUser(authorities = "DELAY_CREATE")
+    void sameKeyAndSameBodyStillReplays() throws Exception {
+        String path = "/api/projects/" + projectId + "/delays";
+        String body = validDelayJson();
+
+        repo.save(IdempotencyResponse.builder()
+                .idempotencyKey("k-replay-hash")
+                .requestMethod("POST").requestPath(path)
+                .responseStatus(201)
+                .responseBody("{\"id\":7,\"replayed\":true}")
+                .responseContentType("application/json")
+                .requestBodyHash(sha256Hex(body))
+                .cachedAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusHours(24))
+                .build());
+
+        mvc.perform(post(path)
+                        .header("Idempotency-Key", "k-replay-hash")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().is(201))
+                .andExpect(content().json("{\"id\":7,\"replayed\":true}"));
+    }
+
+    private static String sha256Hex(String s) throws Exception {
+        byte[] d = MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8));
+        StringBuilder sb = new StringBuilder(64);
+        for (byte b : d) sb.append(String.format("%02x", b));
+        return sb.toString();
     }
 }

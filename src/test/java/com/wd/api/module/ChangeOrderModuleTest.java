@@ -109,6 +109,7 @@ class ChangeOrderModuleTest extends TestcontainersPostgresBase {
         for (int i = 1; i <= 3; i++) {
             Map<String, Object> itemBody = new LinkedHashMap<>();
             itemBody.put("projectId", projectId);
+            itemBody.put("hsnSacCode", "995411");
             itemBody.put("description", "BOQ Item " + i);
             itemBody.put("unit", "nos");
             itemBody.put("quantity", new BigDecimal(100 * i));

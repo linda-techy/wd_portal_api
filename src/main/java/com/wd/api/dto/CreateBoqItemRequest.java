@@ -17,8 +17,9 @@ public record CreateBoqItemRequest(
 
         // G-21: GST HSN code (goods, 4–8 digits) or SAC code (services, 6
         // digits typically starting with 99). Mandatory by Indian GST law on
-        // every tax-invoice line.
-        @NotBlank(message = "HSN/SAC code is required for GST compliance")
+        // every tax-invoice line — enforced post-inheritance in BoqService
+        // (G-61: lines that pick a material inherit its HSN). Pattern still
+        // applies when a value is supplied.
         @Pattern(regexp = "^[0-9]{4,8}$",
                 message = "HSN/SAC code must be 4-8 digits (e.g. '995411' for construction services)")
         String hsnSacCode,

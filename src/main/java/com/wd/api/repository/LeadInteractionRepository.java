@@ -23,4 +23,12 @@ public interface LeadInteractionRepository extends JpaRepository<LeadInteraction
 
     @Query("SELECT li FROM LeadInteraction li WHERE li.nextActionDate IS NOT NULL AND li.nextActionDate < ?1 ORDER BY li.nextActionDate")
     List<LeadInteraction> findOverdueActions(LocalDateTime currentDate);
+
+    /** G-62: per-user "my overdue follow-ups" surfacing on the SALES dashboard.
+     *  Backed by composite partial index idx_lead_interactions_creator_nextaction
+     *  added in V139 so the query stays fast as the table grows. */
+    @Query("SELECT li FROM LeadInteraction li WHERE li.createdById = ?1 "
+            + "AND li.nextActionDate IS NOT NULL AND li.nextActionDate < ?2 "
+            + "ORDER BY li.nextActionDate")
+    List<LeadInteraction> findOverdueActionsByCreator(Long createdById, LocalDateTime currentDate);
 }

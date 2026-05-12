@@ -145,6 +145,7 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
         for (Object[] item : items) {
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("projectId", projectId);
+            body.put("hsnSacCode", "995411");
             body.put("description", item[0]);
             body.put("unit", item[1]);
             body.put("quantity", new BigDecimal((String) item[2]));

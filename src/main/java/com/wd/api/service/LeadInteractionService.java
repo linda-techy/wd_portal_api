@@ -105,10 +105,18 @@ public class LeadInteractionService {
     }
 
     /**
-     * Get overdue actions
+     * Get overdue actions (global — for managerial dashboards).
      */
     public List<LeadInteraction> getOverdueActions() {
         return interactionRepository.findOverdueActions(LocalDateTime.now());
+    }
+
+    /**
+     * G-62: per-user "my overdue follow-ups" — backed by the composite
+     * partial index from V139 so the SALES dashboard tile stays fast.
+     */
+    public List<LeadInteraction> getOverdueActionsForUser(Long userId) {
+        return interactionRepository.findOverdueActionsByCreator(userId, LocalDateTime.now());
     }
 
     /**

@@ -105,6 +105,7 @@ class InvoiceModuleTest extends TestcontainersPostgresBase {
         // 3. Create a BOQ item
         Map<String, Object> itemBody = new LinkedHashMap<>();
         itemBody.put("projectId", projectId);
+        itemBody.put("hsnSacCode", "995411");
         itemBody.put("description", "Steel Reinforcement");
         itemBody.put("unit", "Kg");
         itemBody.put("quantity", new BigDecimal("1000.00"));

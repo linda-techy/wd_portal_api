@@ -2506,6 +2506,334 @@ add(dict(
 ))
 
 
+# ============================== 30. IDEMPOTENCY FILTER (S5 PR1) ============
+# Cached 2xx responses on scoped paths for 24h; sweeper purges expired rows.
+# ===========================================================================
+add(dict(
+    id="TC-IDM-001",
+    title="Repeated POST with same Idempotency-Key returns the original 2xx body",
+    module="Idempotency", priority="P1", type="Functional",
+    pre="POST /api/payments with header Idempotency-Key=abc123 returned 201 + paymentId=P-77.",
+    steps=[
+        "Repeat the exact same POST with the same key within 24h.",
+    ],
+    expected="Second response is byte-equivalent (paymentId=P-77, same body + status). "
+             "No second row in payments table. Idempotency-Replayed: true header set.",
+))
+add(dict(
+    id="TC-IDM-002",
+    title="Same key + different body returns 409 (or 422 strict)",
+    module="Idempotency", priority="P1", type="Negative",
+    pre="POST with Idempotency-Key=abc123 returned 201.",
+    steps=[
+        "POST with same key but altered amount.",
+    ],
+    expected="409 Conflict with message 'idempotency key replayed with different request'. "
+             "Original record untouched.",
+    risk="Without body-hash check, key reuse can silently overwrite intent.",
+))
+add(dict(
+    id="TC-IDM-003",
+    title="Expired idempotency record (>24h) — replay re-executes",
+    module="Idempotency", priority="P2", type="Edge",
+    pre="IdempotencyResponseSweeper has purged the record (or 24h+ elapsed).",
+    steps=[
+        "Replay same key + body.",
+    ],
+    expected="Request re-executes as a fresh write; new resource id; new "
+             "idempotency row created.",
+))
+add(dict(
+    id="TC-IDM-004",
+    title="Idempotency is scoped to the 3 configured paths only",
+    module="Idempotency", priority="P2", type="Functional",
+    pre="Filter configured for /api/payments, /api/invoices, /api/stage-payments.",
+    steps=[
+        "POST /api/leads with Idempotency-Key=abc twice with same body.",
+    ],
+    expected="Both requests execute independently; two leads created. Filter does "
+             "not intercept out-of-scope paths.",
+))
+
+# ============================== 31. FCM PAYMENT-REMINDER DEDUP (S6 PR2) ====
+add(dict(
+    id="TC-FCMDED-001",
+    title="INSERT-ON-CONFLICT prevents duplicate STAGE-DUE push within window",
+    module="Reminder Dedup", priority="P1", type="Functional",
+    pre="PaymentMilestoneReminderJob runs at 09:00 IST; same job runs again at 09:05.",
+    steps=[
+        "Trigger job twice in quick succession.",
+        "Inspect payment_stage_reminder_sent rows and FCM publisher invocations.",
+    ],
+    expected="Exactly one publishPaymentMilestoneDue per (stage_id, reminder_kind, "
+             "yyyymmdd). Second run is a no-op due to UNIQUE constraint + "
+             "INSERT-ON-CONFLICT.",
+))
+add(dict(
+    id="TC-FCMDED-002",
+    title="Reminder job is profile-gated out of test/CI runs",
+    module="Reminder Dedup", priority="P2", type="Safety",
+    pre="spring.profiles.active=test.",
+    steps=[
+        "Boot test context; introspect Spring scheduler.",
+    ],
+    expected="PaymentMilestoneReminderJob bean either not created or @Scheduled "
+             "disabled. Assertion in test confirms no firing.",
+))
+add(dict(
+    id="TC-FCMDED-003",
+    title="IST Clock bean is used in reminder calendar math",
+    module="Reminder Dedup", priority="P2", type="Determinism",
+    pre="Server JVM TZ=UTC; configured Asia/Kolkata Clock injected.",
+    steps=[
+        "Force 'now' to 2026-04-30 23:55 IST and run findCandidatesForReminder.",
+    ],
+    expected="Stage due on 2026-05-01 is captured (rolls into IST next-day). UTC "
+             "would have placed it tomorrow and skipped it.",
+    risk="Calendar math regressions are easy to ship and hard to detect.",
+))
+
+# ============================== 32. CLOCK INJECTION / CPM DETERMINISM ======
+add(dict(
+    id="TC-CLK-001",
+    title="In-progress task EF math is day-of-week independent (regress bd2608e)",
+    module="Scheduling / CPM", priority="P1", type="Regression",
+    pre="Task started Mon 09:00; remaining duration 3 days (5-day work week).",
+    steps=[
+        "Compute EF with today=Tue 14:00 then today=Sat 09:00 then today=Sun.",
+    ],
+    expected="EF is identical regardless of weekday on which the calculation runs. "
+             "Working-day arithmetic uses the project calendar, not the day of "
+             "week the request landed.",
+))
+add(dict(
+    id="TC-CLK-002",
+    title="IST Clock bean is the only time source in financial / scheduling services",
+    module="Determinism", priority="P2", type="Architecture",
+    pre="Static analysis or test fixture replaces Clock.",
+    steps=[
+        "grep for Instant.now(), LocalDate.now() across financial + scheduling packages.",
+    ],
+    expected="No raw .now() in services under com.wd.api.scheduling, finance, "
+             "invoice, reminder, fa, deductions. All time obtained via injected Clock.",
+    risk="GAP — any remaining .now() callsite breaks deterministic tests + IST math.",
+))
+
+# ============================== 33. MONEYMATH ROUNDING (G-30) ==============
+add(dict(
+    id="TC-MONEY-001",
+    title="Display rounding HALF_UP @ 2dp; ledger keeps 6dp precision",
+    module="MoneyMath", priority="P1", type="Financial",
+    pre="MoneyMath utility available.",
+    steps=[
+        "Compute 18% GST on ₹12,345.678 via MoneyMath.gstFromRate.",
+        "MoneyMath.roundDisplay() applied for invoice render.",
+    ],
+    expected="Ledger value retains 6dp (2222.222040). Display value = 2222.22. "
+             "HALF_UP rule applied at the 2dp boundary; no banker's-rounding drift.",
+))
+add(dict(
+    id="TC-MONEY-002",
+    title="Cumulative GST roll-up drift ≤ 1 paise across 50-line invoice",
+    module="MoneyMath", priority="P1", type="Financial / Regression",
+    pre="Invoice with 50 lines, mixed-rate (5/12/18), random amounts.",
+    steps=[
+        "Sum per-line GST (display-rounded) vs sum-then-round.",
+    ],
+    expected="|line-sum − round(total)| ≤ ₹0.01. ProjectInvoiceService routes both "
+             "paths through MoneyMath so values match within tolerance.",
+    risk="Inconsistent setScale callsites caused the historical drift G-30 was "
+         "written to fix.",
+))
+add(dict(
+    id="TC-MONEY-003",
+    title="Mixed-tax invoice: CGST + SGST + IGST split correctness",
+    module="MoneyMath", priority="P1", type="Compliance",
+    pre="Customer GSTIN state ≠ company state (inter-state).",
+    steps=[
+        "Generate invoice.",
+    ],
+    expected="IGST is set, CGST = SGST = 0. Same-state customer: CGST = SGST = "
+             "rate/2, IGST = 0. Totals reconcile to gross.",
+))
+
+# ============================== 34. SCHEMA DELTAS V133 + V137 ==============
+add(dict(
+    id="TC-V137-MAT-001",
+    title="Material hsn_sac_code regex ^[0-9]{4,8}$ enforced; null permitted",
+    module="Material Master", priority="P1", type="Validation",
+    pre="V137 migration applied; materials.hsn_sac_code nullable.",
+    steps=[
+        "Create material with hsnSacCode='99' → reject.",
+        "Create with '9954' → accept.",
+        "Create with null → accept.",
+        "Update with 'abc12' → reject.",
+    ],
+    expected="@Pattern enforced at DTO; @Column constraint at DB; both reject "
+             "non-numeric or out-of-range length.",
+))
+add(dict(
+    id="TC-V137-MAT-002",
+    title="BOQ line inherits HSN from selected material when blank",
+    module="Material Master", priority="P2", type="Functional",
+    pre="Material with hsn_sac_code='3208' exists.",
+    steps=[
+        "Author BOQ line selecting that material; leave line HSN blank.",
+        "Save.",
+    ],
+    expected="Saved line HSN = '3208'. Customer-side invoice line shows it on the "
+             "tax breakdown.",
+))
+add(dict(
+    id="TC-V133-LEAD-INT-001",
+    title="LeadInteractionService records call / SMS / email / WhatsApp touch",
+    module="Lead Interactions", priority="P1", type="Functional",
+    pre="V133 lead_interactions table present.",
+    steps=[
+        "Sales user logs CALL outcome='no-answer' on lead L-7.",
+        "Logs WHATSAPP outcome='customer-replied'.",
+        "Inspect /api/leads/L-7/interactions.",
+    ],
+    expected="Both rows persisted with channel, outcome, occurred_at, by_user_id, "
+             "notes. Lead detail screen shows latest touch + next-follow-up SLA.",
+))
+add(dict(
+    id="TC-V133-LEAD-INT-002",
+    title="Lead next-follow-up SLA breach surfaces on dashboard",
+    module="Lead Interactions", priority="P2", type="Workflow",
+    pre="Lead has interaction with next_followup_at past now.",
+    steps=[
+        "Open SALES dashboard.",
+    ],
+    expected="Lead listed under 'Overdue follow-up'. Counter is the COUNT(*) of "
+             "leads where next_followup_at < now() AND no later interaction.",
+))
+
+# ============================== 35. FILE DOWNLOAD CONTROLLER ===============
+add(dict(
+    id="TC-FDL-001",
+    title="Auth required on file download endpoint",
+    module="File Download", priority="P1", type="Security",
+    pre="File F-9 belongs to project P-3.",
+    steps=[
+        "GET /api/files/F-9 without Authorization header.",
+        "GET with valid token for unrelated project.",
+    ],
+    expected="No-auth → 401. Cross-tenant token → 403. Authorized → 200.",
+))
+add(dict(
+    id="TC-FDL-002",
+    title="Range request returns 206 with correct Content-Range",
+    module="File Download", priority="P2", type="HTTP",
+    pre="File is 4MB PDF.",
+    steps=[
+        "GET with Range: bytes=0-1023.",
+    ],
+    expected="206 Partial Content; Content-Length: 1024; Content-Range matches; "
+             "byte count of body = 1024.",
+))
+add(dict(
+    id="TC-FDL-003",
+    title="Path traversal blocked",
+    module="File Download", priority="P1", type="Security",
+    pre="Storage rooted at /var/walldot/uploads.",
+    steps=[
+        "GET /api/files/../../../etc/passwd (URL-encoded variants).",
+    ],
+    expected="400 or 404 with safe error message; no resolution escaping the "
+             "storage root. Defence-in-depth: canonicalize and re-verify under root.",
+))
+add(dict(
+    id="TC-FDL-004",
+    title="AV-scan flag honoured before serving",
+    module="File Download", priority="P2", type="Security",
+    pre="File row has av_scan_status='PENDING'.",
+    steps=[
+        "Attempt download.",
+    ],
+    expected="423 Locked (or 409) with message 'scan pending'. After AV passes, "
+             "download succeeds.",
+    risk="GAP — verify AV pipeline is wired and download honours its result.",
+))
+
+# ============================== 36. FA 409 / AGREED HARDENING ==============
+add(dict(
+    id="TC-FA-409-001",
+    title="Stale Final Account edit surfaces 409 conflict (regress 71845d23)",
+    module="Final Account", priority="P1", type="Concurrency",
+    pre="FA loaded with ETag/version=12 by user A. User B commits version=13.",
+    steps=[
+        "User A submits patch with If-Match=12.",
+    ],
+    expected="409 Conflict with current ETag, optimistic-lock version, and a "
+             "machine-readable diff hint. UI prompts reload.",
+))
+add(dict(
+    id="TC-AGREED-001",
+    title="BOQ-line AGREED unit rate immutable after first stage invoice raised",
+    module="BOQ Hardening", priority="P1", type="Business Rule",
+    pre="Stage-1 invoice raised; agreed rate r1 on line L.",
+    steps=[
+        "Attempt PATCH line L unitRate=r2 ≠ r1.",
+    ],
+    expected="409 with code AGREED_LOCKED. Permitted change must go through a "
+             "Change Order with customer acknowledgement.",
+))
+add(dict(
+    id="TC-AGREED-002",
+    title="HSN/SAC change on AGREED line is allowed (text correction)",
+    module="BOQ Hardening", priority="P2", type="Functional",
+    pre="Line L is AGREED with wrong HSN.",
+    steps=[
+        "PATCH only hsnSacCode.",
+    ],
+    expected="200 OK; future invoice lines use new HSN; prior invoices remain "
+             "with their captured HSN snapshot.",
+))
+
+# ============================== 37. CUSTOMER / PROJECT LIFECYCLE PATCH =====
+add(dict(
+    id="TC-CST-ACTDEACT-001",
+    title="Customer Deactivate vs Delete are separate flows (regress c372b89)",
+    module="Customer Lifecycle", priority="P1", type="Functional / RBAC",
+    pre="Customer C-9 with active project + lead history.",
+    steps=[
+        "Admin clicks Deactivate.",
+        "Admin clicks Delete (separate menu).",
+    ],
+    expected="Deactivate flips active=false, preserves all FK refs; user can "
+             "Reactivate. Delete only allowed when no active project + lead refs; "
+             "soft-delete via deleted_at; cascading deactivate to project_members "
+             "on FK reference (b309934).",
+))
+add(dict(
+    id="TC-CST-ACTDEACT-002",
+    title="Soft-delete of customer-linked lead returns 200, lead preserved",
+    module="Customer Lifecycle", priority="P2", type="Functional",
+    pre="Customer C-9; one converted lead L-3.",
+    steps=[
+        "DELETE /api/customers/C-9.",
+    ],
+    expected="Server returns success outcome with body distinguishing "
+             "DELETED vs DEACTIVATED (dc5db05). Lead L-3 still queryable, marked "
+             "with deactivatedCustomer=true.",
+))
+add(dict(
+    id="TC-PRJ-DEL-001",
+    title="Admin-only project delete with FK guard + confirmation (regress d4cb8b67)",
+    module="Project Lifecycle", priority="P1", type="Security / Workflow",
+    pre="Project P-77 has invoices, tasks, site reports.",
+    steps=[
+        "Non-admin attempts DELETE → expect 403.",
+        "Admin attempts DELETE without confirmation token → 400.",
+        "Admin DELETE with confirmation=true.",
+    ],
+    expected="403 / 400 / 200 respectively. Successful delete cascades soft-delete "
+             "to children, preserves audit trail. UI requires typed confirmation "
+             "of project code.",
+))
+
+
 # ---------------------------------------------------------------------------
 # Identified gaps summary
 # ---------------------------------------------------------------------------
@@ -2563,6 +2891,15 @@ GAPS = [
     ("G-51", "Auth", "No concurrent-session policy (esp. for FINANCE / DIRECTOR roles)."),
     ("G-52", "Security", "Global API rate-limit policy for transactional mutations not confirmed."),
     ("G-53", "Privacy — DPDP", "No explicit consent capture or revocation workflow for marketing communications."),
+    ("G-57", "Idempotency", "[CLOSED] Body-hash equality now enforced — same key + different body returns 409 (V138 + IdempotencyFilter, see TC-IDM-002)."),
+    ("G-58", "Idempotency", "[CLOSED] Scope is now configurable via wd.idempotency.scoped-paths; default preserved (TC-IDM-004 still valid)."),
+    ("G-59", "Determinism", "Static-analysis sweep needed to confirm no raw Instant.now() / LocalDate.now() remains in finance + scheduling packages after Clock injection (S6 PR2)."),
+    ("G-60", "MoneyMath", "Most services still call ad-hoc setScale(...); only ProjectInvoiceService threaded through MoneyMath. Follow-up commits required."),
+    ("G-61", "Material Master", "[CLOSED] BoqService now inherits hsn_sac_code from selected material when the BOQ-line value is blank, and rejects creation with no HSN at either side (TC-V137-MAT-002 verifies)."),
+    ("G-62", "Lead Interactions", "[CLOSED] V139 adds composite partial index (created_by_id, next_action_date) WHERE next_action_date IS NOT NULL; new repo method findOverdueActionsByCreator backs per-user dashboard."),
+    ("G-63", "File Download", "[CLOSED] Path-traversal hardened: defence-in-depth reject of '..' segments, NUL bytes, absolute paths; toRealPath() symlink-escape check added on top of normalize+startsWith."),
+    ("G-64", "Concurrency", "Final-account 409 path needs end-to-end machine-readable diff for the client; current shape may be opaque to Flutter."),
+    ("G-65", "Lifecycle", "Project soft-delete cascade matrix not exhaustively documented — risk of orphan rows when a child table is added later without a delete-listener."),
 ]
 
 

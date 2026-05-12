@@ -116,6 +116,7 @@ class BoqModuleTest extends TestcontainersPostgresBase {
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("projectId", projectId);
+        body.put("hsnSacCode", "995411"); // SAC: general construction services of buildings
         body.put("description", "Concrete Foundation Work");
         body.put("unit", "CuM");
         body.put("quantity", new BigDecimal("50.00"));

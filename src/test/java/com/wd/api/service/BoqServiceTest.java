@@ -153,6 +153,57 @@ class BoqServiceTest {
                 .hasMessageContaining("cannot be negative");
     }
 
+    /** G-61: When the BOQ author leaves HSN blank but picks a material that
+     *  has its own HSN/SAC, the line inherits it from the material master. */
+    @Test
+    void createBoqItem_blankHsnInheritsFromMaterial() {
+        when(customerProjectRepository.findById(1L)).thenReturn(Optional.of(project));
+        doNothing().when(projectAccessGuard).verifyPortalAccess(anyLong(), anyLong());
+
+        Material material = new Material();
+        material.setId(77L);
+        material.setName("OPC 53-grade cement");
+        material.setHsnSacCode("2523");
+        when(materialRepository.findById(77L)).thenReturn(Optional.of(material));
+
+        ArgumentCaptor<BoqItem> captor = ArgumentCaptor.forClass(BoqItem.class);
+        BoqItem saved = draftItem();
+        when(boqItemRepository.save(captor.capture())).thenReturn(saved);
+
+        CreateBoqItemRequest req = new CreateBoqItemRequest(1L, null, null, null,
+                /* hsnSacCode blank */ null,
+                "Cement supply", "Bag", new BigDecimal("100.00"), new BigDecimal("420.00"),
+                /* materialId */ 77L, null, null, ItemKind.BASE);
+
+        boqService.createBoqItem(req, 1L);
+
+        BoqItem persisted = captor.getValue();
+        assertThat(persisted.getHsnSacCode()).isEqualTo("2523");
+        assertThat(persisted.getMaterial()).isEqualTo(material);
+    }
+
+    /** G-21/G-61: when neither the line nor the material has an HSN, creation
+     *  must fail with a clear error — invoices cannot be generated without it. */
+    @Test
+    void createBoqItem_blankHsnAndMaterialWithoutHsn_throws() {
+        when(customerProjectRepository.findById(1L)).thenReturn(Optional.of(project));
+        doNothing().when(projectAccessGuard).verifyPortalAccess(anyLong(), anyLong());
+
+        Material material = new Material();
+        material.setId(78L);
+        material.setName("Misc material");
+        // hsn_sac_code intentionally null
+        when(materialRepository.findById(78L)).thenReturn(Optional.of(material));
+
+        CreateBoqItemRequest req = new CreateBoqItemRequest(1L, null, null, null,
+                null, "Misc work", "Each", new BigDecimal("5.00"), new BigDecimal("100.00"),
+                78L, null, null, ItemKind.BASE);
+
+        assertThatThrownBy(() -> boqService.createBoqItem(req, 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("HSN/SAC code is required");
+    }
+
     @Test
     void createBoqItem_setsStatusToDraftAndExecutedToZero() {
         when(customerProjectRepository.findById(1L)).thenReturn(Optional.of(project));

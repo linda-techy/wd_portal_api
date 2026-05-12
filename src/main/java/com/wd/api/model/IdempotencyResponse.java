@@ -43,4 +43,9 @@ public class IdempotencyResponse {
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
+
+    /** G-57: SHA-256 of the request body — replays with the same key but a
+     *  different body must return 409 instead of the original cached response. */
+    @Column(name = "request_body_hash", length = 64)
+    private String requestBodyHash;
 }

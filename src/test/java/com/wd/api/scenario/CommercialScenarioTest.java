@@ -135,6 +135,7 @@ class CommercialScenarioTest extends TestcontainersPostgresBase {
             for (Object[] item : category) {
                 Map<String, Object> itemBody = new LinkedHashMap<>();
                 itemBody.put("projectId", projectId);
+                itemBody.put("hsnSacCode", "995411");
                 itemBody.put("description", item[0]);
                 itemBody.put("unit", item[1]);
                 itemBody.put("quantity", new BigDecimal((String) item[2]));
