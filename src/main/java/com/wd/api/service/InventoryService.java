@@ -128,6 +128,7 @@ public class InventoryService {
                                 .unit(dto.getUnit().toUpperCase())
                                 .category(dto.getCategory().toUpperCase())
                                 .active(true)
+                                .hsnSacCode(dto.getHsnSacCode())
                                 .build();
                 material = materialRepository.save(material);
                 return mapToMaterialDTO(material);
@@ -232,6 +233,8 @@ public class InventoryService {
                         material.setUnit(dto.getUnit().toUpperCase());
                 if (dto.getCategory() != null)
                         material.setCategory(dto.getCategory().toUpperCase());
+                if (dto.getHsnSacCode() != null)
+                        material.setHsnSacCode(dto.getHsnSacCode());
 
                 material = materialRepository.save(material);
                 return mapToMaterialDTO(material);
@@ -323,6 +326,7 @@ public class InventoryService {
                                 .unit(m.getUnit())
                                 .category(m.getCategory())
                                 .active(m.isActive())
+                                .hsnSacCode(m.getHsnSacCode())
                                 .build();
         }
 

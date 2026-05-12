@@ -8,12 +8,12 @@ import com.wd.api.model.enums.InvoiceStatus;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.ProjectInvoiceRepository;
 import com.wd.api.repository.ProjectMilestoneRepository;
+import com.wd.api.util.MoneyMath;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,8 +37,8 @@ public class ProjectInvoiceService {
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
         BigDecimal gstRate = dto.getGstPercentage() != null ? dto.getGstPercentage() : new BigDecimal("18.00");
-        BigDecimal gstAmount = dto.getSubTotal().multiply(gstRate).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-        BigDecimal totalAmount = dto.getSubTotal().add(gstAmount);
+        BigDecimal gstAmount = MoneyMath.gstFromRate(dto.getSubTotal(), gstRate);
+        BigDecimal totalAmount = MoneyMath.roundDisplay(dto.getSubTotal().add(gstAmount));
 
         ProjectInvoice invoice = ProjectInvoice.builder()
                 .project(project)
@@ -71,8 +71,8 @@ public class ProjectInvoiceService {
         CustomerProject project = milestone.getProject();
         BigDecimal amount = milestone.getAmount();
         BigDecimal gstRate = new BigDecimal("18.00");
-        BigDecimal gstAmount = amount.multiply(gstRate).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-        BigDecimal totalAmount = amount.add(gstAmount);
+        BigDecimal gstAmount = MoneyMath.gstFromRate(amount, gstRate);
+        BigDecimal totalAmount = MoneyMath.roundDisplay(amount.add(gstAmount));
 
         ProjectInvoice invoice = ProjectInvoice.builder()
                 .project(project)

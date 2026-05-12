@@ -30,15 +30,29 @@ public class Material extends BaseEntity {
     @Column(name = "is_active")
     private boolean active = true;
 
+    /**
+     * GST HSN (goods) / SAC (services) code. Construction-industry practice
+     * keeps the code on the material master so every BOQ line that picks
+     * this material inherits a consistent code on the tax invoice. Nullable
+     * until existing rows are backfilled.
+     */
+    @Column(name = "hsn_sac_code", length = 10)
+    private String hsnSacCode;
+
     public Material() {
     }
 
     public Material(Long id, String name, String unit, String category, boolean active) {
+        this(id, name, unit, category, active, null);
+    }
+
+    public Material(Long id, String name, String unit, String category, boolean active, String hsnSacCode) {
         this.id = id;
         this.name = name;
         this.unit = unit;
         this.category = category;
         this.active = active;
+        this.hsnSacCode = hsnSacCode;
     }
 
     public static MaterialBuilder builder() {
@@ -51,6 +65,7 @@ public class Material extends BaseEntity {
         private String unit;
         private String category;
         private boolean active = true;
+        private String hsnSacCode;
 
         public MaterialBuilder id(Long id) {
             this.id = id;
@@ -77,8 +92,13 @@ public class Material extends BaseEntity {
             return this;
         }
 
+        public MaterialBuilder hsnSacCode(String hsnSacCode) {
+            this.hsnSacCode = hsnSacCode;
+            return this;
+        }
+
         public Material build() {
-            return new Material(id, name, unit, category, active);
+            return new Material(id, name, unit, category, active, hsnSacCode);
         }
     }
 
@@ -120,5 +140,13 @@ public class Material extends BaseEntity {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getHsnSacCode() {
+        return hsnSacCode;
+    }
+
+    public void setHsnSacCode(String hsnSacCode) {
+        this.hsnSacCode = hsnSacCode;
     }
 }
