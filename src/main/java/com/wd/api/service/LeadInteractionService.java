@@ -12,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Service for managing lead interactions and communications
@@ -173,7 +175,9 @@ public class LeadInteractionService {
         existing.setNextAction(updatedInteraction.getNextAction());
         existing.setNextActionDate(updatedInteraction.getNextActionDate());
 
-        return interactionRepository.save(existing);
+        LeadInteraction saved = interactionRepository.save(existing);
+        recomputeLeadDenormalizedFields(saved.getLeadId());
+        return saved;
     }
 
     /**
@@ -181,10 +185,38 @@ public class LeadInteractionService {
      */
     @Transactional
     public void deleteInteraction(Long id) {
-        if (!interactionRepository.existsById(id)) {
-            throw new RuntimeException("Interaction not found");
-        }
+        LeadInteraction existing = interactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Interaction not found"));
+        Long leadId = existing.getLeadId();
         interactionRepository.deleteById(id);
+        recomputeLeadDenormalizedFields(leadId);
+    }
+
+    /**
+     * Re-derive Lead.lastContactDate and Lead.nextFollowUp from the lead's
+     * current interactions. Called after update/delete so the denormalized
+     * fields on Lead don't drift from the source of truth.
+     */
+    private void recomputeLeadDenormalizedFields(Long leadId) {
+        if (leadId == null) return;
+        leadRepository.findById(leadId).ifPresent(lead -> {
+            List<LeadInteraction> all = interactionRepository
+                    .findByLeadIdOrderByInteractionDateDesc(leadId);
+            if (all.isEmpty()) {
+                lead.setLastContactDate(null);
+                lead.setNextFollowUp(null);
+            } else {
+                lead.setLastContactDate(all.get(0).getInteractionDate());
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime earliestFuture = all.stream()
+                        .map(LeadInteraction::getNextActionDate)
+                        .filter(d -> d != null && d.isAfter(now))
+                        .min(LocalDateTime::compareTo)
+                        .orElse(null);
+                lead.setNextFollowUp(earliestFuture);
+            }
+            leadRepository.save(lead);
+        });
     }
 
     /**
@@ -259,7 +291,7 @@ public class LeadInteractionService {
     /**
      * Get interaction statistics for a lead
      */
-    public java.util.Map<String, Object> getInteractionStats(Long leadId) {
+    public Map<String, Object> getInteractionStats(Long leadId) {
         List<LeadInteraction> interactions = getInteractionsByLeadId(leadId);
 
         long totalInteractions = interactions.size();
@@ -269,11 +301,12 @@ public class LeadInteractionService {
 
         LocalDateTime lastInteraction = interactions.isEmpty() ? null : interactions.get(0).getInteractionDate();
 
-        return java.util.Map.of(
-                "totalInteractions", totalInteractions,
-                "callsCount", callsCount,
-                "meetingsCount", meetingsCount,
-                "emailsCount", emailsCount,
-                "lastInteractionDate", lastInteraction != null ? lastInteraction.toString() : "Never");
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalInteractions", totalInteractions);
+        stats.put("callsCount", callsCount);
+        stats.put("meetingsCount", meetingsCount);
+        stats.put("emailsCount", emailsCount);
+        stats.put("lastInteractionDate", lastInteraction);
+        return stats;
     }
 }

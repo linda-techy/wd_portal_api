@@ -121,6 +121,26 @@ public class PaymentService {
         DesignPackagePayment saved = paymentRepository.save(payment);
         logger.info("Design payment created with ID: {}", saved.getId());
 
+        // Auto-advance the project from PLANNING → DESIGN. Creating the design
+        // package payment is the workflow signal that the design phase has
+        // started, so portal staff don't need to also click the phase chip.
+        // Only forward-transition: leave projects already in CONSTRUCTION /
+        // COMPLETED / ON_HOLD untouched.
+        if (project.getProjectPhase() == com.wd.api.model.enums.ProjectPhase.PLANNING) {
+            project.setProjectPhase(com.wd.api.model.enums.ProjectPhase.DESIGN);
+            try {
+                projectRepository.save(project);
+                logger.info("Project {} auto-transitioned PLANNING → DESIGN on design-payment creation",
+                        project.getId());
+            } catch (Exception e) {
+                // Don't fail the payment creation if the phase update fails —
+                // the user can still set the phase manually from the project
+                // detail screen.
+                logger.warn("Failed to auto-transition project {} to DESIGN phase: {}",
+                        project.getId(), e.getMessage());
+            }
+        }
+
         return toDesignPaymentResponse(saved);
     }
 

@@ -47,7 +47,10 @@ public class PaymentController {
     }
 
     /**
-     * Get design payment details for a project
+     * Get design payment details for a project. Returns 200 with data=null when
+     * no record exists yet — the endpoint is the resource (always present), the
+     * payment is the row (may be absent). Avoids spurious 404s in browser
+     * DevTools and lets the client treat the response uniformly.
      */
     @GetMapping("/design/project/{projectId}")
     public ResponseEntity<?> getDesignPaymentByProject(@PathVariable Long projectId) {
@@ -55,8 +58,7 @@ public class PaymentController {
             DesignPaymentResponse response = paymentService.getDesignPaymentByProjectId(projectId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Design payment retrieved successfully", response));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse<>(false, e.getMessage(), null));
+            return ResponseEntity.ok(new ApiResponse<>(true, "No design payment for project yet", null));
         } catch (Exception e) {
             logger.error("Error getting design payment for project: {}", projectId, e);
             return ResponseEntity.internalServerError()

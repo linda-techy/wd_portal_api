@@ -35,9 +35,17 @@ public class FileDownloadController {
      * Serve files from storage path
      * GET /api/storage/projects/1/documents/file.pdf
      * GET /api/files/download/site-reports/10/file.png (legacy path)
+     *
+     * Permission: any authenticated user with one of the resource-view rights
+     * can fetch a file. The controller serves a generic storage tree
+     * (site-reports/, gallery/, projects/.../documents/, etc.), and gating it
+     * on DOCUMENT_VIEW alone broke site engineers / supervisors who can
+     * create + view site reports (with embedded photos) but don't have the
+     * documents permission. Auth is still required; the URLs themselves
+     * carry unguessable identifiers.
      */
     @GetMapping({"/api/storage/**", "/api/files/download/**"})
-    @PreAuthorize("hasAuthority('DOCUMENT_VIEW')")
+    @PreAuthorize("hasAnyAuthority('DOCUMENT_VIEW', 'SITE_REPORT_VIEW', 'SITE_REPORT_CREATE', 'GALLERY_VIEW')")
     public ResponseEntity<Resource> serveFile(HttpServletRequest request,
             @RequestParam(required = false) String download,
             @RequestHeader(value = "Range", required = false) String rangeHeader) {
