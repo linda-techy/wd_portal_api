@@ -88,7 +88,8 @@ class BoqServiceTest {
     }
 
     private CreateBoqItemRequest createRequest(Long projectId, String desc, BigDecimal qty, BigDecimal rate) {
-        return new CreateBoqItemRequest(projectId, null, null, null, desc, "SqFt", qty, rate,
+        // "995411" — SAC for general construction services of buildings.
+        return new CreateBoqItemRequest(projectId, null, null, null, "995411", desc, "SqFt", qty, rate,
                 null, null, null, ItemKind.BASE);
     }
 
@@ -129,7 +130,7 @@ class BoqServiceTest {
         when(customerProjectRepository.findById(1L)).thenReturn(Optional.of(project));
         doNothing().when(projectAccessGuard).verifyPortalAccess(anyLong(), anyLong());
 
-        CreateBoqItemRequest req = new CreateBoqItemRequest(1L, null, null, null,
+        CreateBoqItemRequest req = new CreateBoqItemRequest(1L, null, null, null, "995411",
                 "Concrete", "SqFt", BigDecimal.ZERO, new BigDecimal("100.00"),
                 null, null, null, ItemKind.BASE);
 
@@ -143,7 +144,7 @@ class BoqServiceTest {
         when(customerProjectRepository.findById(1L)).thenReturn(Optional.of(project));
         doNothing().when(projectAccessGuard).verifyPortalAccess(anyLong(), anyLong());
 
-        CreateBoqItemRequest req = new CreateBoqItemRequest(1L, null, null, null,
+        CreateBoqItemRequest req = new CreateBoqItemRequest(1L, null, null, null, "995411",
                 "Concrete", "SqFt", new BigDecimal("-5.00"), new BigDecimal("100.00"),
                 null, null, null, ItemKind.BASE);
 
@@ -168,6 +169,22 @@ class BoqServiceTest {
         assertThat(persisted.getStatus()).isEqualTo(BoqItemStatus.DRAFT);
         assertThat(persisted.getExecutedQuantity()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(persisted.getBilledQuantity()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    /** G-21: HSN/SAC code from the request must land on the entity for GST invoicing. */
+    @Test
+    void createBoqItem_persistsHsnSacCodeFromRequest() {
+        when(customerProjectRepository.findById(1L)).thenReturn(Optional.of(project));
+        doNothing().when(projectAccessGuard).verifyPortalAccess(anyLong(), anyLong());
+
+        ArgumentCaptor<BoqItem> captor = ArgumentCaptor.forClass(BoqItem.class);
+        when(boqItemRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        CreateBoqItemRequest req = createRequest(1L, "RCC Slab",
+                new BigDecimal("100.00"), new BigDecimal("450.00"));
+        boqService.createBoqItem(req, 1L);
+
+        assertThat(captor.getValue().getHsnSacCode()).isEqualTo("995411");
     }
 
     // ── recordExecution ───────────────────────────────────────────────────────
@@ -320,7 +337,7 @@ class BoqServiceTest {
         doNothing().when(projectAccessGuard).verifyPortalAccess(anyLong(), anyLong());
         when(boqItemRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        UpdateBoqItemRequest req = new UpdateBoqItemRequest(null, null, null,
+        UpdateBoqItemRequest req = new UpdateBoqItemRequest(null, null, null, null,
                 "Updated description", null, null, new BigDecimal("250.00"),
                 null, null, null, null);
 
@@ -337,7 +354,7 @@ class BoqServiceTest {
         when(boqItemRepository.findById(10L)).thenReturn(Optional.of(item));
         doNothing().when(projectAccessGuard).verifyPortalAccess(anyLong(), anyLong());
 
-        UpdateBoqItemRequest req = new UpdateBoqItemRequest(null, null, null,
+        UpdateBoqItemRequest req = new UpdateBoqItemRequest(null, null, null, null,
                 "New desc", null, null, null, null, null, null, null);
 
         assertThatThrownBy(() -> boqService.updateBoqItem(10L, req, 1L))

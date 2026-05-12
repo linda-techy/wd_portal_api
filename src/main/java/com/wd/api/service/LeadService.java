@@ -1293,7 +1293,9 @@ public class LeadService {
                 throw new IllegalArgumentException("Cannot convert a lost lead. Please update lead status first.");
             }
 
-            // Check for duplicate conversion
+            // Check for duplicate conversion. The DB-level unique partial index
+            // (V134) is the actual race-condition guard — this early check just
+            // returns a friendly error in the common (uncontested) case.
             if (customerProjectRepository.existsByLeadId(leadId)) {
                 throw new IllegalStateException("This lead has already been converted to a project");
             }
@@ -1326,7 +1328,17 @@ public class LeadService {
             // Set Budget (legacy quotation lookup removed in C.PR-3 — use lead budget)
             project.setBudget(lead.getBudget());
 
-            com.wd.api.model.CustomerProject savedProject = customerProjectRepository.save(project);
+            com.wd.api.model.CustomerProject savedProject;
+            try {
+                savedProject = customerProjectRepository.saveAndFlush(project);
+            } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+                // Race condition: another concurrent request converted the same
+                // lead between our existsByLeadId check and this insert.
+                // The DB-level partial unique index on (lead_id WHERE
+                // lead_id IS NOT NULL AND deleted_at IS NULL) caught it.
+                throw new IllegalStateException(
+                        "This lead has already been converted to a project");
+            }
 
             // Generate Code
             String projectCode = "PRJ-" + java.time.LocalDate.now().getYear() + "-"

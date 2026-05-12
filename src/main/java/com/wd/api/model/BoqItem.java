@@ -48,6 +48,14 @@ public class BoqItem extends BaseEntity {
     @Column(name = "item_code", length = 50)
     private String itemCode;
 
+    /**
+     * GST HSN (Harmonized System of Nomenclature) for goods or SAC (Services
+     * Accounting Code) for services. Required by Indian GST law on every tax
+     * invoice line. Stored as 4–8 digit code; service codes begin with "99".
+     */
+    @Column(name = "hsn_sac_code", length = 10)
+    private String hsnSacCode;
+
     @Column(nullable = false, length = 255)
     private String description;
 
@@ -230,6 +238,9 @@ public class BoqItem extends BaseEntity {
 
     public String getItemCode() { return itemCode; }
     public void setItemCode(String itemCode) { this.itemCode = itemCode; }
+
+    public String getHsnSacCode() { return hsnSacCode; }
+    public void setHsnSacCode(String hsnSacCode) { this.hsnSacCode = hsnSacCode; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

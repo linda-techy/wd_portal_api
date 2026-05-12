@@ -260,7 +260,15 @@ public class AuthService {
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
 
-        logger.info("Password successfully reset for portal user: {}", user.getEmail());
+        // G-44: Invalidate every other active session for this user. A password
+        // reset means either (a) the legitimate user forgot the password — old
+        // sessions on shared devices should be cut off — or (b) an attacker
+        // pushed the reset to hijack the account — in either case all
+        // refresh tokens issued before this moment must be revoked so the
+        // next /auth/refresh-token call forces a fresh login.
+        refreshTokenRepository.deleteByUser_Id(user.getId());
+
+        logger.info("Password reset for portal user: {} — all refresh tokens revoked", user.getEmail());
     }
 
     /**

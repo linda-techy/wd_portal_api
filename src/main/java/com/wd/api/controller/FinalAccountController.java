@@ -86,4 +86,20 @@ public class FinalAccountController {
         return ResponseEntity.ok(ApiResponse.success("Retention released",
                 FinalAccountResponse.from(fa)));
     }
+
+    /**
+     * G-19: Translate a concurrent-edit collision (Hibernate optimistic-lock
+     * failure on the @Version column) into a 409 Conflict so the UI can refetch
+     * the latest state and prompt the user to redo their change instead of
+     * silently overwriting another editor's work.
+     */
+    @ExceptionHandler({
+            jakarta.persistence.OptimisticLockException.class,
+            org.springframework.dao.OptimisticLockingFailureException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticLock(Exception ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ApiResponse.error("This final account was modified by another user. " +
+                        "Please refresh and reapply your changes."));
+    }
 }

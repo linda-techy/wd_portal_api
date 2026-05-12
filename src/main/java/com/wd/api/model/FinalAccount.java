@@ -75,6 +75,12 @@ public class FinalAccount {
     @Column(name = "agreed_by", length = 100)
     private String agreedBy;
 
+    // ---- Concurrency (G-19) ----
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
     // ---- Audit ----
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -171,4 +177,7 @@ public class FinalAccount {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }

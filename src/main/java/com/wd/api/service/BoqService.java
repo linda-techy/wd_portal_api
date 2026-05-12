@@ -71,6 +71,7 @@ public class BoqService {
         BoqItem item = new BoqItem();
         item.setProject(project);
         item.setItemCode(request.itemCode());
+        item.setHsnSacCode(request.hsnSacCode());
         item.setDescription(request.description());
         item.setUnit(request.unit());
         item.setQuantity(request.quantity());
@@ -129,6 +130,7 @@ public class BoqService {
 
         // Update fields
         if (request.itemCode() != null) item.setItemCode(request.itemCode());
+        if (request.hsnSacCode() != null) item.setHsnSacCode(request.hsnSacCode());
         if (request.description() != null) item.setDescription(request.description());
         if (request.unit() != null) item.setUnit(request.unit());
         if (request.quantity() != null) {
@@ -550,6 +552,7 @@ public class BoqService {
         Map<String, Object> state = new HashMap<>();
         state.put("id", item.getId());
         state.put("itemCode", item.getItemCode());
+        state.put("hsnSacCode", item.getHsnSacCode());
         state.put("description", item.getDescription());
         state.put("quantity", item.getQuantity());
         state.put("unitRate", item.getUnitRate());

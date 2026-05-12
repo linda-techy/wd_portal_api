@@ -15,6 +15,14 @@ public record CreateBoqItemRequest(
         @Size(max = 50, message = "Item code must not exceed 50 characters")
         String itemCode,
 
+        // G-21: GST HSN code (goods, 4–8 digits) or SAC code (services, 6
+        // digits typically starting with 99). Mandatory by Indian GST law on
+        // every tax-invoice line.
+        @NotBlank(message = "HSN/SAC code is required for GST compliance")
+        @Pattern(regexp = "^[0-9]{4,8}$",
+                message = "HSN/SAC code must be 4-8 digits (e.g. '995411' for construction services)")
+        String hsnSacCode,
+
         @NotBlank(message = "Description is required")
         @Size(max = 255, message = "Description must not exceed 255 characters")
         String description,

@@ -12,6 +12,12 @@ public record UpdateBoqItemRequest(
         @Size(max = 50, message = "Item code must not exceed 50 characters")
         String itemCode,
 
+        // G-21: GST HSN / SAC code. Null = no change; if supplied it must
+        // match the same format enforced on create.
+        @Pattern(regexp = "^[0-9]{4,8}$",
+                message = "HSN/SAC code must be 4-8 digits (e.g. '995411' for construction services)")
+        String hsnSacCode,
+
         @Size(max = 255, message = "Description must not exceed 255 characters")
         String description,
 
