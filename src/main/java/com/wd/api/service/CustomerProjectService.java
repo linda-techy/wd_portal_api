@@ -468,7 +468,12 @@ public class CustomerProjectService {
 
                 project.setProjectPhase(newPhase);
             } catch (IllegalArgumentException e) {
-                // Keep existing value if invalid enum provided
+                // Surface invalid enum to the caller instead of silently
+                // ignoring it — the user clicked a phase, they deserve to
+                // know it didn't take.
+                throw new IllegalArgumentException(
+                        "Invalid project phase '" + request.getProjectPhase()
+                                + "'. Allowed: PLANNING, DESIGN, CONSTRUCTION, COMPLETED, ON_HOLD.");
             }
         }
         // Validate and normalise project type against the enum on update
@@ -486,14 +491,21 @@ public class CustomerProjectService {
             }
             // else keep existing value — invalid type is silently ignored
         }
-        project.setState(request.getState() != null && !request.getState().trim().isEmpty()
-                ? request.getState().trim()
-                : null);
-        project.setDistrict(request.getDistrict() != null && !request.getDistrict().trim().isEmpty()
-                ? request.getDistrict().trim()
-                : null);
-        project.setSqfeet(request.getSqfeet());
-        project.setLeadId(request.getLeadId());
+        // PATCH semantics — only overwrite when the caller actually sent the
+        // field. Treating these as PUT-replace was nulling out NOT-NULL
+        // columns (state) when the frontend sent a partial payload.
+        if (request.getState() != null && !request.getState().trim().isEmpty()) {
+            project.setState(request.getState().trim());
+        }
+        if (request.getDistrict() != null && !request.getDistrict().trim().isEmpty()) {
+            project.setDistrict(request.getDistrict().trim());
+        }
+        if (request.getSqfeet() != null) {
+            project.setSqfeet(request.getSqfeet());
+        }
+        if (request.getLeadId() != null) {
+            project.setLeadId(request.getLeadId());
+        }
 
         // Update code if provided (manual override)
         if (request.getCode() != null && !request.getCode().trim().isEmpty()) {

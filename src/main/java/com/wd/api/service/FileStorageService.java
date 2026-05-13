@@ -19,12 +19,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class FileStorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(FileStorageService.class);
+
+    // 0755 = rwxr-xr-x. Nginx (or whatever process serves /storage on the VPS)
+    // needs read+execute on each path under the shared storage root; without it,
+    // documents/site-reports uploaded by the Java process under a restrictive
+    // umask come back as 403 to the customer/portal web apps.
+    private static final Set<PosixFilePermission> STORAGE_PERMS =
+            PosixFilePermissions.fromString("rwxr-xr-x");
+
     private final Path fileStorageLocation;
 
     public FileStorageService(FileUploadConfig fileUploadConfig,
@@ -73,6 +84,7 @@ public class FileStorageService {
             // Copy file to the target location
             Path destinationFile = targetLocation.resolve(uniqueFileName);
             Files.copy(file.getInputStream(), destinationFile, StandardCopyOption.REPLACE_EXISTING);
+            applyStoragePermissions(destinationFile);
 
             return subDirectory + "/" + uniqueFileName;
         } catch (IOException ex) {
@@ -160,6 +172,7 @@ public class FileStorageService {
             } finally {
                 writer.dispose();
             }
+            applyStoragePermissions(destinationFile);
 
             long originalBytes = file.getSize();
             long encodedBytes = Files.size(destinationFile);
@@ -172,6 +185,22 @@ public class FileStorageService {
             logger.warn("Image optimisation failed for {}, falling back to raw store: {}",
                     originalFileName, ex.getMessage());
             return storeFile(file, subDirectory);
+        }
+    }
+
+    /**
+     * Set 0755 on a freshly-written file or directory under the storage root.
+     * No-op on non-POSIX file systems (Windows dev boxes) — silently swallowed
+     * so local builds aren't affected. IOException is logged at WARN, not
+     * thrown, because a chmod failure shouldn't fail the upload itself.
+     */
+    public void applyStoragePermissions(Path path) {
+        try {
+            Files.setPosixFilePermissions(path, STORAGE_PERMS);
+        } catch (UnsupportedOperationException ignored) {
+            // Windows / non-POSIX — chmod has no meaning here.
+        } catch (IOException ex) {
+            logger.warn("Could not chmod 0755 on {}: {}", path, ex.getMessage());
         }
     }
 

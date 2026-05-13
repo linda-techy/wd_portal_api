@@ -115,6 +115,7 @@ public class DpcIssueService {
         try {
             Files.createDirectories(absoluteTarget.getParent());
             Files.write(absoluteTarget, pdfBytes);
+            fileStorageService.applyStoragePermissions(absoluteTarget);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write DPC PDF to " + absoluteTarget, e);
         }

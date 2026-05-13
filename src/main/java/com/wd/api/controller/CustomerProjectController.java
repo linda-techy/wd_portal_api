@@ -158,6 +158,20 @@ public class CustomerProjectController {
         } catch (IllegalArgumentException e) {
             logger.warn("Validation error updating project ID {}: {}", id, e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalStateException e) {
+            // Phase-advance gate failures ("Cannot advance: 2 quality checks
+            // pending"). These are user-facing rule violations, not server
+            // errors — surface the actual message so staff know what to fix.
+            logger.info("Business rule blocked project update {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // NOT-NULL / FK / unique-constraint violations from the DB.
+            // Surface a hint instead of the raw Postgres message so the user
+            // gets a useful error instead of "Internal server error".
+            logger.warn("Data integrity violation updating project ID {}: {}", id, e.getMostSpecificCause().getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Update rejected by database: "
+                            + e.getMostSpecificCause().getMessage()));
         } catch (Exception e) {
             logger.error("Error updating customer project with ID: {}", id, e);
             return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
