@@ -4,6 +4,7 @@ import com.wd.api.model.Task;
 import com.wd.api.model.scheduling.TaskPredecessor;
 import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +28,7 @@ class TaskPredecessorServiceTest {
     @Mock private TaskPredecessorRepository predecessorRepo;
     @Mock private TaskRepository taskRepo;
     @Mock private CpmService cpmService;
+    @Mock private EntityManager em;
     @InjectMocks private TaskPredecessorService service;
 
     private Task task(long id) {
@@ -36,6 +39,9 @@ class TaskPredecessorServiceTest {
 
     @BeforeEach
     void stubLoad() {
+        // @InjectMocks uses the 3-arg constructor and therefore does NOT field-inject
+        // the @PersistenceContext EntityManager — wire the mock in manually.
+        ReflectionTestUtils.setField(service, "em", em);
         lenient().when(taskRepo.findById(anyLong()))
                 .thenAnswer(inv -> Optional.of(task(inv.getArgument(0))));
     }

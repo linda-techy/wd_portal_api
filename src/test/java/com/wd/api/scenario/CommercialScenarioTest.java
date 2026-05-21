@@ -2,6 +2,7 @@ package com.wd.api.scenario;
 
 import com.wd.api.config.TestDataSeeder;
 import com.wd.api.support.AuthTestHelper;
+import com.wd.api.support.BoqApprovalSupport;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -166,6 +167,9 @@ class CommercialScenarioTest extends TestcontainersPostgresBase {
 
         HttpHeaders pmHeaders = auth.authHeaders(auth.loginAsPM());
         HttpHeaders adminHeaders = auth.authHeaders(auth.loginAsAdmin());
+
+        // Approve all items first — submit rejects documents with any DRAFT item.
+        BoqApprovalSupport.approveAllItems(restTemplate, url(""), adminHeaders, projectId);
 
         // Submit
         ResponseEntity<Map> submitResponse = restTemplate.exchange(

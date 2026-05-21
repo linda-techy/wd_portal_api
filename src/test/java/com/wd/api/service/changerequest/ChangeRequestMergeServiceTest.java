@@ -15,6 +15,7 @@ import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.changerequest.ChangeRequestTaskPredecessorRepository;
 import com.wd.api.repository.changerequest.ChangeRequestTaskRepository;
+import com.wd.api.service.TaskQualityGateService;
 import com.wd.api.service.scheduling.CpmService;
 import com.wd.api.service.scheduling.HandoverShiftDetector;
 import com.wd.api.service.scheduling.HolidayService;
@@ -50,6 +51,7 @@ class ChangeRequestMergeServiceTest {
     @Mock private HolidayService holidayService;
     @Mock private CpmService cpmService;
     @Mock private HandoverShiftDetector handoverShiftDetector;
+    @Mock private TaskQualityGateService qualityGateService;
 
     @InjectMocks private ChangeRequestMergeService service;
 

@@ -2,6 +2,7 @@ package com.wd.api.scenario;
 
 import com.wd.api.config.TestDataSeeder;
 import com.wd.api.support.AuthTestHelper;
+import com.wd.api.support.BoqApprovalSupport;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -176,6 +177,9 @@ class ResidentialScenarioTest extends TestcontainersPostgresBase {
         assertThat(boqDocumentId).as("BOQ document must exist").isNotNull();
 
         HttpHeaders headers = headersFor(auth.loginAsPM());
+
+        // Approve all items first — submit rejects documents with any DRAFT item.
+        BoqApprovalSupport.approveAllItems(restTemplate, url(""), headers, projectId);
 
         ResponseEntity<Map> response = restTemplate.exchange(
                 url("/api/boq-documents/" + boqDocumentId + "/submit"),

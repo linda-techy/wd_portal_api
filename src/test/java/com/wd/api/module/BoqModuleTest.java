@@ -190,8 +190,17 @@ class BoqModuleTest extends TestcontainersPostgresBase {
     @Order(5)
     void should_submitBoqForApproval() {
         assertThat(boqDocumentId).as("BOQ document must be created first").isNotNull();
+        assertThat(boqItemId).as("BOQ item must be created first").isNotNull();
 
         HttpHeaders headers = adminHeaders();
+
+        // New business rule: a document cannot be submitted while any project BOQ item is
+        // still DRAFT. Approve the item created in test 2 before submitting the document.
+        ResponseEntity<Map> approveItem = restTemplate.exchange(
+                baseUrl("/api/boq/" + boqItemId + "/approve"),
+                HttpMethod.PATCH, new HttpEntity<>(headers), Map.class);
+        assertThat(approveItem.getStatusCode()).isEqualTo(HttpStatus.OK);
+
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
         ResponseEntity<Map> response = restTemplate.exchange(

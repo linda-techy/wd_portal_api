@@ -2,6 +2,7 @@ package com.wd.api.migration;
 
 import com.wd.api.testsupport.FlywayMigrationTestBase;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -36,12 +37,25 @@ class V113BackfillSqlSemanticsTest extends FlywayMigrationTestBase {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @BeforeEach
+    void ensureOnConflictArbiter() {
+        // V113's `ON CONFLICT (successor_id, predecessor_id)` needs a matching unique
+        // index. In production that arbiter existed when V113 ran; V154 later replaced
+        // it with a partial (live-rows-only) index that cannot serve an unqualified
+        // ON CONFLICT, and the Hibernate-built test schema reflects the post-V154
+        // entity (no full unique constraint). Recreate the full arbiter so V113's SQL
+        // runs faithfully; dropped in @AfterEach to keep tests isolated.
+        jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_v113test_task_pred_pair "
+                + "ON task_predecessor (successor_id, predecessor_id)");
+    }
+
     @AfterEach
     void dropLegacyColumnIfPresent() {
         // DDL is auto-committed and outlives @Transactional rollback, so the
         // ALTER TABLE ADD COLUMN we use to seed pre-V121 state would otherwise
         // leak across tests in the same JVM. Drop it deterministically.
         jdbc.execute("ALTER TABLE tasks DROP COLUMN IF EXISTS depends_on_task_id");
+        jdbc.execute("DROP INDEX IF EXISTS ux_v113test_task_pred_pair");
     }
 
     private static String loadV113Sql() throws IOException {

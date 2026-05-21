@@ -6,7 +6,10 @@ import com.wd.api.model.Task;
 import com.wd.api.repository.ActivityTypeRepository;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.TaskRepository;
+import com.wd.api.model.TaskQualityGate;
+import com.wd.api.repository.TaskQualityGateRepository;
 import com.wd.api.service.TaskProgressUpdateService;
+import com.wd.api.service.TaskQualityGateService;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +30,8 @@ class TaskProgressUpdateServiceCpmHookTest extends TestcontainersPostgresBase {
     @Autowired private TaskRepository tasks;
     @Autowired private CustomerProjectRepository projects;
     @Autowired private ActivityTypeRepository activityTypes;
+    @Autowired private TaskQualityGateService qualityGateService;
+    @Autowired private TaskQualityGateRepository qualityGates;
 
     @SpyBean private CpmService cpm;
 
@@ -85,6 +90,17 @@ class TaskProgressUpdateServiceCpmHookTest extends TestcontainersPostgresBase {
         t.setDueDate(LocalDate.of(2030, 12, 31));
         t.setStartDate(LocalDate.of(2026, 6, 1));
         t.setEndDate(LocalDate.of(2026, 6, 5));
-        return tasks.save(t);
+        Task saved = tasks.save(t);
+
+        // Completion now requires a PASSED/NA FINAL quality gate (assertCompletable).
+        // Tasks created via TaskService get gates seeded automatically; this test
+        // builds the Task directly, so seed + pass the FINAL gate here.
+        qualityGateService.seedGatesFor(saved);
+        TaskQualityGate finalGate = qualityGates
+                .findByTaskIdAndGateType(saved.getId(), TaskQualityGate.GateType.FINAL)
+                .orElseThrow();
+        finalGate.setStatus(TaskQualityGate.Status.PASSED);
+        qualityGates.save(finalGate);
+        return saved;
     }
 }

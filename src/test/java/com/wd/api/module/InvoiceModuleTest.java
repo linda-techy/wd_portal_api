@@ -2,6 +2,7 @@ package com.wd.api.module;
 
 import com.wd.api.config.TestDataSeeder;
 import com.wd.api.support.AuthTestHelper;
+import com.wd.api.support.BoqApprovalSupport;
 import com.wd.api.testsupport.TestcontainersPostgresBase;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,6 +118,9 @@ class InvoiceModuleTest extends TestcontainersPostgresBase {
                 new HttpEntity<>(itemBody, headers), Map.class);
 
         assertThat(itemResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        // 3b. Approve all items — submit now rejects documents with any DRAFT item.
+        BoqApprovalSupport.approveAllItems(restTemplate, "http://localhost:" + port, headers, projectId);
 
         // 4. Submit for approval
         ResponseEntity<Map> submitResponse = restTemplate.exchange(
