@@ -5,6 +5,11 @@
 
 server:
   port: 8080
+  tomcat:
+    threads:
+      max: 40                          # 1-core VPS: Tomcat default (200) over-subscribes the scheduler
+      min-spare: 4
+    accept-count: 50                   # queue request bursts instead of spawning more threads
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/plain
@@ -40,14 +45,14 @@ spring:
   task:
     execution:
       pool:
-        core-size: 20
-        max-size: 100
-        queue-capacity: 1000
+        core-size: 4                   # 1-core VPS: was 20 — fewer runnable threads => less context-switching
+        max-size: 16                   # was 100
+        queue-capacity: 500            # was 1000
         keep-alive: 60s
       thread-name-prefix: async-prod-
     scheduling:
       pool:
-        size: 5
+        size: 2                        # was 5 — only a handful of nightly cron jobs run
       thread-name-prefix: sched-prod-
   jpa:
     hibernate:
