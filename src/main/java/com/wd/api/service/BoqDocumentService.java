@@ -2,6 +2,7 @@ package com.wd.api.service;
 
 import com.wd.api.model.*;
 import com.wd.api.model.enums.BoqDocumentStatus;
+import com.wd.api.model.enums.BoqItemStatus;
 import com.wd.api.model.enums.PaymentStageStatus;
 import com.wd.api.repository.*;
 import com.wd.api.repository.CustomerUserRepository;
@@ -139,9 +140,26 @@ public class BoqDocumentService {
             throw new IllegalStateException("Only a DRAFT BOQ document can be submitted. Current status: " + doc.getStatus());
         }
 
-        // Snapshot totals from live boq_items
-        BigDecimal totalExGst = boqItemRepository.findByProjectIdWithAssociations(doc.getProject().getId())
-                .stream()
+        // Load active items once for both validation and snapshot.
+        List<BoqItem> items = boqItemRepository.findByProjectIdWithAssociations(doc.getProject().getId());
+
+        // Business rule: every item must be at least APPROVED before the document
+        // is sent to the customer. A document that still contains DRAFT items would
+        // expose unfinished pricing/scope and create an ambiguous approval contract.
+        if (items.isEmpty()) {
+            throw new IllegalStateException("Cannot submit BOQ for approval: no items in this project.");
+        }
+        long draftCount = items.stream()
+                .filter(i -> i.getStatus() == BoqItemStatus.DRAFT)
+                .count();
+        if (draftCount > 0) {
+            throw new IllegalStateException(
+                "Cannot submit BOQ for approval: " + draftCount + " item(s) still in DRAFT status. " +
+                "Approve every BOQ item (BoqController PATCH /api/boq/{id}/approve) before submitting the document.");
+        }
+
+        // Snapshot totals from approved live items
+        BigDecimal totalExGst = items.stream()
                 .map(BoqItem::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(6, RoundingMode.HALF_UP);

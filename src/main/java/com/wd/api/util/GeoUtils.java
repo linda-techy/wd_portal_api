@@ -11,8 +11,9 @@ public class GeoUtils {
     /**
      * Maximum allowed distance (in km) between user's GPS coordinates
      * and the project site for check-in/check-out.
+     * 0.2 km = 200 m — staff must be physically present at the site to log a visit.
      */
-    public static final double MAX_CHECKIN_DISTANCE_KM = 2.0;
+    public static final double MAX_CHECKIN_DISTANCE_KM = 0.2;
 
     private GeoUtils() {
         // Utility class

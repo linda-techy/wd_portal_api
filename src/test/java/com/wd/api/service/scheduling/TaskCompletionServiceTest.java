@@ -6,6 +6,7 @@ import com.wd.api.model.Task;
 import com.wd.api.model.enums.ReportType;
 import com.wd.api.repository.SiteReportRepository;
 import com.wd.api.repository.TaskRepository;
+import com.wd.api.service.TaskQualityGateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -39,6 +40,8 @@ class TaskCompletionServiceTest {
     private SiteReportRepository siteReportRepo;
     private ProjectScheduleConfigService configService;
     private CpmService cpmService;
+    private TaskQualityGateService qualityGateService;
+    private com.wd.api.service.ProjectProgressService projectProgressService;
     private TaskCompletionService service;
 
     private CustomerProject project;
@@ -49,7 +52,9 @@ class TaskCompletionServiceTest {
         siteReportRepo = mock(SiteReportRepository.class);
         configService = mock(ProjectScheduleConfigService.class);
         cpmService = mock(CpmService.class);
-        service = new TaskCompletionService(taskRepo, siteReportRepo, configService, cpmService);
+        qualityGateService = mock(TaskQualityGateService.class);
+        projectProgressService = mock(com.wd.api.service.ProjectProgressService.class);
+        service = new TaskCompletionService(taskRepo, siteReportRepo, configService, cpmService, qualityGateService, projectProgressService);
 
         project = new CustomerProject();
         project.setId(7L);

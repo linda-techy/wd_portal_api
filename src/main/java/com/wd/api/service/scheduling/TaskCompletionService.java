@@ -6,6 +6,7 @@ import com.wd.api.model.Task;
 import com.wd.api.model.enums.ReportType;
 import com.wd.api.repository.SiteReportRepository;
 import com.wd.api.repository.TaskRepository;
+import com.wd.api.service.TaskQualityGateService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,15 +41,38 @@ public class TaskCompletionService {
     private final SiteReportRepository siteReportRepo;
     private final ProjectScheduleConfigService configService;
     private final CpmService cpmService;
+    private final TaskQualityGateService qualityGateService;
+    private final com.wd.api.service.ProjectProgressService projectProgressService;
 
     public TaskCompletionService(TaskRepository taskRepo,
                                  SiteReportRepository siteReportRepo,
                                  ProjectScheduleConfigService configService,
-                                 CpmService cpmService) {
+                                 CpmService cpmService,
+                                 TaskQualityGateService qualityGateService,
+                                 com.wd.api.service.ProjectProgressService projectProgressService) {
         this.taskRepo = taskRepo;
         this.siteReportRepo = siteReportRepo;
         this.configService = configService;
         this.cpmService = cpmService;
+        this.qualityGateService = qualityGateService;
+        this.projectProgressService = projectProgressService;
+    }
+
+    /**
+     * Refresh denormalised progress columns on the project after a status
+     * transition (markComplete / approveCompletion / rejectCompletion).
+     * Non-fatal: ops-friendly WARN on failure rather than rolling back the
+     * status transition itself.
+     */
+    private void refreshProjectProgress(Long projectId, String changeType, String reason) {
+        if (projectId == null) return;
+        try {
+            projectProgressService.updateProjectProgress(projectId, changeType, reason, null);
+        } catch (Exception ex) {
+            org.slf4j.LoggerFactory.getLogger(TaskCompletionService.class)
+                    .warn("Project {} progress recompute failed ({}): {}",
+                            projectId, changeType, ex.getMessage());
+        }
     }
 
     @Transactional
@@ -69,6 +93,14 @@ public class TaskCompletionService {
         boolean requiresApproval = Boolean.TRUE.equals(
                 configService.get(projectId).requiresPmApproval());
 
+        // ITP gate: when this path leads directly to COMPLETED (no PM approval
+        // required), the FINAL quality gate must already be PASSED. When PM
+        // approval IS required, the gate check is deferred to approveCompletion
+        // — that's where the actual COMPLETED transition happens.
+        if (!requiresApproval) {
+            qualityGateService.assertCompletable(taskId);
+        }
+
         t.setStatus(requiresApproval
                 ? Task.TaskStatus.PENDING_PM_APPROVAL
                 : Task.TaskStatus.COMPLETED);
@@ -76,6 +108,10 @@ public class TaskCompletionService {
 
         Task saved = taskRepo.save(t);
         cpmService.recompute(projectId);
+        // Status transitioned (IN_PROGRESS → PENDING_PM_APPROVAL or COMPLETED);
+        // refresh project denormalised progress columns.
+        refreshProjectProgress(projectId, "TASK_MARK_COMPLETE",
+                "Task '" + saved.getTitle() + "' (id=" + saved.getId() + ") moved to " + saved.getStatus());
         return saved;
     }
 
@@ -89,10 +125,19 @@ public class TaskCompletionService {
                     "Task " + taskId + " is not pending approval (status=" + t.getStatus() + ")");
         }
 
+        // ITP gate: PM approval finalises the transition to COMPLETED — refuse
+        // if the site engineer never signed off the FINAL quality gate.
+        qualityGateService.assertCompletable(taskId);
+
         t.setStatus(Task.TaskStatus.COMPLETED);
         t.setRejectionReason(null);
         Task saved = taskRepo.save(t);
-        cpmService.recompute(t.getProject().getId());
+        Long projectId = t.getProject().getId();
+        cpmService.recompute(projectId);
+        // PM approval flips the task into the completed bucket — this is the
+        // transition that actually moves project overall_progress.
+        refreshProjectProgress(projectId, "TASK_COMPLETION_APPROVED",
+                "Task '" + saved.getTitle() + "' (id=" + saved.getId() + ") approved as COMPLETED");
         return saved;
     }
 
@@ -113,7 +158,13 @@ public class TaskCompletionService {
         t.setActualEndDate(null);
         t.setRejectionReason(reason);
         Task saved = taskRepo.save(t);
-        cpmService.recompute(t.getProject().getId());
+        Long projectId = t.getProject().getId();
+        cpmService.recompute(projectId);
+        // Status moved back from PENDING_PM_APPROVAL to IN_PROGRESS — task is
+        // no longer in the completed bucket (it never reached COMPLETED via
+        // this path, but the denominator may have shifted). Refresh.
+        refreshProjectProgress(projectId, "TASK_COMPLETION_REJECTED",
+                "Task '" + saved.getTitle() + "' (id=" + saved.getId() + ") rejected: " + reason);
         return saved;
     }
 

@@ -175,4 +175,103 @@ class GanttServiceTest {
         assertThat(result.getProgressPercent()).isEqualTo(25);
         verify(taskRepository).save(task);
     }
+
+    // ── DTO fallback shape (plan vs CPM dates) ──────────────────────────────
+    //
+    // The Gantt JSON publishes `startDate`/`endDate` for chart geometry. If the
+    // user has explicitly scheduled the task (Task.startDate / endDate set
+    // by Gantt edit), those win. Otherwise we fall back to the CPM-derived
+    // esDate / efDate so cloned tasks (which start with null plan dates) still
+    // render. The full pair is also published as `plannedStartDate`/
+    // `plannedEndDate` + `esDate`/`efDate` so the Flutter chart can show a
+    // muted-style bar when the displayed dates come from CPM.
+
+    @Test
+    void ganttDto_planSet_returnsPlanAsEffective() {
+        LocalDate planStart = LocalDate.of(2026, 6, 1);
+        LocalDate planEnd   = LocalDate.of(2026, 6, 10);
+        LocalDate esDate    = LocalDate.of(2026, 5, 20);
+        LocalDate efDate    = LocalDate.of(2026, 5, 29);
+
+        Task t = task(1L, Task.TaskStatus.PENDING, planStart, planEnd, 0);
+        t.setEsDate(esDate);
+        t.setEfDate(efDate);
+        t.setDurationDays(7);
+
+        when(taskRepository.findByProjectIdOrderedForGantt(99L)).thenReturn(List.of(t));
+        Map<String, Object> result = ganttService.getGanttData(99L);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> tasks = (List<Map<String, Object>>) result.get("tasks");
+        Map<String, Object> dto = tasks.get(0);
+
+        // Plan wins for effective dates
+        assertThat(dto.get("startDate")).isEqualTo(planStart);
+        assertThat(dto.get("endDate")).isEqualTo(planEnd);
+
+        // Plan + CPM exposed separately so UI can render the diff
+        assertThat(dto.get("plannedStartDate")).isEqualTo(planStart);
+        assertThat(dto.get("plannedEndDate")).isEqualTo(planEnd);
+        assertThat(dto.get("esDate")).isEqualTo(esDate);
+        assertThat(dto.get("efDate")).isEqualTo(efDate);
+        assertThat(dto.get("durationDays")).isEqualTo(7);
+    }
+
+    @Test
+    void ganttDto_planNull_fallsBackToCpmDates() {
+        // Freshly-cloned task: plan dates null, CPM computed.
+        LocalDate esDate = LocalDate.of(2026, 5, 20);
+        LocalDate efDate = LocalDate.of(2026, 5, 29);
+
+        Task t = task(1L, Task.TaskStatus.PENDING, null, null, 0);
+        t.setEsDate(esDate);
+        t.setEfDate(efDate);
+        t.setDurationDays(9);
+
+        when(taskRepository.findByProjectIdOrderedForGantt(99L)).thenReturn(List.of(t));
+        Map<String, Object> result = ganttService.getGanttData(99L);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> tasks = (List<Map<String, Object>>) result.get("tasks");
+        Map<String, Object> dto = tasks.get(0);
+
+        // Effective falls back to CPM
+        assertThat(dto.get("startDate"))
+                .as("startDate should fall back to esDate when plan is null")
+                .isEqualTo(esDate);
+        assertThat(dto.get("endDate"))
+                .as("endDate should fall back to efDate when plan is null")
+                .isEqualTo(efDate);
+
+        // Plan fields exposed as null so Flutter can detect "this is CPM-derived"
+        assertThat(dto.get("plannedStartDate")).isNull();
+        assertThat(dto.get("plannedEndDate")).isNull();
+        assertThat(dto.get("esDate")).isEqualTo(esDate);
+        assertThat(dto.get("efDate")).isEqualTo(efDate);
+        assertThat(dto.get("durationDays")).isEqualTo(9);
+
+        // Project envelope is populated from the effective dates
+        assertThat(result.get("projectStartDate")).isEqualTo(esDate);
+        assertThat(result.get("projectEndDate")).isEqualTo(efDate);
+    }
+
+    @Test
+    void ganttDto_planAndCpmBothNull_omitsDates() {
+        // Edge case: task has neither plan nor CPM yet (created before first
+        // CPM recompute fires). DTO should ship nulls — chart will skip the bar.
+        Task t = task(1L, Task.TaskStatus.PENDING, null, null, 0);
+        // No esDate/efDate set.
+
+        when(taskRepository.findByProjectIdOrderedForGantt(99L)).thenReturn(List.of(t));
+        Map<String, Object> result = ganttService.getGanttData(99L);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> tasks = (List<Map<String, Object>>) result.get("tasks");
+        Map<String, Object> dto = tasks.get(0);
+
+        assertThat(dto.get("startDate")).isNull();
+        assertThat(dto.get("endDate")).isNull();
+        assertThat(dto.get("plannedStartDate")).isNull();
+        assertThat(dto.get("plannedEndDate")).isNull();
+    }
 }

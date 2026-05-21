@@ -23,8 +23,10 @@ class TaskProgressUpdateServiceTest {
     private final ProgressRollupService rollup = new ProgressRollupService();
     private final ActivityFeedService activityFeed = Mockito.mock(ActivityFeedService.class);
     private final CpmService cpmService = Mockito.mock(CpmService.class);
+    private final TaskQualityGateService qualityGateService = Mockito.mock(TaskQualityGateService.class);
+    private final ProjectProgressService projectProgressService = Mockito.mock(ProjectProgressService.class);
     private final TaskProgressUpdateService service =
-            new TaskProgressUpdateService(taskRepo, milestoneRepo, rollup, activityFeed, cpmService);
+            new TaskProgressUpdateService(taskRepo, milestoneRepo, rollup, activityFeed, cpmService, qualityGateService, projectProgressService);
 
     private Task taskWithProgress(int currentProgress, Task.TaskStatus status) {
         Task t = new Task();

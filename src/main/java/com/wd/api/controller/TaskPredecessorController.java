@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.scheduling.PredecessorEdgeDto;
 import com.wd.api.dto.scheduling.PredecessorListRequest;
 import com.wd.api.model.scheduling.TaskPredecessor;
 import com.wd.api.service.scheduling.TaskGraphValidator;
@@ -20,6 +21,13 @@ public class TaskPredecessorController {
 
     public TaskPredecessorController(TaskPredecessorService service) {
         this.service = service;
+    }
+
+    /** Current predecessor edges for a task (predecessor title included for the UI). */
+    @GetMapping
+    @PreAuthorize("hasAuthority('TASK_VIEW')")
+    public List<PredecessorEdgeDto> list(@PathVariable Long taskId) {
+        return service.listPredecessors(taskId);
     }
 
     @PutMapping

@@ -305,12 +305,30 @@ public class CpmService {
         else ps.setDate(idx, Date.valueOf(value));
     }
 
-    /** Working-day duration derived from start/end. Floors at 0; never negative. */
+    /**
+     * Working-day duration for the CPM forward/backward pass.
+     *
+     * Precedence:
+     *   1. If the user has explicitly scheduled the task (BOTH start_date and
+     *      end_date set and end >= start) → derive from those. This honours
+     *      manual Gantt edits.
+     *   2. Otherwise, fall back to the {@code duration_days} column the WBS
+     *      cloner populates from the template's YAML. Without this fallback,
+     *      freshly-cloned tasks (whose start/end stay null until CPM places
+     *      them) computed as 0-day duration — collapsing the whole project to
+     *      a same-day schedule and marking every task critical.
+     *   3. Otherwise 0.
+     *
+     * Floors at 0; never negative.
+     */
     private static int durationDays(Task t) {
-        if (t.getStartDate() == null || t.getEndDate() == null) return 0;
-        if (t.getEndDate().isBefore(t.getStartDate())) return 0;
-        return WorkingDayCalculator.workingDaysBetween(
-                t.getStartDate(), t.getEndDate(), java.util.Set.of(), false);
+        if (t.getStartDate() != null && t.getEndDate() != null
+                && !t.getEndDate().isBefore(t.getStartDate())) {
+            return WorkingDayCalculator.workingDaysBetween(
+                    t.getStartDate(), t.getEndDate(), java.util.Set.of(), false);
+        }
+        Integer planned = t.getDurationDays();
+        return planned != null && planned > 0 ? planned : 0;
     }
 
     private LocalDate resolveProjectStart(Long projectId, List<Task> tasks) {

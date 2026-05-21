@@ -8,10 +8,12 @@ import org.hibernate.annotations.Where;
 @SQLDelete(sql = "UPDATE task_predecessor SET deleted_at = NOW() WHERE id = ? AND version = ?")
 @Where(clause = "deleted_at IS NULL")
 @Entity
-@Table(name = "task_predecessor",
-       uniqueConstraints = @UniqueConstraint(
-               name = "uq_task_predecessor_pair",
-               columnNames = {"successor_id", "predecessor_id"}))
+// Uniqueness of (successor_id, predecessor_id) is enforced by the partial
+// unique index `uq_task_predecessor_pair_live` (see V154), not a table-level
+// @UniqueConstraint here. JPA doesn't express partial unique indexes —
+// declaring it at entity level re-introduced V112's bug where soft-deleted
+// rows still occupied the constraint and blocked re-inserts.
+@Table(name = "task_predecessor")
 public class TaskPredecessor extends BaseEntity {
 
     @Id

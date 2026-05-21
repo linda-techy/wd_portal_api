@@ -12,6 +12,7 @@ import com.wd.api.model.scheduling.WbsTemplateTaskPredecessor;
 import com.wd.api.repository.ProjectMilestoneRepository;
 import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
+import com.wd.api.service.TaskQualityGateService;
 import com.wd.api.repository.scheduling.WbsTemplatePhaseRepository;
 import com.wd.api.repository.scheduling.WbsTemplateRepository;
 import com.wd.api.repository.scheduling.WbsTemplateTaskPredecessorRepository;
@@ -62,6 +63,7 @@ public class WbsTemplateClonerService {
     private final ProjectMilestoneRepository milestones;
     private final TaskRepository taskRepo;
     private final TaskPredecessorRepository taskPredecessorRepo;
+    private final TaskQualityGateService qualityGateService;
 
     public WbsTemplateClonerService(WbsTemplateRepository templates,
                                     WbsTemplatePhaseRepository phases,
@@ -69,7 +71,8 @@ public class WbsTemplateClonerService {
                                     WbsTemplateTaskPredecessorRepository templatePreds,
                                     ProjectMilestoneRepository milestones,
                                     TaskRepository taskRepo,
-                                    TaskPredecessorRepository taskPredecessorRepo) {
+                                    TaskPredecessorRepository taskPredecessorRepo,
+                                    TaskQualityGateService qualityGateService) {
         this.templates = templates;
         this.phases = phases;
         this.templateTasks = templateTasks;
@@ -77,6 +80,7 @@ public class WbsTemplateClonerService {
         this.milestones = milestones;
         this.taskRepo = taskRepo;
         this.taskPredecessorRepo = taskPredecessorRepo;
+        this.qualityGateService = qualityGateService;
     }
 
     @Transactional
@@ -126,12 +130,17 @@ public class WbsTemplateClonerService {
                 if (templateTask.getFloorLoop() == FloorLoop.NONE) {
                     Task t = createTask(project, milestone, templateTask, -1);
                     t = taskRepo.save(t);
+                    // Every materialized task gets the 3 ITP quality gates
+                    // (PRELIMINARY / IN_PROGRESS / FINAL). Without this, cloned
+                    // tasks would have no FINAL gate and couldn't be completed.
+                    qualityGateService.seedGatesFor(t);
                     taskIndex.put(new TaskFloorKey(templateTask.getId(), -1), t.getId());
                     tasksCreated++;
                 } else {
                     for (int floor = 0; floor < floors; floor++) {
                         Task t = createTask(project, milestone, templateTask, floor);
                         t = taskRepo.save(t);
+                        qualityGateService.seedGatesFor(t);
                         taskIndex.put(new TaskFloorKey(templateTask.getId(), floor), t.getId());
                         tasksCreated++;
                     }

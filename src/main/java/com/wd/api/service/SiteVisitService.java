@@ -8,6 +8,7 @@ import com.wd.api.exception.ResourceNotFoundException;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.SiteVisit;
+import com.wd.api.model.SiteVisitViolation;
 import com.wd.api.model.enums.VisitStatus;
 import com.wd.api.model.enums.VisitType;
 import com.wd.api.repository.CustomerProjectRepository;
@@ -45,15 +46,18 @@ public class SiteVisitService {
     private final CustomerProjectRepository projectRepository;
     private final PortalUserRepository portalUserRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final SiteVisitViolationService violationService;
 
     public SiteVisitService(SiteVisitRepository siteVisitRepository,
             CustomerProjectRepository projectRepository,
             PortalUserRepository portalUserRepository,
-            JdbcTemplate jdbcTemplate) {
+            JdbcTemplate jdbcTemplate,
+            SiteVisitViolationService violationService) {
         this.siteVisitRepository = siteVisitRepository;
         this.projectRepository = projectRepository;
         this.portalUserRepository = portalUserRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.violationService = violationService;
     }
 
     /**
@@ -177,7 +181,7 @@ public class SiteVisitService {
                             + "moment for your device to acquire a location and try again.");
         }
 
-        // Validate GPS proximity - must be within 2km of project site
+        // Validate GPS proximity - must be within 200 m of project site (see GeoUtils.MAX_CHECKIN_DISTANCE_KM)
         if (project.hasLocation()) {
             double distanceKm = GeoUtils.calculateDistanceKm(
                     request.getLatitude(), request.getLongitude(),
@@ -187,11 +191,19 @@ public class SiteVisitService {
                     request.getLatitude(), request.getLongitude(),
                     project.getLatitude(), project.getLongitude(),
                     GeoUtils.MAX_CHECKIN_DISTANCE_KM)) {
-                throw new IllegalStateException(
-                        "Check-in failed: You are " + GeoUtils.formatDistance(distanceKm) +
+                String msg = "Check-in failed: You are " + GeoUtils.formatDistance(distanceKm) +
                         " away from the project site. You must be within " +
                         GeoUtils.formatDistance(GeoUtils.MAX_CHECKIN_DISTANCE_KM) +
-                        " to check in.");
+                        " to check in.";
+                // Record the geofence violation in a separate transaction so it
+                // survives the IllegalStateException we are about to throw.
+                // This row is portal-internal audit; never exposed to customers.
+                violationService.record(project, user,
+                        SiteVisitViolation.AttemptType.CHECK_IN,
+                        request.getLatitude(), request.getLongitude(),
+                        distanceKm, GeoUtils.MAX_CHECKIN_DISTANCE_KM,
+                        null, msg);
+                throw new IllegalStateException(msg);
             }
             logger.info("Check-in GPS validated for user {}: {} from project site",
                     userId, GeoUtils.formatDistance(distanceKm));
@@ -254,7 +266,7 @@ public class SiteVisitService {
                     "GPS coordinates are required for check-out. Please enable location services.");
         }
 
-        // Validate GPS proximity - must be within 2km of project site
+        // Validate GPS proximity - must be within 200 m of project site (see GeoUtils.MAX_CHECKIN_DISTANCE_KM)
         CustomerProject project = visit.getProject();
         if (project.hasLocation()) {
             double distanceKm = GeoUtils.calculateDistanceKm(
@@ -265,11 +277,16 @@ public class SiteVisitService {
                     request.getLatitude(), request.getLongitude(),
                     project.getLatitude(), project.getLongitude(),
                     GeoUtils.MAX_CHECKIN_DISTANCE_KM)) {
-                throw new IllegalStateException(
-                        "Check-out failed: You are " + GeoUtils.formatDistance(distanceKm) +
+                String msg = "Check-out failed: You are " + GeoUtils.formatDistance(distanceKm) +
                         " away from the project site. You must be within " +
                         GeoUtils.formatDistance(GeoUtils.MAX_CHECKIN_DISTANCE_KM) +
-                        " to check out.");
+                        " to check out.";
+                violationService.record(project, visit.getVisitedBy(),
+                        SiteVisitViolation.AttemptType.CHECK_OUT,
+                        request.getLatitude(), request.getLongitude(),
+                        distanceKm, GeoUtils.MAX_CHECKIN_DISTANCE_KM,
+                        visit.getId(), msg);
+                throw new IllegalStateException(msg);
             }
             logger.info("Check-out GPS validated for user {}: {} from project site",
                     userId, GeoUtils.formatDistance(distanceKm));
@@ -287,6 +304,44 @@ public class SiteVisitService {
         }
 
         visit = siteVisitRepository.save(visit);
+        return mapToDTO(visit);
+    }
+
+    /**
+     * Admin force-close. Closes a CHECKED_IN visit without running the GPS
+     * geofence check. Use for legitimately stuck visits (lost phone, dead
+     * GPS, geofence policy change). The acting admin and reason are
+     * persisted on the visit row so the action is permanently auditable.
+     *
+     * Authorization is enforced at the controller via @PreAuthorize
+     * ('SITE_VISIT_FORCE_CLOSE') — this method assumes the caller is allowed.
+     */
+    @Transactional
+    public SiteVisitDTO forceClose(Long visitId, String reason, Long adminUserId) {
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("A reason is required when force-closing a visit.");
+        }
+        SiteVisit visit = siteVisitRepository.findById(visitId)
+                .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));
+        PortalUser admin = portalUserRepository.findById(adminUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin user not found"));
+
+        // Block self-force-close. Force-close is a supervisory action — letting a
+        // user close their own visit defeats the geofence check on check-out.
+        // If the admin is genuinely on-site, they should use normal check-out; if
+        // they're off-site and need to close their own visit, another ADMIN/PM
+        // must do it (preserving the four-eyes audit principle).
+        if (visit.getVisitedBy() != null
+                && visit.getVisitedBy().getId().equals(adminUserId)) {
+            throw new IllegalStateException(
+                "You cannot force-close your own active visit. Use normal check-out, or have another admin close it.");
+        }
+
+        visit.forceClose(admin, reason.trim());
+        visit = siteVisitRepository.save(visit);
+
+        logger.warn("Site visit {} force-closed by admin {} ({}). Reason: {}",
+                visitId, adminUserId, admin.getEmail(), reason.trim());
         return mapToDTO(visit);
     }
 
@@ -443,6 +498,7 @@ public class SiteVisitService {
      */
     private SiteVisitDTO mapToDTO(SiteVisit visit) {
         PortalUser visitedBy = visit.getVisitedBy();
+        PortalUser forceClosedBy = visit.getForceClosedBy();
         return SiteVisitDTO.builder()
                 .id(visit.getId())
                 .projectId(visit.getProject().getId())
@@ -466,6 +522,9 @@ public class SiteVisitService {
                 .createdAt(visit.getCreatedAt())
                 .distanceFromProjectCheckIn(visit.getDistanceFromProjectCheckIn())
                 .distanceFromProjectCheckOut(visit.getDistanceFromProjectCheckOut())
+                .forceClosedByUserId(forceClosedBy != null ? forceClosedBy.getId() : null)
+                .forceClosedByName(getFullName(forceClosedBy))
+                .forceCloseReason(visit.getForceCloseReason())
                 .build();
     }
 }

@@ -1,6 +1,7 @@
 package com.wd.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
@@ -32,8 +33,19 @@ public class Task extends BaseEntity {
     private TaskPriority priority = TaskPriority.MEDIUM;
 
     /**
-     * Lazy-loaded relationships - excluded from JSON serialization to prevent lazy-loading proxy issues
-     * These are managed via foreign key columns in the database
+     * Lazy-loaded relationships.
+     *
+     * `project` and `lead` use {@code JsonProperty.Access.WRITE_ONLY} — Jackson
+     * SKIPS them on serialization (so lazy proxies never get walked, same as
+     * the old @JsonIgnore behaviour) but still READS them from incoming JSON
+     * so callers can pass {@code "project": {"id": 50}} on POST /api/tasks to
+     * set the FK. With plain @JsonIgnore (the old setup), the field was
+     * dropped both ways and tasks got saved with project_id=NULL — invisible
+     * to the project's Gantt query.
+     *
+     * `assignedTo` and `createdBy` stay @JsonIgnore: assignedTo is set via the
+     * dedicated PUT /api/tasks/{id}/assign endpoint, createdBy is stamped from
+     * the auth principal server-side.
      */
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
@@ -45,12 +57,12 @@ public class Task extends BaseEntity {
     @JoinColumn(name = "created_by")
     private PortalUser createdBy;
 
-    @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private CustomerProject project;
 
-    @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lead_id")
     private Lead lead;

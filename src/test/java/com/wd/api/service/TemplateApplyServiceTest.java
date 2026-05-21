@@ -20,8 +20,9 @@ class TemplateApplyServiceTest {
     private final MilestoneTemplateRepository milestoneTemplateRepo = Mockito.mock(MilestoneTemplateRepository.class);
     private final MilestoneTemplateTaskRepository milestoneTaskRepo = Mockito.mock(MilestoneTemplateTaskRepository.class);
     private final CustomerProjectRepository projectRepo = Mockito.mock(CustomerProjectRepository.class);
+    private final TaskQualityGateService qualityGateService = Mockito.mock(TaskQualityGateService.class);
     private final TemplateApplyService service = new TemplateApplyService(
-            milestoneRepo, taskRepo, templateRepo, milestoneTemplateRepo, milestoneTaskRepo, projectRepo);
+            milestoneRepo, taskRepo, templateRepo, milestoneTemplateRepo, milestoneTaskRepo, projectRepo, qualityGateService);
 
     @Test
     void invalidTemplateCodeThrows() {

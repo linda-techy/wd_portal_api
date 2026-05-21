@@ -19,17 +19,23 @@ public class TaskProgressUpdateService {
     private final ProgressRollupService rollup;
     private final ActivityFeedService activityFeed;
     private final CpmService cpmService;
+    private final TaskQualityGateService qualityGateService;
+    private final ProjectProgressService projectProgressService;
 
     public TaskProgressUpdateService(TaskRepository taskRepo,
                                       ProjectMilestoneRepository milestoneRepo,
                                       ProgressRollupService rollup,
                                       ActivityFeedService activityFeed,
-                                      CpmService cpmService) {
+                                      CpmService cpmService,
+                                      TaskQualityGateService qualityGateService,
+                                      ProjectProgressService projectProgressService) {
         this.taskRepo = taskRepo;
         this.milestoneRepo = milestoneRepo;
         this.rollup = rollup;
         this.activityFeed = activityFeed;
         this.cpmService = cpmService;
+        this.qualityGateService = qualityGateService;
+        this.projectProgressService = projectProgressService;
     }
 
     @Transactional
@@ -43,6 +49,15 @@ public class TaskProgressUpdateService {
 
         Task.TaskStatus oldStatus = task.getStatus();
         Task.TaskStatus newStatus = deriveStatus(newProgress);
+
+        // ITP gate: progress=100 auto-derives status=COMPLETED. If the FINAL
+        // quality gate hasn't been signed off, that auto-transition would
+        // bypass the construction quality contract. Surface a clear 400-level
+        // error so the user signs off the gate first, then re-submits progress.
+        if (newStatus == Task.TaskStatus.COMPLETED
+                && task.getStatus() != Task.TaskStatus.COMPLETED) {
+            qualityGateService.assertCompletable(taskId);
+        }
 
         task.setProgressPercent(newProgress);
         task.setStatus(newStatus);
@@ -60,6 +75,23 @@ public class TaskProgressUpdateService {
         // TaskPredecessorService and GanttService.
         if (saved.getProject() != null && saved.getProject().getId() != null) {
             cpmService.recompute(saved.getProject().getId());
+            // Refresh denormalized progress columns on the project so the
+            // header bar + customer-app progress card reflect the slider
+            // change immediately (without waiting for a manual recalc).
+            try {
+                projectProgressService.updateProjectProgress(
+                        saved.getProject().getId(),
+                        "TASK_PROGRESS_UPDATED",
+                        "Task '" + saved.getTitle() + "' progress=" + newProgress + "%",
+                        updatedBy != null ? updatedBy.getId() : null);
+            } catch (Exception ex) {
+                // Non-fatal: don't undo the progress update if the aggregate
+                // refresh fails. Logged at WARN for ops visibility.
+                org.slf4j.LoggerFactory
+                        .getLogger(TaskProgressUpdateService.class)
+                        .warn("Project {} progress recompute failed after task {} update: {}",
+                                saved.getProject().getId(), saved.getId(), ex.getMessage());
+            }
         }
 
         // Recompute parent milestone progress when source = COMPUTED

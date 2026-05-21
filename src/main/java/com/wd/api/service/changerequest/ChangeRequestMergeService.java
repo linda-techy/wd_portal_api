@@ -16,6 +16,7 @@ import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.changerequest.ChangeRequestTaskPredecessorRepository;
 import com.wd.api.repository.changerequest.ChangeRequestTaskRepository;
+import com.wd.api.service.TaskQualityGateService;
 import com.wd.api.service.scheduling.CpmService;
 import com.wd.api.service.scheduling.DelayApplier;
 import com.wd.api.service.scheduling.HandoverShiftDetector;
@@ -70,6 +71,7 @@ public class ChangeRequestMergeService {
     private final HolidayService holidayService;
     private final CpmService cpmService;
     private final HandoverShiftDetector handoverShiftDetector;
+    private final TaskQualityGateService qualityGateService;
 
     public ChangeRequestMergeService(ChangeRequestTaskRepository crTaskRepo,
                                      ChangeRequestTaskPredecessorRepository crPredRepo,
@@ -79,7 +81,8 @@ public class ChangeRequestMergeService {
                                      ProjectScheduleConfigRepository scheduleConfigRepo,
                                      HolidayService holidayService,
                                      CpmService cpmService,
-                                     HandoverShiftDetector handoverShiftDetector) {
+                                     HandoverShiftDetector handoverShiftDetector,
+                                     TaskQualityGateService qualityGateService) {
         this.crTaskRepo = crTaskRepo;
         this.crPredRepo = crPredRepo;
         this.crRepo = crRepo;
@@ -89,6 +92,7 @@ public class ChangeRequestMergeService {
         this.holidayService = holidayService;
         this.cpmService = cpmService;
         this.handoverShiftDetector = handoverShiftDetector;
+        this.qualityGateService = qualityGateService;
     }
 
     @Transactional
@@ -123,12 +127,14 @@ public class ChangeRequestMergeService {
             if (crt.getFloorLoop() == FloorLoop.NONE) {
                 Task t = clone(crt, anchor, crProject, -1);
                 t = taskRepo.save(t);
+                qualityGateService.seedGatesFor(t);
                 idMap.put(new TaskFloorKey(crt.getId(), -1), t.getId());
                 tasksCreated++;
             } else {
                 for (int floor = 0; floor < floorCount; floor++) {
                     Task t = clone(crt, anchor, crProject, floor);
                     t = taskRepo.save(t);
+                    qualityGateService.seedGatesFor(t);
                     idMap.put(new TaskFloorKey(crt.getId(), floor), t.getId());
                     tasksCreated++;
                 }

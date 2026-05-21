@@ -81,21 +81,28 @@ public class GanttService {
         List<Map<String, Object>> taskDtos = new ArrayList<>();
 
         for (Task t : tasks) {
+            // Effective schedule = user's plan (start/end) if set; else fall
+            // back to CPM-derived es/ef. Without this fallback, freshly-cloned
+            // tasks (plan dates null until user edits) drew nothing on the Gantt
+            // even though CPM had computed a perfectly valid schedule.
+            LocalDate effStart = t.getStartDate() != null ? t.getStartDate() : t.getEsDate();
+            LocalDate effEnd   = t.getEndDate()   != null ? t.getEndDate()   : t.getEfDate();
+
             // Project date envelope
-            if (t.getStartDate() != null) {
-                if (projectStart == null || t.getStartDate().isBefore(projectStart)) {
-                    projectStart = t.getStartDate();
+            if (effStart != null) {
+                if (projectStart == null || effStart.isBefore(projectStart)) {
+                    projectStart = effStart;
                 }
             }
-            if (t.getEndDate() != null) {
-                if (projectEnd == null || t.getEndDate().isAfter(projectEnd)) {
-                    projectEnd = t.getEndDate();
+            if (effEnd != null) {
+                if (projectEnd == null || effEnd.isAfter(projectEnd)) {
+                    projectEnd = effEnd;
                 }
             }
 
-            // Overdue: end_date < today AND not done
-            boolean overdue = t.getEndDate() != null
-                    && t.getEndDate().isBefore(today)
+            // Overdue: effective end < today AND not done
+            boolean overdue = effEnd != null
+                    && effEnd.isBefore(today)
                     && t.getStatus() != Task.TaskStatus.COMPLETED
                     && t.getStatus() != Task.TaskStatus.CANCELLED;
             if (overdue) overdueTasks++;
@@ -171,14 +178,26 @@ public class GanttService {
     // ──────────────────────────────────────────────────────────────────────────
 
     private Map<String, Object> buildTaskDto(Task t, boolean overdue, List<Long> predecessorIds) {
+        // Effective schedule for the bar geometry: prefer the user's planned
+        // start/end; fall back to CPM-derived es/ef so cloned tasks still
+        // render. The original plan dates are still exposed separately so the
+        // Flutter editor can tell whether the user has explicitly scheduled.
+        LocalDate effStart = t.getStartDate() != null ? t.getStartDate() : t.getEsDate();
+        LocalDate effEnd   = t.getEndDate()   != null ? t.getEndDate()   : t.getEfDate();
+
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", t.getId());
         dto.put("title", t.getTitle());
         dto.put("status", t.getStatus());
         dto.put("priority", t.getPriority());
-        dto.put("startDate", t.getStartDate());
-        dto.put("endDate", t.getEndDate());
+        dto.put("startDate", effStart);
+        dto.put("endDate", effEnd);
+        dto.put("plannedStartDate", t.getStartDate());
+        dto.put("plannedEndDate", t.getEndDate());
+        dto.put("esDate", t.getEsDate());
+        dto.put("efDate", t.getEfDate());
         dto.put("dueDate", t.getDueDate());
+        dto.put("durationDays", t.getDurationDays());
         dto.put("progressPercent", t.getProgressPercent() != null ? t.getProgressPercent() : 0);
         dto.put("predecessorIds", predecessorIds);
         dto.put("overdue", overdue);

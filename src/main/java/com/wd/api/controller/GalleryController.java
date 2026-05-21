@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -173,6 +174,26 @@ public class GalleryController {
         } catch (Exception e) {
             logger.error("Error getting image count for project {}", projectId, e);
             return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        }
+    }
+
+    /**
+     * Reconcile gallery_images against site_report_photos. For every photo
+     * that doesn't yet have a gallery row, create one. Idempotent — safe to
+     * call repeatedly. Use after a GALLERY_SYNC_FAILED log entry, or to
+     * backfill historical reports created before auto-sync was wired up.
+     */
+    @PostMapping("/admin/backfill-from-site-reports")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Integer>> backfillFromSiteReports() {
+        try {
+            PortalUser currentUser = authService.getCurrentUser();
+            int created = galleryService.backfillFromSiteReports(currentUser);
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Backfill complete: " + created + " gallery rows created", created));
+        } catch (Exception e) {
+            logger.error("Gallery backfill failed", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Backfill failed: " + e.getMessage()));
         }
     }
 }

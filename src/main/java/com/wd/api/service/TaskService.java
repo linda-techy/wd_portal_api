@@ -57,6 +57,15 @@ public class TaskService {
     @Autowired
     private PortalNotificationService portalNotificationService;
 
+    @Autowired
+    private TaskQualityGateService qualityGateService;
+
+    @Autowired
+    private com.wd.api.service.scheduling.CpmService cpmService;
+
+    @Autowired
+    private ProjectProgressService projectProgressService;
+
     /**
      * NEW: Standardized search method using TaskSearchFilter
      */
@@ -242,8 +251,42 @@ public class TaskService {
                     "Initial assignment on task creation");
         }
 
+        // Seed the 3 ITP quality gates (PRELIMINARY / IN_PROGRESS / FINAL).
+        // Every schedule task must have these gates so the site engineer can
+        // sign off as work progresses; FINAL gate must PASS before the task
+        // can be marked COMPLETED (see TaskQualityGateService.assertCompletable).
+        qualityGateService.seedGatesFor(savedTask);
+
+        // Recompute CPM so the new task gets ES/EF/LS/LF/totalFloat/isCritical
+        // populated immediately. Without this the Gantt critical-path overlay
+        // shows the new task with stale (null/false) CPM fields until something
+        // else triggers a recompute (a predecessor edit, completion, etc.).
+        if (savedTask.getProject() != null && savedTask.getProject().getId() != null) {
+            Long pid = savedTask.getProject().getId();
+            cpmService.recompute(pid);
+            // Refresh the customer_projects.overall_progress denormalized
+            // column so the project header + customer-app progress card
+            // reflect the new total-task-weight denominator.
+            safeRecomputeProgress(pid, "TASK_CREATED",
+                    "Task '" + savedTask.getTitle() + "' added (id=" + savedTask.getId() + ")");
+        }
+
         logger.info("Task created successfully with ID: {}", savedTask.getId());
         return savedTask;
+    }
+
+    /**
+     * Wrapper around projectProgressService.updateProjectProgress that swallows
+     * any exception so a downstream-aggregation hiccup never blocks the actual
+     * task lifecycle write. Logged at WARN so ops can spot it.
+     */
+    private void safeRecomputeProgress(Long projectId, String changeType, String reason) {
+        try {
+            projectProgressService.updateProjectProgress(projectId, changeType, reason, null);
+        } catch (Exception ex) {
+            logger.warn("Project {} progress recompute failed after {}: {}",
+                    projectId, changeType, ex.getMessage());
+        }
     }
 
     /**
@@ -264,6 +307,15 @@ public class TaskService {
         // Update fields
         task.setTitle(taskDetails.getTitle());
         task.setDescription(taskDetails.getDescription());
+
+        // Quality-gate completion guard: refuse to move to COMPLETED while the
+        // FINAL ITP gate is still PENDING / FAILED. Site engineer must sign off
+        // the FINAL gate (PASSED or NA-with-justification) first.
+        if (taskDetails.getStatus() == Task.TaskStatus.COMPLETED
+                && task.getStatus() != Task.TaskStatus.COMPLETED) {
+            qualityGateService.assertCompletable(task.getId());
+        }
+
         task.setStatus(taskDetails.getStatus());
         task.setPriority(taskDetails.getPriority());
         task.setDueDate(taskDetails.getDueDate());
@@ -300,6 +352,12 @@ public class TaskService {
         }
 
         Task updated = taskRepository.save(task);
+        // Status / weight / duration changes affect the project's weighted
+        // completion ratio — refresh denormalized columns.
+        if (updated.getProject() != null && updated.getProject().getId() != null) {
+            safeRecomputeProgress(updated.getProject().getId(), "TASK_UPDATED",
+                    "Task '" + updated.getTitle() + "' updated (id=" + updated.getId() + ")");
+        }
         logger.info("Task {} updated successfully", id);
 
         return updated;
@@ -377,12 +435,25 @@ public class TaskService {
         // CRITICAL: Verify permission BEFORE deletion
         authService.requireModifyPermission(id, auth, userId);
 
-        if (!taskRepository.existsById(java.util.Objects.requireNonNull(id))) {
-            throw new RuntimeException("Task not found with id: " + id);
-        }
+        // Capture project id BEFORE the soft-delete so we can recompute CPM
+        // after — the @SQLDelete on Task sets deleted_at and the @Where clause
+        // hides the row from subsequent reads, so we need the project id now.
+        Long projectIdForCpm = taskRepository.findById(java.util.Objects.requireNonNull(id))
+                .map(t -> t.getProject() != null ? t.getProject().getId() : null)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
 
         taskRepository.deleteById(java.util.Objects.requireNonNull(id));
         // Note: Assignment history is cascade deleted (ON DELETE CASCADE)
+
+        // CPM recompute: removing a task can shorten the critical path or
+        // free up float on its successors, so the Gantt overlay must refresh.
+        if (projectIdForCpm != null) {
+            cpmService.recompute(projectIdForCpm);
+            // Deleting a task drops it from BOTH numerator and denominator —
+            // the percentage shifts. Refresh the denorm column.
+            safeRecomputeProgress(projectIdForCpm, "TASK_DELETED",
+                    "Task id=" + id + " deleted");
+        }
 
         logger.info("Task {} deleted successfully", id);
     }

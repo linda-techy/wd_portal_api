@@ -75,6 +75,15 @@ public class SiteVisit {
     @Column(name = "purpose", length = 50)
     private String purpose;
 
+    // Force-close audit (V151). Populated when an admin closes someone else's
+    // stuck visit, bypassing the GPS check. Null for normal check-outs.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "force_closed_by_user_id")
+    private PortalUser forceClosedBy;
+
+    @Column(name = "force_close_reason", columnDefinition = "TEXT")
+    private String forceCloseReason;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -120,6 +129,35 @@ public class SiteVisit {
         if (this.checkInTime != null) {
             Duration duration = Duration.between(this.checkInTime, this.checkOutTime);
             this.durationMinutes = (int) duration.toMinutes();
+        }
+    }
+
+    /**
+     * Admin force-close. Bypasses the GPS geofence — used to unstick visits
+     * (lost phone, dead GPS, geofence policy change, etc.). Caller is
+     * responsible for the @PreAuthorize check. The visit is marked
+     * CHECKED_OUT and the audit fields (forceClosedBy, forceCloseReason) are
+     * populated so the action is traceable forever.
+     */
+    public void forceClose(PortalUser admin, String reason) {
+        if (this.visitStatus != VisitStatus.CHECKED_IN) {
+            throw new IllegalStateException(
+                "Cannot force-close: visit is " + this.visitStatus + " (only CHECKED_IN visits can be force-closed)");
+        }
+        this.checkOutTime = LocalDateTime.now();
+        this.visitStatus = VisitStatus.CHECKED_OUT;
+        this.forceClosedBy = admin;
+        this.forceCloseReason = reason;
+        // Distinguish from a real check-out: leave checkOutLatitude/Longitude null.
+        // Append to check-out notes so the timeline view shows the reason inline.
+        String stamp = "[FORCE-CLOSED by "
+                + (admin != null ? (admin.getFirstName() + " " + admin.getLastName()).trim() : "system")
+                + "]: " + (reason == null ? "" : reason);
+        this.checkOutNotes = (this.checkOutNotes == null || this.checkOutNotes.isBlank())
+                ? stamp
+                : this.checkOutNotes + "\n" + stamp;
+        if (this.checkInTime != null) {
+            this.durationMinutes = (int) Duration.between(this.checkInTime, this.checkOutTime).toMinutes();
         }
     }
 
@@ -269,6 +307,26 @@ public class SiteVisit {
 
     public void setPurpose(String purpose) {
         this.purpose = purpose;
+    }
+
+    public PortalUser getForceClosedBy() {
+        return forceClosedBy;
+    }
+
+    public void setForceClosedBy(PortalUser forceClosedBy) {
+        this.forceClosedBy = forceClosedBy;
+    }
+
+    public String getForceCloseReason() {
+        return forceCloseReason;
+    }
+
+    public void setForceCloseReason(String forceCloseReason) {
+        this.forceCloseReason = forceCloseReason;
+    }
+
+    public boolean isForceClosed() {
+        return forceClosedBy != null || forceCloseReason != null;
     }
 
     public LocalDateTime getCreatedAt() {

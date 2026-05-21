@@ -184,35 +184,89 @@ public class GalleryService {
 
     /**
      * Creates gallery images from site report photos.
-     * Called automatically when a site report is created with photos.
+     * Called automatically when a site report is created with photos, and
+     * re-callable from the admin backfill path. Idempotent per-photo: only
+     * creates a gallery row when one doesn't already exist for that
+     * (siteReportId, storagePath) pair, so safe to invoke multiple times.
      */
     @Transactional
-    public void createImagesFromSiteReport(Long siteReportId, PortalUser uploadedBy) {
+    public int createImagesFromSiteReport(Long siteReportId, PortalUser uploadedBy) {
         SiteReport siteReport = siteReportRepository.findById(siteReportId)
                 .orElseThrow(() -> new RuntimeException("Site report not found: " + siteReportId));
 
         if (siteReport.getPhotos() == null || siteReport.getPhotos().isEmpty()) {
-            return;
+            return 0;
         }
 
+        List<GalleryImage> existing = galleryImageRepository.findBySiteReportId(siteReportId);
+        java.util.Set<String> existingPaths = existing.stream()
+                .map(GalleryImage::getImagePath)
+                .collect(Collectors.toSet());
+
+        int created = 0;
         for (var photo : siteReport.getPhotos()) {
+            if (existingPaths.contains(photo.getStoragePath())) {
+                continue;
+            }
+            // Anchor every date field to the site report so the gallery
+            // displays the actual capture/submission time, not the moment
+            // the gallery row was created (matters for backfills + late
+            // syncs — otherwise all backfilled rows show "today").
+            LocalDateTime reportTimestamp = siteReport.getReportDate() != null
+                    ? siteReport.getReportDate()
+                    : siteReport.getCreatedAt();
+            if (reportTimestamp == null) {
+                reportTimestamp = LocalDateTime.now();
+            }
+
             GalleryImage galleryImage = new GalleryImage();
             galleryImage.setProject(siteReport.getProject());
             galleryImage.setSiteReport(siteReport);
             galleryImage.setImagePath(photo.getStoragePath());
             galleryImage.setImageUrl(photo.getPhotoUrl());
             galleryImage.setCaption("From Site Report: " + siteReport.getTitle());
-            galleryImage.setTakenDate(siteReport.getReportDate() != null
-                    ? siteReport.getReportDate().toLocalDate()
-                    : LocalDate.now());
+            galleryImage.setTakenDate(reportTimestamp.toLocalDate());
             galleryImage.setUploadedBy(uploadedBy);
-            galleryImage.setUploadedAt(LocalDateTime.now());
+            galleryImage.setUploadedAt(reportTimestamp);
+            galleryImage.setCreatedAt(reportTimestamp);
 
             galleryImageRepository.save(galleryImage);
+            created++;
         }
 
-        logger.info("Created {} gallery images from site report {}",
-                siteReport.getPhotos().size(), siteReportId);
+        if (created > 0) {
+            logger.info("Created {} gallery images from site report {}", created, siteReportId);
+        }
+        return created;
+    }
+
+    /**
+     * Reconciles the gallery against site_report_photos: for every site report
+     * photo without a corresponding gallery_images row, create one. Used to
+     * recover from the GALLERY_SYNC_FAILED path and to backfill reports
+     * created before the auto-sync was wired up. Returns total rows created.
+     */
+    @Transactional
+    public int backfillFromSiteReports(PortalUser uploadedBy) {
+        List<SiteReport> reports = siteReportRepository.findAll();
+        int total = 0;
+        int touched = 0;
+        for (SiteReport report : reports) {
+            if (report.getPhotos() == null || report.getPhotos().isEmpty()) {
+                continue;
+            }
+            try {
+                int created = createImagesFromSiteReport(report.getId(), uploadedBy);
+                if (created > 0) {
+                    total += created;
+                    touched++;
+                }
+            } catch (Exception e) {
+                logger.warn("Backfill skipped site report {}: {}", report.getId(), e.getMessage());
+            }
+        }
+        logger.info("Gallery backfill complete: {} rows created across {} site reports", total, touched);
+        return total;
     }
 
     @Transactional(readOnly = true)

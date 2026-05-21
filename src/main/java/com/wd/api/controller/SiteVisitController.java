@@ -81,6 +81,29 @@ public class SiteVisitController {
     }
 
     /**
+     * Admin force-close: closes a stuck CHECKED_IN visit without GPS validation.
+     * Used when a user cannot reach the geofence (lost phone, dead GPS, policy change).
+     * Action is auditable: who, when, why are persisted on the visit row.
+     * POST /api/site-visits/{id}/force-close
+     * Body: { "reason": "string (required)" }
+     */
+    @PostMapping("/{id}/force-close")
+    @PreAuthorize("hasAuthority('SITE_VISIT_FORCE_CLOSE')")
+    public ResponseEntity<ApiResponse<SiteVisitDTO>> forceClose(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            Authentication auth) {
+        try {
+            String reason = body == null ? null : body.get("reason");
+            Long adminUserId = getCurrentUserId(auth);
+            SiteVisitDTO visit = siteVisitService.forceClose(id, reason, adminUserId);
+            return ResponseEntity.ok(ApiResponse.success("Visit force-closed", visit));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
      * Get my current active visit
      * GET /api/site-visits/active
      */

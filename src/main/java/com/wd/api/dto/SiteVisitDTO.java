@@ -28,6 +28,10 @@ public class SiteVisitDTO {
     private LocalDateTime createdAt;
     private Double distanceFromProjectCheckIn;
     private Double distanceFromProjectCheckOut;
+    // Force-close audit (V151). Null for normal check-outs.
+    private Long forceClosedByUserId;
+    private String forceClosedByName;
+    private String forceCloseReason;
 
     public SiteVisitDTO() {
     }
@@ -147,6 +151,21 @@ public class SiteVisitDTO {
 
         public SiteVisitDTOBuilder distanceFromProjectCheckOut(Double distance) {
             dto.distanceFromProjectCheckOut = distance;
+            return this;
+        }
+
+        public SiteVisitDTOBuilder forceClosedByUserId(Long userId) {
+            dto.forceClosedByUserId = userId;
+            return this;
+        }
+
+        public SiteVisitDTOBuilder forceClosedByName(String name) {
+            dto.forceClosedByName = name;
+            return this;
+        }
+
+        public SiteVisitDTOBuilder forceCloseReason(String reason) {
+            dto.forceCloseReason = reason;
             return this;
         }
 
@@ -330,5 +349,29 @@ public class SiteVisitDTO {
 
     public void setDistanceFromProjectCheckOut(Double distanceFromProjectCheckOut) {
         this.distanceFromProjectCheckOut = distanceFromProjectCheckOut;
+    }
+
+    public Long getForceClosedByUserId() {
+        return forceClosedByUserId;
+    }
+
+    public void setForceClosedByUserId(Long forceClosedByUserId) {
+        this.forceClosedByUserId = forceClosedByUserId;
+    }
+
+    public String getForceClosedByName() {
+        return forceClosedByName;
+    }
+
+    public void setForceClosedByName(String forceClosedByName) {
+        this.forceClosedByName = forceClosedByName;
+    }
+
+    public String getForceCloseReason() {
+        return forceCloseReason;
+    }
+
+    public void setForceCloseReason(String forceCloseReason) {
+        this.forceCloseReason = forceCloseReason;
     }
 }

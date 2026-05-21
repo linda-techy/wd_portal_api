@@ -37,6 +37,7 @@ class SiteVisitServiceCheckInTest {
     @Mock private CustomerProjectRepository projectRepository;
     @Mock private PortalUserRepository portalUserRepository;
     @Mock private JdbcTemplate jdbcTemplate;
+    @Mock private SiteVisitViolationService siteVisitViolationService;
 
     private SiteVisitService service;
 
@@ -46,7 +47,8 @@ class SiteVisitServiceCheckInTest {
                 siteVisitRepository,
                 projectRepository,
                 portalUserRepository,
-                jdbcTemplate);
+                jdbcTemplate,
+                siteVisitViolationService);
 
         // Default stubs so checkIn reaches the GPS-validation block. Tests
         // that exercise upstream guards (active visit, missing project, etc.)

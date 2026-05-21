@@ -20,19 +20,22 @@ public class TemplateApplyService {
     private final MilestoneTemplateRepository milestoneTemplateRepo;
     private final MilestoneTemplateTaskRepository milestoneTaskRepo;
     private final CustomerProjectRepository projectRepo;
+    private final TaskQualityGateService qualityGateService;
 
     public TemplateApplyService(ProjectMilestoneRepository milestoneRepo,
                                  TaskRepository taskRepo,
                                  ProjectTypeTemplateRepository templateRepo,
                                  MilestoneTemplateRepository milestoneTemplateRepo,
                                  MilestoneTemplateTaskRepository milestoneTaskRepo,
-                                 CustomerProjectRepository projectRepo) {
+                                 CustomerProjectRepository projectRepo,
+                                 TaskQualityGateService qualityGateService) {
         this.milestoneRepo = milestoneRepo;
         this.taskRepo = taskRepo;
         this.templateRepo = templateRepo;
         this.milestoneTemplateRepo = milestoneTemplateRepo;
         this.milestoneTaskRepo = milestoneTaskRepo;
         this.projectRepo = projectRepo;
+        this.qualityGateService = qualityGateService;
     }
 
     @Transactional
@@ -105,7 +108,9 @@ public class TemplateApplyService {
             t.setEndDate(start.plusDays(days));
             t.setDueDate(start.plusDays(days));  // dueDate stays as plan-end too
             t.setProgressPercent(0);
-            taskRepo.save(t);
+            Task savedTask = taskRepo.save(t);
+            // Every materialised task gets the 3 ITP quality gates.
+            qualityGateService.seedGatesFor(savedTask);
         }
     }
 }
