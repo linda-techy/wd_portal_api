@@ -39,6 +39,7 @@ module.exports = {
       ].join(" "),
       autorestart: true,
       max_restarts: 10,
+      max_memory_restart: "800M",   // graceful PM2 restart before the kernel OOM-killer fires
       env: {
         // All four are REQUIRED — portal production has no fallback defaults.
         DB_URL:        "jdbc:postgresql://HOST:5432/DBNAME",
