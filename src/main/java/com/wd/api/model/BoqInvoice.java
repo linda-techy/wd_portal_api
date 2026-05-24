@@ -58,8 +58,9 @@ public class BoqInvoice extends BaseEntity {
     @Column(name = "subtotal_ex_gst", precision = 18, scale = 6, nullable = false)
     private BigDecimal subtotalExGst = BigDecimal.ZERO;
 
+    // Defaults to 0% (V158) — GST-free for now; an explicit rate is set later.
     @Column(name = "gst_rate", precision = 5, scale = 4, nullable = false)
-    private BigDecimal gstRate = new BigDecimal("0.18");
+    private BigDecimal gstRate = BigDecimal.ZERO;
 
     @Column(name = "gst_amount", precision = 18, scale = 6, nullable = false)
     private BigDecimal gstAmount = BigDecimal.ZERO;
@@ -120,7 +121,7 @@ public class BoqInvoice extends BaseEntity {
         super.onCreate();
         if (status == null) status = ProjectInvoiceStatus.DRAFT;
         if (subtotalExGst == null) subtotalExGst = BigDecimal.ZERO;
-        if (gstRate == null) gstRate = new BigDecimal("0.18");
+        if (gstRate == null) gstRate = BigDecimal.ZERO;
         if (gstAmount == null) gstAmount = BigDecimal.ZERO;
         if (totalInclGst == null) totalInclGst = BigDecimal.ZERO;
         if (totalCreditApplied == null) totalCreditApplied = BigDecimal.ZERO;

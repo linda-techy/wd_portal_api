@@ -423,6 +423,37 @@ public class CustomerProjectController {
         }
     }
 
+    /**
+     * Update a project's GST rate (decimal fraction; 0.18 = 18%). Default is 0%.
+     * Only affects BoQ documents created after the change — already-approved
+     * BoQs keep their snapshot (V158).
+     */
+    @PatchMapping("/{id}/gst-rate")
+    @PreAuthorize("hasAuthority('PROJECT_EDIT')")
+    public ResponseEntity<ApiResponse<CustomerProjectResponse>> updateProjectGstRate(
+            @PathVariable Long id,
+            @jakarta.validation.Valid @RequestBody ProjectGstRateRequest request) {
+        try {
+            CustomerProject updated = customerProjectService.updateProjectGstRate(id, request.gstRate());
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Project GST rate updated", new CustomerProjectResponse(updated)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Failed to update GST rate on project {}", id, e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Failed to update project GST rate"));
+        }
+    }
+
+    /** Request body for {@link #updateProjectGstRate}. */
+    public record ProjectGstRateRequest(
+            @jakarta.validation.constraints.NotNull(message = "gstRate is required")
+            @jakarta.validation.constraints.DecimalMin(value = "0.0", message = "gstRate must be >= 0")
+            @jakarta.validation.constraints.DecimalMax(value = "1.0", message = "gstRate must be <= 1")
+            java.math.BigDecimal gstRate
+    ) {}
+
     // ==================== Private Helper Methods ====================
 
     /**

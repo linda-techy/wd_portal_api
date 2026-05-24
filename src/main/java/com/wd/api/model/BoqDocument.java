@@ -35,8 +35,10 @@ public class BoqDocument extends BaseEntity {
     @Column(name = "total_value_ex_gst", precision = 18, scale = 6, nullable = false)
     private BigDecimal totalValueExGst = BigDecimal.ZERO;
 
+    // Defaults to 0% (V158); the effective rate is seeded from the project's
+    // GST rate at creation, so this default only applies when none is provided.
     @Column(name = "gst_rate", precision = 5, scale = 4, nullable = false)
-    private BigDecimal gstRate = new BigDecimal("0.18");
+    private BigDecimal gstRate = BigDecimal.ZERO;
 
     @Column(name = "total_gst_amount", precision = 18, scale = 6, nullable = false)
     private BigDecimal totalGstAmount = BigDecimal.ZERO;
@@ -98,7 +100,7 @@ public class BoqDocument extends BaseEntity {
         if (status == null) status = BoqDocumentStatus.DRAFT;
         if (revisionNumber == null) revisionNumber = 1;
         if (totalValueExGst == null) totalValueExGst = BigDecimal.ZERO;
-        if (gstRate == null) gstRate = new BigDecimal("0.18");
+        if (gstRate == null) gstRate = BigDecimal.ZERO;
         if (totalGstAmount == null) totalGstAmount = BigDecimal.ZERO;
         if (totalValueInclGst == null) totalValueInclGst = BigDecimal.ZERO;
     }

@@ -56,8 +56,9 @@ public class ChangeOrder extends BaseEntity {
     @Column(name = "net_amount_ex_gst", precision = 18, scale = 6, nullable = false)
     private BigDecimal netAmountExGst = BigDecimal.ZERO;
 
+    // Defaults to 0% (V158) — GST-free for now; an explicit rate is set later.
     @Column(name = "gst_rate", precision = 5, scale = 4, nullable = false)
-    private BigDecimal gstRate = new BigDecimal("0.18");
+    private BigDecimal gstRate = BigDecimal.ZERO;
 
     @Column(name = "gst_amount", precision = 18, scale = 6, nullable = false)
     private BigDecimal gstAmount = BigDecimal.ZERO;
@@ -155,7 +156,7 @@ public class ChangeOrder extends BaseEntity {
         super.onCreate();
         if (status == null) status = ChangeOrderStatus.DRAFT;
         if (netAmountExGst == null) netAmountExGst = BigDecimal.ZERO;
-        if (gstRate == null) gstRate = new BigDecimal("0.18");
+        if (gstRate == null) gstRate = BigDecimal.ZERO;
         if (gstAmount == null) gstAmount = BigDecimal.ZERO;
         if (netAmountInclGst == null) netAmountInclGst = BigDecimal.ZERO;
     }

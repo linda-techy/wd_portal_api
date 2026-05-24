@@ -387,6 +387,28 @@ public class CustomerProjectService {
         return customerProjectRepository.save(project);
     }
 
+    /**
+     * Update a project's GST rate (decimal fraction, 0.0–1.0; 0.18 = 18%).
+     * Editable by portal users. Only affects BoQ documents created afterwards —
+     * already-approved BoQs keep their own snapshot (V158).
+     */
+    public CustomerProject updateProjectGstRate(Long projectId, java.math.BigDecimal gstRate) {
+        if (projectId == null) {
+            throw new IllegalArgumentException("Project ID is required");
+        }
+        if (gstRate == null
+                || gstRate.signum() < 0
+                || gstRate.compareTo(java.math.BigDecimal.ONE) > 0) {
+            throw new IllegalArgumentException(
+                    "GST rate must be between 0 and 1 (e.g. 0.18 for 18%).");
+        }
+        CustomerProject project = customerProjectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Project with ID " + projectId + " not found"));
+        project.setGstRate(gstRate);
+        return customerProjectRepository.save(project);
+    }
+
     private boolean isAdmin(PortalUser user) {
         return user != null
                 && user.getRole() != null

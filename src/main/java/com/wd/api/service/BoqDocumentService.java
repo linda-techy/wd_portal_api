@@ -117,7 +117,12 @@ public class BoqDocumentService {
 
         BoqDocument doc = new BoqDocument();
         doc.setProject(project);
-        doc.setGstRate(gstRate != null ? gstRate : new BigDecimal("0.18"));
+        // GST is a per-project setting (default 0%); an explicit request value
+        // still wins. Approved docs snapshot their own rate, so changing the
+        // project rate later never alters already-signed BoQs (V158).
+        doc.setGstRate(gstRate != null
+                ? gstRate
+                : (project.getGstRate() != null ? project.getGstRate() : BigDecimal.ZERO));
         doc.setRevisionNumber(nextRevision);
         doc.setCreatedByUserId(userId);
         return boqDocumentRepository.save(doc);

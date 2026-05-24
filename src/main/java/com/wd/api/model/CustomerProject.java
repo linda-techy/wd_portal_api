@@ -80,6 +80,15 @@ public class CustomerProject extends BaseEntity {
     @Column(name = "project_type", length = 255)
     private String projectType;
 
+    /**
+     * Per-project GST rate as a decimal fraction (e.g. 0.18 = 18%). Defaults to
+     * 0% — the company is GST-free for now — and is editable by portal users.
+     * New BoQ documents inherit this; already-approved BoQs keep their own
+     * snapshot, so changing this later never alters signed contracts (V158).
+     */
+    @Column(name = "gst_rate", precision = 5, scale = 4, nullable = false)
+    private BigDecimal gstRate = BigDecimal.ZERO;
+
     @Column(name = "design_package", length = 255)
     private String designPackage;
 
@@ -404,6 +413,14 @@ public class CustomerProject extends BaseEntity {
 
     public void setProjectType(String projectType) {
         this.projectType = projectType;
+    }
+
+    public BigDecimal getGstRate() {
+        return gstRate;
+    }
+
+    public void setGstRate(BigDecimal gstRate) {
+        this.gstRate = gstRate;
     }
 
     public Set<ProjectMember> getProjectMembers() {

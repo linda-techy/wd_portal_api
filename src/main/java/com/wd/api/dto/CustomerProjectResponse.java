@@ -40,6 +40,9 @@ public class CustomerProjectResponse {
     @JsonProperty("project_type")
     private String projectType;
 
+    @JsonProperty("gst_rate")
+    private BigDecimal gstRate;
+
     private String state;
     private String district;
     private BigDecimal sqfeet;
@@ -88,6 +91,7 @@ public class CustomerProjectResponse {
         }
         this.projectPhase = project.getProjectPhase() != null ? project.getProjectPhase().name() : null;
         this.projectType = project.getProjectType();
+        this.gstRate = project.getGstRate();
         this.state = project.getState();
         this.district = project.getDistrict();
         this.sqfeet = project.getSqfeet();
@@ -218,6 +222,14 @@ public class CustomerProjectResponse {
 
     public void setProjectType(String projectType) {
         this.projectType = projectType;
+    }
+
+    public BigDecimal getGstRate() {
+        return gstRate;
+    }
+
+    public void setGstRate(BigDecimal gstRate) {
+        this.gstRate = gstRate;
     }
 
     public String getState() {
