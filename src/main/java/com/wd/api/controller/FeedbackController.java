@@ -1,7 +1,9 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.FeedbackAnalyticsDto;
 import com.wd.api.dto.FeedbackFormDto;
 import com.wd.api.dto.FeedbackResponseDto;
+import com.wd.api.service.FeedbackAnalyticsService;
 import com.wd.api.service.FeedbackService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ import java.util.Map;
 public class FeedbackController {
 
     private final FeedbackService feedbackService;
+    private final FeedbackAnalyticsService feedbackAnalyticsService;
 
     // ==================== FORM ENDPOINTS ====================
 
@@ -146,5 +149,32 @@ public class FeedbackController {
     public ResponseEntity<Map<String, Object>> getActiveFormCount(@PathVariable Long projectId) {
         Long count = feedbackService.getActiveFormCount(projectId);
         return ResponseEntity.ok(Map.of("projectId", projectId, "activeFormCount", count));
+    }
+
+    // ==================== ANALYTICS ENDPOINTS ====================
+
+    /**
+     * Schema-aware analytics for a single feedback form.
+     *
+     * <p>Returns per-question averages, distributions, and NPS (when applicable).
+     * Uses the same authentication as other feedback read endpoints.
+     *
+     * <p>GET /api/feedback/forms/{formId}/analytics
+     */
+    @GetMapping("/forms/{formId}/analytics")
+    public ResponseEntity<FeedbackAnalyticsDto> getFormAnalytics(@PathVariable Long formId) {
+        FeedbackAnalyticsDto analytics = feedbackAnalyticsService.analyseForm(formId);
+        return ResponseEntity.ok(analytics);
+    }
+
+    /**
+     * Project-level analytics rollup across all feedback forms for a project.
+     *
+     * <p>GET /api/feedback/responses/project/{projectId}/analytics
+     */
+    @GetMapping("/responses/project/{projectId}/analytics")
+    public ResponseEntity<FeedbackAnalyticsDto> getProjectAnalytics(@PathVariable Long projectId) {
+        FeedbackAnalyticsDto analytics = feedbackAnalyticsService.analyseProject(projectId);
+        return ResponseEntity.ok(analytics);
     }
 }
