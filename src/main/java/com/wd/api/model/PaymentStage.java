@@ -95,8 +95,11 @@ public class PaymentStage {
     @Column(name = "certified_by", length = 100)
     private String certifiedBy;
 
+    // Retention is opt-in: defaults to 0% so nothing is withheld from a stage
+    // unless an explicit retentionPct is set (e.g. at certification). The flat
+    // 5%-per-stage auto-hold was removed in V157.
     @Column(name = "retention_pct", precision = 5, scale = 4, nullable = false)
-    private BigDecimal retentionPct = new BigDecimal("0.0500");
+    private BigDecimal retentionPct = BigDecimal.ZERO;
 
     @Column(name = "retention_held", precision = 18, scale = 6, nullable = false)
     private BigDecimal retentionHeld = BigDecimal.ZERO;
@@ -129,7 +132,7 @@ public class PaymentStage {
         if (status == null) status = PaymentStageStatus.UPCOMING;
         if (appliedCreditAmount == null) appliedCreditAmount = BigDecimal.ZERO;
         if (paidAmount == null) paidAmount = BigDecimal.ZERO;
-        if (retentionPct == null) retentionPct = new BigDecimal("0.0500");
+        if (retentionPct == null) retentionPct = BigDecimal.ZERO;
         if (retentionHeld == null) retentionHeld = BigDecimal.ZERO;
         recalculateNetPayable();
     }

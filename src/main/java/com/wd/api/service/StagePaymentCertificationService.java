@@ -22,7 +22,7 @@ import java.util.List;
  *
  * On certification:
  *   1. Records certifiedBy + certifiedAt.
- *   2. Computes retention_held = stageAmountExGst * retentionPct (default 5%).
+ *   2. Computes retention_held from retentionPct (default 0% — retention is opt-in).
  *   3. Publishes StagePaymentCertifiedEvent so any VO progress tranches linked
  *      to this stage can be triggered.
  */
@@ -92,9 +92,11 @@ public class StagePaymentCertificationService {
                     "Cannot certify a stage that is already " + stage.getStatus());
         }
 
+        // Retention is opt-in (V157): no retention unless the certifier explicitly
+        // supplies a retentionPct. Previously this defaulted to 5%.
         BigDecimal retentionPct = req.retentionPct() != null
                 ? req.retentionPct()
-                : new BigDecimal("0.0500");
+                : BigDecimal.ZERO;
 
         stage.setCertifiedBy(req.certifiedBy());
         stage.setCertifiedAt(LocalDateTime.now());
