@@ -1,11 +1,13 @@
 package com.wd.api.service;
 
+import com.wd.api.dto.ProjectStageTemplateDto;
 import com.wd.api.model.*;
 import com.wd.api.model.enums.BoqDocumentStatus;
 import com.wd.api.model.enums.BoqItemStatus;
 import com.wd.api.model.enums.PaymentStageStatus;
 import com.wd.api.repository.*;
 import com.wd.api.repository.CustomerUserRepository;
+import com.wd.api.repository.ProjectStageTemplateRepository;
 import com.wd.api.security.ProjectAccessGuard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,7 @@ public class BoqDocumentService {
     private final ProjectAccessGuard projectAccessGuard;
     private final CustomerUserRepository customerUserRepository;
     private final ActivityFeedService activityFeedService;
+    private final ProjectStageTemplateRepository stageTemplateRepository;
 
     public BoqDocumentService(BoqDocumentRepository boqDocumentRepository,
                                BoqItemRepository boqItemRepository,
@@ -48,7 +51,8 @@ public class BoqDocumentService {
                                PortalUserRepository portalUserRepository,
                                ProjectAccessGuard projectAccessGuard,
                                CustomerUserRepository customerUserRepository,
-                               ActivityFeedService activityFeedService) {
+                               ActivityFeedService activityFeedService,
+                               ProjectStageTemplateRepository stageTemplateRepository) {
         this.boqDocumentRepository = boqDocumentRepository;
         this.boqItemRepository = boqItemRepository;
         this.paymentStageRepository = paymentStageRepository;
@@ -57,6 +61,7 @@ public class BoqDocumentService {
         this.projectAccessGuard = projectAccessGuard;
         this.customerUserRepository = customerUserRepository;
         this.activityFeedService = activityFeedService;
+        this.stageTemplateRepository = stageTemplateRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -224,8 +229,18 @@ public class BoqDocumentService {
      * Records customer approval and locks the BOQ permanently.
      * Auto-generates PaymentStage records with immutable frozen amounts.
      *
+     * <p>Stage configuration priority:
+     * <ol>
+     *   <li>If {@code stageConfigs} is non-null and non-empty, use those explicit
+     *       configs (backward-compatible override path).</li>
+     *   <li>Otherwise fall back to the project's stored stage template
+     *       ({@code project_stage_templates}). The template must exist and sum to
+     *       100% — it is validated when saved, so this should always pass.</li>
+     * </ol>
+     *
      * @param customerSignedById  the customer user who signed the BOQ (required)
-     * @param stageConfigs        list of (stageName, percentage) pairs summing to 1.0
+     * @param stageConfigs        explicit (stageName, percentage) pairs summing to 1.0,
+     *                            or null/empty to use the project's stored template
      */
     public BoqDocument recordCustomerApproval(Long documentId,
                                                Long portalUserId,
@@ -250,14 +265,33 @@ public class BoqDocumentService {
         // Verify they are a member of the project
         projectAccessGuard.verifyCustomerMembership(customerSignedById, doc.getProject().getId());
 
-        validateStagePercentages(stageConfigs);
+        // Resolve effective stage configs: explicit override wins; fall back to stored template.
+        final List<StageConfig> effectiveConfigs;
+        if (stageConfigs != null && !stageConfigs.isEmpty()) {
+            validateStagePercentages(stageConfigs);
+            effectiveConfigs = stageConfigs;
+        } else {
+            Long projectId = doc.getProject().getId();
+            List<ProjectStageTemplate> templateRows =
+                    stageTemplateRepository.findByProjectIdOrderByStageNumber(projectId);
+            if (templateRows.isEmpty()) {
+                throw new IllegalStateException(
+                    "No payment-stage template found for project " + projectId +
+                    ". Configure one via PUT /customer-projects/" + projectId + "/stage-template " +
+                    "or supply explicit stageConfigs.");
+            }
+            effectiveConfigs = templateRows.stream()
+                    .map(t -> new StageConfig(t.getName(), t.getPercentage()))
+                    .toList();
+            validateStagePercentages(effectiveConfigs);
+        }
 
         doc.setStatus(BoqDocumentStatus.APPROVED);
         doc.setCustomerApprovedAt(LocalDateTime.now());
         doc.setCustomerApprovedBy(customerSignedById);   // now always non-null
         BoqDocument saved = boqDocumentRepository.save(doc);
 
-        generatePaymentStages(saved, stageConfigs);
+        generatePaymentStages(saved, effectiveConfigs);
 
         activityFeedService.logProjectActivity(
             "BOQ_APPROVED", "BOQ Approved",
@@ -265,7 +299,7 @@ public class BoqDocumentService {
             doc.getProject(), null);  // null portalUser because customer triggered this
 
         logger.info("BOQ document {} approved for project {}. Signed by customer user {}. {} payment stages generated.",
-                documentId, doc.getProject().getId(), customerSignedById, stageConfigs.size());
+                documentId, doc.getProject().getId(), customerSignedById, effectiveConfigs.size());
 
         return saved;
     }

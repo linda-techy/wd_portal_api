@@ -6,6 +6,7 @@ import com.wd.api.dto.CustomerProjectResponse;
 import com.wd.api.dto.CustomerProjectUpdateRequest;
 import com.wd.api.dto.ProjectGpsLockRequest;
 import com.wd.api.dto.ProjectProgressDTO;
+import com.wd.api.dto.ProjectStageTemplateDto;
 import com.wd.api.dto.ProjectTypeTemplateDTO;
 import com.wd.api.dto.ProjectSearchFilter;
 import com.wd.api.dto.ProjectMemberRequest;
@@ -16,6 +17,7 @@ import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.model.ProjectProgressLog;
 import com.wd.api.service.CustomerProjectService;
 import com.wd.api.service.ProjectProgressService;
+import com.wd.api.service.ProjectStageTemplateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +53,9 @@ public class CustomerProjectController {
 
     @Autowired
     private PortalUserRepository portalUserRepository;
+
+    @Autowired
+    private ProjectStageTemplateService stageTemplateService;
 
     /**
      * NEW: Standardized search endpoint using ProjectSearchFilter
@@ -453,6 +458,50 @@ public class CustomerProjectController {
             @jakarta.validation.constraints.DecimalMax(value = "1.0", message = "gstRate must be <= 1")
             java.math.BigDecimal gstRate
     ) {}
+
+    // ==================== Payment Stage Template ====================
+
+    /**
+     * GET /customer-projects/{id}/stage-template
+     * Returns the project's payment-stage template. Seeds the Kerala 6-stage
+     * default on first access if no template has been configured yet (audit P2-4).
+     */
+    @GetMapping("/{id}/stage-template")
+    @PreAuthorize("hasAuthority('PROJECT_VIEW')")
+    public ResponseEntity<ApiResponse<ProjectStageTemplateDto.Response>> getStageTemplate(
+            @PathVariable Long id) {
+        try {
+            ProjectStageTemplateDto.Response response = stageTemplateService.getTemplate(id);
+            return ResponseEntity.ok(ApiResponse.success("Stage template retrieved successfully", response));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error fetching stage template for project {}", id, e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error fetching stage template: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * PUT /customer-projects/{id}/stage-template
+     * Replaces the project's payment-stage template. Percentages must sum to 1.0.
+     */
+    @PutMapping("/{id}/stage-template")
+    @PreAuthorize("hasAuthority('PROJECT_EDIT')")
+    public ResponseEntity<ApiResponse<ProjectStageTemplateDto.Response>> putStageTemplate(
+            @PathVariable Long id,
+            @RequestBody ProjectStageTemplateDto.Request request) {
+        try {
+            ProjectStageTemplateDto.Response response = stageTemplateService.setTemplate(id, request.stages());
+            return ResponseEntity.ok(ApiResponse.success("Stage template updated successfully", response));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error updating stage template for project {}", id, e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error updating stage template: " + e.getMessage()));
+        }
+    }
 
     // ==================== Private Helper Methods ====================
 
