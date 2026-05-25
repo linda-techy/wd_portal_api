@@ -298,15 +298,22 @@ public class CustomerProjectService {
                     .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + customerId + " not found")));
         }
 
-        // Handle contract type
+        // Handle contract type — only TURNKEY and ITEM_RATE are offered for new projects
         if (request.getContractType() != null && !request.getContractType().trim().isEmpty()) {
+            com.wd.api.model.enums.ContractType ct;
             try {
-                project.setContractType(
-                        com.wd.api.model.enums.ContractType.valueOf(request.getContractType().toUpperCase()));
+                ct = com.wd.api.model.enums.ContractType.valueOf(request.getContractType().toUpperCase());
             } catch (IllegalArgumentException e) {
-                logger.warn("Invalid contract type provided: {}, defaulting to TURNKEY", request.getContractType());
-                project.setContractType(com.wd.api.model.enums.ContractType.TURNKEY);
+                throw new IllegalArgumentException(
+                        "Unknown contract type '" + request.getContractType()
+                        + "'. Supported types for new projects: TURNKEY, ITEM_RATE.");
             }
+            if (!ct.isSupportedForNewProjects()) {
+                throw new IllegalArgumentException(
+                        "Contract type '" + ct.name()
+                        + "' is not supported for new projects. Supported types: TURNKEY, ITEM_RATE.");
+            }
+            project.setContractType(ct);
         } else {
             project.setContractType(com.wd.api.model.enums.ContractType.TURNKEY);
         }

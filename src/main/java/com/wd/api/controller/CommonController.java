@@ -102,6 +102,7 @@ public class CommonController {
     public ResponseEntity<ApiResponse<List<EnumValueDTO>>> getContractTypes() {
         try {
             List<EnumValueDTO> contractTypes = Arrays.stream(ContractType.values())
+                .filter(ContractType::isSupportedForNewProjects)
                 .map(type -> new EnumValueDTO(
                     type.name(),
                     type.getDisplayName(),
