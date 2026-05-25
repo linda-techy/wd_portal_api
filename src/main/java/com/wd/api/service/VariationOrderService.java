@@ -72,7 +72,8 @@ public class VariationOrderService {
 
     @Transactional(readOnly = true)
     public List<ChangeOrder> listByProject(Long projectId) {
-        return changeOrderRepository.findByProjectIdAndDeletedAtIsNullOrderByCreatedAtDesc(projectId);
+        return changeOrderRepository
+                .findByProjectIdAndVoCategoryIsNotNullAndDeletedAtIsNullOrderByCreatedAtDesc(projectId);
     }
 
     @Transactional(readOnly = true)

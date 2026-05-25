@@ -15,6 +15,12 @@ public interface ChangeOrderRepository extends JpaRepository<ChangeOrder, Long> 
 
     List<ChangeOrder> findByProjectIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long projectId);
 
+    /** Returns only regular Change Orders (voCategory IS NULL) for the project list. */
+    List<ChangeOrder> findByProjectIdAndVoCategoryIsNullAndDeletedAtIsNullOrderByCreatedAtDesc(Long projectId);
+
+    /** Returns only Variation Orders (voCategory IS NOT NULL) for the VO list. */
+    List<ChangeOrder> findByProjectIdAndVoCategoryIsNotNullAndDeletedAtIsNullOrderByCreatedAtDesc(Long projectId);
+
     List<ChangeOrder> findByProjectIdAndStatusAndDeletedAtIsNull(Long projectId, ChangeOrderStatus status);
 
     List<ChangeOrder> findByBoqDocumentIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long boqDocumentId);

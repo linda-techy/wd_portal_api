@@ -67,7 +67,8 @@ public class ChangeOrderService {
 
     @Transactional(readOnly = true)
     public List<ChangeOrder> getProjectChangeOrders(Long projectId) {
-        return changeOrderRepository.findByProjectIdAndDeletedAtIsNullOrderByCreatedAtDesc(projectId);
+        return changeOrderRepository
+                .findByProjectIdAndVoCategoryIsNullAndDeletedAtIsNullOrderByCreatedAtDesc(projectId);
     }
 
     // -------------------------------------------------------------------------
