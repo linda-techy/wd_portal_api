@@ -174,4 +174,97 @@ class SupportTicketServiceTest {
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Support ticket not found");
     }
+
+    // ── SQL column-name contract (audit Card 4.14) ────────────────────────────
+
+    @Test
+    void getAllTickets_dataSql_referencesCustomerUserIdNotCustomerId() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), any(Object[].class)))
+                .thenReturn(0L);
+        when(jdbcTemplate.queryForList(anyString(), any(Object[].class)))
+                .thenReturn(List.of());
+
+        supportTicketService.getAllTickets(0, 10, null, null, null);
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(sqlCaptor.capture(), any(Object[].class));
+        String dataSql = sqlCaptor.getValue();
+
+        assertThat(dataSql)
+                .as("dataSql must use real column customer_user_id (with alias)")
+                .contains("customer_user_id");
+        assertThat(dataSql)
+                .as("dataSql must NOT reference the non-existent column st.customer_id bare")
+                .doesNotContain("st.customer_id");
+    }
+
+    @Test
+    void getTicketDetail_ticketSql_referencesCustomerUserIdNotCustomerId() {
+        Map<String, Object> ticket = new java.util.HashMap<>(Map.of("id", 1L, "subject", "Test"));
+        when(jdbcTemplate.queryForMap(anyString(), eq(1L))).thenReturn(ticket);
+        when(jdbcTemplate.queryForList(anyString(), eq(1L))).thenReturn(List.of());
+
+        supportTicketService.getTicketDetail(1L);
+
+        ArgumentCaptor<String> ticketSqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForMap(ticketSqlCaptor.capture(), eq(1L));
+        String ticketSql = ticketSqlCaptor.getValue();
+
+        assertThat(ticketSql)
+                .as("ticketSql must use real column customer_user_id (with alias)")
+                .contains("customer_user_id");
+        assertThat(ticketSql)
+                .as("ticketSql must NOT reference the non-existent column st.customer_id bare")
+                .doesNotContain("st.customer_id");
+    }
+
+    @Test
+    void getTicketDetail_repliesSql_referencesUserNameNotSenderName() {
+        Map<String, Object> ticket = new java.util.HashMap<>(Map.of("id", 1L, "subject", "Test"));
+        when(jdbcTemplate.queryForMap(anyString(), eq(1L))).thenReturn(ticket);
+        when(jdbcTemplate.queryForList(anyString(), eq(1L))).thenReturn(List.of());
+
+        supportTicketService.getTicketDetail(1L);
+
+        ArgumentCaptor<String> repliesSqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(repliesSqlCaptor.capture(), eq(1L));
+        String repliesSql = repliesSqlCaptor.getValue();
+
+        assertThat(repliesSql)
+                .as("repliesSql must use real column user_name (with alias)")
+                .contains("user_name");
+        assertThat(repliesSql)
+                .as("repliesSql must NOT reference the non-existent column r.sender_name bare")
+                .doesNotContain("r.sender_name");
+    }
+
+    @Test
+    void addStaffReply_insertSql_referencesUserIdAndUserNameNotSenderColumns() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), eq(1L))).thenReturn(1);
+        when(jdbcTemplate.queryForMap(anyString(),
+                eq(1L), eq(5L), eq("Alice"), anyString(), isNull()))
+                .thenReturn(Map.of("id", 20L, "created_at", "2026-04-18T10:00:00"));
+        when(jdbcTemplate.update(contains("UPDATE support_tickets SET updated_at"), eq(1L))).thenReturn(1);
+
+        supportTicketService.addStaffReply(1L, 5L, "Alice", "Fixed", null);
+
+        ArgumentCaptor<String> insertSqlCaptor = ArgumentCaptor.forClass(String.class);
+        // The INSERT is called via queryForMap (RETURNING clause)
+        verify(jdbcTemplate).queryForMap(insertSqlCaptor.capture(),
+                eq(1L), eq(5L), eq("Alice"), anyString(), isNull());
+        String insertSql = insertSqlCaptor.getValue();
+
+        assertThat(insertSql)
+                .as("INSERT must use real column user_id")
+                .contains("user_id");
+        assertThat(insertSql)
+                .as("INSERT must use real column user_name")
+                .contains("user_name");
+        assertThat(insertSql)
+                .as("INSERT must NOT use non-existent column sender_id")
+                .doesNotContain("sender_id");
+        assertThat(insertSql)
+                .as("INSERT must NOT use non-existent column sender_name")
+                .doesNotContain("sender_name");
+    }
 }

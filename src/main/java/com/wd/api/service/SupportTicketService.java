@@ -48,7 +48,7 @@ public class SupportTicketService {
         Long total = jdbcTemplate.queryForObject(countSql, Long.class, params.toArray());
 
         String dataSql = "SELECT st.id, st.ticket_number, st.subject, st.description, st.status, "
-                + "st.category, st.priority, st.customer_id, st.assigned_to, "
+                + "st.category, st.priority, st.customer_user_id AS customer_id, st.assigned_to, "
                 + "st.created_at, st.updated_at, st.resolved_at "
                 + "FROM support_tickets st"
                 + where
@@ -75,13 +75,13 @@ public class SupportTicketService {
      */
     public Map<String, Object> getTicketDetail(Long ticketId) {
         String ticketSql = "SELECT st.id, st.ticket_number, st.subject, st.description, st.status, "
-                + "st.category, st.priority, st.customer_id, st.assigned_to, "
+                + "st.category, st.priority, st.customer_user_id AS customer_id, st.assigned_to, "
                 + "st.created_at, st.updated_at, st.resolved_at "
                 + "FROM support_tickets st WHERE st.id = ?";
 
         Map<String, Object> ticket = jdbcTemplate.queryForMap(ticketSql, ticketId);
 
-        String repliesSql = "SELECT r.id, r.ticket_id, r.message, r.sender_name, r.user_type, "
+        String repliesSql = "SELECT r.id, r.ticket_id, r.message, r.user_name AS sender_name, r.user_type, "
                 + "r.attachment_url, r.created_at "
                 + "FROM support_ticket_replies r "
                 + "WHERE r.ticket_id = ? "
@@ -135,7 +135,7 @@ public class SupportTicketService {
         }
 
         String sql = "INSERT INTO support_ticket_replies "
-                + "(ticket_id, sender_id, sender_name, user_type, message, attachment_url, created_at) "
+                + "(ticket_id, user_id, user_name, user_type, message, attachment_url, created_at) "
                 + "VALUES (?, ?, ?, 'STAFF', ?, ?, NOW()) RETURNING id, created_at";
 
         Map<String, Object> reply = jdbcTemplate.queryForMap(sql, ticketId, staffUserId, staffName,
