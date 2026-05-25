@@ -1,5 +1,6 @@
 package com.wd.api.service.scheduling;
 
+import com.wd.api.model.enums.DependencyType;
 import com.wd.api.model.enums.FloorLoop;
 import com.wd.api.model.scheduling.WbsTemplate;
 import com.wd.api.model.scheduling.WbsTemplatePhase;
@@ -178,7 +179,7 @@ public class WbsTemplateService {
                     entity.setSuccessor(successor);
                     entity.setPredecessor(pred);
                     entity.setLagDays(pd.lagDays() != null ? pd.lagDays() : 0);
-                    entity.setDepType(pd.depType() != null ? pd.depType() : "FS");
+                    entity.setDepType(DependencyType.fromString(pd.depType()));
                     preds.save(entity);
                 }
             }
@@ -215,7 +216,8 @@ public class WbsTemplateService {
     private WbsTemplateTaskDto toTaskDto(WbsTemplateTask task) {
         List<WbsTemplateTaskPredecessorDto> ps = preds.findBySuccessorId(task.getId())
                 .stream().map(p -> new WbsTemplateTaskPredecessorDto(
-                        p.getId(), p.getPredecessor().getId(), p.getLagDays(), p.getDepType()))
+                        p.getId(), p.getPredecessor().getId(), p.getLagDays(),
+                        p.getDepType() != null ? p.getDepType().name() : "FS"))
                 .toList();
         return new WbsTemplateTaskDto(task.getId(), task.getSequence(), task.getName(),
                 task.getRoleHint(), task.getDurationDays(), task.getWeightFactor(),

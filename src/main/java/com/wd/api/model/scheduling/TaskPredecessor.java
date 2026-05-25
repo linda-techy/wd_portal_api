@@ -1,6 +1,7 @@
 package com.wd.api.model.scheduling;
 
 import com.wd.api.model.BaseEntity;
+import com.wd.api.model.enums.DependencyType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
@@ -29,8 +30,9 @@ public class TaskPredecessor extends BaseEntity {
     @Column(name = "lag_days", nullable = false)
     private Integer lagDays = 0;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "dep_type", nullable = false, length = 2)
-    private String depType = "FS";
+    private DependencyType depType = DependencyType.FS;
 
     public TaskPredecessor() {}
 
@@ -48,6 +50,6 @@ public class TaskPredecessor extends BaseEntity {
     public void setPredecessorId(Long predecessorId) { this.predecessorId = predecessorId; }
     public Integer getLagDays() { return lagDays; }
     public void setLagDays(Integer lagDays) { this.lagDays = lagDays == null ? 0 : lagDays; }
-    public String getDepType() { return depType; }
-    public void setDepType(String depType) { this.depType = depType; }
+    public DependencyType getDepType() { return depType; }
+    public void setDepType(DependencyType depType) { this.depType = depType == null ? DependencyType.FS : depType; }
 }

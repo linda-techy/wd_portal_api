@@ -1,5 +1,6 @@
 package com.wd.api.model.scheduling;
 
+import com.wd.api.model.enums.DependencyType;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -29,8 +30,9 @@ public class WbsTemplateTaskPredecessor {
     @Column(name = "lag_days", nullable = false)
     private Integer lagDays = 0;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "dep_type", nullable = false, length = 2)
-    private String depType = "FS";
+    private DependencyType depType = DependencyType.FS;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -39,7 +41,7 @@ public class WbsTemplateTaskPredecessor {
     void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
         if (lagDays == null) lagDays = 0;
-        if (depType == null) depType = "FS";
+        if (depType == null) depType = DependencyType.FS;
     }
 
     public Long getId() { return id; }
@@ -50,8 +52,8 @@ public class WbsTemplateTaskPredecessor {
     public void setPredecessor(WbsTemplateTask predecessor) { this.predecessor = predecessor; }
     public Integer getLagDays() { return lagDays; }
     public void setLagDays(Integer lagDays) { this.lagDays = lagDays == null ? 0 : lagDays; }
-    public String getDepType() { return depType; }
-    public void setDepType(String depType) { this.depType = depType == null ? "FS" : depType; }
+    public DependencyType getDepType() { return depType; }
+    public void setDepType(DependencyType depType) { this.depType = depType == null ? DependencyType.FS : depType; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

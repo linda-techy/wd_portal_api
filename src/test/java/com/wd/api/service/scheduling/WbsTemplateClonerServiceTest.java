@@ -3,6 +3,7 @@ package com.wd.api.service.scheduling;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.ProjectMilestone;
 import com.wd.api.model.Task;
+import com.wd.api.model.enums.DependencyType;
 import com.wd.api.model.enums.FloorLoop;
 import com.wd.api.model.scheduling.TaskPredecessor;
 import com.wd.api.model.scheduling.WbsTemplate;
@@ -89,17 +90,17 @@ class WbsTemplateClonerServiceTest extends TestcontainersPostgresBase {
 
         // t2 depends on t1 (NONE → PER_FLOOR fan-out)
         WbsTemplateTaskPredecessor e1 = new WbsTemplateTaskPredecessor();
-        e1.setSuccessor(t2); e1.setPredecessor(t1); e1.setLagDays(0); e1.setDepType("FS");
+        e1.setSuccessor(t2); e1.setPredecessor(t1); e1.setLagDays(0); e1.setDepType(DependencyType.FS);
         templatePreds.save(e1);
 
         // t3 depends on t2 (PER_FLOOR → PER_FLOOR same-floor)
         WbsTemplateTaskPredecessor e2 = new WbsTemplateTaskPredecessor();
-        e2.setSuccessor(t3); e2.setPredecessor(t2); e2.setLagDays(0); e2.setDepType("FS");
+        e2.setSuccessor(t3); e2.setPredecessor(t2); e2.setLagDays(0); e2.setDepType(DependencyType.FS);
         templatePreds.save(e2);
 
         // t4 depends on t3 (PER_FLOOR → NONE; top-floor source)
         WbsTemplateTaskPredecessor e3 = new WbsTemplateTaskPredecessor();
-        e3.setSuccessor(t4); e3.setPredecessor(t3); e3.setLagDays(0); e3.setDepType("FS");
+        e3.setSuccessor(t4); e3.setPredecessor(t3); e3.setLagDays(0); e3.setDepType(DependencyType.FS);
         templatePreds.save(e3);
 
         Fixture f = new Fixture();

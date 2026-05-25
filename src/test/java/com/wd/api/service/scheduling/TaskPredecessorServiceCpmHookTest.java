@@ -40,7 +40,7 @@ class TaskPredecessorServiceCpmHookTest extends TestcontainersPostgresBase {
 
         predecessorService.replacePredecessors(
                 b.getId(),
-                List.of(new TaskPredecessorService.PredecessorEntry(a.getId(), 0)));
+                List.of(new TaskPredecessorService.PredecessorEntry(a.getId(), 0, null)));
 
         verify(cpm, atLeastOnce()).recompute(p.getId());
     }

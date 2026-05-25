@@ -1,5 +1,6 @@
 package com.wd.api.service.scheduling;
 
+import com.wd.api.model.enums.DependencyType;
 import com.wd.api.model.enums.FloorLoop;
 import com.wd.api.model.scheduling.WbsTemplate;
 import com.wd.api.model.scheduling.WbsTemplatePhase;
@@ -152,7 +153,7 @@ class WbsTemplateRoundTripTest extends TestcontainersPostgresBase {
         edge.setSuccessor(succTask);
         edge.setPredecessor(predTask);
         edge.setLagDays(2);
-        edge.setDepType("FS");
+        edge.setDepType(DependencyType.FS);
         em.persist(edge);
         em.flush();
         em.clear();
@@ -160,7 +161,7 @@ class WbsTemplateRoundTripTest extends TestcontainersPostgresBase {
         WbsTemplateTaskPredecessor fetched = em.find(WbsTemplateTaskPredecessor.class, edge.getId());
         assertThat(fetched).isNotNull();
         assertThat(fetched.getLagDays()).isEqualTo(2);
-        assertThat(fetched.getDepType()).isEqualTo("FS");
+        assertThat(fetched.getDepType()).isEqualTo(DependencyType.FS);
         assertThat(fetched.getSuccessor().getName()).isEqualTo("succ");
         assertThat(fetched.getPredecessor().getName()).isEqualTo("pred");
         assertThat(fetched.getCreatedAt()).isNotNull();

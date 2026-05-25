@@ -4,6 +4,7 @@ import com.wd.api.dto.scheduling.CpmResultDto;
 import com.wd.api.dto.scheduling.CpmTaskDto;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.Task;
+import com.wd.api.model.enums.DependencyType;
 import com.wd.api.model.scheduling.ProjectScheduleConfig;
 import com.wd.api.model.scheduling.TaskPredecessor;
 import com.wd.api.repository.CustomerProjectRepository;
@@ -151,13 +152,31 @@ public class CpmService {
                         today.isBefore(t.getActualStartDate()) ? t.getActualStartDate() : today,
                         remaining, holidays, sundayWorking));
             } else {
-                // Planned: ES = max(predecessor EF + lag) or projectStart if leaf-source.
+                // Planned: ES = max(projectStart, max over incoming edges of each edge's ES lower bound).
+                // Each dependency type constrains ES differently (lag in working days):
+                //   FS: ES >= addWD(P.EF, lag)
+                //   SS: ES >= addWD(P.ES, lag)
+                //   FF: ES >= subWD(addWD(P.EF, lag), duration)   [so that EF >= P.EF+lag]
+                //   SF: ES >= subWD(addWD(P.ES, lag), duration)   [so that EF >= P.ES+lag]
                 LocalDate es = projectStart;
                 for (TaskPredecessor edge : in) {
                     Task predTask = byId.get(edge.getPredecessorId());
-                    LocalDate candidate = WorkingDayCalculator.addWorkingDays(
-                            predTask.getEfDate(), edge.getLagDays() == null ? 0 : edge.getLagDays(),
-                            holidays, sundayWorking);
+                    int lag = edge.getLagDays() == null ? 0 : edge.getLagDays();
+                    DependencyType type = edge.getDepType() == null ? DependencyType.FS : edge.getDepType();
+                    LocalDate candidate;
+                    switch (type) {
+                        case SS -> candidate = WorkingDayCalculator.addWorkingDays(
+                                predTask.getEsDate(), lag, holidays, sundayWorking);
+                        case FF -> candidate = WorkingDayCalculator.subtractWorkingDays(
+                                WorkingDayCalculator.addWorkingDays(predTask.getEfDate(), lag, holidays, sundayWorking),
+                                duration, holidays, sundayWorking);
+                        case SF -> candidate = WorkingDayCalculator.subtractWorkingDays(
+                                WorkingDayCalculator.addWorkingDays(predTask.getEsDate(), lag, holidays, sundayWorking),
+                                duration, holidays, sundayWorking);
+                        default -> // FS
+                                candidate = WorkingDayCalculator.addWorkingDays(
+                                        predTask.getEfDate(), lag, holidays, sundayWorking);
+                    }
                     if (candidate.isAfter(es)) es = candidate;
                 }
                 t.setEsDate(es);
@@ -183,12 +202,32 @@ public class CpmService {
             if (out.isEmpty()) {
                 lf = projectFinish;
             } else {
+                // LF = min over outgoing edges of the edge's LF upper bound.
+                // Each type constrains how the predecessor's LF relates to the successor's LS/LF:
+                //   FS: LF <= subWD(S.LS, lag)
+                //   SS: LF <= addWD(subWD(S.LS, lag), duration)   [P.LF so P.LS+dur = P.LF; S starts at P.LS+lag]
+                //   FF: LF <= subWD(S.LF, lag)
+                //   SF: LF <= addWD(subWD(S.LF, lag), duration)
+                // (duration here is the predecessor's own duration)
                 lf = null;
                 for (TaskPredecessor edge : out) {
                     Task succ = byId.get(edge.getSuccessorId());
                     int lag = edge.getLagDays() == null ? 0 : edge.getLagDays();
-                    LocalDate candidate = WorkingDayCalculator.subtractWorkingDays(
-                            succ.getLsDate(), lag, holidays, sundayWorking);
+                    DependencyType type = edge.getDepType() == null ? DependencyType.FS : edge.getDepType();
+                    LocalDate candidate;
+                    switch (type) {
+                        case SS -> candidate = WorkingDayCalculator.addWorkingDays(
+                                WorkingDayCalculator.subtractWorkingDays(succ.getLsDate(), lag, holidays, sundayWorking),
+                                duration, holidays, sundayWorking);
+                        case FF -> candidate = WorkingDayCalculator.subtractWorkingDays(
+                                succ.getLfDate(), lag, holidays, sundayWorking);
+                        case SF -> candidate = WorkingDayCalculator.addWorkingDays(
+                                WorkingDayCalculator.subtractWorkingDays(succ.getLfDate(), lag, holidays, sundayWorking),
+                                duration, holidays, sundayWorking);
+                        default -> // FS
+                                candidate = WorkingDayCalculator.subtractWorkingDays(
+                                        succ.getLsDate(), lag, holidays, sundayWorking);
+                    }
                     if (lf == null || candidate.isBefore(lf)) lf = candidate;
                 }
             }

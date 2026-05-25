@@ -2,6 +2,7 @@ package com.wd.api.service.scheduling;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.wd.api.model.enums.DependencyType;
 import com.wd.api.model.enums.FloorLoop;
 import com.wd.api.model.scheduling.WbsTemplate;
 import com.wd.api.model.scheduling.WbsTemplatePhase;
@@ -163,7 +164,7 @@ public class WbsTemplateSeeder implements CommandLineRunner {
                         entity.setSuccessor(successor);
                         entity.setPredecessor(pred);
                         entity.setLagDays(yp2.lagDays != null ? yp2.lagDays : 0);
-                        entity.setDepType(yp2.depType != null ? yp2.depType : "FS");
+                        entity.setDepType(DependencyType.fromString(yp2.depType));
                         preds.save(entity);
                     }
                 }

@@ -35,7 +35,7 @@ public class TaskPredecessorController {
     public List<TaskPredecessor> replace(@PathVariable Long taskId,
                                          @Valid @RequestBody PredecessorListRequest req) {
         List<TaskPredecessorService.PredecessorEntry> entries = req.predecessors().stream()
-                .map(e -> new TaskPredecessorService.PredecessorEntry(e.predecessorId(), e.lagDays()))
+                .map(e -> new TaskPredecessorService.PredecessorEntry(e.predecessorId(), e.lagDays(), e.depType()))
                 .toList();
         return service.replacePredecessors(taskId, entries);
     }

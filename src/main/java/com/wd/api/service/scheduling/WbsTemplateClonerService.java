@@ -3,6 +3,7 @@ package com.wd.api.service.scheduling;
 import com.wd.api.model.CustomerProject;
 import com.wd.api.model.ProjectMilestone;
 import com.wd.api.model.Task;
+import com.wd.api.model.enums.DependencyType;
 import com.wd.api.model.enums.FloorLoop;
 import com.wd.api.model.scheduling.TaskPredecessor;
 import com.wd.api.model.scheduling.WbsTemplate;
@@ -156,7 +157,7 @@ public class WbsTemplateClonerService {
             FloorLoop succLoop = succT.getFloorLoop();
             FloorLoop predLoop = predT.getFloorLoop();
             int lag = edge.getLagDays() != null ? edge.getLagDays() : 0;
-            String depType = edge.getDepType() != null ? edge.getDepType() : "FS";
+            DependencyType depType = edge.getDepType() != null ? edge.getDepType() : DependencyType.FS;
 
             if (succLoop == FloorLoop.PER_FLOOR && predLoop == FloorLoop.PER_FLOOR) {
                 for (int floor = 0; floor < floors; floor++) {
@@ -199,7 +200,7 @@ public class WbsTemplateClonerService {
         return new WbsCloneResult(milestonesCreated, tasksCreated, predsCreated);
     }
 
-    private void savePredecessor(Long successorId, Long predecessorId, int lagDays, String depType) {
+    private void savePredecessor(Long successorId, Long predecessorId, int lagDays, DependencyType depType) {
         TaskPredecessor row = new TaskPredecessor(successorId, predecessorId, lagDays);
         row.setDepType(depType);
         taskPredecessorRepo.save(row);

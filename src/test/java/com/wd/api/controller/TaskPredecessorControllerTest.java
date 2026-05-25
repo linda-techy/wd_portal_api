@@ -26,7 +26,7 @@ class TaskPredecessorControllerTest extends TestcontainersPostgresBase {
     @Test
     void unauthenticated_returns401() throws Exception {
         PredecessorListRequest req = new PredecessorListRequest(List.of(
-                new PredecessorListRequest.Entry(1L, 0)));
+                new PredecessorListRequest.Entry(1L, 0, null)));
         mvc.perform(put("/api/tasks/2/predecessors")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req)))
@@ -37,7 +37,7 @@ class TaskPredecessorControllerTest extends TestcontainersPostgresBase {
     @WithMockUser(authorities = "OTHER")
     void wrongAuthority_returns403() throws Exception {
         PredecessorListRequest req = new PredecessorListRequest(List.of(
-                new PredecessorListRequest.Entry(1L, 0)));
+                new PredecessorListRequest.Entry(1L, 0, null)));
         mvc.perform(put("/api/tasks/2/predecessors")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req)))
@@ -49,7 +49,7 @@ class TaskPredecessorControllerTest extends TestcontainersPostgresBase {
     void put_cycleRejected_returns400_onSelfLoop() throws Exception {
         // Self-loop is rejected before any DB access — no need for fixture data.
         PredecessorListRequest req = new PredecessorListRequest(List.of(
-                new PredecessorListRequest.Entry(2L, 0)));
+                new PredecessorListRequest.Entry(2L, 0, null)));
         mvc.perform(put("/api/tasks/2/predecessors")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req)))
@@ -74,7 +74,7 @@ class TaskPredecessorControllerTest extends TestcontainersPostgresBase {
         // don't exist in the DB so the dual-write step throws IllegalArgumentException
         // which the controller maps to 400.
         PredecessorListRequest req = new PredecessorListRequest(List.of(
-                new PredecessorListRequest.Entry(999_999_001L, 0)));
+                new PredecessorListRequest.Entry(999_999_001L, 0, null)));
         mvc.perform(put("/api/tasks/999999002/predecessors")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req)))
@@ -87,7 +87,7 @@ class TaskPredecessorControllerTest extends TestcontainersPostgresBase {
         // Confirms hasAnyAuthority semantics: TASK_CREATE alone reaches the handler
         // (gets past @PreAuthorize) and then the self-loop is rejected with 400.
         PredecessorListRequest req = new PredecessorListRequest(List.of(
-                new PredecessorListRequest.Entry(2L, 0)));
+                new PredecessorListRequest.Entry(2L, 0, null)));
         mvc.perform(put("/api/tasks/2/predecessors")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(req)))

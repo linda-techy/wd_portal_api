@@ -51,7 +51,7 @@ class TaskPredecessorServiceTest {
         lenient().when(predecessorRepo.findBySuccessorId(anyLong())).thenReturn(List.of());
         when(predecessorRepo.save(any(TaskPredecessor.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service.replacePredecessors(2L, List.of(new TaskPredecessorService.PredecessorEntry(1L, 0)));
+        service.replacePredecessors(2L, List.of(new TaskPredecessorService.PredecessorEntry(1L, 0, null)));
 
         verify(predecessorRepo).deleteBySuccessorId(2L);
         verify(predecessorRepo).save(any(TaskPredecessor.class));
@@ -75,8 +75,8 @@ class TaskPredecessorServiceTest {
         when(predecessorRepo.save(any(TaskPredecessor.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.replacePredecessors(3L, List.of(
-                new TaskPredecessorService.PredecessorEntry(1L, 0),
-                new TaskPredecessorService.PredecessorEntry(2L, 0)));
+                new TaskPredecessorService.PredecessorEntry(1L, 0, null),
+                new TaskPredecessorService.PredecessorEntry(2L, 0, null)));
 
         verify(predecessorRepo).deleteBySuccessorId(3L);
         verify(predecessorRepo, times(2)).save(any(TaskPredecessor.class));
@@ -87,7 +87,7 @@ class TaskPredecessorServiceTest {
     void replacePredecessors_rejectsSelfLoop() {
         assertThatThrownBy(() ->
                 service.replacePredecessors(5L, List.of(
-                        new TaskPredecessorService.PredecessorEntry(5L, 0))))
+                        new TaskPredecessorService.PredecessorEntry(5L, 0, null))))
                 .isInstanceOf(TaskGraphValidator.CycleDetectedException.class);
         // Pin the validate-first / mutate-never contract: a refactor that
         // moved deleteBySuccessorId(taskId) ahead of the cycle check would
@@ -109,7 +109,7 @@ class TaskPredecessorServiceTest {
 
         assertThatThrownBy(() ->
                 service.replacePredecessors(1L, List.of(
-                        new TaskPredecessorService.PredecessorEntry(3L, 0))))
+                        new TaskPredecessorService.PredecessorEntry(3L, 0, null))))
                 .isInstanceOf(TaskGraphValidator.CycleDetectedException.class);
         verify(predecessorRepo, never()).save(any());
         verify(predecessorRepo, never()).deleteBySuccessorId(anyLong());

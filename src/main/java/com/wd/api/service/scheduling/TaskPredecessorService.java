@@ -1,6 +1,7 @@
 package com.wd.api.service.scheduling;
 
 import com.wd.api.dto.scheduling.PredecessorEdgeDto;
+import com.wd.api.model.enums.DependencyType;
 import com.wd.api.model.Task;
 import com.wd.api.model.scheduling.TaskPredecessor;
 import com.wd.api.repository.TaskPredecessorRepository;
@@ -42,11 +43,12 @@ public class TaskPredecessorService {
         this.cpmService = cpmService;
     }
 
-    /** A predecessor entry as supplied by the controller — id + lag in days. */
-    public record PredecessorEntry(Long predecessorId, Integer lagDays) {
+    /** A predecessor entry as supplied by the controller — id, lag in days, and dependency type. */
+    public record PredecessorEntry(Long predecessorId, Integer lagDays, DependencyType depType) {
         public PredecessorEntry {
             Objects.requireNonNull(predecessorId, "predecessorId");
             if (lagDays == null) lagDays = 0;
+            if (depType == null) depType = DependencyType.FS;
         }
     }
 
@@ -81,6 +83,7 @@ public class TaskPredecessorService {
         List<TaskPredecessor> saved = new ArrayList<>(safe.size());
         for (PredecessorEntry e : safe) {
             TaskPredecessor row = new TaskPredecessor(successorId, e.predecessorId(), e.lagDays());
+            row.setDepType(e.depType());
             saved.add(predecessorRepo.save(row));
         }
 
@@ -114,7 +117,7 @@ public class TaskPredecessorService {
                     e.getPredecessorId(),
                     titleById.getOrDefault(e.getPredecessorId(), "(deleted)"),
                     e.getLagDays(),
-                    e.getDepType()
+                    e.getDepType() != null ? e.getDepType().name() : "FS"
             ));
         }
         return out;
