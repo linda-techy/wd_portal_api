@@ -136,7 +136,10 @@ public class BoqInvoiceService {
 
         BoqInvoice saved = invoiceRepository.save(invoice);
 
-        // Advance stage status to INVOICED
+        // Advance stage status to INVOICED and record the invoice due date so the
+        // customer app (CustomerNextPaymentService reads PaymentStage.dueDate) can
+        // surface the correct payment deadline.
+        stage.setDueDate(dueDate);
         stage.setStatus(PaymentStageStatus.INVOICED);
         stage.setInvoice(saved);
         stageRepository.save(stage);
