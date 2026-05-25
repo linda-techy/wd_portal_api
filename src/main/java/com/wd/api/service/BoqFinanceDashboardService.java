@@ -11,8 +11,15 @@ import java.util.List;
 /**
  * Aggregated finance dashboard for a project's BOQ / payment schedule.
  *
- * All figures are computed from immutable stage amounts and recorded invoice
+ * <p>All figures are computed from immutable stage amounts and recorded invoice
  * payments — never from live BOQ item data after the BOQ is approved.
+ *
+ * <p><strong>Single financial source (audit P1-3, owner decision 2026-05-25):</strong>
+ * commercial change value is sourced <em>exclusively</em> from {@code change_orders}
+ * (regular Change Orders and Variation Orders, the latter marked by {@code voCategory}).
+ * {@code ProjectVariation} is a scheduling/status entity and is intentionally NOT a
+ * financial vehicle — it must never be aggregated here. See
+ * {@code BoqFinanceDashboardServiceTest} for the structural guard.
  */
 @Service
 @Transactional(readOnly = true)
