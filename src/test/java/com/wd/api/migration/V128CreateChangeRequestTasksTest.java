@@ -112,8 +112,8 @@ class V128CreateChangeRequestTasksTest extends FlywayMigrationTestBase {
     private Long insertCr() {
         Long projectId = jdbc.queryForObject(
                 "INSERT INTO customer_projects (project_uuid, name, location, " +
-                "is_design_agreement_signed, created_at, updated_at, version) " +
-                "VALUES (?, 'V128 fixture', 'Loc', false, NOW(), NOW(), 1) RETURNING id",
+                "is_design_agreement_signed, gst_rate, created_at, updated_at, version) " +
+                "VALUES (?, 'V128 fixture', 'Loc', false, 0, NOW(), NOW(), 1) RETURNING id",
                 Long.class, UUID.randomUUID());
         return jdbc.queryForObject(
                 "INSERT INTO project_variations " +

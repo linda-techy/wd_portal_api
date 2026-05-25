@@ -59,8 +59,8 @@ class V127MigrationTest extends FlywayMigrationTestBase {
     private long insertProject(long id) {
         jdbc.update(
             "INSERT INTO customer_projects (id, project_uuid, name, location, " +
-            "is_design_agreement_signed, created_at, updated_at, version) " +
-            "VALUES (?, ?, ?, ?, false, NOW(), NOW(), 1) " +
+            "is_design_agreement_signed, gst_rate, created_at, updated_at, version) " +
+            "VALUES (?, ?, ?, ?, false, 0, NOW(), NOW(), 1) " +
             "ON CONFLICT (id) DO NOTHING",
             id, UUID.randomUUID(), "v127-test-" + id, "Loc");
         return id;

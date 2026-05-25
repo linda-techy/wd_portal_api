@@ -75,8 +75,8 @@ class V113BackfillSqlSemanticsTest extends FlywayMigrationTestBase {
         // Insert a tiny customer_projects row so FK constraints pass.
         jdbc.update("""
             INSERT INTO customer_projects (id, project_uuid, name, location, is_design_agreement_signed,
-                                           created_at, updated_at, version)
-            VALUES (?, ?, ?, ?, false, NOW(), NOW(), 1)
+                                           gst_rate, created_at, updated_at, version)
+            VALUES (?, ?, ?, ?, false, 0, NOW(), NOW(), 1)
             ON CONFLICT (id) DO NOTHING
             """, 9001L, UUID.randomUUID(), "test-fixture-project", "test-location");
 
@@ -151,8 +151,8 @@ class V113BackfillSqlSemanticsTest extends FlywayMigrationTestBase {
         jdbc.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS depends_on_task_id BIGINT");
         jdbc.update("""
             INSERT INTO customer_projects (id, project_uuid, name, location, is_design_agreement_signed,
-                                           created_at, updated_at, version)
-            VALUES (?, ?, ?, ?, false, NOW(), NOW(), 1)
+                                           gst_rate, created_at, updated_at, version)
+            VALUES (?, ?, ?, ?, false, 0, NOW(), NOW(), 1)
             ON CONFLICT (id) DO NOTHING
             """, 9002L, UUID.randomUUID(), "dangling-test-project", "test-location");
 
