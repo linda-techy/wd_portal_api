@@ -33,7 +33,8 @@ public class VariationOrderDtos {
             String justification,
             String scopeNotes,
             @NotNull String coType,           // ChangeOrderType enum name
-            VOCategory voCategory,
+            @NotNull VOCategory voCategory,   // required: null would wrongly classify the VO as a Change Order
+
             Long revisesCoId,                 // only for REVISION type
             String mappedStageIds,            // JSON array string, e.g. "[1,2,3]"
             @NotNull @DecimalMin("0.01") BigDecimal netAmountExGst,

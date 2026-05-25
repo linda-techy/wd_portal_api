@@ -70,7 +70,7 @@ class BoqFinanceDashboardServiceTest {
         when(boqDocumentRepository.findApprovedByProjectId(50L))
                 .thenReturn(java.util.Optional.empty());
         when(changeOrderRepository.findByProjectIdAndDeletedAtIsNullOrderByCreatedAtDesc(50L))
-                .thenReturn(List.of(approved(ChangeOrderType.SCOPE_ADDITION, "500", VOCategory.values()[0])));
+                .thenReturn(List.of(approved(ChangeOrderType.SCOPE_ADDITION, "500", VOCategory.MATERIAL_HEAVY)));
         stubZeroInvoicingAndCredits();
 
         var s = service().getSummary(50L);
