@@ -13,6 +13,8 @@ import com.wd.api.repository.LeadInteractionRepository;
 import com.wd.api.repository.LeadRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.model.Lead;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ActivityFeedService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ActivityFeedService.class);
 
     @Autowired
     private ActivityFeedRepository activityFeedRepository;
@@ -68,8 +72,14 @@ public class ActivityFeedService {
 
     private void saveActivity(String typeName, String title, String description, Long referenceId, String referenceType,
             CustomerUser customerUser, PortalUser portalUser, CustomerProject project) {
-        ActivityType type = activityTypeRepository.findByName(typeName)
-                .orElseThrow(() -> new RuntimeException("Activity Type not found: " + typeName));
+        Optional<ActivityType> typeOpt = activityTypeRepository.findByName(typeName);
+        if (typeOpt.isEmpty()) {
+            // Best-effort: a missing activity_type seed must NOT roll back the caller's primary
+            // business write. Skip the audit entry and warn. (Audit Card 4.1; cf. V155/V156.)
+            logger.warn("Activity Type not found: {} — skipping activity-feed entry (caller write preserved)", typeName);
+            return;
+        }
+        ActivityType type = typeOpt.get();
 
         ActivityFeed feed = new ActivityFeed();
         feed.setActivityType(type);
