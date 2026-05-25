@@ -95,7 +95,7 @@ class ProjectStageTemplateServiceTest {
     void setTemplate_persistsValidTemplate() {
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
 
-        // Kerala 6-stage sums exactly to 1.0
+        // 10-stage residential G+1 default sums exactly to 1.0
         List<ProjectStageTemplateDto.StageRow> stages = ProjectStageTemplateService.KERALA_DEFAULT_STAGES;
 
         // stub save + findBy to simulate round-trip
@@ -124,12 +124,12 @@ class ProjectStageTemplateServiceTest {
         verify(templateRepository).deleteByProjectId(1L);
         verify(templateRepository).flush();
 
-        // six rows saved
-        verify(templateRepository, times(6)).save(any(ProjectStageTemplate.class));
+        // ten rows saved
+        verify(templateRepository, times(10)).save(any(ProjectStageTemplate.class));
 
-        assertThat(response.stages()).hasSize(6);
-        assertThat(response.stages().get(0).name()).isEqualTo("Mobilisation");
-        assertThat(response.stages().get(5).name()).isEqualTo("Handover");
+        assertThat(response.stages()).hasSize(10);
+        assertThat(response.stages().get(0).name()).isEqualTo("Mobilisation / Advance");
+        assertThat(response.stages().get(9).name()).isEqualTo("Handover / Completion");
     }
 
     // ── (c) Approval with no stageConfigs uses stored template ────────────────
@@ -212,8 +212,57 @@ class ProjectStageTemplateServiceTest {
 
         ProjectStageTemplateDto.Response response = service.getTemplate(1L);
 
-        verify(templateRepository, times(6)).save(any(ProjectStageTemplate.class));
-        assertThat(response.stages()).hasSize(6);
-        assertThat(response.stages().get(0).name()).isEqualTo("Mobilisation");
+        verify(templateRepository, times(10)).save(any(ProjectStageTemplate.class));
+        assertThat(response.stages()).hasSize(10);
+        assertThat(response.stages().get(0).name()).isEqualTo("Mobilisation / Advance");
+    }
+
+    // ── (e) Default has 10 stages summing to exactly 1.0000 ──────────────────
+
+    @Test
+    void defaultStages_have10StagesSummingToOne() {
+        List<ProjectStageTemplateDto.StageRow> defaults = ProjectStageTemplateService.KERALA_DEFAULT_STAGES;
+
+        assertThat(defaults).hasSize(10);
+
+        BigDecimal sum = defaults.stream()
+                .map(ProjectStageTemplateDto.StageRow::percentage)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertThat(sum).isEqualByComparingTo(new BigDecimal("1.0000"));
+    }
+
+    // ── (f) Per-project flexibility: arbitrary custom counts still accepted ───
+
+    @Test
+    void validateStages_accepts4StageCustomTemplate() {
+        List<ProjectStageTemplateDto.StageRow> fourStage = List.of(
+                new ProjectStageTemplateDto.StageRow(1, "Advance",    new BigDecimal("0.2000"), null),
+                new ProjectStageTemplateDto.StageRow(2, "Structure",  new BigDecimal("0.3000"), null),
+                new ProjectStageTemplateDto.StageRow(3, "Finishing",  new BigDecimal("0.3000"), null),
+                new ProjectStageTemplateDto.StageRow(4, "Handover",   new BigDecimal("0.2000"), null)
+        );
+        assertThatCode(() -> ProjectStageTemplateService.validateStages(fourStage))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void validateStages_accepts12StageCustomTemplate() {
+        // 2×0.10 + 10×0.08 = 0.20 + 0.80 = 1.00
+        List<ProjectStageTemplateDto.StageRow> twelveStageClean = List.of(
+                new ProjectStageTemplateDto.StageRow(1,  "S1",  new BigDecimal("0.1000"), null),
+                new ProjectStageTemplateDto.StageRow(2,  "S2",  new BigDecimal("0.1000"), null),
+                new ProjectStageTemplateDto.StageRow(3,  "S3",  new BigDecimal("0.0800"), null),
+                new ProjectStageTemplateDto.StageRow(4,  "S4",  new BigDecimal("0.0800"), null),
+                new ProjectStageTemplateDto.StageRow(5,  "S5",  new BigDecimal("0.0800"), null),
+                new ProjectStageTemplateDto.StageRow(6,  "S6",  new BigDecimal("0.0800"), null),
+                new ProjectStageTemplateDto.StageRow(7,  "S7",  new BigDecimal("0.0800"), null),
+                new ProjectStageTemplateDto.StageRow(8,  "S8",  new BigDecimal("0.0800"), null),
+                new ProjectStageTemplateDto.StageRow(9,  "S9",  new BigDecimal("0.0800"), null),
+                new ProjectStageTemplateDto.StageRow(10, "S10", new BigDecimal("0.0800"), null),
+                new ProjectStageTemplateDto.StageRow(11, "S11", new BigDecimal("0.0800"), null),
+                new ProjectStageTemplateDto.StageRow(12, "S12", new BigDecimal("0.0800"), null)
+        );
+        assertThatCode(() -> ProjectStageTemplateService.validateStages(twelveStageClean))
+                .doesNotThrowAnyException();
     }
 }
