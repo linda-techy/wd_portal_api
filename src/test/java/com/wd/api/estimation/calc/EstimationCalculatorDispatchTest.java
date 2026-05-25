@@ -4,7 +4,6 @@ import com.wd.api.estimation.domain.enums.PackageInternalName;
 import com.wd.api.estimation.domain.enums.ProjectType;
 import com.wd.api.estimation.service.calc.EstimationCalculator;
 import com.wd.api.estimation.service.calc.EstimationContext;
-import com.wd.api.estimation.service.calc.exception.UnsupportedProjectTypeException;
 import com.wd.api.estimation.service.calc.view.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,7 +16,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class EstimationCalculatorDispatchTest {
 
@@ -37,11 +35,11 @@ class EstimationCalculatorDispatchTest {
 
     @ParameterizedTest
     @EnumSource(value = ProjectType.class, names = {"RENOVATION", "INTERIOR", "COMPOUND"})
-    void otherProjectTypes_throwUnsupported(ProjectType type) {
+    void otherProjectTypes_dispatchToParametric(ProjectType type) {
+        // These types now use the same area-based parametric model as NEW_BUILD/COMMERCIAL,
+        // driven by business-configured per-type rate versions (audit P3). No longer throw.
         EstimationContext ctx = contextOf(type);
-        assertThatThrownBy(() -> calculator.calculate(ctx))
-                .isInstanceOf(UnsupportedProjectTypeException.class)
-                .hasMessageContaining(type.name());
+        assertThat(calculator.calculate(ctx)).isNotNull();
     }
 
     private EstimationContext newBuildContext() { return contextOf(ProjectType.NEW_BUILD); }

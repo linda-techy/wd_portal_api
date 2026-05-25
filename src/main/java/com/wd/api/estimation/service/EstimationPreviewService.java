@@ -23,7 +23,6 @@ import com.wd.api.estimation.repository.GovtFeeRepository;
 import com.wd.api.estimation.repository.MarketIndexSnapshotRepository;
 import com.wd.api.estimation.repository.PackageRateVersionRepository;
 import com.wd.api.estimation.repository.SiteFeeRepository;
-import com.wd.api.estimation.service.calc.exception.UnsupportedProjectTypeException;
 import com.wd.api.estimation.service.calc.BudgetaryBreakdown;
 import com.wd.api.estimation.service.calc.EstimationBreakdown;
 import com.wd.api.estimation.service.calc.EstimationCalculator;
@@ -92,13 +91,11 @@ public class EstimationPreviewService {
 
     @Transactional(readOnly = true)
     public CalculatePreviewResponse preview(CalculatePreviewRequest req) {
-        // Early dispatch guard — surface "unsupported project type" before doing any
-        // repository lookups. Otherwise RENOVATION/INTERIOR/COMPOUND requests fail at
-        // findActive(...) with "no active rate version" instead of the correct semantic.
-        if (req.projectType() != ProjectType.NEW_BUILD && req.projectType() != ProjectType.COMMERCIAL) {
-            throw new UnsupportedProjectTypeException(req.projectType());
-        }
-
+        // All project types are estimated via the area-based parametric model, driven by
+        // business-configured per-type rate versions. If no rate version is configured for the
+        // project type, the rateVersionRepo.findActive(...).orElseThrow below surfaces a clear
+        // "No active rate version for package … and project type …" message (the graceful
+        // fallback) — not a crash. Item-rate/measured projects: configure rates or use a manual BoQ.
         EstimationPricingMode mode = req.pricingMode() != null
                 ? req.pricingMode()
                 : EstimationPricingMode.LINE_ITEM;

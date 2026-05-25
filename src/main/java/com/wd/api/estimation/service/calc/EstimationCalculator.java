@@ -1,6 +1,5 @@
 package com.wd.api.estimation.service.calc;
 
-import com.wd.api.estimation.service.calc.exception.UnsupportedProjectTypeException;
 import com.wd.api.estimation.service.calc.view.AddOnApplied;
 import com.wd.api.estimation.service.calc.view.CustomisationChoice;
 import com.wd.api.estimation.service.calc.view.GovtFeeApplied;
@@ -16,9 +15,16 @@ public final class EstimationCalculator {
     private static final long INDEX_STALE_DAYS = 14;
 
     public EstimationBreakdown calculate(EstimationContext ctx) {
+        // All project types use the area-based parametric model driven by business-configured
+        // per-type rate versions. RENOVATION/INTERIOR/COMPOUND are routed here alongside
+        // NEW_BUILD/COMMERCIAL. If the business has not configured a rate version for the
+        // project type, the caller's findActive(…) orElseThrow surfaces a clear
+        // "No active rate version for package … and project type …" message — that is the
+        // intended graceful fallback. For item-rate/measured projects, configure rates
+        // accordingly or use a manual BoQ.
         return switch (ctx.projectType()) {
-            case NEW_BUILD, COMMERCIAL -> calculateNewBuild(ctx);
-            case RENOVATION, INTERIOR, COMPOUND -> throw new UnsupportedProjectTypeException(ctx.projectType());
+            case NEW_BUILD, COMMERCIAL,
+                 RENOVATION, INTERIOR, COMPOUND -> calculateParametric(ctx);
         };
     }
 
@@ -56,7 +62,7 @@ public final class EstimationCalculator {
                 low, high);
     }
 
-    private EstimationBreakdown calculateNewBuild(EstimationContext ctx) {
+    private EstimationBreakdown calculateParametric(EstimationContext ctx) {
         // Validation
         if (ctx.marketIndex() == null) {
             throw new IllegalArgumentException("marketIndex must not be null");
