@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -148,6 +149,22 @@ public class FeedbackService {
         FeedbackResponse response = feedbackResponseRepository.findById(Objects.requireNonNull(responseId, "Response ID is required"))
                 .orElseThrow(() -> new RuntimeException("Feedback response not found: " + responseId));
         return FeedbackResponseDto.fromEntity(response);
+    }
+
+    // ==================== ADMIN REPLY ====================
+
+    @Transactional
+    public FeedbackResponseDto replyToResponse(Long responseId, String message, Long adminUserId) {
+        FeedbackResponse response = feedbackResponseRepository.findById(
+                Objects.requireNonNull(responseId, "Response ID is required"))
+                .orElseThrow(() -> new RuntimeException("Feedback response not found: " + responseId));
+
+        response.setAdminResponse(message);
+        response.setAdminRespondedAt(LocalDateTime.now());
+        response.setAdminRespondedById(adminUserId);
+
+        FeedbackResponse saved = feedbackResponseRepository.save(response);
+        return FeedbackResponseDto.fromEntity(saved);
     }
 
     // ==================== STATISTICS ====================

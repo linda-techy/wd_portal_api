@@ -29,6 +29,15 @@ public class FeedbackResponse {
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
+    @Column(name = "admin_response", columnDefinition = "TEXT")
+    private String adminResponse;
+
+    @Column(name = "admin_responded_at")
+    private LocalDateTime adminRespondedAt;
+
+    @Column(name = "admin_responded_by_id")
+    private Long adminRespondedById;
+
     @PrePersist
     protected void onCreate() {
         submittedAt = LocalDateTime.now();
@@ -81,5 +90,29 @@ public class FeedbackResponse {
 
     public void setSubmittedAt(LocalDateTime submittedAt) {
         this.submittedAt = submittedAt;
+    }
+
+    public String getAdminResponse() {
+        return adminResponse;
+    }
+
+    public void setAdminResponse(String adminResponse) {
+        this.adminResponse = adminResponse;
+    }
+
+    public LocalDateTime getAdminRespondedAt() {
+        return adminRespondedAt;
+    }
+
+    public void setAdminRespondedAt(LocalDateTime adminRespondedAt) {
+        this.adminRespondedAt = adminRespondedAt;
+    }
+
+    public Long getAdminRespondedById() {
+        return adminRespondedById;
+    }
+
+    public void setAdminRespondedById(Long adminRespondedById) {
+        this.adminRespondedById = adminRespondedById;
     }
 }

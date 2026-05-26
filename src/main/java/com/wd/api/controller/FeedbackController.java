@@ -3,10 +3,13 @@ package com.wd.api.controller;
 import com.wd.api.dto.FeedbackAnalyticsDto;
 import com.wd.api.dto.FeedbackFormDto;
 import com.wd.api.dto.FeedbackResponseDto;
+import com.wd.api.model.PortalUser;
+import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.FeedbackAnalyticsService;
 import com.wd.api.service.FeedbackService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +23,7 @@ public class FeedbackController {
 
     private final FeedbackService feedbackService;
     private final FeedbackAnalyticsService feedbackAnalyticsService;
+    private final PortalUserRepository portalUserRepository;
 
     // ==================== FORM ENDPOINTS ====================
 
@@ -129,6 +133,30 @@ public class FeedbackController {
     public ResponseEntity<FeedbackResponseDto> getResponse(@PathVariable Long responseId) {
         FeedbackResponseDto response = feedbackService.getResponseById(responseId);
         return ResponseEntity.ok(response);
+    }
+
+    // ==================== ADMIN REPLY ENDPOINT ====================
+
+    /**
+     * Admin replies to a customer's feedback response.
+     *
+     * <p>POST /api/feedback/responses/{responseId}/reply
+     * Body: { "message": "..." }
+     */
+    @PostMapping("/responses/{responseId}/reply")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<FeedbackResponseDto> replyToResponse(
+            @PathVariable Long responseId,
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+
+        String message = (String) request.get("message");
+        Long adminUserId = portalUserRepository.findByEmail(authentication.getName())
+                .map(PortalUser::getId)
+                .orElse(null);
+
+        FeedbackResponseDto updated = feedbackService.replyToResponse(responseId, message, adminUserId);
+        return ResponseEntity.ok(updated);
     }
 
     // ==================== STATISTICS ENDPOINTS ====================
