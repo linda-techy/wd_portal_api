@@ -16,6 +16,12 @@ UPDATE task_predecessor
    SET dep_type = 'FS'
  WHERE dep_type IS NULL OR dep_type = '';
 
+-- Idempotent: the shared wdTestDB already carried this constraint outside Flyway's
+-- tracked history (v160 was never recorded as applied), so a bare ADD aborts with
+-- 42710 ("constraint already exists"). Drop-if-exists first so the migration is
+-- self-healing and re-asserts the intended definition.
+ALTER TABLE task_predecessor
+    DROP CONSTRAINT IF EXISTS chk_task_predecessor_dep_type;
 ALTER TABLE task_predecessor
     ADD CONSTRAINT chk_task_predecessor_dep_type
         CHECK (dep_type IN ('FS', 'SS', 'FF', 'SF'));
@@ -26,6 +32,8 @@ UPDATE wbs_template_task_predecessor
    SET dep_type = 'FS'
  WHERE dep_type IS NULL OR dep_type = '';
 
+ALTER TABLE wbs_template_task_predecessor
+    DROP CONSTRAINT IF EXISTS chk_wbs_tmpl_task_pred_dep_type;
 ALTER TABLE wbs_template_task_predecessor
     ADD CONSTRAINT chk_wbs_tmpl_task_pred_dep_type
         CHECK (dep_type IN ('FS', 'SS', 'FF', 'SF'));
