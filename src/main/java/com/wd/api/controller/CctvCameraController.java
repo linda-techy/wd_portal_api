@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.CctvCameraResponse;
 import com.wd.api.model.CctvCamera;
 import com.wd.api.service.CctvCameraService;
 import lombok.RequiredArgsConstructor;
@@ -16,25 +17,26 @@ public class CctvCameraController {
     private final CctvCameraService cctvCameraService;
 
     @PostMapping("/projects/{projectId}/cctv-cameras")
-    public ResponseEntity<CctvCamera> createCamera(@PathVariable Long projectId,
+    public ResponseEntity<CctvCameraResponse> createCamera(@PathVariable Long projectId,
                                                      @RequestBody CctvCamera camera) {
-        return ResponseEntity.ok(cctvCameraService.createCamera(projectId, camera));
+        return ResponseEntity.ok(CctvCameraResponse.from(cctvCameraService.createCamera(projectId, camera)));
     }
 
     @GetMapping("/projects/{projectId}/cctv-cameras")
-    public ResponseEntity<List<CctvCamera>> getProjectCameras(@PathVariable Long projectId) {
-        return ResponseEntity.ok(cctvCameraService.getProjectCameras(projectId));
+    public ResponseEntity<List<CctvCameraResponse>> getProjectCameras(@PathVariable Long projectId) {
+        return ResponseEntity.ok(cctvCameraService.getProjectCameras(projectId)
+                .stream().map(CctvCameraResponse::from).toList());
     }
 
     @GetMapping("/cctv-cameras/{id}")
-    public ResponseEntity<CctvCamera> getCamera(@PathVariable Long id) {
-        return ResponseEntity.ok(cctvCameraService.getCamera(id));
+    public ResponseEntity<CctvCameraResponse> getCamera(@PathVariable Long id) {
+        return ResponseEntity.ok(CctvCameraResponse.from(cctvCameraService.getCamera(id)));
     }
 
     @PutMapping("/cctv-cameras/{id}")
-    public ResponseEntity<CctvCamera> updateCamera(@PathVariable Long id,
+    public ResponseEntity<CctvCameraResponse> updateCamera(@PathVariable Long id,
                                                      @RequestBody CctvCamera updates) {
-        return ResponseEntity.ok(cctvCameraService.updateCamera(id, updates));
+        return ResponseEntity.ok(CctvCameraResponse.from(cctvCameraService.updateCamera(id, updates)));
     }
 
     @DeleteMapping("/cctv-cameras/{id}")
@@ -44,7 +46,7 @@ public class CctvCameraController {
     }
 
     @PatchMapping("/cctv-cameras/{id}/toggle")
-    public ResponseEntity<CctvCamera> toggleActive(@PathVariable Long id) {
-        return ResponseEntity.ok(cctvCameraService.toggleActive(id));
+    public ResponseEntity<CctvCameraResponse> toggleActive(@PathVariable Long id) {
+        return ResponseEntity.ok(CctvCameraResponse.from(cctvCameraService.toggleActive(id)));
     }
 }
