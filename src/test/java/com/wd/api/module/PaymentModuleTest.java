@@ -304,4 +304,35 @@ class PaymentModuleTest extends TestcontainersPostgresBase {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().get("success")).isEqualTo(true);
     }
+
+    /**
+     * Regression: a payment beyond a stage's outstanding balance must be rejected
+     * (HTTP 400), not silently recorded. This is what prevents a double-submit /
+     * double-click from creating a duplicate transaction and pushing paid_amount
+     * past the stage total (the cause of PRJ-0049's "Design Phase" being paid
+     * twice → 133% on the customer Payments screen).
+     */
+    @Test
+    @Order(8)
+    void should_rejectPaymentBeyondOutstandingBalance() {
+        assertThat(scheduleId).as("Schedule must exist for over-payment guard test").isNotNull();
+
+        HttpHeaders headers = adminHeaders();
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("amount", new BigDecimal("99999999.00")); // far beyond any stage's outstanding balance
+        body.put("paymentMethod", "BANK_TRANSFER");
+        body.put("referenceNumber", "TXN-OVERPAY-GUARD");
+        body.put("notes", "Simulated double-submit / over-payment");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                baseUrl("/payments/schedule/" + scheduleId + "/transactions"),
+                HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("success")).isEqualTo(false);
+        assertThat(String.valueOf(response.getBody().get("message")))
+                .containsIgnoringCase("outstanding balance");
+    }
 }

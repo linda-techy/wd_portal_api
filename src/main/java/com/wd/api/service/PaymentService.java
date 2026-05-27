@@ -193,6 +193,27 @@ public class PaymentService {
         PaymentSchedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new IllegalArgumentException("Payment schedule not found: " + scheduleId));
 
+        // Over-payment / double-submit guard: a stage can never be paid beyond its
+        // amount. Without this, a double-submit (e.g. a double-click on "record
+        // payment", or a client retry) creates a second identical transaction and
+        // pushes paid_amount past the stage total — which is exactly how PRJ-0049's
+        // "Design Phase" ended up paid twice (the customer Payments screen showed
+        // 133%). Reject anything beyond the outstanding balance (₹1 rounding
+        // tolerance), surfacing it as a 400 rather than silently double-counting.
+        BigDecimal incomingTds = request.getTdsPercentage() != null ? request.getTdsPercentage() : BigDecimal.ZERO;
+        BigDecimal incomingNet = request.getAmount() == null ? BigDecimal.ZERO : request.getAmount();
+        if (incomingTds.compareTo(BigDecimal.ZERO) > 0) {
+            incomingNet = incomingNet.subtract(
+                    incomingNet.multiply(incomingTds).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP));
+        }
+        BigDecimal outstanding = schedule.getAmount().subtract(schedule.getPaidAmount());
+        if (incomingNet.subtract(outstanding).compareTo(new BigDecimal("1.00")) > 0) {
+            throw new IllegalArgumentException(String.format(
+                    "Payment of %s exceeds the outstanding balance of %s for this installment "
+                            + "(already paid %s of %s). It may already have been recorded.",
+                    incomingNet, outstanding.max(BigDecimal.ZERO), schedule.getPaidAmount(), schedule.getAmount()));
+        }
+
         // Create transaction
         PaymentTransaction transaction = new PaymentTransaction();
         transaction.setAmount(request.getAmount());
