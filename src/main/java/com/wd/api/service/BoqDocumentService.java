@@ -190,6 +190,14 @@ public class BoqDocumentService {
 
         BoqDocument saved = boqDocumentRepository.save(doc);
 
+        // Link the snapshotted items to this document. The customer BOQ visibility
+        // gate (custapi BoqItemRepository.findApprovedByProjectId — items joined to
+        // an APPROVED boq_document) needs boq_document_id set; otherwise the items
+        // stay unlinked (NULL) and the customer sees the document total but ZERO
+        // line items. This is also what BoqDiffService expects for revision diffs.
+        items.forEach(it -> it.setBoqDocument(saved));
+        boqItemRepository.saveAll(items);
+
         activityFeedService.logProjectActivity(
             "BOQ_SUBMITTED", "BOQ Submitted for Approval",
             "BOQ revision " + doc.getRevisionNumber() + " submitted for customer approval.",
