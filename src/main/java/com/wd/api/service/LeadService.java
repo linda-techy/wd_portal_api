@@ -431,6 +431,14 @@ public class LeadService {
             lead.setClientRating(leadDetails.getClientRating());
             lead.setProbabilityToWin(leadDetails.getProbabilityToWin());
             lead.setLostReason(leadDetails.getLostReason());
+            // Additional info fields — same omission as lostReason had before
+            // 28bfbf4. Without these the outer updateLead(LeadUpdateRequest)
+            // sets plotArea/floors on the leadDetails object but the inner
+            // overload never copies them onto the persisted Lead, so the
+            // form's "Additional Information" values silently revert on every
+            // PUT. Caught by audit-fixes-2026-05-28.spec.ts TC-A01.
+            lead.setPlotArea(leadDetails.getPlotArea());
+            lead.setFloors(leadDetails.getFloors());
 
             // Handle Assignment Update - Priority: assignedToId > assignedTo > assignedTeam
             // assignedToId is a @Transient field used for JSON deserialization

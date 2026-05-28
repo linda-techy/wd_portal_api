@@ -185,8 +185,10 @@ public class LeadUpdateRequest {
     // captures plotArea / floors / lostReason on edit and on create, so without
     // these fields on UpdateRequest Jackson silently dropped them on every
     // update — making those 3 fields effectively un-editable post-creation.
+    @JsonProperty("plot_area")
     private java.math.BigDecimal plotArea;
     private Integer floors;
+    @JsonProperty("lost_reason")
     private String lostReason;
 
     public java.math.BigDecimal getPlotArea() { return plotArea; }

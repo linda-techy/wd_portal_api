@@ -24,6 +24,14 @@ public class PortalUserResponse {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
+    // Contact + role detail — the entity has these and the Add/Edit form sets
+    // them, but they were missing from the response shape, so the Edit form
+    // couldn't pre-fill them on load. Added 2026-05-28 audit.
+    private String phone;
+    private String whatsapp;
+    private String designation;
+    private String department;
+
     public PortalUserResponse() {
     }
 
@@ -36,6 +44,10 @@ public class PortalUserResponse {
         this.roleId = user.getRole() != null ? user.getRole().getId() : null;
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
+        this.phone = user.getPhone();
+        this.whatsapp = user.getWhatsapp();
+        this.designation = user.getDesignation();
+        this.department = user.getDepartment();
     }
 
     // Getters and Setters
@@ -102,4 +114,16 @@ public class PortalUserResponse {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getWhatsapp() { return whatsapp; }
+    public void setWhatsapp(String whatsapp) { this.whatsapp = whatsapp; }
+
+    public String getDesignation() { return designation; }
+    public void setDesignation(String designation) { this.designation = designation; }
+
+    public String getDepartment() { return department; }
+    public void setDepartment(String department) { this.department = department; }
 }
