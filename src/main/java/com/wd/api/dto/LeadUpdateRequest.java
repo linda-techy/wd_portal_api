@@ -179,4 +179,22 @@ public class LeadUpdateRequest {
 
     public Long getAssignedToId() { return assignedToId; }
     public void setAssignedToId(Long assignedToId) { this.assignedToId = assignedToId; }
+
+    // Additional Lead details that LeadCreateRequest had but were missing from
+    // the update request: the Lead form's "Additional Information" section
+    // captures plotArea / floors / lostReason on edit and on create, so without
+    // these fields on UpdateRequest Jackson silently dropped them on every
+    // update — making those 3 fields effectively un-editable post-creation.
+    private java.math.BigDecimal plotArea;
+    private Integer floors;
+    private String lostReason;
+
+    public java.math.BigDecimal getPlotArea() { return plotArea; }
+    public void setPlotArea(java.math.BigDecimal plotArea) { this.plotArea = plotArea; }
+
+    public Integer getFloors() { return floors; }
+    public void setFloors(Integer floors) { this.floors = floors; }
+
+    public String getLostReason() { return lostReason; }
+    public void setLostReason(String lostReason) { this.lostReason = lostReason; }
 }

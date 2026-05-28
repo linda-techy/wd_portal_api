@@ -371,6 +371,20 @@ public class LeadService {
                 : existing.getAssignedToId();
         leadDetails.setAssignedToId(newAssignedToId);
 
+        // Additional info (plotArea / floors / lostReason): previously these
+        // were not on LeadUpdateRequest, so the form's "Additional Information"
+        // values were silently dropped on update. Map with null-fallback so
+        // partial updates preserve existing values.
+        leadDetails.setPlotArea(request.getPlotArea() != null
+                ? request.getPlotArea()
+                : existing.getPlotArea());
+        leadDetails.setFloors(request.getFloors() != null
+                ? request.getFloors()
+                : existing.getFloors());
+        leadDetails.setLostReason(request.getLostReason() != null
+                ? request.getLostReason()
+                : existing.getLostReason());
+
         return updateLead(id, leadDetails);
     }
 
