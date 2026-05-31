@@ -37,6 +37,15 @@ public class TaskDurationBackfiller implements CommandLineRunner {
     private final ProjectScheduleConfigRepository configRepo;
     private final HolidayService holidayService;
 
+    /**
+     * Lazy self-reference so run() invokes runBackfill() through the @Transactional proxy (S2229).
+     * Field injection is required (constructor self-reference = circular dependency); java:S6813 suppressed.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    @SuppressWarnings("java:S6813")
+    private TaskDurationBackfiller self;
+
     public TaskDurationBackfiller(TaskRepository taskRepo,
                                   ProjectScheduleConfigRepository configRepo,
                                   HolidayService holidayService) {
@@ -47,7 +56,7 @@ public class TaskDurationBackfiller implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        runBackfill();
+        self.runBackfill();
     }
 
     /**

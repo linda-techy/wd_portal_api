@@ -33,6 +33,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 public class LeadService {
 
+    /**
+     * Lazy self-reference so internal createLead(...) calls hit the @Transactional proxy (S2229).
+     * Must be field-injected (not constructor): a constructor self-reference would be a circular
+     * dependency — the @Lazy field proxy is the documented Spring idiom, so java:S6813 is suppressed.
+     */
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    @SuppressWarnings("java:S6813")
+    private LeadService self;
+
     @Autowired
     private LeadRepository leadRepository;
 
@@ -254,7 +264,7 @@ public class LeadService {
             lead.setDateOfEnquiry(LocalDate.now());
         }
 
-        return createLead(lead);
+        return self.createLead(lead);
     }
 
     /**
@@ -967,7 +977,7 @@ public class LeadService {
         lead.setDistrict(request.getDistrict() != null ? request.getDistrict() : "");
         lead.setNotes(request.getMessage() != null ? request.getMessage() : "");
         lead.setDateOfEnquiry(LocalDate.now());
-        return createLead(lead);
+        return self.createLead(lead);
     }
 
     /**
@@ -1043,7 +1053,7 @@ public class LeadService {
         lead.setReferredByName(request.getYourName());
         lead.setReferredByPhone(request.getYourPhone());
 
-        return createLead(lead);
+        return self.createLead(lead);
     }
 
     public Lead createLeadFromPartnershipReferral(PartnershipReferralRequest request) {

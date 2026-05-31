@@ -36,6 +36,15 @@ public class SiteReportService {
     private final CustomerNotificationFacade customerNotificationFacade;
     private final WebhookPublisherService webhookPublisherService;
 
+    /**
+     * Lazy self-reference so internal getReportById(...) calls hit the @Transactional proxy (S2229).
+     * Field injection is required (constructor self-reference = circular dependency); java:S6813 suppressed.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    @SuppressWarnings("java:S6813")
+    private SiteReportService self;
+
     public SiteReportService(SiteReportRepository siteReportRepository,
             SiteReportPhotoRepository siteReportPhotoRepository,
             FileStorageService fileStorageService,
@@ -273,7 +282,7 @@ public class SiteReportService {
     public SiteReport addPhotosToReport(Long reportId, List<MultipartFile> photos,
             List<Map<String, Object>> metadata, PortalUser currentUser) {
 
-        SiteReport report = getReportById(reportId);
+        SiteReport report = self.getReportById(reportId);
 
         // Verify ownership or admin rights
         if (!report.getSubmittedBy().getId().equals(currentUser.getId()) &&

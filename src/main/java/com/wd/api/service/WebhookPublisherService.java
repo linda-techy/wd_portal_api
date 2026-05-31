@@ -7,7 +7,6 @@ import com.wd.api.repository.WebhookEventLogRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -208,10 +207,15 @@ public class WebhookPublisherService {
     // ───────────────────────── Internal ────────────────────────────
 
     /**
-     * Persists the event to the audit log then attempts delivery asynchronously.
+     * Persists the event to the audit log then attempts delivery.
+     *
+     * <p>Called synchronously from the sibling {@code publishXxx(...)} helpers in
+     * this class. The previous {@code @Async}/{@code @Transactional} annotations
+     * were silently bypassed by that self-invocation (SonarQube java:S2229), so
+     * delivery already ran inline — the integration tests assert this synchronous
+     * behaviour. Annotations removed to make the code honest; the repository save
+     * is transactional per-operation via Spring Data.
      */
-    @Async
-    @Transactional
     public void publish(PortalWebhookPayload payload) {
         if (webhookUrl == null || webhookUrl.isBlank()) {
             log.debug("Webhook URL not configured — skipping event: {}", payload.eventType());
