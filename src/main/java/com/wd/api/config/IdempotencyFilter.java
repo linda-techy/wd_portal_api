@@ -41,12 +41,11 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private record CachedResponse(int status, String contentType, byte[] body, Instant storedAt) {
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof CachedResponse other)) return false;
-            return status == other.status
-                    && Objects.equals(contentType, other.contentType)
-                    && Arrays.equals(body, other.body)
-                    && Objects.equals(storedAt, other.storedAt);
+            return o instanceof CachedResponse(int s, String ct, byte[] b, Instant st)
+                    && status == s
+                    && Objects.equals(contentType, ct)
+                    && Arrays.equals(body, b)
+                    && Objects.equals(storedAt, st);
         }
 
         @Override
