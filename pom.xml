@@ -241,6 +241,14 @@
         <artifactId>jackson-dataformat-yaml</artifactId>
     </dependency>
 
+    <!-- pact-jvm provider verification (junit5 + spring) -->
+    <dependency>
+        <groupId>au.com.dius.pact.provider</groupId>
+        <artifactId>junit5spring</artifactId>
+        <version>4.6.14</version>
+        <scope>test</scope>
+    </dependency>
+
 </dependencies>
 
 	<build>
