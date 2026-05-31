@@ -1,7 +1,7 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.CctvCameraRequest;
 import com.wd.api.dto.CctvCameraResponse;
-import com.wd.api.model.CctvCamera;
 import com.wd.api.service.CctvCameraService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +18,8 @@ public class CctvCameraController {
 
     @PostMapping("/projects/{projectId}/cctv-cameras")
     public ResponseEntity<CctvCameraResponse> createCamera(@PathVariable Long projectId,
-                                                     @RequestBody CctvCamera camera) {
-        return ResponseEntity.ok(CctvCameraResponse.from(cctvCameraService.createCamera(projectId, camera)));
+                                                     @RequestBody CctvCameraRequest request) {
+        return ResponseEntity.ok(CctvCameraResponse.from(cctvCameraService.createCamera(projectId, request.toEntity())));
     }
 
     @GetMapping("/projects/{projectId}/cctv-cameras")
@@ -35,8 +35,8 @@ public class CctvCameraController {
 
     @PutMapping("/cctv-cameras/{id}")
     public ResponseEntity<CctvCameraResponse> updateCamera(@PathVariable Long id,
-                                                     @RequestBody CctvCamera updates) {
-        return ResponseEntity.ok(CctvCameraResponse.from(cctvCameraService.updateCamera(id, updates)));
+                                                     @RequestBody CctvCameraRequest request) {
+        return ResponseEntity.ok(CctvCameraResponse.from(cctvCameraService.updateCamera(id, request.toEntity())));
     }
 
     @DeleteMapping("/cctv-cameras/{id}")

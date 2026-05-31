@@ -2,6 +2,7 @@ package com.wd.api.controller;
 
 import com.wd.api.dto.AccountsPayableAgingDTO;
 import com.wd.api.dto.VendorOutstandingDTO;
+import com.wd.api.dto.VendorPaymentRequest;
 import com.wd.api.model.PurchaseInvoice;
 import com.wd.api.model.VendorPayment;
 import com.wd.api.service.VendorPaymentService;
@@ -35,8 +36,8 @@ public class AccountsPayableController {
      * Record a vendor payment
      */
     @PostMapping("/payments")
-    public ResponseEntity<VendorPayment> recordPayment(@RequestBody VendorPayment payment) {
-        VendorPayment recorded = vendorPaymentService.recordPayment(payment);
+    public ResponseEntity<VendorPayment> recordPayment(@RequestBody VendorPaymentRequest payment) {
+        VendorPayment recorded = vendorPaymentService.recordPayment(payment.toEntity());
         return ResponseEntity.status(HttpStatus.CREATED).body(recorded);
     }
 

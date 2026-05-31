@@ -2,7 +2,9 @@ package com.wd.api.controller;
 
 import com.wd.api.dto.LabourPaymentDTO;
 import com.wd.api.dto.ProjectInvoiceDTO;
+import com.wd.api.dto.ProjectMilestoneRequest;
 import com.wd.api.dto.PurchaseInvoiceDTO;
+import com.wd.api.dto.ReceiptRequest;
 import com.wd.api.model.DesignPackagePayment;
 import com.wd.api.service.FinanceService;
 import com.wd.api.service.RetentionService;
@@ -44,14 +46,14 @@ public class FinanceController {
     // Milestones
     @PostMapping("/milestone")
     public ResponseEntity<com.wd.api.model.ProjectMilestone> createMilestone(
-            @RequestBody com.wd.api.model.ProjectMilestone milestone) {
-        return ResponseEntity.ok(financeService.createMilestone(milestone));
+            @RequestBody ProjectMilestoneRequest milestone) {
+        return ResponseEntity.ok(financeService.createMilestone(milestone.toEntity()));
     }
 
     @PutMapping("/milestone/{id}")
     public ResponseEntity<com.wd.api.model.ProjectMilestone> updateMilestone(@PathVariable Long id,
-            @RequestBody com.wd.api.model.ProjectMilestone milestone) {
-        return ResponseEntity.ok(financeService.updateMilestone(id, milestone));
+            @RequestBody ProjectMilestoneRequest milestone) {
+        return ResponseEntity.ok(financeService.updateMilestone(id, milestone.toEntity()));
     }
 
     @PostMapping("/milestone/{id}/generate-invoice")
@@ -67,8 +69,8 @@ public class FinanceController {
 
     // Receipts
     @PostMapping("/receipt")
-    public ResponseEntity<com.wd.api.model.Receipt> recordReceipt(@RequestBody com.wd.api.model.Receipt receipt) {
-        return ResponseEntity.ok(financeService.recordReceipt(receipt));
+    public ResponseEntity<com.wd.api.model.Receipt> recordReceipt(@RequestBody ReceiptRequest receipt) {
+        return ResponseEntity.ok(financeService.recordReceipt(receipt.toEntity()));
     }
 
     @GetMapping("/receipts/project/{projectId}")

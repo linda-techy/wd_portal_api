@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.LeadInteractionRequest;
 import com.wd.api.dto.LeadInteractionSearchFilter;
 import com.wd.api.model.LeadInteraction;
 import com.wd.api.service.LeadInteractionService;
@@ -98,14 +99,14 @@ public class LeadInteractionController {
     @PostMapping
     @PreAuthorize("hasAnyAuthority('LEAD_CREATE', 'LEAD_EDIT')")
     public ResponseEntity<?> createInteraction(
-            @RequestBody LeadInteraction interaction,
+            @RequestBody LeadInteractionRequest request,
             Authentication authentication) {
         try {
             String username = authentication.getName();
             com.wd.api.model.PortalUser user = portalUserRepository.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("Portal User not found"));
 
-            LeadInteraction created = interactionService.createInteraction(interaction, user.getId());
+            LeadInteraction created = interactionService.createInteraction(request.toEntity(), user.getId());
             return ResponseEntity.ok(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
@@ -174,9 +175,9 @@ public class LeadInteractionController {
     @PreAuthorize("hasAnyAuthority('LEAD_EDIT', 'LEAD_CREATE')")
     public ResponseEntity<?> updateInteraction(
             @PathVariable Long id,
-            @RequestBody LeadInteraction interaction) {
+            @RequestBody LeadInteractionRequest request) {
         try {
-            LeadInteraction updated = interactionService.updateInteraction(id, interaction);
+            LeadInteraction updated = interactionService.updateInteraction(id, request.toEntity());
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             return ResponseEntity.badRequest()

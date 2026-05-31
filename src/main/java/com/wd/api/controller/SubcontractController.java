@@ -1,8 +1,12 @@
 package com.wd.api.controller;
 
 import com.wd.api.dto.MeasurementRejectRequest;
+import com.wd.api.dto.RetentionReleaseRequest;
+import com.wd.api.dto.SubcontractMeasurementRequest;
+import com.wd.api.dto.SubcontractPaymentRequest;
 import com.wd.api.dto.SubcontractSearchFilter;
 import com.wd.api.dto.SubcontractSummaryDTO;
+import com.wd.api.dto.SubcontractWorkOrderRequest;
 import com.wd.api.model.RetentionRelease;
 import com.wd.api.model.SubcontractMeasurement;
 import com.wd.api.model.SubcontractPayment;
@@ -32,8 +36,8 @@ public class SubcontractController {
     @PostMapping("/project/{projectId}")
     public ResponseEntity<SubcontractWorkOrder> createWorkOrder(@PathVariable Long projectId,
             @RequestParam Long vendorId,
-            @RequestBody SubcontractWorkOrder workOrder) {
-        return ResponseEntity.ok(subcontractService.createWorkOrder(projectId, vendorId, workOrder));
+            @RequestBody SubcontractWorkOrderRequest workOrder) {
+        return ResponseEntity.ok(subcontractService.createWorkOrder(projectId, vendorId, workOrder.toEntity()));
     }
 
     @GetMapping("/project/{projectId}")
@@ -43,20 +47,20 @@ public class SubcontractController {
 
     @PostMapping("/{workOrderId}/measurements")
     public ResponseEntity<SubcontractMeasurement> recordMeasurement(@PathVariable Long workOrderId,
-            @RequestBody SubcontractMeasurement measurement) {
-        return ResponseEntity.ok(subcontractService.recordMeasurement(workOrderId, measurement));
+            @RequestBody SubcontractMeasurementRequest measurement) {
+        return ResponseEntity.ok(subcontractService.recordMeasurement(workOrderId, measurement.toEntity()));
     }
 
     @PostMapping("/{workOrderId}/payments")
     public ResponseEntity<SubcontractPayment> processPayment(@PathVariable Long workOrderId,
-            @RequestBody SubcontractPayment payment) {
-        return ResponseEntity.ok(subcontractService.processPayment(workOrderId, payment));
+            @RequestBody SubcontractPaymentRequest payment) {
+        return ResponseEntity.ok(subcontractService.processPayment(workOrderId, payment.toEntity()));
     }
 
     @PostMapping("/retention/release")
     public ResponseEntity<com.wd.api.model.RetentionRelease> releaseRetention(
-            @RequestBody com.wd.api.model.RetentionRelease release) {
-        return ResponseEntity.ok(subcontractService.releaseRetention(release));
+            @RequestBody RetentionReleaseRequest release) {
+        return ResponseEntity.ok(subcontractService.releaseRetention(release.toEntity()));
     }
 
     // Work Order CRUD
@@ -67,8 +71,8 @@ public class SubcontractController {
 
     @PutMapping("/{id}")
     public ResponseEntity<SubcontractWorkOrder> updateWorkOrder(@PathVariable Long id,
-            @RequestBody SubcontractWorkOrder updates) {
-        return ResponseEntity.ok(subcontractService.updateWorkOrder(id, updates));
+            @RequestBody SubcontractWorkOrderRequest updates) {
+        return ResponseEntity.ok(subcontractService.updateWorkOrder(id, updates.toEntity()));
     }
 
     @DeleteMapping("/{id}")

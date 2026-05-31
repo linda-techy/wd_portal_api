@@ -1,6 +1,7 @@
 package com.wd.api.controller;
 
 import com.wd.api.dto.ApiResponse;
+import com.wd.api.dto.VendorQuotationRequest;
 import com.wd.api.dto.VendorQuotationSearchFilter;
 import com.wd.api.model.VendorQuotation;
 import com.wd.api.service.VendorQuotationService;
@@ -35,9 +36,9 @@ public class VendorQuotationController {
     public ResponseEntity<ApiResponse<VendorQuotation>> createQuotation(
             @PathVariable Long indentId,
             @PathVariable Long vendorId,
-            @RequestBody VendorQuotation quotation) {
+            @RequestBody VendorQuotationRequest quotation) {
         try {
-            VendorQuotation created = quotationService.createQuotation(indentId, vendorId, quotation);
+            VendorQuotation created = quotationService.createQuotation(indentId, vendorId, quotation.toEntity());
             return ResponseEntity.ok(ApiResponse.success("Quotation added successfully", created));
         } catch (Exception e) {
             log.error("Error creating quotation", e);

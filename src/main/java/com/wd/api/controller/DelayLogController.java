@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.DelayLogRequest;
 import com.wd.api.dto.DelayLogSearchFilter;
 import com.wd.api.model.DelayLog;
 import com.wd.api.model.PortalUser;
@@ -44,10 +45,10 @@ public class DelayLogController {
     @PreAuthorize("hasAnyAuthority('DELAY_CREATE', 'PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<DelayLog> logDelay(
             @PathVariable Long projectId,
-            @RequestBody DelayLog delay,
+            @RequestBody DelayLogRequest request,
             Authentication auth) {
         Long userId = getCurrentUserId(auth);
-        return ResponseEntity.ok(delayLogService.logDelay(delay, projectId, userId));
+        return ResponseEntity.ok(delayLogService.logDelay(request.toEntity(), projectId, userId));
     }
 
     @PutMapping("/{id}/close")

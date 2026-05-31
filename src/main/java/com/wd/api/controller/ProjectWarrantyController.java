@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.ProjectWarrantyRequest;
 import com.wd.api.dto.ProjectWarrantySearchFilter;
 import com.wd.api.model.ProjectWarranty;
 import com.wd.api.service.ProjectWarrantyService;
@@ -31,16 +32,16 @@ public class ProjectWarrantyController {
     @PostMapping
     public ResponseEntity<ProjectWarranty> createWarranty(
             @PathVariable Long projectId,
-            @RequestBody ProjectWarranty warranty) {
-        return ResponseEntity.ok(warrantyService.createWarranty(warranty, projectId));
+            @RequestBody ProjectWarrantyRequest warranty) {
+        return ResponseEntity.ok(warrantyService.createWarranty(warranty.toEntity(), projectId));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ProjectWarranty> updateWarranty(
             @PathVariable Long projectId,
             @PathVariable Long id,
-            @RequestBody ProjectWarranty warranty) {
-        return ResponseEntity.ok(warrantyService.updateWarranty(id, warranty));
+            @RequestBody ProjectWarrantyRequest warranty) {
+        return ResponseEntity.ok(warrantyService.updateWarranty(id, warranty.toEntity()));
     }
 
     @DeleteMapping("/{id}")

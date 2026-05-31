@@ -3,6 +3,7 @@ package com.wd.api.controller;
 import com.wd.api.dto.CrCostRequest;
 import com.wd.api.dto.CrRejectRequest;
 import com.wd.api.dto.CrScheduleRequest;
+import com.wd.api.dto.ProjectVariationRequest;
 import com.wd.api.dto.ProjectVariationSearchFilter;
 import com.wd.api.model.ChangeRequestApprovalHistory;
 import com.wd.api.model.PortalUser;
@@ -47,17 +48,17 @@ public class ProjectVariationController {
     @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<ProjectVariation> createVariation(
             @PathVariable Long projectId,
-            @RequestBody ProjectVariation variation,
+            @RequestBody ProjectVariationRequest variation,
             Authentication auth) {
-        return ResponseEntity.ok(variationService.createVariation(variation, projectId, getCurrentUserId(auth)));
+        return ResponseEntity.ok(variationService.createVariation(variation.toEntity(), projectId, getCurrentUserId(auth)));
     }
 
     @PutMapping("/api/projects/{projectId}/variations/{id}")
     @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
     public ResponseEntity<ProjectVariation> updateVariation(
             @PathVariable Long projectId, @PathVariable Long id,
-            @RequestBody ProjectVariation variation) {
-        return ResponseEntity.ok(variationService.updateVariation(id, variation));
+            @RequestBody ProjectVariationRequest variation) {
+        return ResponseEntity.ok(variationService.updateVariation(id, variation.toEntity()));
     }
 
     @DeleteMapping("/api/projects/{projectId}/variations/{id}")

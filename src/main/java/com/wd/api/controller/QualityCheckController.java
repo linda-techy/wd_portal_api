@@ -1,6 +1,7 @@
 package com.wd.api.controller;
 
 import com.wd.api.dto.ApiResponse;
+import com.wd.api.dto.QualityCheckRequest;
 import com.wd.api.dto.QualityCheckSearchFilter;
 import com.wd.api.model.QualityCheck;
 import com.wd.api.model.PortalUser;
@@ -69,9 +70,9 @@ public class QualityCheckController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<QualityCheck>> updateCheck(@PathVariable Long id,
-            @RequestBody QualityCheck checkDetails) {
+            @RequestBody QualityCheckRequest checkDetails) {
         try {
-            QualityCheck updated = qualityCheckService.updateCheck(id, checkDetails);
+            QualityCheck updated = qualityCheckService.updateCheck(id, checkDetails.toEntity());
             return ResponseEntity.ok(ApiResponse.success("Quality check updated successfully", updated));
         } catch (Exception e) {
             return ResponseEntity.status(500)

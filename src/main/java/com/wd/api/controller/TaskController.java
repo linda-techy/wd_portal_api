@@ -1,6 +1,7 @@
 package com.wd.api.controller;
 
 import com.wd.api.dto.ApiResponse;
+import com.wd.api.dto.TaskRequest;
 import com.wd.api.dto.TaskSearchFilter;
 import com.wd.api.model.Task;
 import com.wd.api.model.TaskAssignmentHistory;
@@ -266,10 +267,12 @@ public class TaskController {
      */
     @PostMapping
     @PreAuthorize("hasAnyAuthority('TASK_CREATE', 'TASK_EDIT')")
-    public ResponseEntity<ApiResponse<Task>> createTask(@jakarta.validation.Valid @RequestBody Task task,
+    public ResponseEntity<ApiResponse<Task>> createTask(@jakarta.validation.Valid @RequestBody TaskRequest request,
             Authentication auth) {
         try {
             PortalUser createdBy = getCurrentUser(auth);
+
+            Task task = request.toEntity();
 
             logger.info("User {} creating task: {} (Due: {})",
                     createdBy.getEmail(), task.getTitle(), task.getDueDate());
@@ -299,10 +302,12 @@ public class TaskController {
     @PreAuthorize("hasAnyAuthority('TASK_EDIT', 'TASK_CREATE')")
     public ResponseEntity<ApiResponse<Task>> updateTask(
             @PathVariable Long id,
-            @RequestBody Task task,
+            @RequestBody TaskRequest request,
             Authentication auth) {
         try {
             PortalUser user = getCurrentUser(auth);
+
+            Task task = request.toEntity();
 
             // Authorization check happens in service layer
             Task updatedTask = taskService.updateTask(id, task, auth, user.getId());

@@ -4,6 +4,7 @@ import com.wd.api.model.MaterialIndent;
 import com.wd.api.model.PortalUser;
 import com.wd.api.service.MaterialIndentService;
 import com.wd.api.dto.ApiResponse;
+import com.wd.api.dto.MaterialIndentRequest;
 import com.wd.api.dto.MaterialIndentSearchFilter;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -32,10 +33,10 @@ public class MaterialIndentController {
     @PreAuthorize("hasAnyAuthority('PROCUREMENT_CREATE', 'PROCUREMENT_EDIT')")
     public ResponseEntity<ApiResponse<MaterialIndent>> createIndent(
             @PathVariable Long projectId,
-            @RequestBody MaterialIndent indent) {
+            @RequestBody MaterialIndentRequest indent) {
         try {
             Long currentUserId = getCurrentUserId();
-            MaterialIndent created = indentService.createIndent(projectId, indent, currentUserId);
+            MaterialIndent created = indentService.createIndent(projectId, indent.toEntity(), currentUserId);
             return ResponseEntity.ok(ApiResponse.success("Indent created successfully", created));
         } catch (IllegalArgumentException e) {
             logger.warn("Validation error creating indent for project {}: {}", projectId, e.getMessage());

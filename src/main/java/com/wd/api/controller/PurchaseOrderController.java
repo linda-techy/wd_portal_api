@@ -1,6 +1,7 @@
 package com.wd.api.controller;
 
 import com.wd.api.model.PurchaseOrder;
+import com.wd.api.dto.PurchaseOrderRequest;
 import com.wd.api.dto.PurchaseOrderSearchFilter;
 import com.wd.api.service.PurchaseOrderService;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +30,8 @@ public class PurchaseOrderController {
     @PostMapping("/project/{projectId}")
     public ResponseEntity<PurchaseOrder> createPurchaseOrder(@PathVariable Long projectId,
             @RequestParam Long vendorId,
-            @RequestBody PurchaseOrder po) {
-        return ResponseEntity.ok(poService.createPurchaseOrder(projectId, vendorId, po));
+            @RequestBody PurchaseOrderRequest po) {
+        return ResponseEntity.ok(poService.createPurchaseOrder(projectId, vendorId, po.toEntity()));
     }
 
     /**

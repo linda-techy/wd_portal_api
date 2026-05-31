@@ -50,6 +50,11 @@ public class StartupLogger implements ApplicationRunner {
         }
     }
 
+    // The literal "password=" below is a redaction pattern, not a credential —
+    // it masks any password in the JDBC URL before logging. SonarQube java:S2068
+    // flags it as a hard-coded password (false positive); removing it would leak
+    // the real password to logs.
+    @SuppressWarnings("java:S2068")
     private void logDiagnostics() {
         String[] profiles = environment.getActiveProfiles();
         String profile = profiles.length > 0 ? String.join(",", profiles) : "default";

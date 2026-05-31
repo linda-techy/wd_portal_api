@@ -1,5 +1,6 @@
 package com.wd.api.controller;
 
+import com.wd.api.dto.DesignPackageTemplateRequest;
 import com.wd.api.model.DesignPackageTemplate;
 import com.wd.api.model.PortalUser;
 import com.wd.api.service.DesignPackageTemplateService;
@@ -52,9 +53,9 @@ public class DesignPackageTemplateController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('DESIGN_PACKAGE_MANAGE')")
-    public ResponseEntity<?> create(@RequestBody DesignPackageTemplate body, Authentication auth) {
+    public ResponseEntity<?> create(@RequestBody DesignPackageTemplateRequest body, Authentication auth) {
         try {
-            DesignPackageTemplate saved = service.create(body, userId(auth));
+            DesignPackageTemplate saved = service.create(body.toEntity(), userId(auth));
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Design package template created",
@@ -72,10 +73,10 @@ public class DesignPackageTemplateController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('DESIGN_PACKAGE_MANAGE')")
     public ResponseEntity<?> update(@PathVariable Long id,
-                                    @RequestBody DesignPackageTemplate body,
+                                    @RequestBody DesignPackageTemplateRequest body,
                                     Authentication auth) {
         try {
-            DesignPackageTemplate saved = service.update(id, body, userId(auth));
+            DesignPackageTemplate saved = service.update(id, body.toEntity(), userId(auth));
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Design package template updated",
