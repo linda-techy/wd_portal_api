@@ -162,8 +162,9 @@ class GstRepresentationTest {
             // Equivalent MoneyMath call
             BigDecimal moneyMathGst = MoneyMath.gstFromRate(base, pct);
 
-            assertThat(inlineGst).isEqualByComparingTo(moneyMathGst)
-                    .as("PaymentService inline calc must match MoneyMath.gstFromRate for the same percentage input");
+            assertThat(inlineGst)
+                    .as("PaymentService inline calc must match MoneyMath.gstFromRate for the same percentage input")
+                    .isEqualByComparingTo(moneyMathGst);
         }
 
         @Test
@@ -178,8 +179,9 @@ class GstRepresentationTest {
             BigDecimal totalTax = cgst.add(sgst);
             BigDecimal expectedGst = MoneyMath.gstFromRate(base, fullRate);
 
-            assertThat(totalTax).isEqualByComparingTo(expectedGst)
-                    .as("CGST + SGST must equal full GST computed via MoneyMath");
+            assertThat(totalTax)
+                    .as("CGST + SGST must equal full GST computed via MoneyMath")
+                    .isEqualByComparingTo(expectedGst);
         }
 
         @Test
@@ -220,8 +222,8 @@ class GstRepresentationTest {
             BigDecimal gstFamilyB = MoneyMath.gstFromRate(base, new BigDecimal("18.00"));
 
             assertThat(gstFamilyA)
-                    .isEqualByComparingTo(gstFamilyB)
-                    .as("Both conventions must yield the same rupee GST amount for 18% on ₹1500");
+                    .as("Both conventions must yield the same rupee GST amount for 18% on ₹1500")
+                    .isEqualByComparingTo(gstFamilyB);
         }
 
         @Test
@@ -243,8 +245,9 @@ class GstRepresentationTest {
             BigDecimal internal = MoneyMath.gstFromRateInternal(base, pct)
                     .setScale(2, RoundingMode.HALF_UP);
 
-            assertThat(display).isEqualByComparingTo(internal)
-                    .as("Display and internal precision GST must agree on whole-rupee base");
+            assertThat(display)
+                    .as("Display and internal precision GST must agree on whole-rupee base")
+                    .isEqualByComparingTo(internal);
         }
     }
 }

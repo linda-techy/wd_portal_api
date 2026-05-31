@@ -292,6 +292,9 @@ public class WebhookPublisherService {
                 promoteToDlqIfExhausted(eventLog);
             }
         } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             eventLog.setAttempts(eventLog.getAttempts() + 1);
             eventLog.setLastAttemptAt(LocalDateTime.now());
             eventLog.setStatus("FAILED");

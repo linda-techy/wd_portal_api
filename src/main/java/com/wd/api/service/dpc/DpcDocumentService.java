@@ -368,7 +368,7 @@ public class DpcDocumentService {
                 String first = customer.getFirstName() != null ? customer.getFirstName() : "";
                 String last = customer.getLastName() != null ? customer.getLastName() : "";
                 String fullName = (first + " " + last).trim();
-                dpc.setClientSignatoryName(fullName.isEmpty() ? (project != null ? project.getName() : null) : fullName);
+                dpc.setClientSignatoryName(fullName.isEmpty() ? project.getName() : fullName);
             } else if (project != null) {
                 dpc.setClientSignatoryName(project.getName());
             }

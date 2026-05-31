@@ -4,7 +4,6 @@ import com.wd.api.estimation.service.calc.EstimationCalculator;
 import com.wd.api.estimation.service.calc.EstimationContext;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import static com.wd.api.estimation.calc.TestContexts.contextWith;

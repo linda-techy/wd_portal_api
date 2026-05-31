@@ -66,8 +66,9 @@ public class AuthController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             logger.error("Logout failed: {}", e.getMessage(), e);
-            // Still return 200 for logout - client should clear tokens regardless
-            return ResponseEntity.ok().build();
+            // Server-side logout failed; surface a 500 so the failure path's status reflects the
+            // outcome. (The client should still clear its own tokens regardless of this response.)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

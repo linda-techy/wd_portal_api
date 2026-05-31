@@ -5,7 +5,6 @@ import com.wd.api.model.BoqCategory;
 import com.wd.api.model.BoqDocument;
 import com.wd.api.model.BoqItem;
 import com.wd.api.model.CustomerProject;
-import com.wd.api.model.CustomerUser;
 import com.wd.api.model.DpcScopeOption;
 import com.wd.api.model.DpcScopeTemplate;
 import com.wd.api.model.Permission;

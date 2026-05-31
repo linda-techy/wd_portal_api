@@ -14,7 +14,9 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -36,7 +38,30 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private static final String HEADER = "X-Idempotency-Key";
     private static final int MAX_KEY_LENGTH = 128;
 
-    private record CachedResponse(int status, String contentType, byte[] body, Instant storedAt) {}
+    private record CachedResponse(int status, String contentType, byte[] body, Instant storedAt) {
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof CachedResponse other)) return false;
+            return status == other.status
+                    && Objects.equals(contentType, other.contentType)
+                    && Arrays.equals(body, other.body)
+                    && Objects.equals(storedAt, other.storedAt);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(status, contentType, Arrays.hashCode(body), storedAt);
+        }
+
+        @Override
+        public String toString() {
+            return "CachedResponse[status=" + status
+                    + ", contentType=" + contentType
+                    + ", body=" + Arrays.toString(body)
+                    + ", storedAt=" + storedAt + "]";
+        }
+    }
 
     private final Map<String, CachedResponse> cache = new ConcurrentHashMap<>();
 

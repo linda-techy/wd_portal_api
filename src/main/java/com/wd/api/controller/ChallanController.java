@@ -31,11 +31,9 @@ public class ChallanController {
             Authentication auth) {
         Long userId = getCurrentUserId(auth);
         PaymentChallan challan = challanService.generateChallan(transactionId, userId);
-        return ResponseEntity.ok(challanService.searchChallans(new ChallanDtos.ChallanFilterRequest() {
-            {
-                setIds(List.of(challan.getId()));
-            }
-        }).get(0));
+        ChallanDtos.ChallanFilterRequest filter = new ChallanDtos.ChallanFilterRequest();
+        filter.setIds(List.of(challan.getId()));
+        return ResponseEntity.ok(challanService.searchChallans(filter).get(0));
     }
 
     @PostMapping("/search")

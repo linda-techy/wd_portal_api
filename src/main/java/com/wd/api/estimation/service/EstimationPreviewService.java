@@ -196,10 +196,10 @@ public class EstimationPreviewService {
     }
 
     private Dimensions toViewDimensions(CalculatePreviewRequest req) {
-        List<Floor> floors = req.dimensions().floors() == null ? List.of() :
-                req.dimensions().floors().stream()
-                        .map(f -> new Floor(f.floorName(), f.length(), f.width()))
-                        .toList();
+        // floors() is @NotNull @Valid on DimensionsDto, so it is guaranteed non-null here.
+        List<Floor> floors = req.dimensions().floors().stream()
+                .map(f -> new Floor(f.floorName(), f.length(), f.width()))
+                .toList();
         return new Dimensions(floors, req.dimensions().semiCoveredArea(), req.dimensions().openTerraceArea());
     }
 

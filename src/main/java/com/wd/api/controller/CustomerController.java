@@ -102,7 +102,7 @@ public class CustomerController {
         try {
             return customerUserService.getCustomerResponseById(id)
                     .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (Exception e) {
             logger.error("Error fetching customer with ID: {}", id, e);
             return ResponseEntity.internalServerError().build();

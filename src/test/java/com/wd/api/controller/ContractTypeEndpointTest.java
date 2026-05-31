@@ -40,6 +40,6 @@ class ContractTypeEndpointTest {
                 .map(EnumValueDTO::getValue)
                 .toList();
 
-        assertThat(values).doesNotContain("LABOR_ONLY", "COST_PLUS");
+        assertThat(values).isNotEmpty().doesNotContain("LABOR_ONLY", "COST_PLUS");
     }
 }

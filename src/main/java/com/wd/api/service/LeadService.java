@@ -96,6 +96,8 @@ public class LeadService {
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LeadService.class);
     // Thread-safe ObjectMapper instance for JSON serialization
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    // Single reusable CSPRNG for security-sensitive generated passwords (SecureRandom is thread-safe)
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Transactional
     public Lead createLead(Lead lead) {
@@ -1871,9 +1873,8 @@ public class LeadService {
     }
 
     private String generateSecurePassword() {
-        SecureRandom random = new SecureRandom();
         byte[] bytes = new byte[12];
-        random.nextBytes(bytes);
+        SECURE_RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes) + "@1";
     }
 }

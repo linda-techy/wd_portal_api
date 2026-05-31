@@ -58,7 +58,10 @@ public class PaymentController {
             DesignPaymentResponse response = paymentService.getDesignPaymentByProjectId(projectId);
             return ResponseEntity.ok(new ApiResponse<>(true, "Design payment retrieved successfully", response));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.ok(new ApiResponse<>(true, "No design payment for project yet", null));
+            // Deliberate 200 + data=null for an absent payment row (see method Javadoc): the
+            // endpoint is the resource, the row is optional. Returning 404 here would break the
+            // client's uniform handling, so java:S6863 is intentionally accepted on this line.
+            return ResponseEntity.ok(new ApiResponse<>(true, "No design payment for project yet", null)); // NOSONAR
         } catch (Exception e) {
             logger.error("Error getting design payment for project: {}", projectId, e);
             return ResponseEntity.internalServerError()

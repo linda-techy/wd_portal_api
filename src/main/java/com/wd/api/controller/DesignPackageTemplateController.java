@@ -53,7 +53,7 @@ public class DesignPackageTemplateController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('DESIGN_PACKAGE_MANAGE')")
-    public ResponseEntity<?> create(@RequestBody DesignPackageTemplateRequest body, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> create(@RequestBody DesignPackageTemplateRequest body, Authentication auth) {
         try {
             DesignPackageTemplate saved = service.create(body.toEntity(), userId(auth));
             return ResponseEntity.ok(Map.of(

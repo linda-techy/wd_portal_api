@@ -193,9 +193,7 @@ public class DeductionRegisterService {
     }
 
     private void validateDecisionRequest(DeductionDecisionRequest req) {
-        if (req.decision() == null) {
-            throw new IllegalArgumentException("Decision is required.");
-        }
+        // req.decision() is guaranteed non-null by @NotNull bean validation at the controller (@Valid).
         if (req.decision() == DeductionDecision.REJECTED
                 && (req.rejectionReason() == null || req.rejectionReason().isBlank())) {
             throw new IllegalArgumentException("rejectionReason is required when rejecting a deduction.");
