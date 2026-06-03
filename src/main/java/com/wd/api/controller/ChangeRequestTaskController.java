@@ -10,7 +10,6 @@ import com.wd.api.model.changerequest.ChangeRequestTaskPredecessor;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.changerequest.ChangeRequestTaskService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -29,8 +28,14 @@ import java.util.List;
 @RequestMapping("/api/projects/{projectId}/change-requests/{crId}")
 public class ChangeRequestTaskController {
 
-    @Autowired private ChangeRequestTaskService service;
-    @Autowired private PortalUserRepository portalUserRepository;
+    private final ChangeRequestTaskService service;
+    private final PortalUserRepository portalUserRepository;
+
+    public ChangeRequestTaskController(ChangeRequestTaskService service,
+            PortalUserRepository portalUserRepository) {
+        this.service = service;
+        this.portalUserRepository = portalUserRepository;
+    }
 
     @PostMapping("/tasks")
     @PreAuthorize("hasAuthority('CR_SUBMIT')")

@@ -6,7 +6,6 @@ import com.wd.api.repository.PortalNotificationRepository;
 import com.wd.api.repository.PortalUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -21,14 +20,19 @@ public class PortalNotificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(PortalNotificationService.class);
 
-    @Autowired
-    private PortalNotificationRepository notificationRepository;
+    private final PortalNotificationRepository notificationRepository;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private PushNotificationService pushNotificationService;
+    private final PushNotificationService pushNotificationService;
+
+    public PortalNotificationService(PortalNotificationRepository notificationRepository,
+                                     PortalUserRepository portalUserRepository,
+                                     PushNotificationService pushNotificationService) {
+        this.notificationRepository = notificationRepository;
+        this.portalUserRepository = portalUserRepository;
+        this.pushNotificationService = pushNotificationService;
+    }
 
     /**
      * Create a notification for a portal user and immediately send a push notification.

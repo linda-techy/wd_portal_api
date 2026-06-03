@@ -6,7 +6,6 @@ import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,14 +28,19 @@ public class GanttService {
 
     private static final Logger logger = LoggerFactory.getLogger(GanttService.class);
 
-    @Autowired
-    private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
 
-    @Autowired
-    private TaskPredecessorRepository taskPredecessorRepository;
+    private final TaskPredecessorRepository taskPredecessorRepository;
 
-    @Autowired
-    private com.wd.api.service.scheduling.CpmService cpmService;
+    private final com.wd.api.service.scheduling.CpmService cpmService;
+
+    public GanttService(TaskRepository taskRepository,
+                        TaskPredecessorRepository taskPredecessorRepository,
+                        com.wd.api.service.scheduling.CpmService cpmService) {
+        this.taskRepository = taskRepository;
+        this.taskPredecessorRepository = taskPredecessorRepository;
+        this.cpmService = cpmService;
+    }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Read

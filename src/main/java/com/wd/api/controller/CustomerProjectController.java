@@ -20,7 +20,6 @@ import com.wd.api.service.ProjectProgressService;
 import com.wd.api.service.ProjectStageTemplateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -45,17 +44,23 @@ public class CustomerProjectController {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerProjectController.class);
 
-    @Autowired
-    private CustomerProjectService customerProjectService;
+    private final CustomerProjectService customerProjectService;
 
-    @Autowired
-    private ProjectProgressService progressService;
+    private final ProjectProgressService progressService;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private ProjectStageTemplateService stageTemplateService;
+    private final ProjectStageTemplateService stageTemplateService;
+
+    public CustomerProjectController(CustomerProjectService customerProjectService,
+            ProjectProgressService progressService,
+            PortalUserRepository portalUserRepository,
+            ProjectStageTemplateService stageTemplateService) {
+        this.customerProjectService = customerProjectService;
+        this.progressService = progressService;
+        this.portalUserRepository = portalUserRepository;
+        this.stageTemplateService = stageTemplateService;
+    }
 
     /**
      * NEW: Standardized search endpoint using ProjectSearchFilter

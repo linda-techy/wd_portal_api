@@ -7,7 +7,6 @@ import com.wd.api.model.PortalUser;
 import com.wd.api.repository.QualityCheckRepository;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.PortalUserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -21,14 +20,19 @@ import java.util.List;
 @Service
 public class QualityCheckService {
 
-    @Autowired
-    private QualityCheckRepository qualityCheckRepository;
+    private final QualityCheckRepository qualityCheckRepository;
 
-    @Autowired
-    private CustomerProjectRepository projectRepository;
+    private final CustomerProjectRepository projectRepository;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
+
+    public QualityCheckService(QualityCheckRepository qualityCheckRepository,
+                               CustomerProjectRepository projectRepository,
+                               PortalUserRepository portalUserRepository) {
+        this.qualityCheckRepository = qualityCheckRepository;
+        this.projectRepository = projectRepository;
+        this.portalUserRepository = portalUserRepository;
+    }
 
     @Transactional(readOnly = true)
     public Page<QualityCheck> searchQualityChecks(QualityCheckSearchFilter filter) {

@@ -12,7 +12,6 @@ import com.wd.api.security.TaskAuthorizationService;
 import com.wd.api.util.SpecificationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,32 +38,44 @@ public class TaskService {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskService.class);
 
-    @Autowired
-    private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private com.wd.api.repository.LeadRepository leadRepository;
+    private final com.wd.api.repository.LeadRepository leadRepository;
 
-    @Autowired
-    private TaskAssignmentHistoryRepository assignmentHistoryRepository;
+    private final TaskAssignmentHistoryRepository assignmentHistoryRepository;
 
-    @Autowired
-    private TaskAuthorizationService authService;
+    private final TaskAuthorizationService authService;
 
-    @Autowired
-    private PortalNotificationService portalNotificationService;
+    private final PortalNotificationService portalNotificationService;
 
-    @Autowired
-    private TaskQualityGateService qualityGateService;
+    private final TaskQualityGateService qualityGateService;
 
-    @Autowired
-    private com.wd.api.service.scheduling.CpmService cpmService;
+    private final com.wd.api.service.scheduling.CpmService cpmService;
 
-    @Autowired
-    private ProjectProgressService projectProgressService;
+    private final ProjectProgressService projectProgressService;
+
+    public TaskService(
+            TaskRepository taskRepository,
+            PortalUserRepository portalUserRepository,
+            com.wd.api.repository.LeadRepository leadRepository,
+            TaskAssignmentHistoryRepository assignmentHistoryRepository,
+            TaskAuthorizationService authService,
+            PortalNotificationService portalNotificationService,
+            TaskQualityGateService qualityGateService,
+            com.wd.api.service.scheduling.CpmService cpmService,
+            ProjectProgressService projectProgressService) {
+        this.taskRepository = taskRepository;
+        this.portalUserRepository = portalUserRepository;
+        this.leadRepository = leadRepository;
+        this.assignmentHistoryRepository = assignmentHistoryRepository;
+        this.authService = authService;
+        this.portalNotificationService = portalNotificationService;
+        this.qualityGateService = qualityGateService;
+        this.cpmService = cpmService;
+        this.projectProgressService = projectProgressService;
+    }
 
     /**
      * NEW: Standardized search method using TaskSearchFilter

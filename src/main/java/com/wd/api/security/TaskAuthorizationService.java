@@ -2,7 +2,6 @@ package com.wd.api.security;
 
 import com.wd.api.model.CustomerProject;
 import com.wd.api.repository.TaskRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -24,8 +23,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class TaskAuthorizationService {
 
-    @Autowired
-    private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
+
+    public TaskAuthorizationService(TaskRepository taskRepository) {
+        this.taskRepository = taskRepository;
+    }
 
     /**
      * Check if authenticated user has ADMIN role

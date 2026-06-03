@@ -12,7 +12,6 @@ import com.wd.api.repository.LeadRepository;
 import com.wd.api.repository.ProjectMemberRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -47,23 +46,31 @@ public class CustomerUserService {
     private static final Pattern PASSWORD_PATTERN = Pattern
             .compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$");
 
-    @Autowired
-    private CustomerUserRepository customerUserRepository;
+    private final CustomerUserRepository customerUserRepository;
 
-    @Autowired
-    private CustomerProjectRepository customerProjectRepository;
+    private final CustomerProjectRepository customerProjectRepository;
 
-    @Autowired
-    private CustomerRoleRepository customerRoleRepository;
+    private final CustomerRoleRepository customerRoleRepository;
 
-    @Autowired
-    private LeadRepository leadRepository;
+    private final LeadRepository leadRepository;
 
-    @Autowired
-    private ProjectMemberRepository projectMemberRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+
+    public CustomerUserService(CustomerUserRepository customerUserRepository,
+            CustomerProjectRepository customerProjectRepository,
+            CustomerRoleRepository customerRoleRepository,
+            LeadRepository leadRepository,
+            ProjectMemberRepository projectMemberRepository,
+            PasswordEncoder passwordEncoder) {
+        this.customerUserRepository = customerUserRepository;
+        this.customerProjectRepository = customerProjectRepository;
+        this.customerRoleRepository = customerRoleRepository;
+        this.leadRepository = leadRepository;
+        this.projectMemberRepository = projectMemberRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     /**
      * Search customers with filters

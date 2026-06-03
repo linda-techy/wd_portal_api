@@ -6,7 +6,6 @@ import com.wd.api.model.ProjectWarranty;
 import com.wd.api.model.enums.WarrantyStatus;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.ProjectWarrantyRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -20,11 +19,15 @@ import java.util.List;
 @Service
 public class ProjectWarrantyService {
 
-    @Autowired
-    private ProjectWarrantyRepository warrantyRepository;
+    private final ProjectWarrantyRepository warrantyRepository;
 
-    @Autowired
-    private CustomerProjectRepository projectRepository;
+    private final CustomerProjectRepository projectRepository;
+
+    public ProjectWarrantyService(ProjectWarrantyRepository warrantyRepository,
+                                  CustomerProjectRepository projectRepository) {
+        this.warrantyRepository = warrantyRepository;
+        this.projectRepository = projectRepository;
+    }
 
     @Transactional(readOnly = true)
     public Page<ProjectWarranty> searchProjectWarranties(ProjectWarrantySearchFilter filter) {

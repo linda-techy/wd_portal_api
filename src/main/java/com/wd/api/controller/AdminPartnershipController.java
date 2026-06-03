@@ -7,7 +7,6 @@ import com.wd.api.service.JwtService;
 import com.wd.api.service.PartnershipService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,14 +29,19 @@ public class AdminPartnershipController {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminPartnershipController.class);
 
-    @Autowired
-    private PartnershipService partnershipService;
+    private final PartnershipService partnershipService;
 
-    @Autowired
-    private JwtService jwtService;
+    private final JwtService jwtService;
 
-    @Autowired
-    private LeadRepository leadRepository;
+    private final LeadRepository leadRepository;
+
+    public AdminPartnershipController(PartnershipService partnershipService,
+            JwtService jwtService,
+            LeadRepository leadRepository) {
+        this.partnershipService = partnershipService;
+        this.jwtService = jwtService;
+        this.leadRepository = leadRepository;
+    }
 
     /**
      * List partners — paginated, searchable, filterable by status and type.

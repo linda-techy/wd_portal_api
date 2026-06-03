@@ -8,7 +8,6 @@ import com.wd.api.repository.TaskRepository;
 import com.wd.api.repository.PortalUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,17 +39,23 @@ public class TaskAlertService {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskAlertService.class);
 
-    @Autowired
-    private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
 
-    @Autowired
-    private TaskAlertRepository alertRepository;
+    private final TaskAlertRepository alertRepository;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private EmailService emailService;
+    private final EmailService emailService;
+
+    public TaskAlertService(TaskRepository taskRepository,
+            TaskAlertRepository alertRepository,
+            PortalUserRepository portalUserRepository,
+            EmailService emailService) {
+        this.taskRepository = taskRepository;
+        this.alertRepository = alertRepository;
+        this.portalUserRepository = portalUserRepository;
+        this.emailService = emailService;
+    }
 
     /**
      * Main entry point for scheduled task deadline checks

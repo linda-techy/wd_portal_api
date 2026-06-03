@@ -13,7 +13,6 @@ import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.util.TokenHashUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -32,32 +31,43 @@ public class AuthService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    private JwtService jwtService;
+    private final JwtService jwtService;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
-    @Autowired
-    private PermissionService permissionService;
+    private final PermissionService permissionService;
 
-    @Autowired
-    private PortalPasswordResetTokenRepository passwordResetTokenRepository;
+    private final PortalPasswordResetTokenRepository passwordResetTokenRepository;
 
-    @Autowired
-    private EmailService emailService;
+    private final EmailService emailService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.portal-app-base-url:http://localhost:3001}")
-    private String portalAppBaseUrl;
+    private final String portalAppBaseUrl;
+
+    public AuthService(AuthenticationManager authenticationManager,
+            JwtService jwtService,
+            PortalUserRepository portalUserRepository,
+            RefreshTokenRepository refreshTokenRepository,
+            PermissionService permissionService,
+            PortalPasswordResetTokenRepository passwordResetTokenRepository,
+            EmailService emailService,
+            PasswordEncoder passwordEncoder,
+            @Value("${app.portal-app-base-url:http://localhost:3001}") String portalAppBaseUrl) {
+        this.authenticationManager = authenticationManager;
+        this.jwtService = jwtService;
+        this.portalUserRepository = portalUserRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.permissionService = permissionService;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.emailService = emailService;
+        this.passwordEncoder = passwordEncoder;
+        this.portalAppBaseUrl = portalAppBaseUrl;
+    }
 
     public LoginResponse login(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(

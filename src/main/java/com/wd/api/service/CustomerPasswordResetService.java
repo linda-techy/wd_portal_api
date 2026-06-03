@@ -6,7 +6,6 @@ import com.wd.api.repository.CustomerPasswordResetTokenRepository;
 import com.wd.api.repository.CustomerUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -45,25 +44,31 @@ public class CustomerPasswordResetService {
      */
     private static final long RESEND_COOLDOWN_SECONDS = 60;
 
-    @Autowired
-    private CustomerUserRepository customerUserRepository;
+    private final CustomerUserRepository customerUserRepository;
 
-    @Autowired
-    private CustomerPasswordResetTokenRepository tokenRepository;
+    private final CustomerPasswordResetTokenRepository tokenRepository;
 
-    @Autowired
-    private EmailService emailService;
+    private final EmailService emailService;
 
     /**
      * Base URL of the customer-facing app.
      * Reset links in emails route here so the customer resets via the customer app.
      * Defaults to the production URL; override in local profile for dev testing.
      */
-    @Value("${app.customer-app-base-url:https://app.walldotbuilders.com}")
-    private String customerAppBaseUrl;
+    private final String customerAppBaseUrl;
 
     /** Per-customer cooldown: customerId → last-send epoch-second. */
     private final Map<Long, Long> lastSentAt = new ConcurrentHashMap<>();
+
+    public CustomerPasswordResetService(CustomerUserRepository customerUserRepository,
+                                        CustomerPasswordResetTokenRepository tokenRepository,
+                                        EmailService emailService,
+                                        @Value("${app.customer-app-base-url:https://app.walldotbuilders.com}") String customerAppBaseUrl) {
+        this.customerUserRepository = customerUserRepository;
+        this.tokenRepository = tokenRepository;
+        this.emailService = emailService;
+        this.customerAppBaseUrl = customerAppBaseUrl;
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Send reset email (triggered by portal staff)

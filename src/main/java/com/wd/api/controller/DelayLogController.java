@@ -6,7 +6,6 @@ import com.wd.api.model.DelayLog;
 import com.wd.api.model.PortalUser;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.DelayLogService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -22,11 +21,15 @@ import java.util.Map;
 @RequestMapping("/api/projects/{projectId}/delays")
 public class DelayLogController {
 
-    @Autowired
-    private DelayLogService delayLogService;
+    private final DelayLogService delayLogService;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
+
+    public DelayLogController(DelayLogService delayLogService,
+            PortalUserRepository portalUserRepository) {
+        this.delayLogService = delayLogService;
+        this.portalUserRepository = portalUserRepository;
+    }
 
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('PROJECT_VIEW')")

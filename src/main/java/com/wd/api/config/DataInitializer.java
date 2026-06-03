@@ -5,7 +5,6 @@ import com.wd.api.repository.PortalRoleRepository;
 import com.wd.api.repository.PortalUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -35,21 +34,28 @@ public class DataInitializer implements ApplicationRunner {
     private static final Logger logger = LoggerFactory.getLogger(DataInitializer.class);
 
     /** Default admin email — can be overridden via {@code app.admin.seed-email}. */
-    @Value("${app.admin.seed-email:admin@walldotbuilders.com}")
-    private String adminEmail;
+    private final String adminEmail;
 
     /** Default admin password — can be overridden via {@code app.admin.seed-password}. */
-    @Value("${app.admin.seed-password:Test123$}")
-    private String adminPassword;
+    private final String adminPassword;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private PortalRoleRepository portalRoleRepository;
+    private final PortalRoleRepository portalRoleRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+
+    public DataInitializer(@Value("${app.admin.seed-email:admin@walldotbuilders.com}") String adminEmail,
+                           @Value("${app.admin.seed-password:Test123$}") String adminPassword,
+                           PortalUserRepository portalUserRepository,
+                           PortalRoleRepository portalRoleRepository,
+                           PasswordEncoder passwordEncoder) {
+        this.adminEmail = adminEmail;
+        this.adminPassword = adminPassword;
+        this.portalUserRepository = portalUserRepository;
+        this.portalRoleRepository = portalRoleRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public void run(ApplicationArguments args) {

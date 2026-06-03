@@ -11,7 +11,6 @@ import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.ProjectVariationRepository;
 import com.wd.api.service.changerequest.ChangeRequestMergeService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -35,11 +34,23 @@ import java.util.Set;
 @Service
 public class ProjectVariationService {
 
-    @Autowired private ProjectVariationRepository variationRepository;
-    @Autowired private CustomerProjectRepository projectRepository;
-    @Autowired private PortalUserRepository portalUserRepository;
-    @Autowired private ChangeRequestApprovalHistoryRepository historyRepository;
-    @Autowired private ChangeRequestMergeService changeRequestMergeService;
+    private final ProjectVariationRepository variationRepository;
+    private final CustomerProjectRepository projectRepository;
+    private final PortalUserRepository portalUserRepository;
+    private final ChangeRequestApprovalHistoryRepository historyRepository;
+    private final ChangeRequestMergeService changeRequestMergeService;
+
+    public ProjectVariationService(ProjectVariationRepository variationRepository,
+            CustomerProjectRepository projectRepository,
+            PortalUserRepository portalUserRepository,
+            ChangeRequestApprovalHistoryRepository historyRepository,
+            ChangeRequestMergeService changeRequestMergeService) {
+        this.variationRepository = variationRepository;
+        this.projectRepository = projectRepository;
+        this.portalUserRepository = portalUserRepository;
+        this.historyRepository = historyRepository;
+        this.changeRequestMergeService = changeRequestMergeService;
+    }
 
     // ---- search / list / detail (unchanged behaviour) ----
 

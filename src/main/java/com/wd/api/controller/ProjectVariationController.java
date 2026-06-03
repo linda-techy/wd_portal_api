@@ -11,7 +11,6 @@ import com.wd.api.model.ProjectVariation;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.ProjectVariationService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -25,8 +24,14 @@ import java.util.Map;
 @RestController
 public class ProjectVariationController {
 
-    @Autowired private ProjectVariationService variationService;
-    @Autowired private PortalUserRepository portalUserRepository;
+    private final ProjectVariationService variationService;
+    private final PortalUserRepository portalUserRepository;
+
+    public ProjectVariationController(ProjectVariationService variationService,
+            PortalUserRepository portalUserRepository) {
+        this.variationService = variationService;
+        this.portalUserRepository = portalUserRepository;
+    }
 
     // ===== Existing /variations endpoints (back-compat; unchanged behaviour) =====
 

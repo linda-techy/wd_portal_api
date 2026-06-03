@@ -5,7 +5,6 @@ import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.PortalNotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,11 +28,15 @@ public class PortalNotificationController {
 
     private static final Logger logger = LoggerFactory.getLogger(PortalNotificationController.class);
 
-    @Autowired
-    private PortalNotificationService notificationService;
+    private final PortalNotificationService notificationService;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
+
+    public PortalNotificationController(PortalNotificationService notificationService,
+            PortalUserRepository portalUserRepository) {
+        this.notificationService = notificationService;
+        this.portalUserRepository = portalUserRepository;
+    }
 
     @GetMapping
     public ResponseEntity<?> getNotifications(

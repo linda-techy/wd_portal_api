@@ -1,6 +1,5 @@
 package com.wd.api.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -9,11 +8,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    @Autowired
-    private RateLimiterConfig rateLimiterConfig;
+    private final RateLimiterConfig rateLimiterConfig;
 
-    @Value("${app.rate-limiting.enabled:true}")
-    private boolean rateLimitingEnabled;
+    private final boolean rateLimitingEnabled;
+
+    public WebMvcConfig(RateLimiterConfig rateLimiterConfig,
+                        @Value("${app.rate-limiting.enabled:true}") boolean rateLimitingEnabled) {
+        this.rateLimiterConfig = rateLimiterConfig;
+        this.rateLimitingEnabled = rateLimitingEnabled;
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {

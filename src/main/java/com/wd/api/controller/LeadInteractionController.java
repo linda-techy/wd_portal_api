@@ -4,7 +4,6 @@ import com.wd.api.dto.LeadInteractionRequest;
 import com.wd.api.dto.LeadInteractionSearchFilter;
 import com.wd.api.model.LeadInteraction;
 import com.wd.api.service.LeadInteractionService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -23,11 +22,15 @@ import java.util.Map;
 @RequestMapping("/leads/interactions")
 public class LeadInteractionController {
 
-    @Autowired
-    private LeadInteractionService interactionService;
+    private final LeadInteractionService interactionService;
 
-    @Autowired
-    private com.wd.api.repository.PortalUserRepository portalUserRepository;
+    private final com.wd.api.repository.PortalUserRepository portalUserRepository;
+
+    public LeadInteractionController(LeadInteractionService interactionService,
+            com.wd.api.repository.PortalUserRepository portalUserRepository) {
+        this.interactionService = interactionService;
+        this.portalUserRepository = portalUserRepository;
+    }
 
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('LEAD_VIEW')")

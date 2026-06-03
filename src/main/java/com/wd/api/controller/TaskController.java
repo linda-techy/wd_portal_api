@@ -11,7 +11,6 @@ import com.wd.api.security.TaskAuthorizationService;
 import com.wd.api.service.TaskService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,20 +41,27 @@ public class TaskController {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskController.class);
 
-    @Autowired
-    private TaskService taskService;
+    private final TaskService taskService;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private TaskAuthorizationService authService;
+    private final TaskAuthorizationService authService;
 
-    @Autowired
-    private com.wd.api.service.TaskAlertService taskAlertService;
+    private final com.wd.api.service.TaskAlertService taskAlertService;
 
-    @Autowired
-    private com.wd.api.scheduler.TaskAlertScheduler taskAlertScheduler;
+    private final com.wd.api.scheduler.TaskAlertScheduler taskAlertScheduler;
+
+    public TaskController(TaskService taskService,
+            PortalUserRepository portalUserRepository,
+            TaskAuthorizationService authService,
+            com.wd.api.service.TaskAlertService taskAlertService,
+            com.wd.api.scheduler.TaskAlertScheduler taskAlertScheduler) {
+        this.taskService = taskService;
+        this.portalUserRepository = portalUserRepository;
+        this.authService = authService;
+        this.taskAlertService = taskAlertService;
+        this.taskAlertScheduler = taskAlertScheduler;
+    }
 
     // ... existing methods ...
 

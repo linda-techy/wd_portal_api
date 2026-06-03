@@ -4,7 +4,6 @@ import com.wd.api.dto.ProjectWarrantyRequest;
 import com.wd.api.dto.ProjectWarrantySearchFilter;
 import com.wd.api.model.ProjectWarranty;
 import com.wd.api.service.ProjectWarrantyService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,8 +14,11 @@ import java.util.List;
 @RequestMapping("/api/projects/{projectId}/warranties")
 public class ProjectWarrantyController {
 
-    @Autowired
-    private ProjectWarrantyService warrantyService;
+    private final ProjectWarrantyService warrantyService;
+
+    public ProjectWarrantyController(ProjectWarrantyService warrantyService) {
+        this.warrantyService = warrantyService;
+    }
 
     @GetMapping("/search")
     public ResponseEntity<Page<ProjectWarranty>> searchProjectWarranties(@ModelAttribute ProjectWarrantySearchFilter filter) {

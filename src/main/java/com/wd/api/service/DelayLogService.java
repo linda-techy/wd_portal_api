@@ -14,7 +14,6 @@ import com.wd.api.service.scheduling.DelayApplier;
 import com.wd.api.service.scheduling.HandoverShiftDetector;
 import com.wd.api.service.scheduling.HolidayService;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -32,33 +31,45 @@ import java.util.stream.Collectors;
 @Service
 public class DelayLogService {
 
-    @Autowired
-    private DelayLogRepository delayLogRepository;
+    private final DelayLogRepository delayLogRepository;
 
-    @Autowired
-    private CustomerProjectRepository projectRepository;
+    private final CustomerProjectRepository projectRepository;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private WebhookPublisherService webhookPublisherService;
+    private final WebhookPublisherService webhookPublisherService;
 
     // ── S3 PR3 — apply delay → recompute CPM → alert handover shift ──────
-    @Autowired
-    private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
 
-    @Autowired
-    private HolidayService holidayService;
+    private final HolidayService holidayService;
 
-    @Autowired
-    private CpmService cpmService;
+    private final CpmService cpmService;
 
-    @Autowired
-    private HandoverShiftDetector handoverShiftDetector;
+    private final HandoverShiftDetector handoverShiftDetector;
 
-    @Autowired
-    private ProjectScheduleConfigRepository scheduleConfigRepo;
+    private final ProjectScheduleConfigRepository scheduleConfigRepo;
+
+    public DelayLogService(
+            DelayLogRepository delayLogRepository,
+            CustomerProjectRepository projectRepository,
+            PortalUserRepository portalUserRepository,
+            WebhookPublisherService webhookPublisherService,
+            TaskRepository taskRepository,
+            HolidayService holidayService,
+            CpmService cpmService,
+            HandoverShiftDetector handoverShiftDetector,
+            ProjectScheduleConfigRepository scheduleConfigRepo) {
+        this.delayLogRepository = delayLogRepository;
+        this.projectRepository = projectRepository;
+        this.portalUserRepository = portalUserRepository;
+        this.webhookPublisherService = webhookPublisherService;
+        this.taskRepository = taskRepository;
+        this.holidayService = holidayService;
+        this.cpmService = cpmService;
+        this.handoverShiftDetector = handoverShiftDetector;
+        this.scheduleConfigRepo = scheduleConfigRepo;
+    }
 
     @Transactional(readOnly = true)
     public Page<DelayLog> searchDelayLogs(DelayLogSearchFilter filter) {

@@ -10,7 +10,6 @@ import com.wd.api.service.PartnershipService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,11 +26,15 @@ public class PartnershipController {
 
     private static final Logger logger = LoggerFactory.getLogger(PartnershipController.class);
 
-    @Autowired
-    private PartnershipService partnershipService;
+    private final PartnershipService partnershipService;
 
-    @Autowired
-    private LeadService leadService;
+    private final LeadService leadService;
+
+    public PartnershipController(PartnershipService partnershipService,
+            LeadService leadService) {
+        this.partnershipService = partnershipService;
+        this.leadService = leadService;
+    }
 
     /**
      * Partner Login

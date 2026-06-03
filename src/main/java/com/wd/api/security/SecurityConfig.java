@@ -3,7 +3,6 @@ package com.wd.api.security;
 import com.wd.api.service.CustomUserDetailsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,30 +35,39 @@ public class SecurityConfig {
 
         private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
-        @Autowired
-        private JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-        @Autowired
-        private CustomUserDetailsService customUserDetailsService;
+        private final CustomUserDetailsService customUserDetailsService;
 
-        @Autowired
-        private CustomAuthenticationEntryPoint authenticationEntryPoint;
+        private final CustomAuthenticationEntryPoint authenticationEntryPoint;
 
-        @Autowired
-        private CustomAccessDeniedHandler accessDeniedHandler;
+        private final CustomAccessDeniedHandler accessDeniedHandler;
 
-        @Value("${app.cors.allowed-origins:}")
-        private String configuredAllowedOrigins;
+        private final String configuredAllowedOrigins;
 
-        @Value("${spring.profiles.active:local}")
-        private String activeProfile;
+        private final String activeProfile;
 
         /**
          * Comma-separated list of IP addresses permitted to call /internal/** (e.g. the customer-API host).
          * Mirrors the customer-API SecurityConfig pattern; HMAC verification is enforced at the controller layer.
          */
-        @Value("${internal.allowed-ips:127.0.0.1,::1}")
-        private String internalAllowedIps;
+        private final String internalAllowedIps;
+
+        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                        CustomUserDetailsService customUserDetailsService,
+                        CustomAuthenticationEntryPoint authenticationEntryPoint,
+                        CustomAccessDeniedHandler accessDeniedHandler,
+                        @Value("${app.cors.allowed-origins:}") String configuredAllowedOrigins,
+                        @Value("${spring.profiles.active:local}") String activeProfile,
+                        @Value("${internal.allowed-ips:127.0.0.1,::1}") String internalAllowedIps) {
+                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.customUserDetailsService = customUserDetailsService;
+                this.authenticationEntryPoint = authenticationEntryPoint;
+                this.accessDeniedHandler = accessDeniedHandler;
+                this.configuredAllowedOrigins = configuredAllowedOrigins;
+                this.activeProfile = activeProfile;
+                this.internalAllowedIps = internalAllowedIps;
+        }
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

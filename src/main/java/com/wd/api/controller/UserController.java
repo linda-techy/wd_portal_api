@@ -4,7 +4,6 @@ import com.wd.api.dto.TeamMemberDTO;
 import com.wd.api.dto.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +17,15 @@ public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
-    @Autowired
-    private com.wd.api.repository.PortalUserRepository portalUserRepository;
+    private final com.wd.api.repository.PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private com.wd.api.repository.CustomerUserRepository customerUserRepository;
+    private final com.wd.api.repository.CustomerUserRepository customerUserRepository;
+
+    public UserController(com.wd.api.repository.PortalUserRepository portalUserRepository,
+            com.wd.api.repository.CustomerUserRepository customerUserRepository) {
+        this.portalUserRepository = portalUserRepository;
+        this.customerUserRepository = customerUserRepository;
+    }
 
     /**
      * Get all team members (Portal Users and Customer Users)

@@ -8,7 +8,6 @@ import com.wd.api.repository.PermissionRepository;
 import com.wd.api.repository.PortalRoleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,11 +29,15 @@ public class AclController {
 
     private static final Logger log = LoggerFactory.getLogger(AclController.class);
 
-    @Autowired
-    private PortalRoleRepository portalRoleRepository;
+    private final PortalRoleRepository portalRoleRepository;
 
-    @Autowired
-    private PermissionRepository permissionRepository;
+    private final PermissionRepository permissionRepository;
+
+    public AclController(PortalRoleRepository portalRoleRepository,
+            PermissionRepository permissionRepository) {
+        this.portalRoleRepository = portalRoleRepository;
+        this.permissionRepository = permissionRepository;
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Inner DTOs (Java 16+ records)

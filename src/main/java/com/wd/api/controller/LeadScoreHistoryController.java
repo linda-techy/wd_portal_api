@@ -5,7 +5,6 @@ import com.wd.api.dto.LeadScoreHistoryDTO;
 import com.wd.api.service.LeadScoreHistoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,8 +27,11 @@ public class LeadScoreHistoryController {
 
     private static final Logger logger = LoggerFactory.getLogger(LeadScoreHistoryController.class);
 
-    @Autowired
-    private LeadScoreHistoryService scoreHistoryService;
+    private final LeadScoreHistoryService scoreHistoryService;
+
+    public LeadScoreHistoryController(LeadScoreHistoryService scoreHistoryService) {
+        this.scoreHistoryService = scoreHistoryService;
+    }
 
     /**
      * Get all score history for a lead

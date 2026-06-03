@@ -24,18 +24,24 @@ public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
-    @Autowired(required = false)
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
 
-    @Value("${app.email.enabled:false}")
-    private boolean emailEnabled;
+    private final boolean emailEnabled;
 
-    @Value("${spring.mail.username:noreply@walldot.com}")
-    private String fromEmail;
+    private final String fromEmail;
 
     /** Alert recipient for HOT lead and system-level notifications. Configured per-environment. */
-    @Value("${app.admin.email:info@walldotbuilders.com}")
-    private String adminEmail;
+    private final String adminEmail;
+
+    public EmailService(@Autowired(required = false) JavaMailSender mailSender,
+                        @Value("${app.email.enabled:false}") boolean emailEnabled,
+                        @Value("${spring.mail.username:noreply@walldot.com}") String fromEmail,
+                        @Value("${app.admin.email:info@walldotbuilders.com}") String adminEmail) {
+        this.mailSender = mailSender;
+        this.emailEnabled = emailEnabled;
+        this.fromEmail = fromEmail;
+        this.adminEmail = adminEmail;
+    }
 
     /**
      * Sends a welcome email to the newly created user with their credentials.

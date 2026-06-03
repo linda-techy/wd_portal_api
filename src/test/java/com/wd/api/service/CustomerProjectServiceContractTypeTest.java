@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 
@@ -43,16 +42,16 @@ class CustomerProjectServiceContractTypeTest {
 
     @BeforeEach
     void setUp() {
-        service = new CustomerProjectService();
-        ReflectionTestUtils.setField(service, "customerProjectRepository", customerProjectRepository);
-        ReflectionTestUtils.setField(service, "customerUserRepository", customerUserRepository);
-        ReflectionTestUtils.setField(service, "projectMemberRepository", projectMemberRepository);
-        ReflectionTestUtils.setField(service, "portalUserRepository", portalUserRepository);
-        ReflectionTestUtils.setField(service, "leadRepository", leadRepository);
-        ReflectionTestUtils.setField(service, "activityFeedRepository", activityFeedRepository);
-        ReflectionTestUtils.setField(service, "qualityCheckRepository", qualityCheckRepository);
-        ReflectionTestUtils.setField(service, "paymentScheduleRepository", paymentScheduleRepository);
-        ReflectionTestUtils.setField(service, "customerNotificationFacade", customerNotificationFacade);
+        service = new CustomerProjectService(
+                customerProjectRepository,
+                customerUserRepository,
+                projectMemberRepository,
+                portalUserRepository,
+                leadRepository,
+                activityFeedRepository,
+                qualityCheckRepository,
+                paymentScheduleRepository,
+                customerNotificationFacade);
 
         // Allow save to echo back the entity for the happy-path tests
         lenient().when(customerProjectRepository.save(any(CustomerProject.class)))

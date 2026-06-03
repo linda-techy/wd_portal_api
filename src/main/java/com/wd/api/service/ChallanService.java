@@ -4,7 +4,6 @@ import com.wd.api.model.*;
 import com.wd.api.repository.*;
 import com.wd.api.util.NumberToWords;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
@@ -24,17 +23,23 @@ import java.util.ArrayList;
 @Service
 public class ChallanService {
 
-    @Autowired
-    private PaymentChallanRepository challanRepository;
+    private final PaymentChallanRepository challanRepository;
 
-    @Autowired
-    private ChallanSequenceRepository sequenceRepository;
+    private final ChallanSequenceRepository sequenceRepository;
 
-    @Autowired
-    private PaymentTransactionRepository transactionRepository;
+    private final PaymentTransactionRepository transactionRepository;
 
-    @Autowired
-    private TemplateEngine templateEngine;
+    private final TemplateEngine templateEngine;
+
+    public ChallanService(PaymentChallanRepository challanRepository,
+            ChallanSequenceRepository sequenceRepository,
+            PaymentTransactionRepository transactionRepository,
+            TemplateEngine templateEngine) {
+        this.challanRepository = challanRepository;
+        this.sequenceRepository = sequenceRepository;
+        this.transactionRepository = transactionRepository;
+        this.templateEngine = templateEngine;
+    }
 
     @Transactional
     public PaymentChallan generateChallan(Long transactionId, Long userId) {

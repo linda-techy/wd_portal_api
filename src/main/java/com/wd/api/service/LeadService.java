@@ -7,7 +7,6 @@ import com.wd.api.dto.LeadSearchFilter;
 import com.wd.api.repository.LeadRepository;
 import com.wd.api.util.SpecificationBuilder;
 import jakarta.persistence.criteria.Predicate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,73 +34,96 @@ public class LeadService {
 
     /**
      * Lazy self-reference so internal createLead(...) calls hit the @Transactional proxy (S2229).
-     * Must be field-injected (not constructor): a constructor self-reference would be a circular
-     * dependency — the @Lazy field proxy is the documented Spring idiom, so java:S6813 is suppressed.
+     * Injected lazily via the constructor (@Lazy on the parameter) to break the circular
+     * self-dependency while preserving the transactional self-invocation pattern.
      */
-    @Autowired
     @org.springframework.context.annotation.Lazy
-    @SuppressWarnings("java:S6813")
-    private LeadService self;
+    private final LeadService self;
 
-    @Autowired
-    private LeadRepository leadRepository;
+    private final LeadRepository leadRepository;
 
-    @Autowired
-    private com.wd.api.estimation.repository.EstimationRepository estimationRepository;
+    private final com.wd.api.estimation.repository.EstimationRepository estimationRepository;
 
-    @Autowired
-    private ActivityFeedService activityFeedService;
+    private final ActivityFeedService activityFeedService;
 
-    @Autowired
-    private LeadScoreHistoryService leadScoreHistoryService;
+    private final LeadScoreHistoryService leadScoreHistoryService;
 
-    @Autowired
-    private com.wd.api.repository.PortalUserRepository portalUserRepository;
+    private final com.wd.api.repository.PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private com.wd.api.repository.CustomerUserRepository customerUserRepository;
+    private final com.wd.api.repository.CustomerUserRepository customerUserRepository;
 
-    @Autowired
-    private com.wd.api.repository.CustomerProjectRepository customerProjectRepository;
+    private final com.wd.api.repository.CustomerProjectRepository customerProjectRepository;
 
-    @Autowired
-    private EmailService emailService;
+    private final EmailService emailService;
 
-    @Autowired
-    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private DocumentService documentService;
+    private final DocumentService documentService;
 
-    @Autowired
-    private com.wd.api.repository.CustomerRoleRepository customerRoleRepository;
+    private final com.wd.api.repository.CustomerRoleRepository customerRoleRepository;
 
-    @Autowired
-    private com.wd.api.repository.PartnershipUserRepository partnershipUserRepository;
+    private final com.wd.api.repository.PartnershipUserRepository partnershipUserRepository;
 
-    @Autowired
-    private com.wd.api.repository.LeadInteractionRepository leadInteractionRepository;
+    private final com.wd.api.repository.LeadInteractionRepository leadInteractionRepository;
 
-    @Autowired
-    private PartnershipService partnershipService;
+    private final PartnershipService partnershipService;
 
-    @Autowired
-    private com.wd.api.repository.ProjectMemberRepository projectMemberRepository;
+    private final com.wd.api.repository.ProjectMemberRepository projectMemberRepository;
 
-    @Autowired
-    private com.wd.api.repository.BoqWorkTypeRepository boqWorkTypeRepository;
+    private final com.wd.api.repository.BoqWorkTypeRepository boqWorkTypeRepository;
 
-    @Autowired
-    private com.wd.api.repository.BoqItemRepository boqItemRepository;
+    private final com.wd.api.repository.BoqItemRepository boqItemRepository;
 
-    @Autowired
-    private BoqAuditService boqAuditService;
+    private final BoqAuditService boqAuditService;
 
-    @Autowired
-    private PortalNotificationService portalNotificationService;
+    private final PortalNotificationService portalNotificationService;
 
-    @Autowired
-    private CustomerNotificationFacade customerNotificationFacade;
+    private final CustomerNotificationFacade customerNotificationFacade;
+
+    public LeadService(
+            @org.springframework.context.annotation.Lazy LeadService self,
+            LeadRepository leadRepository,
+            com.wd.api.estimation.repository.EstimationRepository estimationRepository,
+            ActivityFeedService activityFeedService,
+            LeadScoreHistoryService leadScoreHistoryService,
+            com.wd.api.repository.PortalUserRepository portalUserRepository,
+            com.wd.api.repository.CustomerUserRepository customerUserRepository,
+            com.wd.api.repository.CustomerProjectRepository customerProjectRepository,
+            EmailService emailService,
+            org.springframework.security.crypto.password.PasswordEncoder passwordEncoder,
+            DocumentService documentService,
+            com.wd.api.repository.CustomerRoleRepository customerRoleRepository,
+            com.wd.api.repository.PartnershipUserRepository partnershipUserRepository,
+            com.wd.api.repository.LeadInteractionRepository leadInteractionRepository,
+            PartnershipService partnershipService,
+            com.wd.api.repository.ProjectMemberRepository projectMemberRepository,
+            com.wd.api.repository.BoqWorkTypeRepository boqWorkTypeRepository,
+            com.wd.api.repository.BoqItemRepository boqItemRepository,
+            BoqAuditService boqAuditService,
+            PortalNotificationService portalNotificationService,
+            CustomerNotificationFacade customerNotificationFacade) {
+        this.self = self;
+        this.leadRepository = leadRepository;
+        this.estimationRepository = estimationRepository;
+        this.activityFeedService = activityFeedService;
+        this.leadScoreHistoryService = leadScoreHistoryService;
+        this.portalUserRepository = portalUserRepository;
+        this.customerUserRepository = customerUserRepository;
+        this.customerProjectRepository = customerProjectRepository;
+        this.emailService = emailService;
+        this.passwordEncoder = passwordEncoder;
+        this.documentService = documentService;
+        this.customerRoleRepository = customerRoleRepository;
+        this.partnershipUserRepository = partnershipUserRepository;
+        this.leadInteractionRepository = leadInteractionRepository;
+        this.partnershipService = partnershipService;
+        this.projectMemberRepository = projectMemberRepository;
+        this.boqWorkTypeRepository = boqWorkTypeRepository;
+        this.boqItemRepository = boqItemRepository;
+        this.boqAuditService = boqAuditService;
+        this.portalNotificationService = portalNotificationService;
+        this.customerNotificationFacade = customerNotificationFacade;
+    }
 
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LeadService.class);
     // Thread-safe ObjectMapper instance for JSON serialization

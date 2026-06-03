@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -40,8 +39,12 @@ class CustomerProjectServiceGpsLockTest {
 
     @BeforeEach
     void setUp() {
-        service = new CustomerProjectService();
-        ReflectionTestUtils.setField(service, "customerProjectRepository", projectRepository);
+        // Only customerProjectRepository (1st constructor arg) is exercised by the GPS
+        // lock paths; the remaining deps are unused here so we pass null (matches the
+        // prior unset-field behaviour).
+        service = new CustomerProjectService(
+                projectRepository,
+                null, null, null, null, null, null, null, null);
 
         lenient().when(projectRepository.save(any(CustomerProject.class)))
                 .thenAnswer(inv -> inv.getArgument(0));

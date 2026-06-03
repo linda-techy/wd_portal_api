@@ -7,7 +7,6 @@ import com.wd.api.model.*;
 import com.wd.api.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,20 +30,27 @@ public class ProjectProgressService {
 
         private static final Logger logger = LoggerFactory.getLogger(ProjectProgressService.class);
 
-        @Autowired
-        private CustomerProjectRepository projectRepository;
+        private final CustomerProjectRepository projectRepository;
 
-        @Autowired
-        private ProjectMilestoneRepository milestoneRepository;
+        private final ProjectMilestoneRepository milestoneRepository;
 
-        @Autowired
-        private TaskRepository taskRepository;
+        private final TaskRepository taskRepository;
 
-        @Autowired
-        private ProjectProgressLogRepository progressLogRepository;
+        private final ProjectProgressLogRepository progressLogRepository;
 
-        @Autowired
-        private ProjectTypeTemplateRepository typeTemplateRepository;
+        private final ProjectTypeTemplateRepository typeTemplateRepository;
+
+        public ProjectProgressService(CustomerProjectRepository projectRepository,
+                        ProjectMilestoneRepository milestoneRepository,
+                        TaskRepository taskRepository,
+                        ProjectProgressLogRepository progressLogRepository,
+                        ProjectTypeTemplateRepository typeTemplateRepository) {
+                this.projectRepository = projectRepository;
+                this.milestoneRepository = milestoneRepository;
+                this.taskRepository = taskRepository;
+                this.progressLogRepository = progressLogRepository;
+                this.typeTemplateRepository = typeTemplateRepository;
+        }
 
         /**
          * Calculate overall project progress using weight-based formula.

@@ -12,7 +12,6 @@ import com.wd.api.service.CustomerPasswordResetService;
 import com.wd.api.repository.CustomerRoleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,14 +32,19 @@ public class CustomerController {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerController.class);
 
-    @Autowired
-    private CustomerUserService customerUserService;
+    private final CustomerUserService customerUserService;
 
-    @Autowired
-    private CustomerPasswordResetService customerPasswordResetService;
+    private final CustomerPasswordResetService customerPasswordResetService;
 
-    @Autowired
-    private CustomerRoleRepository customerRoleRepository;
+    private final CustomerRoleRepository customerRoleRepository;
+
+    public CustomerController(CustomerUserService customerUserService,
+            CustomerPasswordResetService customerPasswordResetService,
+            CustomerRoleRepository customerRoleRepository) {
+        this.customerUserService = customerUserService;
+        this.customerPasswordResetService = customerPasswordResetService;
+        this.customerRoleRepository = customerRoleRepository;
+    }
 
     /**
      * Search customers with filters

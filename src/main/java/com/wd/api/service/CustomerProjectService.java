@@ -26,7 +26,6 @@ import com.wd.api.model.PortalUser;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -55,32 +54,44 @@ public class CustomerProjectService {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerProjectService.class);
 
-    @Autowired
-    private CustomerProjectRepository customerProjectRepository;
+    private final CustomerProjectRepository customerProjectRepository;
 
-    @Autowired
-    private CustomerUserRepository customerUserRepository;
+    private final CustomerUserRepository customerUserRepository;
 
-    @Autowired
-    private ProjectMemberRepository projectMemberRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private LeadRepository leadRepository;
+    private final LeadRepository leadRepository;
 
-    @Autowired
-    private ActivityFeedRepository activityFeedRepository;
+    private final ActivityFeedRepository activityFeedRepository;
 
-    @Autowired
-    private QualityCheckRepository qualityCheckRepository;
+    private final QualityCheckRepository qualityCheckRepository;
 
-    @Autowired
-    private PaymentScheduleRepository paymentScheduleRepository;
+    private final PaymentScheduleRepository paymentScheduleRepository;
 
-    @Autowired
-    private CustomerNotificationFacade customerNotificationFacade;
+    private final CustomerNotificationFacade customerNotificationFacade;
+
+    public CustomerProjectService(
+            CustomerProjectRepository customerProjectRepository,
+            CustomerUserRepository customerUserRepository,
+            ProjectMemberRepository projectMemberRepository,
+            PortalUserRepository portalUserRepository,
+            LeadRepository leadRepository,
+            ActivityFeedRepository activityFeedRepository,
+            QualityCheckRepository qualityCheckRepository,
+            PaymentScheduleRepository paymentScheduleRepository,
+            CustomerNotificationFacade customerNotificationFacade) {
+        this.customerProjectRepository = customerProjectRepository;
+        this.customerUserRepository = customerUserRepository;
+        this.projectMemberRepository = projectMemberRepository;
+        this.portalUserRepository = portalUserRepository;
+        this.leadRepository = leadRepository;
+        this.activityFeedRepository = activityFeedRepository;
+        this.qualityCheckRepository = qualityCheckRepository;
+        this.paymentScheduleRepository = paymentScheduleRepository;
+        this.customerNotificationFacade = customerNotificationFacade;
+    }
 
     /**
      * NEW: Standardized search method using ProjectSearchFilter

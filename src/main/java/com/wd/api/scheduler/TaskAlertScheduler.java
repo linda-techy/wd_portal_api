@@ -3,7 +3,6 @@ package com.wd.api.scheduler;
 import com.wd.api.service.TaskAlertService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -38,8 +37,11 @@ public class TaskAlertScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskAlertScheduler.class);
 
-    @Autowired
-    private TaskAlertService taskAlertService;
+    private final TaskAlertService taskAlertService;
+
+    public TaskAlertScheduler(TaskAlertService taskAlertService) {
+        this.taskAlertService = taskAlertService;
+    }
 
     /**
      * Scheduled task deadline check

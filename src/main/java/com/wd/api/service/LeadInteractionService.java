@@ -3,7 +3,6 @@ package com.wd.api.service;
 import com.wd.api.dto.LeadInteractionSearchFilter;
 import com.wd.api.model.LeadInteraction;
 import com.wd.api.repository.LeadInteractionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -22,11 +21,15 @@ import java.util.Map;
 @Service
 public class LeadInteractionService {
 
-    @Autowired
-    private LeadInteractionRepository interactionRepository;
+    private final LeadInteractionRepository interactionRepository;
 
-    @Autowired
-    private com.wd.api.repository.LeadRepository leadRepository;
+    private final com.wd.api.repository.LeadRepository leadRepository;
+
+    public LeadInteractionService(LeadInteractionRepository interactionRepository,
+                                  com.wd.api.repository.LeadRepository leadRepository) {
+        this.interactionRepository = interactionRepository;
+        this.leadRepository = leadRepository;
+    }
 
     @Transactional(readOnly = true)
     public Page<LeadInteraction> searchLeadInteractions(LeadInteractionSearchFilter filter) {

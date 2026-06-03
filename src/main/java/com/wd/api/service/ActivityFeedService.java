@@ -15,7 +15,6 @@ import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.model.Lead;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,20 +30,27 @@ public class ActivityFeedService {
 
     private static final Logger logger = LoggerFactory.getLogger(ActivityFeedService.class);
 
-    @Autowired
-    private ActivityFeedRepository activityFeedRepository;
+    private final ActivityFeedRepository activityFeedRepository;
 
-    @Autowired
-    private ActivityTypeRepository activityTypeRepository;
+    private final ActivityTypeRepository activityTypeRepository;
 
-    @Autowired
-    private LeadInteractionRepository leadInteractionRepository;
+    private final LeadInteractionRepository leadInteractionRepository;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private LeadRepository leadRepository;
+    private final LeadRepository leadRepository;
+
+    public ActivityFeedService(ActivityFeedRepository activityFeedRepository,
+            ActivityTypeRepository activityTypeRepository,
+            LeadInteractionRepository leadInteractionRepository,
+            PortalUserRepository portalUserRepository,
+            LeadRepository leadRepository) {
+        this.activityFeedRepository = activityFeedRepository;
+        this.activityTypeRepository = activityTypeRepository;
+        this.leadInteractionRepository = leadInteractionRepository;
+        this.portalUserRepository = portalUserRepository;
+        this.leadRepository = leadRepository;
+    }
 
     @Transactional
     public void logActivity(String typeName, String title, String description, Long referenceId, String referenceType,

@@ -5,7 +5,6 @@ import com.wd.api.model.Task;
 import com.wd.api.service.GanttService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,8 +25,11 @@ public class GanttController {
 
     private static final Logger logger = LoggerFactory.getLogger(GanttController.class);
 
-    @Autowired
-    private GanttService ganttService;
+    private final GanttService ganttService;
+
+    public GanttController(GanttService ganttService) {
+        this.ganttService = ganttService;
+    }
 
     // ──────────────────────────────────────────────────────────────────────────
     // GET gantt data for a project

@@ -2,7 +2,6 @@ package com.wd.api.controller;
 
 import com.wd.api.model.SqftCategories;
 import com.wd.api.dao.interfaces.IToolsDAO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,8 +10,11 @@ import java.util.List;
 @RequestMapping("/tools")
 public class ToolsController {
 
-    @Autowired
-    private IToolsDAO toolsDAO;
+    private final IToolsDAO toolsDAO;
+
+    public ToolsController(IToolsDAO toolsDAO) {
+        this.toolsDAO = toolsDAO;
+    }
 
     @GetMapping("/getwdsqftcategories")
     public List<SqftCategories> getWdSqftCategories() {

@@ -8,7 +8,6 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,8 +29,11 @@ public class LeadExportService {
 
     private static final Logger logger = LoggerFactory.getLogger(LeadExportService.class);
 
-    @Autowired
-    private LeadRepository leadRepository;
+    private final LeadRepository leadRepository;
+
+    public LeadExportService(LeadRepository leadRepository) {
+        this.leadRepository = leadRepository;
+    }
 
     /**
      * Generate Excel file for leads matching the search filter

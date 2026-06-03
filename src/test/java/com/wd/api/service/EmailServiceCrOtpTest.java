@@ -5,7 +5,6 @@ import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 
@@ -27,11 +26,8 @@ class EmailServiceCrOtpTest {
     void setUp() {
         mailSender = mock(JavaMailSender.class);
         when(mailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class, RETURNS_DEEP_STUBS));
-        svc = new EmailService();
-        ReflectionTestUtils.setField(svc, "mailSender", mailSender);
-        ReflectionTestUtils.setField(svc, "emailEnabled", true);
-        ReflectionTestUtils.setField(svc, "fromEmail", "noreply@walldotbuilders.com");
-        ReflectionTestUtils.setField(svc, "adminEmail", "info@walldotbuilders.com");
+        svc = new EmailService(mailSender, true,
+                "noreply@walldotbuilders.com", "info@walldotbuilders.com");
     }
 
     @Test
@@ -48,7 +44,8 @@ class EmailServiceCrOtpTest {
 
     @Test
     void sendCrApprovalOtpFallsBackToSimulationWhenDisabled() {
-        ReflectionTestUtils.setField(svc, "emailEnabled", false);
+        svc = new EmailService(mailSender, false,
+                "noreply@walldotbuilders.com", "info@walldotbuilders.com");
         ProjectVariation cr = new ProjectVariation();
         cr.setId(42L);
         cr.setDescription("Whatever");

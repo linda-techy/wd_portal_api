@@ -10,7 +10,6 @@ import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.repository.PortalRoleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,14 +31,19 @@ public class PortalUserController {
 
     private static final Logger logger = LoggerFactory.getLogger(PortalUserController.class);
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private PortalRoleRepository portalRoleRepository;
+    private final PortalRoleRepository portalRoleRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+
+    public PortalUserController(PortalUserRepository portalUserRepository,
+            PortalRoleRepository portalRoleRepository,
+            PasswordEncoder passwordEncoder) {
+        this.portalUserRepository = portalUserRepository;
+        this.portalRoleRepository = portalRoleRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     /**
      * Get all portal users

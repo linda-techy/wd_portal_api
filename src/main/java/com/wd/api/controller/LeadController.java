@@ -14,7 +14,6 @@ import com.wd.api.service.LeadService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -34,8 +33,11 @@ public class LeadController {
 
     private static final Logger logger = LoggerFactory.getLogger(LeadController.class);
 
-    @Autowired
-    private LeadService leadService;
+    private final LeadService leadService;
+
+    public LeadController(LeadService leadService) {
+        this.leadService = leadService;
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // PUBLIC ENDPOINTS — no authentication required

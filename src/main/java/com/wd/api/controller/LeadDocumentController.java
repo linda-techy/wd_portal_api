@@ -5,7 +5,6 @@ import com.wd.api.dto.DocumentResponse;
 import com.wd.api.service.DocumentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +19,11 @@ public class LeadDocumentController {
 
     private static final Logger logger = LoggerFactory.getLogger(LeadDocumentController.class);
 
-    @Autowired
-    private DocumentService documentService;
+    private final DocumentService documentService;
+
+    public LeadDocumentController(DocumentService documentService) {
+        this.documentService = documentService;
+    }
 
     @GetMapping("/{leadId}/documents")
     @PreAuthorize("hasAuthority('LEAD_VIEW')")

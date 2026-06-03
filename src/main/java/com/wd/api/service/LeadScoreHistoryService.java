@@ -8,7 +8,6 @@ import com.wd.api.repository.LeadScoreHistoryRepository;
 import com.wd.api.repository.PortalUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,11 +26,15 @@ public class LeadScoreHistoryService {
 
     private static final Logger logger = LoggerFactory.getLogger(LeadScoreHistoryService.class);
 
-    @Autowired
-    private LeadScoreHistoryRepository scoreHistoryRepository;
+    private final LeadScoreHistoryRepository scoreHistoryRepository;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
+
+    public LeadScoreHistoryService(LeadScoreHistoryRepository scoreHistoryRepository,
+                                   PortalUserRepository portalUserRepository) {
+        this.scoreHistoryRepository = scoreHistoryRepository;
+        this.portalUserRepository = portalUserRepository;
+    }
 
     /**
      * Log a score change for a lead

@@ -5,7 +5,6 @@ import com.wd.api.model.PaymentChallan;
 import com.wd.api.model.PortalUser;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.ChallanService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -18,11 +17,15 @@ import java.util.List;
 @PreAuthorize("isAuthenticated()")
 public class ChallanController {
 
-    @Autowired
-    private ChallanService challanService;
+    private final ChallanService challanService;
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
+
+    public ChallanController(ChallanService challanService,
+            PortalUserRepository portalUserRepository) {
+        this.challanService = challanService;
+        this.portalUserRepository = portalUserRepository;
+    }
 
     @PostMapping("/generate/{transactionId}")
     @PreAuthorize("hasAuthority('CHALLAN_CREATE')")

@@ -6,7 +6,6 @@ import com.wd.api.model.PortalUser;
 import com.wd.api.repository.PermissionRepository;
 import com.wd.api.repository.PortalRoleRepository;
 import com.wd.api.repository.PortalUserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -17,16 +16,21 @@ import java.util.stream.Collectors;
 @Service
 public class PermissionService {
 
-    @Autowired
-    private PortalUserRepository portalUserRepository;
+    private final PortalUserRepository portalUserRepository;
 
-    @Autowired
-    private PortalRoleRepository portalRoleRepository;
+    private final PortalRoleRepository portalRoleRepository;
 
-    @Autowired
-    private PermissionRepository permissionRepository;
+    private final PermissionRepository permissionRepository;
 
     private static final String ADMIN_ROLE_CODE = "ADMIN";
+
+    public PermissionService(PortalUserRepository portalUserRepository,
+                             PortalRoleRepository portalRoleRepository,
+                             PermissionRepository permissionRepository) {
+        this.portalUserRepository = portalUserRepository;
+        this.portalRoleRepository = portalRoleRepository;
+        this.permissionRepository = permissionRepository;
+    }
 
     /**
      * Get all permission names for a user

@@ -7,7 +7,6 @@ import com.wd.api.model.QualityCheck;
 import com.wd.api.model.PortalUser;
 import com.wd.api.service.QualityCheckService;
 import com.wd.api.service.AuthService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +17,15 @@ import java.util.Map;
 @RequestMapping("/api/quality-checks")
 public class QualityCheckController {
 
-    @Autowired
-    private QualityCheckService qualityCheckService;
+    private final QualityCheckService qualityCheckService;
 
-    @Autowired
-    private AuthService authService;
+    private final AuthService authService;
+
+    public QualityCheckController(QualityCheckService qualityCheckService,
+            AuthService authService) {
+        this.qualityCheckService = qualityCheckService;
+        this.authService = authService;
+    }
 
     @GetMapping("/search")
     public ResponseEntity<Page<QualityCheck>> searchQualityChecks(@ModelAttribute QualityCheckSearchFilter filter) {

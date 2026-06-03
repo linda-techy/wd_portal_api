@@ -11,7 +11,6 @@ import com.wd.api.repository.LeadRepository;
 import com.wd.api.repository.PartnershipUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -37,29 +36,39 @@ public class PartnershipService {
 
     private static final Logger logger = LoggerFactory.getLogger(PartnershipService.class);
 
-    @Autowired
-    private PartnershipUserRepository partnershipUserRepository;
+    private final PartnershipUserRepository partnershipUserRepository;
 
-    @Autowired
-    private LeadRepository leadRepository;
+    private final LeadRepository leadRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private JwtService jwtService;
+    private final JwtService jwtService;
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    private final String jwtSecret;
 
-    @Autowired
-    private CustomerPasswordResetTokenRepository passwordResetTokenRepository;
+    private final CustomerPasswordResetTokenRepository passwordResetTokenRepository;
 
-    @Autowired
-    private EmailService emailService;
+    private final EmailService emailService;
 
-    @Value("${app.website-base-url:https://walldotbuilders.com}")
-    private String websiteBaseUrl;
+    private final String websiteBaseUrl;
+
+    public PartnershipService(PartnershipUserRepository partnershipUserRepository,
+            LeadRepository leadRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            @Value("${jwt.secret}") String jwtSecret,
+            CustomerPasswordResetTokenRepository passwordResetTokenRepository,
+            EmailService emailService,
+            @Value("${app.website-base-url:https://walldotbuilders.com}") String websiteBaseUrl) {
+        this.partnershipUserRepository = partnershipUserRepository;
+        this.leadRepository = leadRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.jwtSecret = jwtSecret;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.emailService = emailService;
+        this.websiteBaseUrl = websiteBaseUrl;
+    }
 
     /**
      * Partner Login
