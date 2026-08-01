@@ -1,12 +1,10 @@
 package com.wd.api.service;
 
-import com.wd.api.model.enums.CreditNoteStatus;
 import com.wd.api.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * Aggregated finance dashboard for a project's BOQ / payment schedule.
@@ -26,20 +24,17 @@ import java.util.List;
 public class BoqFinanceDashboardService {
 
     private final BoqDocumentRepository boqDocumentRepository;
-    private final PaymentStageRepository stageRepository;
     private final ChangeOrderRepository changeOrderRepository;
     private final BoqInvoiceRepository invoiceRepository;
     private final CreditNoteRepository creditNoteRepository;
     private final RefundNoticeRepository refundNoticeRepository;
 
     public BoqFinanceDashboardService(BoqDocumentRepository boqDocumentRepository,
-                                       PaymentStageRepository stageRepository,
                                        ChangeOrderRepository changeOrderRepository,
                                        BoqInvoiceRepository invoiceRepository,
                                        CreditNoteRepository creditNoteRepository,
                                        RefundNoticeRepository refundNoticeRepository) {
         this.boqDocumentRepository = boqDocumentRepository;
-        this.stageRepository = stageRepository;
         this.changeOrderRepository = changeOrderRepository;
         this.invoiceRepository = invoiceRepository;
         this.creditNoteRepository = creditNoteRepository;

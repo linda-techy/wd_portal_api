@@ -37,6 +37,7 @@ public class WebhookPublisherService {
 
     private static final Logger log = LoggerFactory.getLogger(WebhookPublisherService.class);
     private static final String HMAC_ALGORITHM = "HmacSHA256";
+    private static final String STATUS_FAILED = "FAILED";
     private static final int CONNECT_TIMEOUT_S = 5;
     private static final int REQUEST_TIMEOUT_S = 10;
     private static final int MAX_ATTEMPTS = 5;
@@ -250,7 +251,7 @@ public class WebhookPublisherService {
     @Transactional
     public void retryFailedEvents() {
         List<WebhookEventLog> retryable = eventLogRepository
-                .findByStatusAndAttemptsLessThan("FAILED", MAX_ATTEMPTS);
+                .findByStatusAndAttemptsLessThan(STATUS_FAILED, MAX_ATTEMPTS);
 
         if (retryable.isEmpty()) return;
 
@@ -289,7 +290,7 @@ public class WebhookPublisherService {
                 log.debug("Webhook delivered: type={} projectId={}", eventLog.getEventType(), eventLog.getProjectId());
             } else {
                 String errMsg = "HTTP " + response.statusCode() + ": " + truncate(response.body(), 500);
-                eventLog.setStatus("FAILED");
+                eventLog.setStatus(STATUS_FAILED);
                 eventLog.setErrorMessage(errMsg);
                 log.warn("Webhook delivery returned non-200: status={} type={} attempt={}",
                         response.statusCode(), eventLog.getEventType(), eventLog.getAttempts());
@@ -301,7 +302,7 @@ public class WebhookPublisherService {
             }
             eventLog.setAttempts(eventLog.getAttempts() + 1);
             eventLog.setLastAttemptAt(LocalDateTime.now());
-            eventLog.setStatus("FAILED");
+            eventLog.setStatus(STATUS_FAILED);
             String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             eventLog.setErrorMessage(truncate(msg, 500));
             log.error("Webhook delivery failed: type={} attempt={} error={}",

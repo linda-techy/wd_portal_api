@@ -37,9 +37,15 @@ public class DelayLogController {
         return ResponseEntity.ok(delayLogService.searchDelayLogs(filter));
     }
 
+    /**
+     * Returns all delay logs for a project without pagination.
+     *
+     * @deprecated Use the {@code /search} endpoint ({@link #searchDelayLogs})
+     *             instead, which supports standardized filtering and pagination.
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('PROJECT_VIEW')")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<List<DelayLog>> getDelays(@PathVariable Long projectId) {
         return ResponseEntity.ok(delayLogService.getDelaysByProject(projectId));
     }

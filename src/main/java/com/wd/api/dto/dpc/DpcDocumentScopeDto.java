@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * DTO for a single scope row inside a DPC document.
@@ -69,7 +68,7 @@ public record DpcDocumentScopeDto(
         DpcScopeOption selected = scope.getSelectedOption();
         List<DpcScopeOptionDto> optionDtos = options == null
                 ? List.of()
-                : options.stream().map(DpcScopeOptionDto::from).collect(Collectors.toList());
+                : options.stream().map(DpcScopeOptionDto::from).toList();
 
         BigDecimal original = rollup != null ? rollup.originalAmount() : BigDecimal.ZERO;
         BigDecimal customized = rollup != null ? rollup.customizedAmount() : BigDecimal.ZERO;

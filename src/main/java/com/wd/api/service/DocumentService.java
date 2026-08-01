@@ -13,12 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class DocumentService {
 
     private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
+
+    private static final String UPLOADED_BY_PORTAL = "PORTAL";
+    private static final String REFERENCE_TYPE_PROJECT = "PROJECT";
 
     private final DocumentRepository documentRepository;
     private final DocumentCategoryRepository categoryRepository;
@@ -64,7 +66,7 @@ public class DocumentService {
                 })
                 .map(c -> new com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto(
                         c.getId(), c.getName(), c.getDescription(), c.getDisplayOrder()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -104,12 +106,12 @@ public class DocumentService {
         document.setDescription(description);
         document.setCategory(category);
         document.setIsActive(true);
-        document.setUploadedByType("PORTAL");
+        document.setUploadedByType(UPLOADED_BY_PORTAL);
 
         document = documentRepository.save(document);
 
         // Notify all project customer members when a document is uploaded to a project
-        if ("PROJECT".equals(document.getReferenceType())) {
+        if (REFERENCE_TYPE_PROJECT.equals(document.getReferenceType())) {
             String fileName = document.getFilename() != null ? document.getFilename() : "a document";
             customerNotificationFacade.notifyAll(
                     document.getReferenceId(),
@@ -128,7 +130,7 @@ public class DocumentService {
                 .findByReferenceIdAndReferenceTypeAndIsActiveTrue(referenceId, referenceType.toUpperCase())
                 .stream()
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -165,7 +167,7 @@ public class DocumentService {
         // Existing rows for this project (active OR inactive — we want to
         // know what file_paths are already tracked so we don't duplicate)
         java.util.Set<String> existingFilePaths = documentRepository
-                .findByReferenceIdAndReferenceType(projectId, "PROJECT")
+                .findByReferenceIdAndReferenceType(projectId, REFERENCE_TYPE_PROJECT)
                 .stream().map(Document::getFilePath).collect(java.util.stream.Collectors.toSet());
 
         try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(projectRoot)) {
@@ -187,7 +189,7 @@ public class DocumentService {
                 }
                 Document doc = new Document();
                 doc.setReferenceId(projectId);
-                doc.setReferenceType("PROJECT");
+                doc.setReferenceType(REFERENCE_TYPE_PROJECT);
                 doc.setFilename(file.getFileName().toString());
                 doc.setFilePath(relPath);
                 try {
@@ -199,7 +201,7 @@ public class DocumentService {
                 doc.setDescription("Recovered from storage");
                 doc.setCategory(category);
                 doc.setIsActive(true);
-                doc.setUploadedByType("PORTAL");
+                doc.setUploadedByType(UPLOADED_BY_PORTAL);
                 documentRepository.save(doc);
                 created.add(relPath);
             });
@@ -305,7 +307,7 @@ public class DocumentService {
         for (Document leadDoc : leadDocs) {
             Document projectDoc = new Document();
             projectDoc.setReferenceId(projectId);
-            projectDoc.setReferenceType("PROJECT");
+            projectDoc.setReferenceType(REFERENCE_TYPE_PROJECT);
             projectDoc.setFilename(leadDoc.getFilename());
             projectDoc.setFilePath(leadDoc.getFilePath());
             projectDoc.setFileSize(leadDoc.getFileSize());
@@ -313,7 +315,7 @@ public class DocumentService {
             projectDoc.setDescription(leadDoc.getDescription());
             projectDoc.setCategory(leadDoc.getCategory());
             projectDoc.setIsActive(true);
-            projectDoc.setUploadedByType(leadDoc.getUploadedByType() != null ? leadDoc.getUploadedByType() : "PORTAL");
+            projectDoc.setUploadedByType(leadDoc.getUploadedByType() != null ? leadDoc.getUploadedByType() : UPLOADED_BY_PORTAL);
 
             documentRepository.save(projectDoc);
         }

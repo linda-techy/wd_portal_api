@@ -15,6 +15,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class View360Service {
 
+    private static final String STORAGE_URL_PREFIX = "/api/storage/";
+    private static final String KEY_TITLE = "title";
+    private static final String KEY_CAPTURE_DATE = "captureDate";
+
     private final View360Repository view360Repository;
     private final FileStorageService fileStorageService;
 
@@ -29,7 +33,7 @@ public class View360Service {
         String subDir = "projects/" + tour.getProject().getId() + "/360";
         String storedPath = fileStorageService.storeFile(panoramaFile, subDir);
 
-        tour.setPanoramaUrl("/api/storage/" + storedPath);
+        tour.setPanoramaUrl(STORAGE_URL_PREFIX + storedPath);
         // For now, thumbnail is the same as panorama or a placeholder
         tour.setThumbnailUrl(tour.getPanoramaUrl());
 
@@ -49,8 +53,8 @@ public class View360Service {
     @Transactional
     public View360 updateTour(Long id, Map<String, Object> updates) {
         View360 tour = getTour(id);
-        if (updates.containsKey("title") && updates.get("title") != null) {
-            tour.setTitle((String) updates.get("title"));
+        if (updates.containsKey(KEY_TITLE) && updates.get(KEY_TITLE) != null) {
+            tour.setTitle((String) updates.get(KEY_TITLE));
         }
         if (updates.containsKey("description")) {
             tour.setDescription((String) updates.get("description"));
@@ -58,8 +62,8 @@ public class View360Service {
         if (updates.containsKey("location")) {
             tour.setLocation((String) updates.get("location"));
         }
-        if (updates.containsKey("captureDate") && updates.get("captureDate") != null) {
-            tour.setCaptureDate(LocalDateTime.parse((String) updates.get("captureDate")));
+        if (updates.containsKey(KEY_CAPTURE_DATE) && updates.get(KEY_CAPTURE_DATE) != null) {
+            tour.setCaptureDate(LocalDateTime.parse((String) updates.get(KEY_CAPTURE_DATE)));
         }
         return view360Repository.save(tour);
     }
@@ -68,8 +72,8 @@ public class View360Service {
     public void deleteTour(Long id) {
         View360 tour = getTour(id);
         // Delete physical file
-        if (tour.getPanoramaUrl() != null && tour.getPanoramaUrl().contains("/api/storage/")) {
-            String filePath = tour.getPanoramaUrl().replace("/api/storage/", "");
+        if (tour.getPanoramaUrl() != null && tour.getPanoramaUrl().contains(STORAGE_URL_PREFIX)) {
+            String filePath = tour.getPanoramaUrl().replace(STORAGE_URL_PREFIX, "");
             fileStorageService.deleteFile(filePath);
         }
         view360Repository.delete(tour);

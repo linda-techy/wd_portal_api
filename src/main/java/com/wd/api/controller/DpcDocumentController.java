@@ -68,6 +68,8 @@ public class DpcDocumentController {
 
     private static final Logger logger = LoggerFactory.getLogger(DpcDocumentController.class);
 
+    private static final String MSG_VALIDATION_FAILED = "Validation failed: ";
+
     private final DpcDocumentService dpcDocumentService;
     private final DpcCustomizationService dpcCustomizationService;
     private final DpcRenderService dpcRenderService;
@@ -106,7 +108,7 @@ public class DpcDocumentController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Validation failed: " + e.getMessage()));
+                    .body(ApiResponse.error(MSG_VALIDATION_FAILED + e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to create DPC for project {}", projectId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -126,7 +128,7 @@ public class DpcDocumentController {
             return ResponseEntity.ok(ApiResponse.success("DPC documents retrieved", dtos));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Validation failed: " + e.getMessage()));
+                    .body(ApiResponse.error(MSG_VALIDATION_FAILED + e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to list DPC documents for project {}", projectId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -185,7 +187,7 @@ public class DpcDocumentController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Validation failed: " + e.getMessage()));
+                    .body(ApiResponse.error(MSG_VALIDATION_FAILED + e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to update DPC {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -207,7 +209,7 @@ public class DpcDocumentController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Validation failed: " + e.getMessage()));
+                    .body(ApiResponse.error(MSG_VALIDATION_FAILED + e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to update DPC {} scope {}", id, scopeRowId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -231,7 +233,7 @@ public class DpcDocumentController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Validation failed: " + e.getMessage()));
+                    .body(ApiResponse.error(MSG_VALIDATION_FAILED + e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to add customization line to DPC {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -254,7 +256,7 @@ public class DpcDocumentController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Validation failed: " + e.getMessage()));
+                    .body(ApiResponse.error(MSG_VALIDATION_FAILED + e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to update DPC {} customization line {}", id, lineId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -322,7 +324,7 @@ public class DpcDocumentController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Validation failed: " + e.getMessage()));
+                    .body(ApiResponse.error(MSG_VALIDATION_FAILED + e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to delete DPC {} customization line {}", id, lineId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -367,7 +369,7 @@ public class DpcDocumentController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Validation failed: " + e.getMessage()));
+                    .body(ApiResponse.error(MSG_VALIDATION_FAILED + e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to issue DPC {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -388,7 +390,7 @@ public class DpcDocumentController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Validation failed: " + e.getMessage()));
+                    .body(ApiResponse.error(MSG_VALIDATION_FAILED + e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to branch new revision from DPC {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -33,6 +33,8 @@ public class LeadController {
 
     private static final Logger logger = LoggerFactory.getLogger(LeadController.class);
 
+    private static final String LEAD_NOT_FOUND_PREFIX = "Lead not found with id: ";
+
     private final LeadService leadService;
 
     public LeadController(LeadService leadService) {
@@ -261,7 +263,7 @@ public class LeadController {
         } catch (IllegalArgumentException e) {
             logger.warn("Lead not found: {}", id);
             return ResponseEntity.status(404)
-                    .body(ApiResponse.error("Lead not found with id: " + id));
+                    .body(ApiResponse.error(LEAD_NOT_FOUND_PREFIX +id));
         } catch (Exception e) {
             logger.error("Error fetching lead {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(500)
@@ -319,7 +321,7 @@ public class LeadController {
             if (updatedLead == null) {
                 logger.warn("Lead not found for update: {}", id);
                 return ResponseEntity.status(404)
-                        .body(ApiResponse.error("Lead not found with id: " + id));
+                        .body(ApiResponse.error(LEAD_NOT_FOUND_PREFIX +id));
             }
 
             logger.info("Lead {} updated successfully", id);
@@ -354,7 +356,7 @@ public class LeadController {
                 return ResponseEntity.ok(ApiResponse.success("Lead deleted successfully"));
             } else {
                 return ResponseEntity.status(404)
-                        .body(ApiResponse.error("Lead not found with id: " + id));
+                        .body(ApiResponse.error(LEAD_NOT_FOUND_PREFIX +id));
             }
         } catch (Exception e) {
             logger.error("Error deleting lead {}: {}", id, e.getMessage(), e);
@@ -379,7 +381,7 @@ public class LeadController {
         } catch (IllegalArgumentException e) {
             logger.warn("Lead not found: {}", leadId);
             return ResponseEntity.status(404)
-                    .body(ApiResponse.error("Lead not found with id: " + leadId));
+                    .body(ApiResponse.error(LEAD_NOT_FOUND_PREFIX +leadId));
         } catch (Exception e) {
             logger.error("Error fetching activities for lead {}: {}", leadId, e.getMessage(), e);
             return ResponseEntity.status(500)

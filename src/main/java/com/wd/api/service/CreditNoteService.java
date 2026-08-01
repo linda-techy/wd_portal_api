@@ -30,16 +30,13 @@ public class CreditNoteService {
     private final CreditNoteRepository creditNoteRepository;
     private final RefundNoticeRepository refundNoticeRepository;
     private final PaymentStageRepository stageRepository;
-    private final BoqInvoiceRepository invoiceRepository;
 
     public CreditNoteService(CreditNoteRepository creditNoteRepository,
                               RefundNoticeRepository refundNoticeRepository,
-                              PaymentStageRepository stageRepository,
-                              BoqInvoiceRepository invoiceRepository) {
+                              PaymentStageRepository stageRepository) {
         this.creditNoteRepository = creditNoteRepository;
         this.refundNoticeRepository = refundNoticeRepository;
         this.stageRepository = stageRepository;
-        this.invoiceRepository = invoiceRepository;
     }
 
     // -------------------------------------------------------------------------

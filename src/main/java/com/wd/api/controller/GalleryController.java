@@ -25,6 +25,8 @@ public class GalleryController {
 
     private static final Logger logger = LoggerFactory.getLogger(GalleryController.class);
 
+    private static final String MSG_INTERNAL_SERVER_ERROR = "Internal server error";
+
     private final GalleryService galleryService;
     private final AuthService authService;
 
@@ -51,7 +53,7 @@ public class GalleryController {
             return ResponseEntity.ok(ApiResponse.success("Gallery images retrieved successfully", images));
         } catch (Exception e) {
             logger.error("Error fetching gallery images for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -63,7 +65,7 @@ public class GalleryController {
             return ResponseEntity.ok(ApiResponse.success("Gallery images grouped by date", groupedImages));
         } catch (Exception e) {
             logger.error("Error fetching grouped gallery images for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -76,7 +78,7 @@ public class GalleryController {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error fetching gallery image {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -102,7 +104,7 @@ public class GalleryController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error uploading gallery image for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -132,7 +134,7 @@ public class GalleryController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error uploading batch gallery images for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -149,7 +151,7 @@ public class GalleryController {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error updating gallery image {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -162,7 +164,7 @@ public class GalleryController {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error deleting gallery image {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -173,7 +175,7 @@ public class GalleryController {
             return ResponseEntity.ok(ApiResponse.success("Image count retrieved", count));
         } catch (Exception e) {
             logger.error("Error getting image count for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 

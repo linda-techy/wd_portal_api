@@ -2,7 +2,6 @@ package com.wd.api.model;
 
 import jakarta.persistence.*;
 import java.util.Collection;
-import java.util.stream.Collectors;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -161,7 +160,7 @@ public class PortalUser extends BaseEntity implements UserDetails {
                 authorities.addAll(role.getPermissions().stream()
                         .filter(java.util.Objects::nonNull)
                         .map(p -> new SimpleGrantedAuthority(p.getName()))
-                        .collect(Collectors.toList()));
+                        .toList());
             }
         }
 

@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -56,7 +55,7 @@ public class ProjectAggregationService {
                                                         .role(m.getRoleInProject())
                                                         .build();
                                 })
-                                .collect(Collectors.toList());
+                                .toList();
 
                 // 3. Execution Stats
                 int totalTasks = taskRepository.countByProjectId(projectId);
@@ -100,7 +99,7 @@ public class ProjectAggregationService {
                                                 // exists
                                                 .createdAt(a.getCreatedAt())
                                                 .build())
-                                .collect(Collectors.toList());
+                                .toList();
 
                 return ProjectSummaryDTO.builder()
                                 .project(project)

@@ -43,7 +43,9 @@ public class Holiday extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean active = Boolean.TRUE;
 
-    public Holiday() {}
+    public Holiday() {
+        // No-op: default constructor required by JPA
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

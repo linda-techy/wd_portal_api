@@ -37,6 +37,11 @@ import java.util.List;
 @Service
 public class TaskCompletionService {
 
+    private static final String TASK_PREFIX = "Task ";
+    private static final String NOT_FOUND_SUFFIX = " not found";
+    private static final String TASK_TITLE_PREFIX = "Task '";
+    private static final String TASK_ID_INFIX = "' (id=";
+
     private final TaskRepository taskRepo;
     private final SiteReportRepository siteReportRepo;
     private final ProjectScheduleConfigService configService;
@@ -78,11 +83,11 @@ public class TaskCompletionService {
     @Transactional
     public Task markComplete(Long taskId, Long userId) {
         Task t = taskRepo.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task " + taskId + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(TASK_PREFIX + taskId + NOT_FOUND_SUFFIX));
 
         if (t.getStatus() != Task.TaskStatus.IN_PROGRESS) {
             throw new IllegalStateException(
-                    "Task " + taskId + " is not in progress (status=" + t.getStatus() + ")");
+                    TASK_PREFIX + taskId + " is not in progress (status=" + t.getStatus() + ")");
         }
         if (!hasGeotaggedCompletionPhoto(taskId)) {
             throw new IllegalStateException(
@@ -108,21 +113,21 @@ public class TaskCompletionService {
 
         Task saved = taskRepo.save(t);
         cpmService.recompute(projectId);
-        // Status transitioned (IN_PROGRESS → PENDING_PM_APPROVAL or COMPLETED);
-        // refresh project denormalised progress columns.
+        // Status transitioned from in-progress to either pending approval or completed,
+        // so refresh the project denormalised progress columns.
         refreshProjectProgress(projectId, "TASK_MARK_COMPLETE",
-                "Task '" + saved.getTitle() + "' (id=" + saved.getId() + ") moved to " + saved.getStatus());
+                TASK_TITLE_PREFIX + saved.getTitle() + TASK_ID_INFIX + saved.getId() + ") moved to " + saved.getStatus());
         return saved;
     }
 
     @Transactional
     public Task approveCompletion(Long taskId, Long userId) {
         Task t = taskRepo.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task " + taskId + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(TASK_PREFIX + taskId + NOT_FOUND_SUFFIX));
 
         if (t.getStatus() != Task.TaskStatus.PENDING_PM_APPROVAL) {
             throw new IllegalStateException(
-                    "Task " + taskId + " is not pending approval (status=" + t.getStatus() + ")");
+                    TASK_PREFIX + taskId + " is not pending approval (status=" + t.getStatus() + ")");
         }
 
         // ITP gate: PM approval finalises the transition to COMPLETED — refuse
@@ -137,7 +142,7 @@ public class TaskCompletionService {
         // PM approval flips the task into the completed bucket — this is the
         // transition that actually moves project overall_progress.
         refreshProjectProgress(projectId, "TASK_COMPLETION_APPROVED",
-                "Task '" + saved.getTitle() + "' (id=" + saved.getId() + ") approved as COMPLETED");
+                TASK_TITLE_PREFIX + saved.getTitle() + TASK_ID_INFIX + saved.getId() + ") approved as COMPLETED");
         return saved;
     }
 
@@ -147,11 +152,11 @@ public class TaskCompletionService {
             throw new IllegalArgumentException("Rejection reason is required");
         }
         Task t = taskRepo.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task " + taskId + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(TASK_PREFIX + taskId + NOT_FOUND_SUFFIX));
 
         if (t.getStatus() != Task.TaskStatus.PENDING_PM_APPROVAL) {
             throw new IllegalStateException(
-                    "Task " + taskId + " is not pending approval (status=" + t.getStatus() + ")");
+                    TASK_PREFIX + taskId + " is not pending approval (status=" + t.getStatus() + ")");
         }
 
         t.setStatus(Task.TaskStatus.IN_PROGRESS);
@@ -164,7 +169,7 @@ public class TaskCompletionService {
         // no longer in the completed bucket (it never reached COMPLETED via
         // this path, but the denominator may have shifted). Refresh.
         refreshProjectProgress(projectId, "TASK_COMPLETION_REJECTED",
-                "Task '" + saved.getTitle() + "' (id=" + saved.getId() + ") rejected: " + reason);
+                TASK_TITLE_PREFIX + saved.getTitle() + TASK_ID_INFIX + saved.getId() + ") rejected: " + reason);
         return saved;
     }
 

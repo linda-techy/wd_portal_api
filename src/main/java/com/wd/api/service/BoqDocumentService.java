@@ -1,6 +1,5 @@
 package com.wd.api.service;
 
-import com.wd.api.dto.ProjectStageTemplateDto;
 import com.wd.api.model.*;
 import com.wd.api.model.enums.BoqDocumentStatus;
 import com.wd.api.model.enums.BoqItemStatus;
@@ -33,6 +32,8 @@ import java.util.List;
 public class BoqDocumentService {
 
     private static final Logger logger = LoggerFactory.getLogger(BoqDocumentService.class);
+
+    private static final String BOQ_REVISION_PREFIX = "BOQ revision ";
 
     private final BoqDocumentRepository boqDocumentRepository;
     private final BoqItemRepository boqItemRepository;
@@ -200,7 +201,7 @@ public class BoqDocumentService {
 
         activityFeedService.logProjectActivity(
             "BOQ_SUBMITTED", "BOQ Submitted for Approval",
-            "BOQ revision " + doc.getRevisionNumber() + " submitted for customer approval.",
+            BOQ_REVISION_PREFIX + doc.getRevisionNumber() + " submitted for customer approval.",
             doc.getProject(), getCurrentPortalUser());
 
         return saved;
@@ -303,7 +304,7 @@ public class BoqDocumentService {
 
         activityFeedService.logProjectActivity(
             "BOQ_APPROVED", "BOQ Approved",
-            "BOQ revision " + doc.getRevisionNumber() + " approved by customer.",
+            BOQ_REVISION_PREFIX + doc.getRevisionNumber() + " approved by customer.",
             doc.getProject(), null);  // null portalUser because customer triggered this
 
         logger.info("BOQ document {} approved for project {}. Signed by customer user {}. {} payment stages generated.",
@@ -334,7 +335,7 @@ public class BoqDocumentService {
 
         activityFeedService.logProjectActivity(
             "BOQ_REJECTED", "BOQ Rejected",
-            "BOQ revision " + doc.getRevisionNumber() + " rejected. Reason: " + doc.getRejectionReason(),
+            BOQ_REVISION_PREFIX + doc.getRevisionNumber() + " rejected. Reason: " + doc.getRejectionReason(),
             doc.getProject(), getCurrentPortalUser());
 
         return saved;
@@ -347,7 +348,6 @@ public class BoqDocumentService {
     private void generatePaymentStages(BoqDocument doc, List<StageConfig> configs) {
         BigDecimal boqSnapshot = doc.getTotalValueExGst();
         BigDecimal gstRate = doc.getGstRate();
-        Long projectId = doc.getProject().getId();
 
         for (int i = 0; i < configs.size(); i++) {
             StageConfig cfg = configs.get(i);

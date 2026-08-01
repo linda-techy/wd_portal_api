@@ -27,6 +27,10 @@ public class LeadScoreHistoryController {
 
     private static final Logger logger = LoggerFactory.getLogger(LeadScoreHistoryController.class);
 
+    private static final String LOG_INVALID_LEAD_ID = "Invalid lead ID format: {}";
+    private static final String MSG_INVALID_LEAD_ID = "Invalid lead ID format";
+    private static final String MSG_INTERNAL_SERVER_ERROR = "Internal server error";
+
     private final LeadScoreHistoryService scoreHistoryService;
 
     public LeadScoreHistoryController(LeadScoreHistoryService scoreHistoryService) {
@@ -49,13 +53,13 @@ public class LeadScoreHistoryController {
             List<LeadScoreHistoryDTO> history = scoreHistoryService.getScoreHistory(id);
             return ResponseEntity.ok(ApiResponse.success("Score history retrieved successfully", history));
         } catch (NumberFormatException e) {
-            logger.error("Invalid lead ID format: {}", leadId);
+            logger.error(LOG_INVALID_LEAD_ID, leadId);
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Invalid lead ID format"));
+                    .body(ApiResponse.error(MSG_INVALID_LEAD_ID));
         } catch (Exception e) {
             logger.error("Error fetching score history for lead {}", leadId, e);
             return ResponseEntity.status(500)
-                    .body(ApiResponse.error("Internal server error"));
+                    .body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -79,13 +83,13 @@ public class LeadScoreHistoryController {
             Page<LeadScoreHistoryDTO> historyPage = scoreHistoryService.getScoreHistoryPaginated(id, pageable);
             return ResponseEntity.ok(ApiResponse.success("Score history retrieved successfully", historyPage));
         } catch (NumberFormatException e) {
-            logger.error("Invalid lead ID format: {}", leadId);
+            logger.error(LOG_INVALID_LEAD_ID, leadId);
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Invalid lead ID format"));
+                    .body(ApiResponse.error(MSG_INVALID_LEAD_ID));
         } catch (Exception e) {
             logger.error("Error fetching paginated score history for lead {}", leadId, e);
             return ResponseEntity.status(500)
-                    .body(ApiResponse.error("Internal server error"));
+                    .body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -108,13 +112,13 @@ public class LeadScoreHistoryController {
                 return ResponseEntity.ok(ApiResponse.success("No score history found", null));
             }
         } catch (NumberFormatException e) {
-            logger.error("Invalid lead ID format: {}", leadId);
+            logger.error(LOG_INVALID_LEAD_ID, leadId);
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Invalid lead ID format"));
+                    .body(ApiResponse.error(MSG_INVALID_LEAD_ID));
         } catch (Exception e) {
             logger.error("Error fetching latest score history for lead {}", leadId, e);
             return ResponseEntity.status(500)
-                    .body(ApiResponse.error("Internal server error"));
+                    .body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -133,13 +137,13 @@ public class LeadScoreHistoryController {
             long count = scoreHistoryService.countScoreChanges(id);
             return ResponseEntity.ok(ApiResponse.success("Score history count retrieved successfully", count));
         } catch (NumberFormatException e) {
-            logger.error("Invalid lead ID format: {}", leadId);
+            logger.error(LOG_INVALID_LEAD_ID, leadId);
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Invalid lead ID format"));
+                    .body(ApiResponse.error(MSG_INVALID_LEAD_ID));
         } catch (Exception e) {
             logger.error("Error fetching score history count for lead {}", leadId, e);
             return ResponseEntity.status(500)
-                    .body(ApiResponse.error("Internal server error"));
+                    .body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 }

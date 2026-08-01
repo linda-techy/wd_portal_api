@@ -40,7 +40,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 /**
  * Service layer for Customer Project business logic
@@ -53,6 +52,10 @@ import java.util.stream.Collectors;
 public class CustomerProjectService {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerProjectService.class);
+
+    private static final String STATUS_PENDING = "PENDING";
+    private static final String SUFFIX_NOT_FOUND = " not found";
+    private static final String PREFIX_PROJECT_WITH_ID = "Project with ID ";
 
     private final CustomerProjectRepository customerProjectRepository;
 
@@ -206,10 +209,12 @@ public class CustomerProjectService {
     }
 
     /**
-     * DEPRECATED: Old method - kept for backward compatibility
-     * Use search(ProjectSearchFilter) instead
+     * Old method - kept for backward compatibility.
+     *
+     * @deprecated Use {@link #search(ProjectSearchFilter)} instead, which provides
+     *             standardized, comprehensive filtering.
      */
-    @Deprecated
+    @Deprecated(since = "2026-06")
     @Transactional(readOnly = true)
     public Page<CustomerProjectResponse> getAllProjects(String search, Pageable pageable) {
         Page<CustomerProject> projectPage;
@@ -300,13 +305,13 @@ public class CustomerProjectService {
         project.setLeadId(request.getLeadId());
 
         // Initial dummy code, will be updated after save
-        project.setCode("PENDING");
+        project.setCode(STATUS_PENDING);
 
         // Set customer if provided
         if (request.getCustomerId() != null) {
             Long customerId = request.getCustomerId();
             project.setCustomer(customerUserRepository.findById(customerId)
-                    .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + customerId + " not found")));
+                    .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + customerId + SUFFIX_NOT_FOUND)));
         }
 
         // Handle contract type — only TURNKEY and ITEM_RATE are offered for new projects
@@ -389,7 +394,7 @@ public class CustomerProjectService {
 
         CustomerProject project = customerProjectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Project with ID " + projectId + " not found"));
+                        PREFIX_PROJECT_WITH_ID + projectId + SUFFIX_NOT_FOUND));
 
         if (project.isGpsLocked() && !isAdmin(actingUser)) {
             throw new IllegalStateException(
@@ -422,7 +427,7 @@ public class CustomerProjectService {
         }
         CustomerProject project = customerProjectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Project with ID " + projectId + " not found"));
+                        PREFIX_PROJECT_WITH_ID + projectId + SUFFIX_NOT_FOUND));
         project.setGstRate(gstRate);
         return customerProjectRepository.save(project);
     }
@@ -442,7 +447,7 @@ public class CustomerProjectService {
         }
         // Find existing project
         CustomerProject project = customerProjectRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Project with ID " + id + " not found"));
+                .orElseThrow(() -> new IllegalArgumentException(PREFIX_PROJECT_WITH_ID + id + SUFFIX_NOT_FOUND));
 
         // Validate request
         validateProjectUpdateRequest(request);
@@ -486,7 +491,7 @@ public class CustomerProjectService {
                 if (!newPhase.equals(project.getProjectPhase())) {
                     // Quality check gate: block phase advance if any check is PENDING or FAILED
                     List<QualityCheck> blockedChecks = qualityCheckRepository.findByProjectId(id).stream()
-                            .filter(qc -> "PENDING".equalsIgnoreCase(qc.getStatus()) || "FAILED".equalsIgnoreCase(qc.getResult()))
+                            .filter(qc -> STATUS_PENDING.equalsIgnoreCase(qc.getStatus()) || "FAILED".equalsIgnoreCase(qc.getResult()))
                             .toList();
                     if (!blockedChecks.isEmpty()) {
                         throw new IllegalStateException(
@@ -497,7 +502,7 @@ public class CustomerProjectService {
                     // Payment milestone gate: block phase advance if any payment schedule is still PENDING
                     List<PaymentSchedule> unpaidSchedules = paymentScheduleRepository
                             .findByDesignPayment_Project_Id(id).stream()
-                            .filter(ps -> "PENDING".equalsIgnoreCase(ps.getStatus()) || "OVERDUE".equalsIgnoreCase(ps.getStatus()))
+                            .filter(ps -> STATUS_PENDING.equalsIgnoreCase(ps.getStatus()) || "OVERDUE".equalsIgnoreCase(ps.getStatus()))
                             .toList();
                     if (!unpaidSchedules.isEmpty()) {
                         throw new IllegalStateException(
@@ -572,7 +577,7 @@ public class CustomerProjectService {
             throw new IllegalArgumentException("Project ID is required");
         }
         CustomerProject project = customerProjectRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Project with ID " + id + " not found"));
+                .orElseThrow(() -> new IllegalArgumentException(PREFIX_PROJECT_WITH_ID + id + SUFFIX_NOT_FOUND));
 
         try {
             // Step 1: Delete activity feeds (audit logs) that reference this project
@@ -787,7 +792,7 @@ public class CustomerProjectService {
         return projectMemberRepository.findByProjectId(projectId).stream()
                 .filter(m -> m.getCustomerUser() != null)
                 .map(m -> toMemberResponse(m, m.getCustomerUser()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ProjectMemberResponse addProjectMember(Long projectId, ProjectMemberRequest request) {

@@ -22,6 +22,10 @@ import java.util.List;
 @Slf4j
 public class MaterialIndentService {
 
+    private static final String MSG_INDENT_NOT_FOUND = "Indent not found";
+    private static final String FIELD_INDENT_NUMBER = "indentNumber";
+    private static final String FIELD_PROJECT = "project";
+
     private final MaterialIndentRepository indentRepository;
     private final CustomerProjectRepository projectRepository;
     private final MaterialRepository materialRepository;
@@ -65,7 +69,7 @@ public class MaterialIndentService {
     @Transactional
     public MaterialIndent submitIndent(Long indentId) {
         MaterialIndent indent = indentRepository.findById(indentId)
-                .orElseThrow(() -> new RuntimeException("Indent not found"));
+                .orElseThrow(() -> new RuntimeException(MSG_INDENT_NOT_FOUND));
 
         if (indent.getStatus() != MaterialIndent.IndentStatus.DRAFT) {
             throw new IllegalStateException("Only DRAFT indents can be submitted");
@@ -78,7 +82,7 @@ public class MaterialIndentService {
     @Transactional
     public MaterialIndent approveIndent(Long indentId, Long approvedById) {
         MaterialIndent indent = indentRepository.findById(indentId)
-                .orElseThrow(() -> new RuntimeException("Indent not found"));
+                .orElseThrow(() -> new RuntimeException(MSG_INDENT_NOT_FOUND));
 
         if (indent.getStatus() != MaterialIndent.IndentStatus.SUBMITTED) {
             throw new IllegalStateException("Only SUBMITTED indents can be approved");
@@ -101,7 +105,7 @@ public class MaterialIndentService {
     @Transactional
     public MaterialIndent rejectIndent(Long indentId, Long rejectedById, String reason) {
         MaterialIndent indent = indentRepository.findById(indentId)
-                .orElseThrow(() -> new RuntimeException("Indent not found"));
+                .orElseThrow(() -> new RuntimeException(MSG_INDENT_NOT_FOUND));
 
         if (indent.getStatus() != MaterialIndent.IndentStatus.SUBMITTED) {
             throw new IllegalStateException("Only SUBMITTED indents can be rejected");
@@ -122,7 +126,7 @@ public class MaterialIndentService {
     @Transactional
     public MaterialIndent markPOCreated(Long indentId) {
         MaterialIndent indent = indentRepository.findById(indentId)
-                .orElseThrow(() -> new RuntimeException("Indent not found"));
+                .orElseThrow(() -> new RuntimeException(MSG_INDENT_NOT_FOUND));
 
         if (indent.getStatus() != MaterialIndent.IndentStatus.APPROVED) {
             throw new IllegalStateException("Only APPROVED indents can be moved to PO_CREATED");
@@ -138,7 +142,7 @@ public class MaterialIndentService {
     @Transactional
     public MaterialIndent closeIndent(Long indentId) {
         MaterialIndent indent = indentRepository.findById(indentId)
-                .orElseThrow(() -> new RuntimeException("Indent not found"));
+                .orElseThrow(() -> new RuntimeException(MSG_INDENT_NOT_FOUND));
 
         if (indent.getStatus() != MaterialIndent.IndentStatus.PO_CREATED) {
             throw new IllegalStateException("Only PO_CREATED indents can be closed");
@@ -166,7 +170,7 @@ public class MaterialIndentService {
         // Search across multiple fields
         Specification<MaterialIndent> searchSpec = builder.buildSearch(
                 filter.getSearchQuery(),
-                "indentNumber", "description", "notes");
+                FIELD_INDENT_NUMBER, "description", "notes");
 
         // Apply filters
         Specification<MaterialIndent> statusSpec = null;
@@ -178,7 +182,7 @@ public class MaterialIndentService {
         // Project filter
         Specification<MaterialIndent> projectSpec = null;
         if (filter.getProjectId() != null) {
-            projectSpec = (root, query, cb) -> cb.equal(root.get("project").get("id"), filter.getProjectId());
+            projectSpec = (root, query, cb) -> cb.equal(root.get(FIELD_PROJECT).get("id"), filter.getProjectId());
         }
 
         // Requester filter
@@ -188,7 +192,7 @@ public class MaterialIndentService {
         Specification<MaterialIndent> approverSpec = builder.buildEquals("approvedById", filter.getApprovedBy());
 
         // Indent number filter (partial match)
-        Specification<MaterialIndent> indentNumberSpec = builder.buildLike("indentNumber", filter.getIndentNumber());
+        Specification<MaterialIndent> indentNumberSpec = builder.buildLike(FIELD_INDENT_NUMBER, filter.getIndentNumber());
 
         // Date range (on createdAt)
         Specification<MaterialIndent> dateRangeSpec = null;
@@ -226,8 +230,11 @@ public class MaterialIndentService {
 
     /**
      * DEPRECATED: Use search() instead
+     *
+     * @deprecated Use {@link #search(MaterialIndentSearchFilter)} instead, which accepts a
+     *             standardized {@link MaterialIndentSearchFilter} for all query parameters.
      */
-    @Deprecated
+    @Deprecated(since = "2026-06")
     @Transactional(readOnly = true)
     public Page<MaterialIndent> searchIndents(Long projectId, String status, String searchTerm, Pageable pageable) {
         Specification<MaterialIndent> spec = (root, query, cb) -> {
@@ -237,7 +244,7 @@ public class MaterialIndentService {
             predicates.add(cb.isNull(root.get("deletedAt")));
 
             if (projectId != null) {
-                predicates.add(cb.equal(root.get("project").get("id"), projectId));
+                predicates.add(cb.equal(root.get(FIELD_PROJECT).get("id"), projectId));
             }
 
             if (status != null && !status.isEmpty() && !"ALL".equalsIgnoreCase(status)) {
@@ -247,8 +254,8 @@ public class MaterialIndentService {
             if (searchTerm != null && !searchTerm.isEmpty()) {
                 String likePattern = "%" + searchTerm.toLowerCase() + "%";
                 predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("indentNumber")), likePattern),
-                        cb.like(cb.lower(root.get("project").get("name")), likePattern)));
+                        cb.like(cb.lower(root.get(FIELD_INDENT_NUMBER)), likePattern),
+                        cb.like(cb.lower(root.get(FIELD_PROJECT).get("name")), likePattern)));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -259,7 +266,7 @@ public class MaterialIndentService {
 
     public MaterialIndent getIndentById(Long id) {
         return indentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Indent not found"));
+                .orElseThrow(() -> new RuntimeException(MSG_INDENT_NOT_FOUND));
     }
 
     private String generateIndentNumber(CustomerProject project) {

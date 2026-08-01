@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -83,11 +82,6 @@ public class InventoryService {
                                         .map(com.wd.api.model.StockAdjustment::getQuantity)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                        // Other adjustments (Correction, Transfer Out) could affect calc, but sticking
-                        // to basics:
-                        // BigDecimal totalAdjustments =
-                        // wastage.add(theft).add(damage).add(consumption);
-
                         // Implied Consumption fallback (if explicit consumption not used)
                         // Implied = Purchased - Stock - (Negative Adjustments)
                         BigDecimal impliedConsumption = totalPurchased.subtract(currentStock)
@@ -118,7 +112,7 @@ public class InventoryService {
                                         .build();
                 })
                                 .filter(dto -> dto != null)
-                                .collect(Collectors.toList());
+                                .toList();
         }
 
         public MaterialDTO createMaterial(MaterialDTO dto) {
@@ -209,14 +203,15 @@ public class InventoryService {
         }
 
         /**
-         * DEPRECATED: Use searchMaterials() instead
+         * @deprecated Use {@link #searchMaterials(InventorySearchFilter)} instead, which
+         *             supports filtering and pagination.
          */
-        @Deprecated
+        @Deprecated(since = "2026-06")
         public List<MaterialDTO> getAllMaterials() {
                 return materialRepository.findAll().stream()
                                 .filter(m -> m.isActive()) // Only return active materials
                                 .map(this::mapToMaterialDTO)
-                                .collect(Collectors.toList());
+                                .toList();
         }
 
         /**
@@ -315,7 +310,7 @@ public class InventoryService {
                         return List.of();
                 return stockRepository.findByProjectId(projectId).stream()
                                 .map(this::mapToStockDTO)
-                                .collect(Collectors.toList());
+                                .toList();
         }
 
         private MaterialDTO mapToMaterialDTO(Material m) {

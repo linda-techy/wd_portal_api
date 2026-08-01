@@ -37,6 +37,8 @@ public class TaskAlertScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskAlertScheduler.class);
 
+    private static final String LOG_SEPARATOR = "==========================================";
+
     private final TaskAlertService taskAlertService;
 
     public TaskAlertScheduler(TaskAlertService taskAlertService) {
@@ -62,9 +64,9 @@ public class TaskAlertScheduler {
      */
     @Scheduled(cron = "${task.alerts.cron:0 0 9 * * *}", zone = "${task.alerts.timezone:Asia/Kolkata}")
     public void scheduledTaskDeadlineCheck() {
-        logger.info("==========================================");
+        logger.info(LOG_SEPARATOR);
         logger.info("Starting scheduled task deadline check...");
-        logger.info("==========================================");
+        logger.info(LOG_SEPARATOR);
 
         try {
             long startTime = System.currentTimeMillis();
@@ -82,7 +84,7 @@ public class TaskAlertScheduler {
                     + "Next run: as per cron schedule");
         }
 
-        logger.info("==========================================");
+        logger.info(LOG_SEPARATOR);
     }
 
     /**

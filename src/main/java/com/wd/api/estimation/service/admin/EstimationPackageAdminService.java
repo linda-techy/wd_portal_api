@@ -15,6 +15,8 @@ import java.util.UUID;
 @Service
 public class EstimationPackageAdminService {
 
+    private static final String MSG_PACKAGE_NOT_FOUND = "Estimation package not found: ";
+
     private final EstimationPackageRepository repo;
 
     public EstimationPackageAdminService(EstimationPackageRepository repo) {
@@ -37,7 +39,7 @@ public class EstimationPackageAdminService {
     @Transactional
     public PackageAdminResponse update(UUID id, PackageAdminUpdateRequest req) {
         EstimationPackage pkg = repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation package not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(MSG_PACKAGE_NOT_FOUND + id));
         pkg.setMarketingName(req.marketingName());
         pkg.setTagline(req.tagline());
         pkg.setDescription(req.description());
@@ -49,7 +51,7 @@ public class EstimationPackageAdminService {
     @Transactional(readOnly = true)
     public PackageAdminResponse get(UUID id) {
         EstimationPackage pkg = repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation package not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(MSG_PACKAGE_NOT_FOUND + id));
         return PackageAdminResponse.fromEntity(pkg);
     }
 
@@ -69,7 +71,7 @@ public class EstimationPackageAdminService {
     @Transactional
     public void softDelete(UUID id) {
         EstimationPackage pkg = repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation package not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(MSG_PACKAGE_NOT_FOUND + id));
         repo.delete(pkg);  // @SQLDelete on the entity translates this to UPDATE … SET deleted_at = NOW()
     }
 }

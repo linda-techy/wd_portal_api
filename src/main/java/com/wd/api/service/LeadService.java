@@ -131,6 +131,32 @@ public class LeadService {
     // Single reusable CSPRNG for security-sensitive generated passwords (SecureRandom is thread-safe)
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
+    private static final String ACTIVITY_TYPE_LEAD_ASSIGNED = "LEAD_ASSIGNED";
+    private static final String ACTIVITY_TITLE_LEAD_ASSIGNED = "Lead Assigned";
+    private static final String STATUS_NEW_INQUIRY = "new_inquiry";
+    private static final String STATUS_PROJECT_WON = "project_won";
+    private static final String STATUS_PROJECTWON = "projectwon";
+    private static final String STATUS_CONVERTED = "converted";
+    private static final String FIELD_LEAD_STATUS = "leadStatus";
+    private static final String SQL_FN_REPLACE = "REPLACE";
+    private static final String STATUS_NEWINQUIRY = "newinquiry";
+    private static final String STATUS_QUALIFIED = "qualified";
+    private static final String STATUS_QUALIFIEDLEAD = "qualifiedlead";
+    private static final String STATUS_PROPOSAL_SENT = "proposal_sent";
+    private static final String STATUS_PROPOSALSENT = "proposalsent";
+    private static final String FIELD_LEAD_SOURCE = "leadSource";
+    private static final String FIELD_CUSTOMER_TYPE = "customerType";
+    private static final String FIELD_PROJECT_TYPE = "projectType";
+    private static final String FIELD_ASSIGNED_TEAM = "assignedTeam";
+    private static final String FIELD_BUDGET = "budget";
+    private static final String FIELD_CREATED_AT = "createdAt";
+    private static final String DIST_UNKNOWN = "unknown";
+    private static final String CUSTOMER_TYPE_INDIVIDUAL = "individual";
+    private static final String PRIORITY_MEDIUM = "medium";
+    private static final String STATUS_CONTACTED = "contacted";
+    private static final String STATUS_NEGOTIATION = "negotiation";
+    private static final String LEAD_NOT_FOUND = "Lead not found: ";
+
     @Transactional
     public Lead createLead(Lead lead) {
         if (lead.getDateOfEnquiry() == null) {
@@ -205,8 +231,8 @@ public class LeadService {
 
             if (savedLead.getAssignedTo() != null) {
                 activityFeedService.logSystemActivity(
-                        "LEAD_ASSIGNED",
-                        "Lead Assigned",
+                        ACTIVITY_TYPE_LEAD_ASSIGNED,
+                        ACTIVITY_TITLE_LEAD_ASSIGNED,
                         "Lead assigned to " + savedLead.getAssignedTeam(),
                         savedLead.getId(),
                         "LEAD");
@@ -250,7 +276,7 @@ public class LeadService {
 
         String status = request.getLeadStatus();
         lead.setLeadStatus(status != null && !status.isEmpty() ? status.trim().toLowerCase().replace(' ', '_')
-                : "new_inquiry");
+                : STATUS_NEW_INQUIRY);
 
         String source = request.getLeadSource();
         lead.setLeadSource(
@@ -347,8 +373,8 @@ public class LeadService {
             // The estimation-driven flip in LeadEstimationService.markAccepted bypasses this
             // path entirely (it calls leadRepository.save directly), so this guard only fires
             // for direct user edits to the lead status.
-            if ("project_won".equals(normalized)
-                    && !"project_won".equalsIgnoreCase(existing.getLeadStatus())
+            if (STATUS_PROJECT_WON.equals(normalized)
+                    && !STATUS_PROJECT_WON.equalsIgnoreCase(existing.getLeadStatus())
                     && !estimationRepository.existsAcceptedForLead(id)) {
                 throw new IllegalStateException(
                         "Cannot mark lead as project_won — no estimation has been accepted yet.");
@@ -617,8 +643,8 @@ public class LeadService {
 
                 if (assignedChanged) {
                     activityFeedService.logSystemActivity(
-                            "LEAD_ASSIGNED",
-                            "Lead Assigned",
+                            ACTIVITY_TYPE_LEAD_ASSIGNED,
+                            ACTIVITY_TITLE_LEAD_ASSIGNED,
                             "Lead assigned to " + savedLead.getAssignedTeam(),
                             savedLead.getId(),
                             "LEAD");
@@ -665,7 +691,7 @@ public class LeadService {
     public List<Lead> getOverdueFollowUps() {
         return leadRepository.findByNextFollowUpBeforeAndLeadStatusNotIn(
                 java.time.LocalDateTime.now(),
-                java.util.Arrays.asList("converted", "lost", "projectwon")
+                java.util.Arrays.asList(STATUS_CONVERTED, "lost", STATUS_PROJECTWON)
         );
     }
 
@@ -707,29 +733,29 @@ public class LeadService {
             final String normalizedStatus = normalizeStatusForComparison(filter.getStatus());
             statusSpec = (root, query, cb) -> {
                 // Normalize database column value (remove spaces/underscores, lowercase)
-                jakarta.persistence.criteria.Expression<String> dbStatusLower = cb.lower(root.get("leadStatus"));
+                jakarta.persistence.criteria.Expression<String> dbStatusLower = cb.lower(root.get(FIELD_LEAD_STATUS));
                 jakarta.persistence.criteria.Expression<String> dbStatusNoSpaces = cb.function(
-                        "REPLACE", String.class, dbStatusLower, cb.literal(" "), cb.literal(""));
+                        SQL_FN_REPLACE, String.class, dbStatusLower, cb.literal(" "), cb.literal(""));
                 jakarta.persistence.criteria.Expression<String> dbStatusCleaned = cb.function(
-                        "REPLACE", String.class, dbStatusNoSpaces, cb.literal("_"), cb.literal(""));
+                        SQL_FN_REPLACE, String.class, dbStatusNoSpaces, cb.literal("_"), cb.literal(""));
 
                 // Match all variations that normalize to the same value
-                // For "new": match "newinquiry", "new"
-                // For "qualified": match "qualifiedlead", "qualified"
+                // For "new": match STATUS_NEWINQUIRY, "new"
+                // For STATUS_QUALIFIED: match STATUS_QUALIFIEDLEAD, STATUS_QUALIFIED
                 // etc.
                 List<Predicate> statusPredicates = new ArrayList<>();
                 if ("new".equals(normalizedStatus)) {
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "newinquiry"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_NEWINQUIRY));
                     statusPredicates.add(cb.equal(dbStatusCleaned, "new"));
-                } else if ("qualified".equals(normalizedStatus)) {
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "qualifiedlead"));
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "qualified"));
-                } else if ("proposal_sent".equals(normalizedStatus)) {
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "proposalsent"));
+                } else if (STATUS_QUALIFIED.equals(normalizedStatus)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_QUALIFIEDLEAD));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_QUALIFIED));
+                } else if (STATUS_PROPOSAL_SENT.equals(normalizedStatus)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_PROPOSALSENT));
                 } else if ("won".equals(normalizedStatus)) {
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "projectwon"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_PROJECTWON));
                     statusPredicates.add(cb.equal(dbStatusCleaned, "won"));
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "converted"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_CONVERTED));
                 } else {
                     // For other statuses, match the normalized value directly
                     statusPredicates.add(cb.equal(dbStatusCleaned, normalizedStatus));
@@ -738,10 +764,10 @@ public class LeadService {
                 return cb.or(statusPredicates.toArray(new Predicate[0]));
             };
         }
-        Specification<Lead> sourceSpec = builder.buildEquals("leadSource", filter.getSource());
+        Specification<Lead> sourceSpec = builder.buildEquals(FIELD_LEAD_SOURCE, filter.getSource());
         Specification<Lead> prioritySpec = builder.buildEquals("priority", filter.getPriority());
-        Specification<Lead> customerTypeSpec = builder.buildEquals("customerType", filter.getCustomerType());
-        Specification<Lead> projectTypeSpec = builder.buildEquals("projectType", filter.getProjectType());
+        Specification<Lead> customerTypeSpec = builder.buildEquals(FIELD_CUSTOMER_TYPE, filter.getCustomerType());
+        Specification<Lead> projectTypeSpec = builder.buildEquals(FIELD_PROJECT_TYPE, filter.getProjectType());
         Specification<Lead> stateSpec = builder.buildEquals("state", filter.getState());
         Specification<Lead> districtSpec = builder.buildEquals("district", filter.getDistrict());
 
@@ -752,13 +778,13 @@ public class LeadService {
                 Long assignedId = Long.parseLong(filter.getAssignedTeam());
                 assignedSpec = (root, query, cb) -> cb.equal(root.get("assignedTo").get("id"), assignedId);
             } catch (NumberFormatException e) {
-                assignedSpec = builder.buildEquals("assignedTeam", filter.getAssignedTeam());
+                assignedSpec = builder.buildEquals(FIELD_ASSIGNED_TEAM, filter.getAssignedTeam());
             }
         }
 
         // Budget range
         Specification<Lead> budgetSpec = builder.buildNumericRange(
-                "budget",
+                FIELD_BUDGET,
                 filter.getMinBudget(),
                 filter.getMaxBudget());
 
@@ -769,12 +795,12 @@ public class LeadService {
                 List<Predicate> predicates = new ArrayList<>();
                 if (filter.getStartDate() != null) {
                     predicates.add(cb.greaterThanOrEqualTo(
-                            root.get("createdAt"),
+                            root.get(FIELD_CREATED_AT),
                             filter.getStartDate().atStartOfDay()));
                 }
                 if (filter.getEndDate() != null) {
                     predicates.add(cb.lessThanOrEqualTo(
-                            root.get("createdAt"),
+                            root.get(FIELD_CREATED_AT),
                             filter.getEndDate().plusDays(1).atStartOfDay()));
                 }
                 return cb.and(predicates.toArray(new Predicate[0]));
@@ -797,13 +823,15 @@ public class LeadService {
     }
 
     /**
-     * DEPRECATED: Old pagination method - kept for backward compatibility
-     * Use search(LeadSearchFilter) instead
+     * Old pagination method - kept for backward compatibility.
+     *
+     * @deprecated Use {@link #search(LeadSearchFilter)} instead, which supports
+     *             standardized filtering and pagination via {@code LeadSearchFilter}.
      */
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public Page<Lead> getLeadsPaginated(PaginationParams params) {
         String sortOrder = params.getSortOrder() != null ? params.getSortOrder() : "DESC";
-        String sortBy = params.getSortBy() != null ? params.getSortBy() : "createdAt";
+        String sortBy = params.getSortBy() != null ? params.getSortBy() : FIELD_CREATED_AT;
         Sort sort = Sort.by(Sort.Direction.fromString(sortOrder), mapSortField(sortBy));
         int pageZeroBased = Math.max(0, params.getPage() - 1);
         Pageable pageable = PageRequest.of(pageZeroBased, params.getLimit(), sort);
@@ -817,30 +845,30 @@ public class LeadService {
 
                 // Normalize database column value using SQL functions (remove
                 // spaces/underscores, lowercase)
-                // This handles "New Inquiry", "new_inquiry", "new" all matching correctly
-                jakarta.persistence.criteria.Expression<String> dbStatusLower = cb.lower(root.get("leadStatus"));
+                // This handles "New Inquiry", STATUS_NEW_INQUIRY, "new" all matching correctly
+                jakarta.persistence.criteria.Expression<String> dbStatusLower = cb.lower(root.get(FIELD_LEAD_STATUS));
                 jakarta.persistence.criteria.Expression<String> dbStatusNoSpaces = cb.function(
-                        "REPLACE", String.class, dbStatusLower, cb.literal(" "), cb.literal(""));
+                        SQL_FN_REPLACE, String.class, dbStatusLower, cb.literal(" "), cb.literal(""));
                 jakarta.persistence.criteria.Expression<String> dbStatusCleaned = cb.function(
-                        "REPLACE", String.class, dbStatusNoSpaces, cb.literal("_"), cb.literal(""));
+                        SQL_FN_REPLACE, String.class, dbStatusNoSpaces, cb.literal("_"), cb.literal(""));
 
                 // Match all variations that normalize to the same value
-                // For "new": match "newinquiry", "new"
-                // For "qualified": match "qualifiedlead", "qualified"
+                // For "new": match STATUS_NEWINQUIRY, "new"
+                // For STATUS_QUALIFIED: match STATUS_QUALIFIEDLEAD, STATUS_QUALIFIED
                 // etc.
                 List<Predicate> statusPredicates = new ArrayList<>();
                 if ("new".equals(normalizedInput)) {
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "newinquiry"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_NEWINQUIRY));
                     statusPredicates.add(cb.equal(dbStatusCleaned, "new"));
-                } else if ("qualified".equals(normalizedInput)) {
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "qualifiedlead"));
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "qualified"));
-                } else if ("proposal_sent".equals(normalizedInput)) {
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "proposalsent"));
+                } else if (STATUS_QUALIFIED.equals(normalizedInput)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_QUALIFIEDLEAD));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_QUALIFIED));
+                } else if (STATUS_PROPOSAL_SENT.equals(normalizedInput)) {
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_PROPOSALSENT));
                 } else if ("won".equals(normalizedInput)) {
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "projectwon"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_PROJECTWON));
                     statusPredicates.add(cb.equal(dbStatusCleaned, "won"));
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "converted"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_CONVERTED));
                 } else {
                     // For other statuses, match the normalized value directly
                     statusPredicates.add(cb.equal(dbStatusCleaned, normalizedInput));
@@ -849,16 +877,16 @@ public class LeadService {
                 predicates.add(cb.or(statusPredicates.toArray(new Predicate[0])));
             }
             if (params.getSource() != null && !params.getSource().isEmpty()) {
-                predicates.add(cb.equal(root.get("leadSource"), params.getSource()));
+                predicates.add(cb.equal(root.get(FIELD_LEAD_SOURCE), params.getSource()));
             }
             if (params.getPriority() != null && !params.getPriority().isEmpty()) {
                 predicates.add(cb.equal(root.get("priority"), params.getPriority()));
             }
             if (params.getCustomerType() != null && !params.getCustomerType().isEmpty()) {
-                predicates.add(cb.equal(root.get("customerType"), params.getCustomerType()));
+                predicates.add(cb.equal(root.get(FIELD_CUSTOMER_TYPE), params.getCustomerType()));
             }
             if (params.getProjectType() != null && !params.getProjectType().isEmpty()) {
-                predicates.add(cb.equal(root.get("projectType"), params.getProjectType()));
+                predicates.add(cb.equal(root.get(FIELD_PROJECT_TYPE), params.getProjectType()));
             }
 
             if (params.getSearch() != null && !params.getSearch().trim().isEmpty()) {
@@ -875,7 +903,7 @@ public class LeadService {
                     Long id = Long.parseLong(params.getAssignedTeam());
                     predicates.add(cb.equal(root.get("assignedTo").get("id"), id));
                 } catch (NumberFormatException e) {
-                    predicates.add(cb.equal(root.get("assignedTeam"), params.getAssignedTeam()));
+                    predicates.add(cb.equal(root.get(FIELD_ASSIGNED_TEAM), params.getAssignedTeam()));
                 }
             }
 
@@ -889,17 +917,17 @@ public class LeadService {
                 predicates.add(cb.equal(root.get("location"), params.getLocation()));
             }
             if (params.getMinBudget() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("budget"), params.getMinBudget()));
+                predicates.add(cb.greaterThanOrEqualTo(root.get(FIELD_BUDGET), params.getMinBudget()));
             }
             if (params.getMaxBudget() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("budget"), params.getMaxBudget()));
+                predicates.add(cb.lessThanOrEqualTo(root.get(FIELD_BUDGET), params.getMaxBudget()));
             }
             if (params.getStartDate() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), params.getStartDate().atStartOfDay()));
+                predicates.add(cb.greaterThanOrEqualTo(root.get(FIELD_CREATED_AT), params.getStartDate().atStartOfDay()));
             }
             if (params.getEndDate() != null) {
                 predicates.add(
-                        cb.lessThanOrEqualTo(root.get("createdAt"), params.getEndDate().plusDays(1).atStartOfDay()));
+                        cb.lessThanOrEqualTo(root.get(FIELD_CREATED_AT), params.getEndDate().plusDays(1).atStartOfDay()));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -918,19 +946,19 @@ public class LeadService {
         // Single GROUP BY query replaces 6 individual countByLeadStatus() calls
         Map<String, Long> statusDist = new HashMap<>();
         for (Object[] row : leadRepository.countLeadsByStatus()) {
-            statusDist.put(row[0] != null ? row[0].toString() : "unknown", (Long) row[1]);
+            statusDist.put(row[0] != null ? row[0].toString() : DIST_UNKNOWN, (Long) row[1]);
         }
         analytics.put("statusDistribution", statusDist);
 
         Map<String, Long> sourceDist = new HashMap<>();
         for (Object[] row : leadRepository.countLeadsBySource()) {
-            sourceDist.put(row[0] != null ? row[0].toString() : "unknown", (Long) row[1]);
+            sourceDist.put(row[0] != null ? row[0].toString() : DIST_UNKNOWN, (Long) row[1]);
         }
         analytics.put("sourceDistribution", sourceDist);
 
         Map<String, Long> priorityDist = new HashMap<>();
         for (Object[] row : leadRepository.countLeadsByPriority()) {
-            priorityDist.put(row[0] != null ? row[0].toString() : "unknown", (Long) row[1]);
+            priorityDist.put(row[0] != null ? row[0].toString() : DIST_UNKNOWN, (Long) row[1]);
         }
         analytics.put("priorityDistribution", priorityDist);
 
@@ -991,9 +1019,9 @@ public class LeadService {
         lead.setPhone(request.getPhone());
         lead.setLeadSource(request.getLeadSource() != null && !request.getLeadSource().isBlank()
                 ? request.getLeadSource() : "website_contact");
-        lead.setLeadStatus("new_inquiry");
-        lead.setCustomerType("individual");
-        lead.setPriority("medium");
+        lead.setLeadStatus(STATUS_NEW_INQUIRY);
+        lead.setCustomerType(CUSTOMER_TYPE_INDIVIDUAL);
+        lead.setPriority(PRIORITY_MEDIUM);
         lead.setProjectType(request.getProjectType() != null ? request.getProjectType() : "");
         lead.setState(request.getState() != null ? request.getState() : "");
         lead.setDistrict(request.getDistrict() != null ? request.getDistrict() : "");
@@ -1044,9 +1072,9 @@ public class LeadService {
         lead.setEmail(request.getReferralEmail() != null ? request.getReferralEmail() : "");
         lead.setPhone(request.getReferralPhone());
         lead.setLeadSource("referral_client");
-        lead.setLeadStatus("new_inquiry");
-        lead.setCustomerType("individual");
-        lead.setPriority("medium");
+        lead.setLeadStatus(STATUS_NEW_INQUIRY);
+        lead.setCustomerType(CUSTOMER_TYPE_INDIVIDUAL);
+        lead.setPriority(PRIORITY_MEDIUM);
         lead.setProjectType(request.getProjectType() != null ? request.getProjectType() : "");
         lead.setLocation(request.getLocation() != null ? request.getLocation() : "");
         lead.setState(request.getState() != null ? request.getState() : "");
@@ -1085,9 +1113,9 @@ public class LeadService {
         lead.setPhone(request.getClientPhone());
         lead.setWhatsappNumber(request.getClientWhatsapp());
         lead.setLeadSource("referral_architect");
-        lead.setLeadStatus("new_inquiry");
-        lead.setCustomerType("individual");
-        lead.setPriority("medium");
+        lead.setLeadStatus(STATUS_NEW_INQUIRY);
+        lead.setCustomerType(CUSTOMER_TYPE_INDIVIDUAL);
+        lead.setPriority(PRIORITY_MEDIUM);
         lead.setProjectType(request.getProjectType());
         lead.setProjectDescription(request.getProjectDescription());
         lead.setBudget(request.getEstimatedBudget());
@@ -1106,7 +1134,7 @@ public class LeadService {
     /**
      * Normalize status for comparison by removing spaces/underscores and mapping to
      * standard values
-     * This ensures "New Inquiry", "new_inquiry", and "new" all normalize to "new"
+     * This ensures "New Inquiry", STATUS_NEW_INQUIRY, and "new" all normalize to "new"
      * Used for comparing database values with input values
      */
     /**
@@ -1135,8 +1163,8 @@ public class LeadService {
         // Terminal states - cannot transition from these
         if (fromNormalized.equals("lost") ||
                 fromNormalized.equals("won") ||
-                fromNormalized.equals("converted") ||
-                fromNormalized.equals("projectwon")) {
+                fromNormalized.equals(STATUS_CONVERTED) ||
+                fromNormalized.equals(STATUS_PROJECTWON)) {
             throw new IllegalStateException(
                     String.format("Cannot change status from '%s' (terminal state). Lead is %s.",
                             fromStatus,
@@ -1152,10 +1180,10 @@ public class LeadService {
 
         // PROJECT_WON/CONVERTED can only be set from PROPOSAL_SENT or QUALIFIED
         if (toNormalized.equals("won") ||
-                toNormalized.equals("converted") ||
-                toNormalized.equals("projectwon")) {
-            if (!fromNormalized.equals("proposal_sent") &&
-                    !fromNormalized.equals("qualified")) {
+                toNormalized.equals(STATUS_CONVERTED) ||
+                toNormalized.equals(STATUS_PROJECTWON)) {
+            if (!fromNormalized.equals(STATUS_PROPOSAL_SENT) &&
+                    !fromNormalized.equals(STATUS_QUALIFIED)) {
                 throw new IllegalStateException(
                         String.format(
                                 "Cannot transition from '%s' to '%s'. Lead must be in PROPOSAL_SENT or QUALIFIED status first.",
@@ -1169,40 +1197,40 @@ public class LeadService {
 
         switch (fromNormalized) {
             case "new":
-            case "newinquiry":
+            case STATUS_NEWINQUIRY:
                 // NEW_INQUIRY can transition to CONTACTED, QUALIFIED (skip contacted), or LOST
-                isValidTransition = (toNormalized.equals("contacted") ||
-                        toNormalized.equals("qualified") ||
-                        toNormalized.equals("proposal_sent")); // Allow skipping contacted
+                isValidTransition = (toNormalized.equals(STATUS_CONTACTED) ||
+                        toNormalized.equals(STATUS_QUALIFIED) ||
+                        toNormalized.equals(STATUS_PROPOSAL_SENT)); // Allow skipping contacted
                 break;
 
-            case "contacted":
+            case STATUS_CONTACTED:
                 // CONTACTED can transition to QUALIFIED, PROPOSAL_SENT (skip qualified), or
                 // LOST
-                isValidTransition = (toNormalized.equals("qualified") ||
-                        toNormalized.equals("proposal_sent"));
+                isValidTransition = (toNormalized.equals(STATUS_QUALIFIED) ||
+                        toNormalized.equals(STATUS_PROPOSAL_SENT));
                 break;
 
-            case "qualified":
+            case STATUS_QUALIFIED:
                 // QUALIFIED can transition to PROPOSAL_SENT, NEGOTIATION, or LOST
-                isValidTransition = (toNormalized.equals("proposal_sent") ||
-                        toNormalized.equals("negotiation"));
+                isValidTransition = (toNormalized.equals(STATUS_PROPOSAL_SENT) ||
+                        toNormalized.equals(STATUS_NEGOTIATION));
                 break;
 
-            case "proposal_sent":
+            case STATUS_PROPOSAL_SENT:
                 // PROPOSAL_SENT can transition to NEGOTIATION, PROJECT_WON/CONVERTED, or LOST
-                isValidTransition = (toNormalized.equals("negotiation") ||
+                isValidTransition = (toNormalized.equals(STATUS_NEGOTIATION) ||
                         toNormalized.equals("won") ||
-                        toNormalized.equals("converted") ||
-                        toNormalized.equals("projectwon"));
+                        toNormalized.equals(STATUS_CONVERTED) ||
+                        toNormalized.equals(STATUS_PROJECTWON));
                 break;
 
-            case "negotiation":
+            case STATUS_NEGOTIATION:
                 // NEGOTIATION can transition to PROJECT_WON/CONVERTED, PROPOSAL_SENT (revised), or LOST
                 isValidTransition = (toNormalized.equals("won") ||
-                        toNormalized.equals("converted") ||
-                        toNormalized.equals("projectwon") ||
-                        toNormalized.equals("proposal_sent")); // Revised proposal after negotiation
+                        toNormalized.equals(STATUS_CONVERTED) ||
+                        toNormalized.equals(STATUS_PROJECTWON) ||
+                        toNormalized.equals(STATUS_PROPOSAL_SENT)); // Revised proposal after negotiation
                 break;
 
             default:
@@ -1227,13 +1255,13 @@ public class LeadService {
     private String getValidTransitions(String normalizedStatus) {
         switch (normalizedStatus) {
             case "new":
-            case "newinquiry":
+            case STATUS_NEWINQUIRY:
                 return "CONTACTED, QUALIFIED, PROPOSAL_SENT, LOST";
-            case "contacted":
+            case STATUS_CONTACTED:
                 return "QUALIFIED, PROPOSAL_SENT, LOST";
-            case "qualified":
+            case STATUS_QUALIFIED:
                 return "PROPOSAL_SENT, LOST";
-            case "proposalsent":
+            case STATUS_PROPOSALSENT:
                 return "PROJECT_WON/CONVERTED, LOST";
             default:
                 return "Consult business rules";
@@ -1247,9 +1275,9 @@ public class LeadService {
         if (status == null) return "Updated";
         switch (normalizeStatusForComparison(status)) {
             case "new":        return "Received";
-            case "contacted":  return "Being Reviewed";
-            case "qualified":  return "Qualified";
-            case "proposal_sent": return "Proposal Sent";
+            case STATUS_CONTACTED:  return "Being Reviewed";
+            case STATUS_QUALIFIED:  return "Qualified";
+            case STATUS_PROPOSAL_SENT: return "Proposal Sent";
             case "won":        return "Approved";
             case "lost":       return "Closed";
             default:
@@ -1267,17 +1295,17 @@ public class LeadService {
         String cleaned = status.toLowerCase().trim().replaceAll("[\\s_]", "");
 
         // Map to standard values
-        if (cleaned.equals("newinquiry") || cleaned.equals("new")) {
+        if (cleaned.equals(STATUS_NEWINQUIRY) || cleaned.equals("new")) {
             return "new";
-        } else if (cleaned.equals("contacted")) {
-            return "contacted";
-        } else if (cleaned.equals("qualifiedlead") || cleaned.equals("qualified")) {
-            return "qualified";
-        } else if (cleaned.equals("proposalsent")) {
-            return "proposal_sent";
-        } else if (cleaned.equals("negotiation")) {
-            return "negotiation";
-        } else if (cleaned.equals("projectwon") || cleaned.equals("won") || cleaned.equals("converted")) {
+        } else if (cleaned.equals(STATUS_CONTACTED)) {
+            return STATUS_CONTACTED;
+        } else if (cleaned.equals(STATUS_QUALIFIEDLEAD) || cleaned.equals(STATUS_QUALIFIED)) {
+            return STATUS_QUALIFIED;
+        } else if (cleaned.equals(STATUS_PROPOSALSENT)) {
+            return STATUS_PROPOSAL_SENT;
+        } else if (cleaned.equals(STATUS_NEGOTIATION)) {
+            return STATUS_NEGOTIATION;
+        } else if (cleaned.equals(STATUS_PROJECTWON) || cleaned.equals("won") || cleaned.equals(STATUS_CONVERTED)) {
             return "won";
         } else if (cleaned.equals("lost")) {
             return "lost";
@@ -1289,11 +1317,11 @@ public class LeadService {
 
     private String mapSortField(String dbColumn) {
         if (dbColumn == null || dbColumn.isEmpty()) {
-            return "createdAt";
+            return FIELD_CREATED_AT;
         }
         switch (dbColumn) {
             case "created_at":
-                return "createdAt";
+                return FIELD_CREATED_AT;
             case "updated_at":
                 return "updatedAt";
             case "lead_id":
@@ -1303,13 +1331,13 @@ public class LeadService {
             case "date_of_enquiry":
                 return "dateOfEnquiry";
             case "lead_status":
-                return "leadStatus";
+                return FIELD_LEAD_STATUS;
             case "lead_source":
-                return "leadSource";
+                return FIELD_LEAD_SOURCE;
             case "customer_type":
-                return "customerType";
+                return FIELD_CUSTOMER_TYPE;
             case "project_type":
-                return "projectType";
+                return FIELD_PROJECT_TYPE;
             case "client_rating":
                 return "clientRating";
             case "probability_to_win":
@@ -1319,7 +1347,7 @@ public class LeadService {
             case "last_contact_date":
                 return "lastContactDate";
             case "assigned_team":
-                return "assignedTeam";
+                return FIELD_ASSIGNED_TEAM;
             case "project_sqft_area":
                 return "projectSqftArea";
             default:
@@ -1335,7 +1363,7 @@ public class LeadService {
 
         try {
             Lead lead = leadRepository.findById(leadId)
-                    .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + leadId));
+                    .orElseThrow(() -> new IllegalArgumentException(LEAD_NOT_FOUND + leadId));
 
             com.wd.api.model.PortalUser convertedBy = portalUserRepository.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + username));
@@ -1427,7 +1455,7 @@ public class LeadService {
             activityFeedService.linkLeadActivitiesToProject(lead.getId(), savedProject);
 
             // 6. Finalize Lead (DB-canonical status)
-            lead.setLeadStatus("project_won");
+            lead.setLeadStatus(STATUS_PROJECT_WON);
             lead.setConvertedById(convertedBy.getId());
             lead.setConvertedAt(java.time.LocalDateTime.now());
             lead.setUpdatedAt(java.time.LocalDateTime.now());
@@ -1537,7 +1565,7 @@ public class LeadService {
                 if ("high".equals(priority)) {
                     score += 15;
                     factors.put("High Priority", 15);
-                } else if ("medium".equals(priority)) {
+                } else if (PRIORITY_MEDIUM.equals(priority)) {
                     score += 10;
                     factors.put("Medium Priority", 10);
                 } else {
@@ -1707,7 +1735,7 @@ public class LeadService {
         }
 
         Lead lead = leadRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(LEAD_NOT_FOUND + id));
 
         String oldStatus = lead.getLeadStatus();
 
@@ -1762,7 +1790,7 @@ public class LeadService {
         }
 
         Lead lead = leadRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(LEAD_NOT_FOUND + id));
 
         Long oldAssignedId = lead.getAssignedTo() != null ? lead.getAssignedTo().getId() : null;
 
@@ -1785,8 +1813,8 @@ public class LeadService {
 
             if (!oldAssignee.equals(newAssignee)) {
                 activityFeedService.logSystemActivity(
-                        "LEAD_ASSIGNED",
-                        "Lead Assigned",
+                        ACTIVITY_TYPE_LEAD_ASSIGNED,
+                        ACTIVITY_TITLE_LEAD_ASSIGNED,
                         "Lead assigned from " + oldAssignee + " to " + newAssignee,
                         savedLead.getId(),
                         "LEAD");
@@ -1812,7 +1840,7 @@ public class LeadService {
         }
 
         Lead lead = leadRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(LEAD_NOT_FOUND + id));
 
         Integer oldScore = lead.getScore();
         String oldCategory = lead.getScoreCategory();
@@ -1871,7 +1899,7 @@ public class LeadService {
         }
 
         Lead lead = leadRepository.findById(leadId)
-                .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + leadId));
+                .orElseThrow(() -> new IllegalArgumentException(LEAD_NOT_FOUND + leadId));
 
         List<Map<String, Object>> history = new ArrayList<>();
 

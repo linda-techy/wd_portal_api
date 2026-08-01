@@ -66,6 +66,7 @@ public class LeadInteraction {
 
     // Constructors
     public LeadInteraction() {
+        // No-op: required no-arg constructor for JPA entity instantiation.
     }
 
     // Getters and Setters

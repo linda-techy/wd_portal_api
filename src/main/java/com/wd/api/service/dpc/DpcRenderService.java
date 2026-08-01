@@ -55,6 +55,9 @@ public class DpcRenderService {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
 
+    private static final String KEY_ORIGINAL_PER_SQFT = "originalPerSqft";
+    private static final String KEY_CUSTOMIZED_PER_SQFT = "customizedPerSqft";
+
     private final DpcDocumentService dpcDocumentService;
     private final TemplateEngine templateEngine;
     private final CompanyInfoConfig companyInfoConfig;
@@ -216,8 +219,8 @@ public class DpcRenderService {
             fmt.put("totalOriginal", formatINR(s.totalOriginal()));
             fmt.put("totalCustomized", formatINR(s.totalCustomized()));
             fmt.put("totalVariance", formatINR(s.totalVariance()));
-            fmt.put("originalPerSqft", formatINROrDash(s.originalPerSqft()));
-            fmt.put("customizedPerSqft", formatINROrDash(s.customizedPerSqft()));
+            fmt.put(KEY_ORIGINAL_PER_SQFT,formatINROrDash(s.originalPerSqft()));
+            fmt.put(KEY_CUSTOMIZED_PER_SQFT,formatINROrDash(s.customizedPerSqft()));
         }
         fmt.put("sqfeet", formatSqftOrDash(dto.sqfeet()));
         return fmt;
@@ -244,8 +247,8 @@ public class DpcRenderService {
             row.put("originalAmount", formatINR(orig));
             row.put("customizedAmount", formatINR(cust));
             row.put("variance", formatINR(safeSubtract(cust, orig)));
-            row.put("originalPerSqft", formatINROrDash(perSqft(orig, sqft)));
-            row.put("customizedPerSqft", formatINROrDash(perSqft(cust, sqft)));
+            row.put(KEY_ORIGINAL_PER_SQFT,formatINROrDash(perSqft(orig, sqft)));
+            row.put(KEY_CUSTOMIZED_PER_SQFT,formatINROrDash(perSqft(cust, sqft)));
 
             // Brands as ordered entry list (keeps template loop simple).
             List<Map<String, String>> brands = new ArrayList<>();
@@ -302,8 +305,8 @@ public class DpcRenderService {
         v.put("totalOriginal", s != null ? formatINR(s.totalOriginal()) : "0");
         v.put("totalCustomized", s != null ? formatINR(s.totalCustomized()) : "0");
         v.put("totalVariance", s != null ? formatINR(s.totalVariance()) : "0");
-        v.put("originalPerSqft", s != null ? formatINROrDash(s.originalPerSqft()) : "—");
-        v.put("customizedPerSqft", s != null ? formatINROrDash(s.customizedPerSqft()) : "—");
+        v.put(KEY_ORIGINAL_PER_SQFT,s != null ? formatINROrDash(s.originalPerSqft()) : "—");
+        v.put(KEY_CUSTOMIZED_PER_SQFT,s != null ? formatINROrDash(s.customizedPerSqft()) : "—");
         return v;
     }
 

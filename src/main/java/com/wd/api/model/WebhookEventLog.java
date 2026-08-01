@@ -51,7 +51,9 @@ public class WebhookEventLog {
         }
     }
 
-    public WebhookEventLog() {}
+    public WebhookEventLog() {
+        // No-op: default constructor required by JPA.
+    }
 
     // ── Getters ──────────────────────────────────────────────────────────────
 

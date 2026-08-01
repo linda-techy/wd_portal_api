@@ -22,6 +22,9 @@ import java.util.UUID;
 @Service
 public class EstimationPdfService {
 
+    /** Em-dash placeholder shown when a numeric value is unavailable. */
+    private static final String EM_DASH = "—";
+
     private final LeadEstimationService leadEstimationService;
     private final LeadRepository leadRepo;
 
@@ -108,7 +111,7 @@ public class EstimationPdfService {
                         "Estimated buildable area: "
                                 + (detail.estimatedAreaSqft() != null
                                         ? IndianNumberFormatter.formatWholeRupee(detail.estimatedAreaSqft())
-                                        : "\u2014")
+                                        : EM_DASH)
                                 + " sqft",
                         font(11, false)));
                 doc.add(new Paragraph(" "));
@@ -152,9 +155,9 @@ public class EstimationPdfService {
             // ----------------------------------------------------------------
             if (isBudgetary) {
                 String low = detail.grandTotalMin() != null
-                        ? IndianNumberFormatter.formatWithPaisa(detail.grandTotalMin()) : "\u2014";
+                        ? IndianNumberFormatter.formatWithPaisa(detail.grandTotalMin()) : EM_DASH;
                 String high = detail.grandTotalMax() != null
-                        ? IndianNumberFormatter.formatWithPaisa(detail.grandTotalMax()) : "\u2014";
+                        ? IndianNumberFormatter.formatWithPaisa(detail.grandTotalMax()) : EM_DASH;
                 doc.add(new Paragraph(
                         "Estimated range (incl. GST): \u20b9" + low + "  \u2013  \u20b9" + high,
                         font(14, true)));

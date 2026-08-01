@@ -46,6 +46,7 @@ public class CustomerProjectCreateRequest {
 
     // Constructors
     public CustomerProjectCreateRequest() {
+        // No-op: default constructor required for Jackson deserialization.
     }
 
     // Getters and Setters
@@ -130,12 +131,11 @@ public class CustomerProjectCreateRequest {
     public void setSqfeet(Object sqfeet) {
         if (sqfeet == null) {
             this.sqfeet = null;
-        } else if (sqfeet instanceof BigDecimal) {
-            this.sqfeet = (BigDecimal) sqfeet;
-        } else if (sqfeet instanceof Number) {
-            this.sqfeet = BigDecimal.valueOf(((Number) sqfeet).doubleValue());
-        } else if (sqfeet instanceof String) {
-            String str = (String) sqfeet;
+        } else if (sqfeet instanceof BigDecimal bigdecimal) {
+            this.sqfeet = bigdecimal;
+        } else if (sqfeet instanceof Number number) {
+            this.sqfeet = BigDecimal.valueOf(number.doubleValue());
+        } else if (sqfeet instanceof String str) {
             if (str.trim().isEmpty()) {
                 this.sqfeet = null;
             } else {
@@ -160,14 +160,13 @@ public class CustomerProjectCreateRequest {
     public void setLeadId(Object leadId) {
         if (leadId == null) {
             this.leadId = null;
-        } else if (leadId instanceof Long) {
-            this.leadId = (Long) leadId;
-        } else if (leadId instanceof Integer) {
-            this.leadId = ((Integer) leadId).longValue();
-        } else if (leadId instanceof Number) {
-            this.leadId = ((Number) leadId).longValue();
-        } else if (leadId instanceof String) {
-            String str = (String) leadId;
+        } else if (leadId instanceof Long longValue) {
+            this.leadId = longValue;
+        } else if (leadId instanceof Integer integer) {
+            this.leadId = integer.longValue();
+        } else if (leadId instanceof Number number) {
+            this.leadId = number.longValue();
+        } else if (leadId instanceof String str) {
             if (str.trim().isEmpty()) {
                 this.leadId = null;
             } else {

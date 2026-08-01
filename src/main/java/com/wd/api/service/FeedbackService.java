@@ -17,11 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class FeedbackService {
+
+    private static final String MSG_FORM_ID_REQUIRED = "Form ID is required";
+    private static final String MSG_FEEDBACK_FORM_NOT_FOUND = "Feedback form not found: ";
 
     private final FeedbackFormRepository feedbackFormRepository;
     private final FeedbackResponseRepository feedbackResponseRepository;
@@ -66,13 +68,13 @@ public class FeedbackService {
                     dto.setResponseCount(feedbackResponseRepository.countByFormId(form.getId()));
                     return dto;
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public FeedbackFormDto getFormById(Long formId) {
-        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, "Form ID is required"))
-                .orElseThrow(() -> new RuntimeException("Feedback form not found: " + formId));
+        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, MSG_FORM_ID_REQUIRED))
+                .orElseThrow(() -> new RuntimeException(MSG_FEEDBACK_FORM_NOT_FOUND + formId));
         
         FeedbackFormDto dto = FeedbackFormDto.fromEntity(form);
         dto.setResponseCount(feedbackResponseRepository.countByFormId(formId));
@@ -82,8 +84,8 @@ public class FeedbackService {
     @Transactional
     public FeedbackFormDto updateForm(Long formId, String title, String description, 
                                        String formSchema, Boolean isActive) {
-        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, "Form ID is required"))
-                .orElseThrow(() -> new RuntimeException("Feedback form not found: " + formId));
+        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, MSG_FORM_ID_REQUIRED))
+                .orElseThrow(() -> new RuntimeException(MSG_FEEDBACK_FORM_NOT_FOUND + formId));
 
         if (title != null) {
             form.setTitle(title);
@@ -104,8 +106,8 @@ public class FeedbackService {
 
     @Transactional
     public void deactivateForm(Long formId) {
-        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, "Form ID is required"))
-                .orElseThrow(() -> new RuntimeException("Feedback form not found: " + formId));
+        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, MSG_FORM_ID_REQUIRED))
+                .orElseThrow(() -> new RuntimeException(MSG_FEEDBACK_FORM_NOT_FOUND + formId));
         
         form.setIsActive(false);
         feedbackFormRepository.save(form);
@@ -113,8 +115,8 @@ public class FeedbackService {
 
     @Transactional
     public void deleteForm(Long formId) {
-        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, "Form ID is required"))
-                .orElseThrow(() -> new RuntimeException("Feedback form not found: " + formId));
+        FeedbackForm form = feedbackFormRepository.findById(Objects.requireNonNull(formId, MSG_FORM_ID_REQUIRED))
+                .orElseThrow(() -> new RuntimeException(MSG_FEEDBACK_FORM_NOT_FOUND + formId));
         
         // Check if form has responses - if so, deactivate instead of delete
         Long responseCount = feedbackResponseRepository.countByFormId(formId);
@@ -133,7 +135,7 @@ public class FeedbackService {
         List<FeedbackResponse> responses = feedbackResponseRepository.findByFormIdOrderBySubmittedAtDesc(formId);
         return responses.stream()
                 .map(FeedbackResponseDto::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -141,7 +143,7 @@ public class FeedbackService {
         List<FeedbackResponse> responses = feedbackResponseRepository.findByProjectIdOrderBySubmittedAtDesc(projectId);
         return responses.stream()
                 .map(FeedbackResponseDto::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)

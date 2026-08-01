@@ -32,6 +32,8 @@ public class StagePaymentCertificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(StagePaymentCertificationService.class);
 
+    private static final String STAGE_NOT_FOUND = "Stage not found: ";
+
     private final PaymentStageRepository stageRepository;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -53,7 +55,7 @@ public class StagePaymentCertificationService {
     @Transactional(readOnly = true)
     public PaymentStage getStage(Long stageId) {
         return stageRepository.findById(stageId)
-                .orElseThrow(() -> new IllegalArgumentException("Stage not found: " + stageId));
+                .orElseThrow(() -> new IllegalArgumentException(STAGE_NOT_FOUND + stageId));
     }
 
     // -------------------------------------------------------------------------
@@ -84,7 +86,7 @@ public class StagePaymentCertificationService {
      */
     public PaymentStage certify(Long stageId, CertifyStageRequest req, Long userId) {
         PaymentStage stage = stageRepository.findById(stageId)
-                .orElseThrow(() -> new IllegalArgumentException("Stage not found: " + stageId));
+                .orElseThrow(() -> new IllegalArgumentException(STAGE_NOT_FOUND + stageId));
 
         if (stage.getStatus() == PaymentStageStatus.INVOICED
                 || stage.getStatus() == PaymentStageStatus.PAID) {
@@ -129,7 +131,7 @@ public class StagePaymentCertificationService {
     /** Attach an invoice to a DUE stage and transition to INVOICED. */
     public PaymentStage attachInvoice(Long stageId, InvoiceStageRequest req, Long userId) {
         PaymentStage stage = stageRepository.findById(stageId)
-                .orElseThrow(() -> new IllegalArgumentException("Stage not found: " + stageId));
+                .orElseThrow(() -> new IllegalArgumentException(STAGE_NOT_FOUND + stageId));
 
         if (stage.getStatus() != PaymentStageStatus.DUE
                 && stage.getStatus() != PaymentStageStatus.OVERDUE) {
@@ -145,7 +147,7 @@ public class StagePaymentCertificationService {
     /** Record a payment against an INVOICED stage; if fully paid → PAID. */
     public PaymentStage recordPayment(Long stageId, RecordStagePaymentRequest req, Long userId) {
         PaymentStage stage = stageRepository.findById(stageId)
-                .orElseThrow(() -> new IllegalArgumentException("Stage not found: " + stageId));
+                .orElseThrow(() -> new IllegalArgumentException(STAGE_NOT_FOUND + stageId));
 
         if (stage.getStatus() != PaymentStageStatus.INVOICED) {
             throw new IllegalStateException("Stage must be INVOICED to record payment.");

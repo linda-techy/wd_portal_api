@@ -36,6 +36,8 @@ public class FinalAccountService {
 
     private static final Logger logger = LoggerFactory.getLogger(FinalAccountService.class);
 
+    private static final String MSG_NO_FINAL_ACCOUNT = "No final account for project: ";
+
     private final FinalAccountRepository finalAccountRepository;
     private final CustomerProjectRepository projectRepository;
     private final DeductionRegisterRepository deductionRepository;
@@ -130,7 +132,7 @@ public class FinalAccountService {
 
     public FinalAccount transitionStatus(Long projectId, FinalAccountStatusRequest req) {
         FinalAccount fa = finalAccountRepository.findByProjectId(projectId)
-                .orElseThrow(() -> new IllegalArgumentException("No final account for project: " + projectId));
+                .orElseThrow(() -> new IllegalArgumentException(MSG_NO_FINAL_ACCOUNT + projectId));
 
         validateTransition(fa.getStatus(), req.targetStatus());
 
@@ -162,7 +164,7 @@ public class FinalAccountService {
 
     public FinalAccount releaseRetention(Long projectId, ReleaseRetentionRequest req) {
         FinalAccount fa = finalAccountRepository.findByProjectId(projectId)
-                .orElseThrow(() -> new IllegalArgumentException("No final account for project: " + projectId));
+                .orElseThrow(() -> new IllegalArgumentException(MSG_NO_FINAL_ACCOUNT + projectId));
 
         if (!fa.isAgreed() && !fa.isClosed()) {
             throw new IllegalStateException("Retention can only be released for an AGREED or CLOSED final account.");
@@ -187,7 +189,7 @@ public class FinalAccountService {
 
     private FinalAccount requireStatus(Long projectId, FinalAccountStatus required) {
         FinalAccount fa = finalAccountRepository.findByProjectId(projectId)
-                .orElseThrow(() -> new IllegalArgumentException("No final account for project: " + projectId));
+                .orElseThrow(() -> new IllegalArgumentException(MSG_NO_FINAL_ACCOUNT + projectId));
         if (fa.getStatus() != required) {
             throw new IllegalStateException(
                     "Operation requires status " + required + ". Current: " + fa.getStatus());

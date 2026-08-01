@@ -28,6 +28,8 @@ public class PortalNotificationController {
 
     private static final Logger logger = LoggerFactory.getLogger(PortalNotificationController.class);
 
+    private static final String KEY_ERROR = "error";
+
     private final PortalNotificationService notificationService;
 
     private final PortalUserRepository portalUserRepository;
@@ -50,7 +52,7 @@ public class PortalNotificationController {
         } catch (Exception e) {
             logger.error("Failed to fetch portal notifications for {}: {}", authentication.getName(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to fetch notifications"));
+                    .body(Map.of(KEY_ERROR, "Failed to fetch notifications"));
         }
     }
 
@@ -63,7 +65,7 @@ public class PortalNotificationController {
         } catch (Exception e) {
             logger.error("Failed to get unread count for {}: {}", authentication.getName(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to get unread count"));
+                    .body(Map.of(KEY_ERROR, "Failed to get unread count"));
         }
     }
 
@@ -77,7 +79,7 @@ public class PortalNotificationController {
         } catch (Exception e) {
             logger.error("Failed to mark notification {} as read: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to mark notification as read"));
+                    .body(Map.of(KEY_ERROR, "Failed to mark notification as read"));
         }
     }
 
@@ -91,7 +93,7 @@ public class PortalNotificationController {
         } catch (Exception e) {
             logger.error("Failed to mark all notifications as read for {}: {}", authentication.getName(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to mark notifications as read"));
+                    .body(Map.of(KEY_ERROR, "Failed to mark notifications as read"));
         }
     }
 

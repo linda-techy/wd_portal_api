@@ -27,6 +27,8 @@ import java.util.List;
 @PreAuthorize("isAuthenticated()")
 public class ExportController {
 
+    private static final String UTF8_BOM = "﻿"; // UTF-8 BOM
+
     private final BoqItemRepository boqItemRepository;
     private final PaymentStageRepository paymentStageRepository;
     private final DelayLogRepository delayLogRepository;
@@ -73,7 +75,7 @@ public class ExportController {
     public ResponseEntity<byte[]> exportBoqCsv(@PathVariable Long projectId) {
         List<BoqItem> items = boqItemRepository.findByProjectIdWithAssociations(projectId);
 
-        StringBuilder csv = new StringBuilder("\uFEFF"); // UTF-8 BOM
+        StringBuilder csv = new StringBuilder(UTF8_BOM); // UTF-8 BOM
         csv.append("Item Code,Description,Work Type,Unit,Quantity,Rate,Amount,Executed Qty,Billed Qty,Status\n");
 
         for (BoqItem item : items) {
@@ -100,7 +102,7 @@ public class ExportController {
     public ResponseEntity<byte[]> exportPaymentsCsv(@PathVariable Long projectId) {
         List<PaymentStage> stages = paymentStageRepository.findByProjectIdOrderByStageNumberAsc(projectId);
 
-        StringBuilder csv = new StringBuilder("\uFEFF");
+        StringBuilder csv = new StringBuilder(UTF8_BOM);
         csv.append("Stage #,Stage Name,Amount (ex GST),GST Amount,Amount (incl GST),Retention Held,Net Payable,Paid Amount,Status,Due Date,Milestone Description\n");
 
         for (PaymentStage s : stages) {
@@ -128,7 +130,7 @@ public class ExportController {
     public ResponseEntity<byte[]> exportDelaysCsv(@PathVariable Long projectId) {
         List<DelayLog> delays = delayLogRepository.findByProjectId(projectId);
 
-        StringBuilder csv = new StringBuilder("\uFEFF");
+        StringBuilder csv = new StringBuilder(UTF8_BOM);
         csv.append("Date,Category,Duration Days,Responsible Party,Impact\n");
 
         for (DelayLog d : delays) {
@@ -150,7 +152,7 @@ public class ExportController {
     public ResponseEntity<byte[]> exportQualityChecksCsv(@PathVariable Long projectId) {
         List<QualityCheck> checks = qualityCheckRepository.findByProjectId(projectId);
 
-        StringBuilder csv = new StringBuilder("\uFEFF");
+        StringBuilder csv = new StringBuilder(UTF8_BOM);
         csv.append("Name,Status,Result,Date,Inspector,Remarks\n");
 
         for (QualityCheck c : checks) {
@@ -176,7 +178,7 @@ public class ExportController {
     public ResponseEntity<byte[]> exportObservationsCsv(@PathVariable Long projectId) {
         List<Observation> observations = observationRepository.findByProjectIdOrderByReportedDateDesc(projectId);
 
-        StringBuilder csv = new StringBuilder("\uFEFF");
+        StringBuilder csv = new StringBuilder(UTF8_BOM);
         csv.append("Title,Priority,Status,Reported Date,Resolved Date,Description\n");
 
         for (Observation o : observations) {

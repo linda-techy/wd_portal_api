@@ -187,7 +187,9 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                 @Override public int read() { return bais.read(); }
                 @Override public boolean isFinished() { return bais.available() == 0; }
                 @Override public boolean isReady() { return true; }
-                @Override public void setReadListener(ReadListener l) { }
+                @Override public void setReadListener(ReadListener l) {
+                    // No-op: body is fully buffered in memory, so non-blocking reads are not used.
+                }
             };
         }
 
@@ -222,7 +224,9 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         private final class BufferedServletOutputStream extends ServletOutputStream {
             @Override public void write(int b) { buffer.write(b); }
             @Override public boolean isReady() { return true; }
-            @Override public void setWriteListener(WriteListener l) { }
+            @Override public void setWriteListener(WriteListener l) {
+                // No-op: output is buffered in memory, so non-blocking writes are not used.
+            }
         }
     }
 }

@@ -14,13 +14,17 @@ public class SecurityLoggingService {
     private static final Logger SECURITY_LOG = LoggerFactory.getLogger(LoggingConstants.SECURITY_LOGGER);
 
     public void logLoginSuccess(String email, String ip) {
-        SECURITY_LOG.info("{} | LOGIN_SUCCESS | email={} | ip={} | traceId={}",
-                LoggingConstants.PREFIX_SECURITY, maskEmail(email), ip, getTraceId());
+        if (SECURITY_LOG.isInfoEnabled()) {
+            SECURITY_LOG.info("{} | LOGIN_SUCCESS | email={} | ip={} | traceId={}",
+                    LoggingConstants.PREFIX_SECURITY, maskEmail(email), ip, getTraceId());
+        }
     }
 
     public void logLoginFailure(String email, String reason, String ip) {
-        SECURITY_LOG.warn("{} | LOGIN_FAILURE | email={} | reason={} | ip={} | traceId={}",
-                LoggingConstants.PREFIX_SECURITY, maskEmail(email), reason, ip, getTraceId());
+        if (SECURITY_LOG.isWarnEnabled()) {
+            SECURITY_LOG.warn("{} | LOGIN_FAILURE | email={} | reason={} | ip={} | traceId={}",
+                    LoggingConstants.PREFIX_SECURITY, maskEmail(email), reason, ip, getTraceId());
+        }
     }
 
     public void logJwtValidationFailure(String reason, String ip) {
@@ -41,13 +45,17 @@ public class SecurityLoggingService {
     }
 
     public void logAdminAction(String adminEmail, String action, String target) {
-        SECURITY_LOG.info("{} | ADMIN_ACTION | admin={} | action={} | target={} | traceId={}",
-                LoggingConstants.PREFIX_SECURITY, maskEmail(adminEmail), action, target, getTraceId());
+        if (SECURITY_LOG.isInfoEnabled()) {
+            SECURITY_LOG.info("{} | ADMIN_ACTION | admin={} | action={} | target={} | traceId={}",
+                    LoggingConstants.PREFIX_SECURITY, maskEmail(adminEmail), action, target, getTraceId());
+        }
     }
 
     public void logRateLimitHit(String email, String operation, String ip) {
-        SECURITY_LOG.warn("{} | RATE_LIMIT_HIT | email={} | op={} | ip={} | traceId={}",
-                LoggingConstants.PREFIX_SECURITY, maskEmail(email), operation, ip, getTraceId());
+        if (SECURITY_LOG.isWarnEnabled()) {
+            SECURITY_LOG.warn("{} | RATE_LIMIT_HIT | email={} | op={} | ip={} | traceId={}",
+                    LoggingConstants.PREFIX_SECURITY, maskEmail(email), operation, ip, getTraceId());
+        }
     }
 
     private String maskEmail(String email) {

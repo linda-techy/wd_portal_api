@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -31,6 +30,8 @@ import org.springframework.data.domain.Sort;
 public class CustomerController {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerController.class);
+
+    private static final String KEY_MESSAGE = "message";
 
     private final CustomerUserService customerUserService;
 
@@ -63,9 +64,11 @@ public class CustomerController {
 
     /**
      * Get all customers (paginated)
+     *
+     * @deprecated Use the {@code /customers/search} endpoint instead.
      */
     @GetMapping("/paginated")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<Page<CustomerResponse>> getCustomersPaginated(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -84,8 +87,10 @@ public class CustomerController {
 
     /**
      * Get all customers
+     *
+     * @deprecated Use the paginated {@code /customers/search} endpoint instead.
      */
-    @Deprecated
+    @Deprecated(since = "2026-06")
     @GetMapping
     @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<ApiResponse<List<CustomerResponse>>> getAllCustomers() {
@@ -160,13 +165,13 @@ public class CustomerController {
     public ResponseEntity<?> deleteCustomer(@PathVariable Long id) {
         try {
             customerUserService.deleteCustomer(id);
-            return ResponseEntity.ok(Map.of("message", "Customer deleted successfully"));
+            return ResponseEntity.ok(Map.of(KEY_MESSAGE, "Customer deleted successfully"));
         } catch (IllegalArgumentException e) {
             logger.warn("Customer not found for deletion: {}", id);
             return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {
             logger.warn("Cannot delete customer {}: {}", id, e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(KEY_MESSAGE, e.getMessage()));
         } catch (Exception e) {
             logger.error("Error deleting customer with ID: {}", id, e);
             return ResponseEntity.internalServerError().body("Error deleting customer");
@@ -184,20 +189,20 @@ public class CustomerController {
             @RequestBody Map<String, Object> body) {
         Object raw = body.get("enabled");
         if (!(raw instanceof Boolean)) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Field 'enabled' must be a boolean"));
+            return ResponseEntity.badRequest().body(Map.of(KEY_MESSAGE, "Field 'enabled' must be a boolean"));
         }
         boolean enabled = (Boolean) raw;
         try {
             CustomerUser updated = customerUserService.setCustomerEnabled(id, enabled);
             return ResponseEntity.ok(Map.of(
                     "enabled", Boolean.TRUE.equals(updated.getEnabled()),
-                    "message", enabled ? "Customer activated" : "Customer deactivated"));
+                    KEY_MESSAGE, enabled ? "Customer activated" : "Customer deactivated"));
         } catch (IllegalArgumentException e) {
             logger.warn("Customer not found for enable toggle: {}", id);
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             logger.error("Error toggling enabled on customer {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("message", "Error updating customer"));
+            return ResponseEntity.internalServerError().body(Map.of(KEY_MESSAGE, "Error updating customer"));
         }
     }
 
@@ -236,7 +241,7 @@ public class CustomerController {
         try {
             List<CustomerRoleDTO> roles = customerRoleRepository.findAll().stream()
                     .map(CustomerRoleDTO::new)
-                    .collect(Collectors.toList());
+                    .toList();
             return ResponseEntity.ok(ApiResponse.success("Customer roles retrieved successfully", roles));
         } catch (Exception e) {
             logger.error("Error fetching customer roles", e);

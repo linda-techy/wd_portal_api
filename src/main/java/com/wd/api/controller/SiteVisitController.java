@@ -6,7 +6,6 @@ import com.wd.api.dto.CheckOutRequest;
 import com.wd.api.dto.SiteVisitDTO;
 import com.wd.api.dto.SiteVisitSearchFilter;
 import com.wd.api.model.PortalUser;
-import com.wd.api.model.SiteVisit;
 import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.SiteVisitService;
 import org.springframework.data.domain.Page;
@@ -26,6 +25,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/site-visits")
 public class SiteVisitController {
+
+    private static final String KEY_VALUE = "value";
+    private static final String KEY_LABEL = "label";
 
     private final SiteVisitService siteVisitService;
     private final PortalUserRepository portalUserRepository;
@@ -216,12 +218,12 @@ public class SiteVisitController {
     @PreAuthorize("hasAuthority('SITE_VISIT_VIEW')")
     public ResponseEntity<ApiResponse<List<Map<String, String>>>> getVisitTypes() {
         List<Map<String, String>> types = List.of(
-                Map.of("value", "SITE_ENGINEER", "label", "Site Engineer"),
-                Map.of("value", "PROJECT_MANAGER", "label", "Project Manager"),
-                Map.of("value", "SUPERVISOR", "label", "Supervisor"),
-                Map.of("value", "CONTRACTOR", "label", "Contractor"),
-                Map.of("value", "CLIENT", "label", "Client"),
-                Map.of("value", "GENERAL", "label", "General Visit"));
+                Map.of(KEY_VALUE, "SITE_ENGINEER", KEY_LABEL, "Site Engineer"),
+                Map.of(KEY_VALUE, "PROJECT_MANAGER", KEY_LABEL, "Project Manager"),
+                Map.of(KEY_VALUE, "SUPERVISOR", KEY_LABEL, "Supervisor"),
+                Map.of(KEY_VALUE, "CONTRACTOR", KEY_LABEL, "Contractor"),
+                Map.of(KEY_VALUE, "CLIENT", KEY_LABEL, "Client"),
+                Map.of(KEY_VALUE, "GENERAL", KEY_LABEL, "General Visit"));
 
         return ResponseEntity.ok(ApiResponse.success("Visit types retrieved", types));
     }

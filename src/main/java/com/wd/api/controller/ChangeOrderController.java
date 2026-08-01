@@ -18,7 +18,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -31,6 +30,8 @@ import java.util.List;
 public class ChangeOrderController {
 
     private static final Logger logger = LoggerFactory.getLogger(ChangeOrderController.class);
+
+    private static final String MSG_INTERNAL_ERROR = "An internal error occurred";
 
     private final ChangeOrderService changeOrderService;
 
@@ -48,7 +49,7 @@ public class ChangeOrderController {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to fetch change order {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_ERROR));
         }
     }
 
@@ -62,7 +63,7 @@ public class ChangeOrderController {
             return ResponseEntity.ok(ApiResponse.success("OK", cos));
         } catch (Exception e) {
             logger.error("Failed to list change orders for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_ERROR));
         }
     }
 
@@ -84,7 +85,7 @@ public class ChangeOrderController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to create change order", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_ERROR));
         }
     }
 
@@ -98,7 +99,7 @@ public class ChangeOrderController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to submit change order {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_ERROR));
         }
     }
 
@@ -112,7 +113,7 @@ public class ChangeOrderController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to internally approve change order {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_ERROR));
         }
     }
 
@@ -127,7 +128,7 @@ public class ChangeOrderController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to internally reject change order {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_ERROR));
         }
     }
 
@@ -141,7 +142,7 @@ public class ChangeOrderController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to send change order {} to customer", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_ERROR));
         }
     }
 
@@ -155,7 +156,7 @@ public class ChangeOrderController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to start change order {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_ERROR));
         }
     }
 
@@ -169,7 +170,7 @@ public class ChangeOrderController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to complete change order {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_ERROR));
         }
     }
 
@@ -183,7 +184,7 @@ public class ChangeOrderController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to close change order {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_ERROR));
         }
     }
 

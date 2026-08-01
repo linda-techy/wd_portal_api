@@ -36,6 +36,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ProcurementService {
 
+    private static final String VENDOR_NOT_FOUND = "Vendor not found with ID: ";
+    private static final String PO_NOT_FOUND = "Purchase Order not found with ID: ";
+
     private final VendorRepository vendorRepository;
     private final PurchaseOrderRepository poRepository;
     private final CustomerProjectRepository projectRepository;
@@ -70,7 +73,7 @@ public class ProcurementService {
         return vendorRepository.findAll().stream()
                 .filter(vendor -> vendor.isActive()) // Only return active vendors
                 .map(this::mapToVendorDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -79,7 +82,7 @@ public class ProcurementService {
     @Transactional
     public VendorDTO updateVendor(Long id, VendorDTO dto) {
         Vendor vendor = vendorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + id));
+                .orElseThrow(() -> new RuntimeException(VENDOR_NOT_FOUND + id));
 
         // Update fields
         if (dto.getName() != null)
@@ -115,13 +118,13 @@ public class ProcurementService {
     @Transactional
     public void deactivateVendor(Long id) {
         Vendor vendor = vendorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + id));
+                .orElseThrow(() -> new RuntimeException(VENDOR_NOT_FOUND + id));
 
         // Check for active POs - don't allow deactivation if vendor has active POs
         List<PurchaseOrder> activePOs = poRepository.findByVendorId(id).stream()
                 .filter(po -> po.getStatus() != PurchaseOrderStatus.CLOSED &&
                         po.getStatus() != PurchaseOrderStatus.CANCELLED)
-                .collect(Collectors.toList());
+                .toList();
 
         if (!activePOs.isEmpty()) {
             throw new IllegalStateException(
@@ -143,7 +146,7 @@ public class ProcurementService {
             throw new IllegalArgumentException("Vendor ID and Project ID are required");
         }
         Vendor vendor = vendorRepository.findById(vendorId)
-                .orElseThrow(() -> new RuntimeException("Vendor not found with ID: " + vendorId));
+                .orElseThrow(() -> new RuntimeException(VENDOR_NOT_FOUND + vendorId));
         var project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found with ID: " + projectId));
 
@@ -303,7 +306,7 @@ public class ProcurementService {
     @Transactional
     public void softDeletePurchaseOrder(Long id, Long deletedByUserId) {
         PurchaseOrder po = poRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
+                .orElseThrow(() -> new RuntimeException(PO_NOT_FOUND + id));
 
         // Validation: Cannot delete if already received
         if (po.getStatus() == PurchaseOrderStatus.RECEIVED) {
@@ -330,7 +333,7 @@ public class ProcurementService {
     @Transactional
     public PurchaseOrderDTO cancelPurchaseOrder(Long id, String cancelReason) {
         PurchaseOrder po = poRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
+                .orElseThrow(() -> new RuntimeException(PO_NOT_FOUND + id));
 
         // Validation: Can only cancel DRAFT or ISSUED POs
         if (po.getStatus() != PurchaseOrderStatus.DRAFT && po.getStatus() != PurchaseOrderStatus.ISSUED) {
@@ -360,7 +363,7 @@ public class ProcurementService {
     @Transactional
     public PurchaseOrderDTO closePurchaseOrder(Long id) {
         PurchaseOrder po = poRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
+                .orElseThrow(() -> new RuntimeException(PO_NOT_FOUND + id));
 
         // Validation: Can only close RECEIVED POs
         if (po.getStatus() != PurchaseOrderStatus.RECEIVED) {
@@ -384,7 +387,7 @@ public class ProcurementService {
     @Transactional
     public PurchaseOrderDTO updatePurchaseOrder(Long id, PurchaseOrderDTO dto) {
         PurchaseOrder po = poRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Purchase Order not found with ID: " + id));
+                .orElseThrow(() -> new RuntimeException(PO_NOT_FOUND + id));
 
         // Validation: Cannot edit if already received or cancelled
         if (!po.isEditable()) {
@@ -455,7 +458,7 @@ public class ProcurementService {
     public List<GRNDTO> getAllGRNs() {
         return grnRepository.findAll().stream()
                 .map(this::mapToGRNDTOWithExtras)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

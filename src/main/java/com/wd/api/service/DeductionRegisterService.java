@@ -36,6 +36,8 @@ public class DeductionRegisterService {
 
     private static final Logger logger = LoggerFactory.getLogger(DeductionRegisterService.class);
 
+    private static final String DEDUCTION_NOT_FOUND_PREFIX = "Deduction not found: ";
+
     private final DeductionRegisterRepository deductionRepository;
     private final CustomerProjectRepository projectRepository;
     private final ChangeOrderRepository changeOrderRepository;
@@ -60,7 +62,7 @@ public class DeductionRegisterService {
     @Transactional(readOnly = true)
     public DeductionRegister getById(Long id) {
         return deductionRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Deduction not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(DEDUCTION_NOT_FOUND_PREFIX +id));
     }
 
     @Transactional(readOnly = true)
@@ -146,7 +148,7 @@ public class DeductionRegisterService {
 
     public DeductionRegister escalate(Long deductionId, EscalateDeductionRequest req) {
         DeductionRegister dr = deductionRepository.findById(deductionId)
-                .orElseThrow(() -> new IllegalArgumentException("Deduction not found: " + deductionId));
+                .orElseThrow(() -> new IllegalArgumentException(DEDUCTION_NOT_FOUND_PREFIX +deductionId));
 
         if (dr.getDecision() != DeductionDecision.PENDING) {
             throw new IllegalStateException(
@@ -184,7 +186,7 @@ public class DeductionRegisterService {
 
     private DeductionRegister requirePendingOrEscalated(Long id) {
         DeductionRegister dr = deductionRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Deduction not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(DEDUCTION_NOT_FOUND_PREFIX +id));
         if (dr.getDecision() != DeductionDecision.PENDING) {
             throw new IllegalStateException(
                     "Deduction already decided: " + dr.getDecision());

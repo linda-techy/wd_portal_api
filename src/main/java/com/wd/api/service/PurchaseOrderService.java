@@ -158,9 +158,12 @@ public class PurchaseOrderService {
     }
 
     /**
-     * DEPRECATED: Use search() instead
+     * Returns all purchase orders for a project without pagination.
+     *
+     * @deprecated Use {@link #search} instead, which provides standardized
+     *             filtering and pagination.
      */
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public List<PurchaseOrder> getProjectPurchaseOrders(Long projectId) {
         if (projectId == null)
             return List.of();

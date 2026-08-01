@@ -22,6 +22,8 @@ import java.util.UUID;
 @Service
 public class LeadEstimationService {
 
+    private static final String ESTIMATION_NOT_FOUND_PREFIX = "Estimation not found: ";
+
     @Value("${estimation.discount.approval-threshold-percent:0.05}")
     private java.math.BigDecimal discountApprovalThreshold;
 
@@ -139,7 +141,7 @@ public class LeadEstimationService {
     @Transactional(readOnly = true)
     public LeadEstimationDetailResponse get(UUID id) {
         Estimation est = estimationRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ESTIMATION_NOT_FOUND_PREFIX +id));
         // Re-fetch line items rather than recomputing — preserves the pinned rates.
         List<LineItemDto> lineItems = lineItemRepo
                 .findByEstimationIdOrderByDisplayOrderAsc(est.getId()).stream()
@@ -175,7 +177,7 @@ public class LeadEstimationService {
     @Transactional
     public LeadEstimationDetailResponse markSent(UUID id) {
         Estimation e = estimationRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ESTIMATION_NOT_FOUND_PREFIX +id));
         if (e.getStatus() != EstimationStatus.DRAFT) {
             throw new IllegalStateException(
                     "Can only mark DRAFT estimations as SENT (current: " + e.getStatus() + ")");
@@ -199,7 +201,7 @@ public class LeadEstimationService {
     @Transactional
     public LeadEstimationDetailResponse approveDiscount(UUID id, Long approverUserId, String notes) {
         Estimation e = estimationRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ESTIMATION_NOT_FOUND_PREFIX +id));
         if (e.getDiscountApprovalStatus() == null) {
             throw new IllegalStateException("Discount on this estimation does not require approval.");
         }
@@ -220,7 +222,7 @@ public class LeadEstimationService {
             throw new IllegalArgumentException("A reason is required when rejecting a discount.");
         }
         Estimation e = estimationRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ESTIMATION_NOT_FOUND_PREFIX +id));
         if (e.getDiscountApprovalStatus() == null) {
             throw new IllegalStateException("Discount on this estimation does not require approval.");
         }
@@ -235,7 +237,7 @@ public class LeadEstimationService {
     @Transactional
     public LeadEstimationDetailResponse markAccepted(UUID id) {
         Estimation e = estimationRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ESTIMATION_NOT_FOUND_PREFIX +id));
         if (e.getStatus() != EstimationStatus.SENT) {
             throw new IllegalStateException(
                     "Can only mark SENT estimations as ACCEPTED (current: " + e.getStatus() + ")");
@@ -257,7 +259,7 @@ public class LeadEstimationService {
     @Transactional
     public LeadEstimationDetailResponse markRejected(UUID id) {
         Estimation e = estimationRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ESTIMATION_NOT_FOUND_PREFIX +id));
         if (e.getStatus() != EstimationStatus.SENT) {
             throw new IllegalStateException(
                     "Can only mark SENT estimations as REJECTED (current: " + e.getStatus() + ")");
@@ -270,7 +272,7 @@ public class LeadEstimationService {
     @Transactional
     public LeadEstimationDetailResponse revertToDraft(UUID id) {
         Estimation e = estimationRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ESTIMATION_NOT_FOUND_PREFIX +id));
         if (e.getStatus() == EstimationStatus.ACCEPTED) {
             throw new IllegalStateException("Cannot revert ACCEPTED estimations to DRAFT");
         }
@@ -282,7 +284,7 @@ public class LeadEstimationService {
     @Transactional
     public void delete(UUID id) {
         Estimation est = estimationRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(ESTIMATION_NOT_FOUND_PREFIX +id));
         boolean wasCurrent = est.isCurrent();
         Long leadId = est.getLeadId();
         estimationRepo.delete(est);  // Soft-delete via @SQLDelete on BaseEntity
@@ -348,7 +350,7 @@ public class LeadEstimationService {
     @Transactional
     public LeadEstimationDetailResponse revise(UUID parentId, LeadEstimationCreateRequest req) {
         Estimation parent = estimationRepo.findById(parentId).orElseThrow(() ->
-                new IllegalArgumentException("Estimation not found: " + parentId));
+                new IllegalArgumentException(ESTIMATION_NOT_FOUND_PREFIX +parentId));
         if (parent.getStatus() != EstimationStatus.DRAFT && parent.getStatus() != EstimationStatus.SENT) {
             throw new IllegalStateException(
                     "Can only revise DRAFT or SENT estimations (parent is " + parent.getStatus() + ")");
@@ -368,7 +370,7 @@ public class LeadEstimationService {
     @Transactional
     public LeadEstimationDetailResponse regeneratePublicToken(UUID estimationId) {
         Estimation e = estimationRepo.findById(estimationId)
-                .orElseThrow(() -> new IllegalArgumentException("Estimation not found: " + estimationId));
+                .orElseThrow(() -> new IllegalArgumentException(ESTIMATION_NOT_FOUND_PREFIX +estimationId));
         e.setPublicViewToken(UUID.randomUUID());
         estimationRepo.save(e);
         return get(estimationId);

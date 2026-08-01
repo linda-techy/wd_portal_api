@@ -31,6 +31,8 @@ public class GalleryService {
 
     private static final Logger logger = LoggerFactory.getLogger(GalleryService.class);
 
+    private static final String GALLERY_IMAGE_NOT_FOUND = "Gallery image not found with id: ";
+
     private final GalleryImageRepository galleryImageRepository;
     private final CustomerProjectRepository projectRepository;
     private final SiteReportRepository siteReportRepository;
@@ -94,7 +96,7 @@ public class GalleryService {
         List<GalleryImage> images = galleryImageRepository.findByProjectIdOrderByTakenDateDesc(projectId);
         return images.stream()
                 .map(GalleryImageDto::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -106,7 +108,7 @@ public class GalleryService {
             List<GalleryImage> images = galleryImageRepository.findByProjectIdAndTakenDate(projectId, date);
             groupedImages.put(date, images.stream()
                     .map(GalleryImageDto::fromEntity)
-                    .collect(Collectors.toList()));
+                    .toList());
         }
 
         return groupedImages;
@@ -115,7 +117,7 @@ public class GalleryService {
     @Transactional(readOnly = true)
     public GalleryImageDto getImageById(Long id) {
         GalleryImage image = galleryImageRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Gallery image not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(GALLERY_IMAGE_NOT_FOUND + id));
         return GalleryImageDto.fromEntity(image);
     }
 
@@ -149,7 +151,7 @@ public class GalleryService {
     @Transactional
     public GalleryImageDto updateImage(Long id, String caption, String locationTag, String[] tags) {
         GalleryImage image = galleryImageRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Gallery image not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(GALLERY_IMAGE_NOT_FOUND + id));
 
         if (caption != null) {
             image.setCaption(caption);
@@ -168,7 +170,7 @@ public class GalleryService {
     @Transactional
     public void deleteImage(Long id) {
         GalleryImage image = galleryImageRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Gallery image not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(GALLERY_IMAGE_NOT_FOUND + id));
 
         // Delete physical file
         if (image.getImagePath() != null) {

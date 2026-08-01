@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Common Controller for Master Data and Dropdown APIs
@@ -85,7 +84,7 @@ public class CommonController {
                     phase.getDescription(),
                     phase.getOrder()
                 ))
-                .collect(Collectors.toList());
+                .toList();
             
             return ResponseEntity.ok(ApiResponse.success("Project phases retrieved successfully", phases));
         } catch (Exception e) {
@@ -108,7 +107,7 @@ public class CommonController {
                     type.getDisplayName(),
                     null
                 ))
-                .collect(Collectors.toList());
+                .toList();
             
             return ResponseEntity.ok(ApiResponse.success("Contract types retrieved successfully", contractTypes));
         } catch (Exception e) {
@@ -126,7 +125,7 @@ public class CommonController {
         try {
             List<StateDTO> states = STATES_DISTRICTS.entrySet().stream()
                 .map(entry -> new StateDTO(entry.getKey(), entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+                .toList();
             
             return ResponseEntity.ok(ApiResponse.success("States retrieved successfully", states));
         } catch (Exception e) {
@@ -163,7 +162,7 @@ public class CommonController {
                     .flatMap(List::stream)
                     .distinct()
                     .sorted()
-                    .collect(Collectors.toList());
+                    .toList();
                 return ResponseEntity.ok(ApiResponse.success("All districts retrieved successfully", allDistricts));
             }
             

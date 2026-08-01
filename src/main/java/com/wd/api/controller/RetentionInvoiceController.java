@@ -129,8 +129,8 @@ public class RetentionInvoiceController {
         if (auth == null || auth.getPrincipal() == null) {
             throw new IllegalStateException("Authentication required");
         }
-        if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser) {
-            return ((com.wd.api.model.PortalUser) auth.getPrincipal()).getId();
+        if (auth.getPrincipal() instanceof com.wd.api.model.PortalUser portalUser) {
+            return portalUser.getId();
         }
         try {
             return Long.parseLong(auth.getName());

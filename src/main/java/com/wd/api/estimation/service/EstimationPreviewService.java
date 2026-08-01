@@ -10,7 +10,6 @@ import com.wd.api.estimation.domain.SiteFee;
 import com.wd.api.estimation.domain.EstimationPackage;
 import com.wd.api.estimation.domain.enums.EstimationConfidenceLevel;
 import com.wd.api.estimation.domain.enums.EstimationPricingMode;
-import com.wd.api.estimation.domain.enums.ProjectType;
 import com.wd.api.estimation.dto.CalculatePreviewRequest;
 import com.wd.api.estimation.dto.CalculatePreviewResponse;
 import com.wd.api.estimation.dto.CustomisationChoiceDto;

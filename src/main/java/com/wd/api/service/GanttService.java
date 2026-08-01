@@ -4,8 +4,6 @@ import com.wd.api.model.Task;
 import com.wd.api.model.scheduling.TaskPredecessor;
 import com.wd.api.repository.TaskPredecessorRepository;
 import com.wd.api.repository.TaskRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,8 +23,6 @@ import java.util.*;
  */
 @Service
 public class GanttService {
-
-    private static final Logger logger = LoggerFactory.getLogger(GanttService.class);
 
     private final TaskRepository taskRepository;
 

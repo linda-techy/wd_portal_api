@@ -15,7 +15,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -137,7 +136,7 @@ public class DashboardService {
                 .filter(item -> item.getOverdueTasks() > 0 || item.getActiveDelays() > 0)
                 .sorted(Comparator.comparingInt(DashboardProjectsDTO.ProjectHealthItem::getOverdueTasks).reversed())
                 .limit(5)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // ─── Leads ───────────────────────────────────────────────────────────────
@@ -146,7 +145,6 @@ public class DashboardService {
     @Transactional(readOnly = true)
     public DashboardLeadsDTO getLeadStats() {
         long totalLeads = leadRepository.count();
-        long openLeads = leadRepository.countOpen();
         long hotLeads = leadRepository.countHotLeads();
 
         // Conversion rate
@@ -182,7 +180,7 @@ public class DashboardService {
                         .month((String) row[0])
                         .count(((Number) row[1]).longValue())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         return DashboardLeadsDTO.builder()
                 .totalLeads(totalLeads)

@@ -22,6 +22,10 @@ import java.util.Map;
 @RequestMapping("/leads/interactions")
 public class LeadInteractionController {
 
+    private static final String PORTAL_USER_NOT_FOUND = "Portal User not found";
+    private static final String KEY_SUCCESS = "success";
+    private static final String KEY_MESSAGE = "message";
+
     private final LeadInteractionService interactionService;
 
     private final com.wd.api.repository.PortalUserRepository portalUserRepository;
@@ -107,16 +111,16 @@ public class LeadInteractionController {
         try {
             String username = authentication.getName();
             com.wd.api.model.PortalUser user = portalUserRepository.findByEmail(username)
-                    .orElseThrow(() -> new RuntimeException("Portal User not found"));
+                    .orElseThrow(() -> new RuntimeException(PORTAL_USER_NOT_FOUND));
 
             LeadInteraction created = interactionService.createInteraction(request.toEntity(), user.getId());
             return ResponseEntity.ok(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "message", "Failed to create interaction"));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, "Failed to create interaction"));
         }
     }
 
@@ -135,13 +139,13 @@ public class LeadInteractionController {
 
             String username = authentication.getName();
             com.wd.api.model.PortalUser user = portalUserRepository.findByEmail(username)
-                    .orElseThrow(() -> new RuntimeException("Portal User not found"));
+                    .orElseThrow(() -> new RuntimeException(PORTAL_USER_NOT_FOUND));
 
             LeadInteraction created = interactionService.logQuickInteraction(leadId, type, notes, user.getId());
             return ResponseEntity.ok(created);
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, e.getMessage()));
         }
     }
 
@@ -160,14 +164,14 @@ public class LeadInteractionController {
 
             String username = authentication.getName();
             com.wd.api.model.PortalUser user = portalUserRepository.findByEmail(username)
-                    .orElseThrow(() -> new RuntimeException("Portal User not found"));
+                    .orElseThrow(() -> new RuntimeException(PORTAL_USER_NOT_FOUND));
 
             LeadInteraction created = interactionService.scheduleFollowUp(leadId, nextAction, nextActionDate,
                     user.getId());
             return ResponseEntity.ok(created);
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, e.getMessage()));
         }
     }
 
@@ -184,7 +188,7 @@ public class LeadInteractionController {
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, e.getMessage()));
         }
     }
 
@@ -196,10 +200,10 @@ public class LeadInteractionController {
     public ResponseEntity<?> deleteInteraction(@PathVariable Long id) {
         try {
             interactionService.deleteInteraction(id);
-            return ResponseEntity.ok(Map.of("success", true, "message", "Interaction deleted"));
+            return ResponseEntity.ok(Map.of(KEY_SUCCESS, true, KEY_MESSAGE, "Interaction deleted"));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, e.getMessage()));
         }
     }
 }

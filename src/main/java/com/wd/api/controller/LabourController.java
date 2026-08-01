@@ -35,8 +35,12 @@ public class LabourController {
         return ResponseEntity.ok(labourService.createLabour(dto));
     }
 
+    /**
+     * @deprecated Use the {@code /search} endpoint ({@code searchLabour}) instead, which
+     *             supports filtering and pagination.
+     */
     @GetMapping
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<List<LabourDTO>> getAllLabour() {
         return ResponseEntity.ok(labourService.getAllLabour());
     }

@@ -42,9 +42,12 @@ public class ProjectVariationController {
         return ResponseEntity.ok(variationService.searchProjectVariations(filter));
     }
 
+    /**
+     * @deprecated Use the paginated {@code /variations/search} endpoint instead.
+     */
     @GetMapping("/api/projects/{projectId}/variations")
     @PreAuthorize("hasAuthority('PROJECT_VIEW')")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<List<ProjectVariation>> getVariations(@PathVariable Long projectId) {
         return ResponseEntity.ok(variationService.getVariationsByProject(projectId));
     }
@@ -73,25 +76,34 @@ public class ProjectVariationController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * @deprecated Use the {@code /change-requests/{crId}/submit} endpoint instead.
+     */
     @PostMapping("/api/projects/{projectId}/variations/{id}/submit")
     @PreAuthorize("hasAnyAuthority('PROJECT_EDIT', 'PROJECT_CREATE')")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<ProjectVariation> submitLegacy(
             @PathVariable Long projectId, @PathVariable Long id) {
         return ResponseEntity.ok(variationService.submitForApproval(id));
     }
 
+    /**
+     * @deprecated Use the {@code /change-requests/{crId}} workflow endpoints instead.
+     */
     @PostMapping("/api/projects/{projectId}/variations/{id}/approve")
     @PreAuthorize("hasAuthority('BOQ_APPROVE')")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<ProjectVariation> approveLegacy(
             @PathVariable Long projectId, @PathVariable Long id, Authentication auth) {
         return ResponseEntity.ok(variationService.approveVariation(id, getCurrentUserId(auth)));
     }
 
+    /**
+     * @deprecated Use the {@code /change-requests/{crId}/reject} endpoint instead.
+     */
     @PostMapping("/api/projects/{projectId}/variations/{id}/reject")
     @PreAuthorize("hasAuthority('BOQ_APPROVE')")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<ProjectVariation> rejectLegacy(
             @PathVariable Long projectId, @PathVariable Long id,
             @RequestBody Map<String, String> payload, Authentication auth) {

@@ -155,11 +155,12 @@ public class TaskService {
     }
 
     /**
-     * DEPRECATED: Get all tasks (admin only) or user's tasks (non-admin)
-     * Use search() instead
-     * PERFORMANCE: Limited to 1000 tasks to prevent memory issues
+     * Get all tasks (admin only) or user's tasks (non-admin).
+     * PERFORMANCE: Limited to 1000 tasks to prevent memory issues.
+     *
+     * @deprecated Use {@link #search} instead, which supports filtering and pagination.
      */
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public List<Task> getAllTasks() {
         // PERFORMANCE: Limit to prevent loading all records into memory
         Pageable pageable = PageRequest.of(0, 1000);

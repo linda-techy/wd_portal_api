@@ -32,6 +32,7 @@ public class ObservationDto {
     private LocalDateTime updatedAt;
 
     public ObservationDto() {
+        // No-op: default constructor for Jackson deserialization and manual DTO population.
     }
 
     public static ObservationDto fromEntity(Observation entity) {

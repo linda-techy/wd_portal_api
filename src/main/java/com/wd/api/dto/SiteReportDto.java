@@ -3,7 +3,6 @@ package com.wd.api.dto;
 import com.wd.api.model.SiteReport;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class SiteReportDto {
     private Long id;
@@ -63,7 +62,7 @@ public class SiteReportDto {
             this.photos = report.getPhotos().stream()
                     .map(SiteReportPhotoDto::new)
                     .sorted((p1, p2) -> Integer.compare(p1.getDisplayOrder(), p2.getDisplayOrder()))
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 

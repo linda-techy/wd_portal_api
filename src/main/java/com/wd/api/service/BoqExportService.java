@@ -26,6 +26,7 @@ public class BoqExportService {
 
     private static final Logger logger = LoggerFactory.getLogger(BoqExportService.class);
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final String COL_COST_TO_COMPLETE = "Cost to Complete (₹)";
 
     private final BoqService boqService;
 
@@ -66,7 +67,7 @@ public class BoqExportService {
             "#", "Item Code", "Category", "Work Type", "Description",
             "Unit", "Quantity", "Unit Rate (₹)", "Total Amount (₹)",
             "Executed Qty", "Billed Qty", "Remaining Qty",
-            "Exec. Amount (₹)", "Billed Amount (₹)", "Cost to Complete (₹)",
+            "Exec. Amount (₹)", "Billed Amount (₹)", COL_COST_TO_COMPLETE,
             "Exec. %", "Billing %", "Status", "Created"
         };
 
@@ -97,7 +98,7 @@ public class BoqExportService {
             createNumericCell(row, c++, item.executionPercentage(), pct);
             createNumericCell(row, c++, item.billingPercentage(), pct);
             createCell(row, c++, nvl(item.status()), data);
-            createCell(row, c++,
+            createCell(row, c,
                 item.createdAt() != null ? item.createdAt().format(DATE_FMT) : "", data);
         }
 
@@ -152,7 +153,7 @@ public class BoqExportService {
             hdr.getCell(2).setCellValue("Planned (₹)");
             hdr.getCell(3).setCellValue("Executed (₹)");
             hdr.getCell(4).setCellValue("Billed (₹)");
-            hdr.getCell(5).setCellValue("Cost to Complete (₹)");
+            hdr.getCell(5).setCellValue(COL_COST_TO_COMPLETE);
 
             for (var c : s.categoryBreakdown()) {
                 Row r = sheet.createRow(row++);
@@ -175,7 +176,7 @@ public class BoqExportService {
             hdr.getCell(2).setCellValue("Planned (₹)");
             hdr.getCell(3).setCellValue("Executed (₹)");
             hdr.getCell(4).setCellValue("Billed (₹)");
-            hdr.getCell(5).setCellValue("Cost to Complete (₹)");
+            hdr.getCell(5).setCellValue(COL_COST_TO_COMPLETE);
 
             for (var w : s.workTypeBreakdown()) {
                 Row r = sheet.createRow(row++);

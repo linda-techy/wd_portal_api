@@ -35,6 +35,8 @@ public class VariationOrderService {
 
     private static final Logger logger = LoggerFactory.getLogger(VariationOrderService.class);
 
+    private static final String VO_NOT_FOUND = "VO not found: ";
+
     private final ChangeOrderRepository changeOrderRepository;
     private final ChangeOrderApprovalHistoryRepository approvalHistoryRepository;
     private final ChangeOrderPaymentScheduleRepository paymentScheduleRepository;
@@ -177,7 +179,7 @@ public class VariationOrderService {
     public ChangeOrder processApproval(Long changeOrderId, VOApprovalRequest req,
                                        ApprovalLevel approverLevel, Long approverId, String approverName) {
         ChangeOrder co = changeOrderRepository.findById(changeOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("VO not found: " + changeOrderId));
+                .orElseThrow(() -> new IllegalArgumentException(VO_NOT_FOUND + changeOrderId));
 
         if (co.getStatus() != ChangeOrderStatus.SUBMITTED
                 && co.getStatus() != ChangeOrderStatus.CUSTOMER_REVIEW) {
@@ -246,7 +248,7 @@ public class VariationOrderService {
             Long changeOrderId, UpdatePaymentScheduleRequest req) {
 
         ChangeOrder co = changeOrderRepository.findById(changeOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("VO not found: " + changeOrderId));
+                .orElseThrow(() -> new IllegalArgumentException(VO_NOT_FOUND + changeOrderId));
         if (co.getStatus() != ChangeOrderStatus.APPROVED) {
             throw new IllegalStateException("Can only update payment schedule for an APPROVED VO.");
         }
@@ -296,7 +298,7 @@ public class VariationOrderService {
 
     private ChangeOrder requireDraft(Long id) {
         ChangeOrder co = changeOrderRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("VO not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(VO_NOT_FOUND + id));
         if (co.getStatus() != ChangeOrderStatus.DRAFT) {
             throw new IllegalStateException("VO must be in DRAFT status. Current: " + co.getStatus());
         }

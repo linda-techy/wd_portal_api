@@ -56,6 +56,9 @@ public class StartupLogger implements ApplicationRunner {
     // the real password to logs.
     @SuppressWarnings("java:S2068")
     private void logDiagnostics() {
+        if (!log.isInfoEnabled()) {
+            return;
+        }
         String[] profiles = environment.getActiveProfiles();
         String profile = profiles.length > 0 ? String.join(",", profiles) : "default";
 

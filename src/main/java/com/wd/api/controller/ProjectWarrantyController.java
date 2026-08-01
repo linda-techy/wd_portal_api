@@ -25,8 +25,14 @@ public class ProjectWarrantyController {
         return ResponseEntity.ok(warrantyService.searchProjectWarranties(filter));
     }
 
+    /**
+     * Returns all warranties for a project as a flat list.
+     *
+     * @deprecated Use {@link #searchProjectWarranties(ProjectWarrantySearchFilter)}
+     *             (GET /search) instead, which supports pagination and filtering.
+     */
     @GetMapping
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<List<ProjectWarranty>> getWarranties(@PathVariable Long projectId) {
         return ResponseEntity.ok(warrantyService.getWarrantiesByProject(projectId));
     }

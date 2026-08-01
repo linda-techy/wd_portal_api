@@ -9,8 +9,6 @@ import com.wd.api.model.PartnershipUser;
 import com.wd.api.repository.CustomerPasswordResetTokenRepository;
 import com.wd.api.repository.LeadRepository;
 import com.wd.api.repository.PartnershipUserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,7 +32,17 @@ import java.util.UUID;
 @Service
 public class PartnershipService {
 
-    private static final Logger logger = LoggerFactory.getLogger(PartnershipService.class);
+    private static final String STATUS_ACTIVE = "active";
+    private static final String STATUS_APPROVED = "approved";
+    private static final String STATUS_PENDING = "pending";
+    private static final String STATUS_REJECTED = "rejected";
+    private static final String STATUS_SUSPENDED = "suspended";
+    private static final String STATUS_QUALIFIED = "qualified";
+    private static final String STATUS_PROJECT_WON = "project_won";
+    private static final String KEY_PARTNERSHIP_TYPE = "partnershipType";
+    private static final String KEY_STATUS = "status";
+    private static final String KEY_LOCATION = "location";
+    private static final String KEY_CREATED_AT = "createdAt";
 
     private final PartnershipUserRepository partnershipUserRepository;
 
@@ -84,22 +92,22 @@ public class PartnershipService {
         }
 
         // Check if account is active
-        if (!"active".equals(partner.getStatus()) && !"approved".equals(partner.getStatus())) {
+        if (!STATUS_ACTIVE.equals(partner.getStatus()) && !STATUS_APPROVED.equals(partner.getStatus())) {
             throw new RuntimeException("Account is not active. Status: " + partner.getStatus());
         }
 
         // Update last login and status to active
         partner.setLastLogin(LocalDateTime.now());
-        if ("approved".equals(partner.getStatus())) {
-            partner.setStatus("active");
+        if (STATUS_APPROVED.equals(partner.getStatus())) {
+            partner.setStatus(STATUS_ACTIVE);
         }
         partnershipUserRepository.save(partner);
 
         // Generate JWT token with PARTNER prefix
         Map<String, Object> claims = new HashMap<>();
         claims.put("partnerId", partner.getId().toString());
-        claims.put("partnershipType", partner.getPartnershipType());
-        claims.put("status", partner.getStatus());
+        claims.put(KEY_PARTNERSHIP_TYPE, partner.getPartnershipType());
+        claims.put(KEY_STATUS, partner.getStatus());
 
         String token = jwtService.generatePartnerToken(partner.getEmail(), claims);
 
@@ -179,7 +187,7 @@ public class PartnershipService {
         partner.setMessage(request.getMessage());
 
         // Set status as pending (requires admin approval)
-        partner.setStatus("pending");
+        partner.setStatus(STATUS_PENDING);
 
         // Save
         PartnershipUser savedPartner = partnershipUserRepository.save(partner);
@@ -188,7 +196,7 @@ public class PartnershipService {
         response.put("success", true);
         response.put("message", "Partnership application submitted successfully");
         response.put("partnerId", savedPartner.getId());
-        response.put("status", "pending");
+        response.put(KEY_STATUS, STATUS_PENDING);
         response.put("note", "Your application is under review. You will be able to login once approved.");
 
         return response;
@@ -218,19 +226,19 @@ public class PartnershipService {
         partner.setStatus(status);
         partner.setUpdatedBy(updatedBy);
 
-        if ("approved".equals(status)) {
+        if (STATUS_APPROVED.equals(status)) {
             partner.setApprovedAt(LocalDateTime.now());
         }
 
         partnershipUserRepository.save(partner);
 
         // Send notification emails asynchronously
-        if ("approved".equals(status)) {
+        if (STATUS_APPROVED.equals(status)) {
             emailService.sendPartnerApprovalEmail(
                     partner.getEmail(),
                     partner.getFullName(),
                     partner.getPartnershipType() != null ? partner.getPartnershipType() : "Partner");
-        } else if ("rejected".equals(status)) {
+        } else if (STATUS_REJECTED.equals(status)) {
             emailService.sendPartnerRejectionEmail(partner.getEmail(), partner.getFullName());
         }
     }
@@ -268,11 +276,11 @@ public class PartnershipService {
         long qualifiedReferrals = referrals.stream()
                 .filter(l -> {
                     String status = normalizeLeadStatus(l.getLeadStatus());
-                    return "qualified".equals(status) || "proposal_sent".equals(status) || "negotiation".equals(status);
+                    return STATUS_QUALIFIED.equals(status) || "proposal_sent".equals(status) || "negotiation".equals(status);
                 })
                 .count();
         long convertedReferrals = referrals.stream()
-                .filter(l -> "project_won".equals(normalizeLeadStatus(l.getLeadStatus())))
+                .filter(l -> STATUS_PROJECT_WON.equals(normalizeLeadStatus(l.getLeadStatus())))
                 .count();
         long lostReferrals = referrals.stream()
                 .filter(l -> "lost".equals(normalizeLeadStatus(l.getLeadStatus())))
@@ -302,12 +310,12 @@ public class PartnershipService {
             summary.put("clientPhone", lead.getPhone());
             summary.put("clientEmail", lead.getEmail());
             summary.put("projectType", lead.getProjectType());
-            summary.put("status", normalizeLeadStatus(lead.getLeadStatus()));
+            summary.put(KEY_STATUS, normalizeLeadStatus(lead.getLeadStatus()));
             summary.put("priority", lead.getPriority());
-            summary.put("location", lead.getLocation());
+            summary.put(KEY_LOCATION, lead.getLocation());
             summary.put("budget", lead.getBudget());
             summary.put("dateOfEnquiry", lead.getDateOfEnquiry());
-            summary.put("createdAt", lead.getCreatedAt());
+            summary.put(KEY_CREATED_AT, lead.getCreatedAt());
             summaries.add(summary);
         }
 
@@ -390,7 +398,7 @@ public class PartnershipService {
      */
     public Page<PartnershipUser> searchPartners(String status, String partnershipType,
                                                  String search, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(KEY_CREATED_AT).descending());
         String statusParam = (status == null || status.isBlank() || "all".equalsIgnoreCase(status)) ? null : status;
         String typeParam = (partnershipType == null || partnershipType.isBlank() || "all".equalsIgnoreCase(partnershipType)) ? null : partnershipType;
         String searchParam = (search == null || search.isBlank()) ? null : search.trim();
@@ -402,11 +410,11 @@ public class PartnershipService {
      */
     public Map<String, Long> getPartnerStatusCounts() {
         Map<String, Long> counts = new HashMap<>();
-        counts.put("pending", partnershipUserRepository.countByStatus("pending"));
-        counts.put("approved", partnershipUserRepository.countByStatus("approved"));
-        counts.put("active", partnershipUserRepository.countByStatus("active"));
-        counts.put("rejected", partnershipUserRepository.countByStatus("rejected"));
-        counts.put("suspended", partnershipUserRepository.countByStatus("suspended"));
+        counts.put(STATUS_PENDING, partnershipUserRepository.countByStatus(STATUS_PENDING));
+        counts.put(STATUS_APPROVED, partnershipUserRepository.countByStatus(STATUS_APPROVED));
+        counts.put(STATUS_ACTIVE, partnershipUserRepository.countByStatus(STATUS_ACTIVE));
+        counts.put(STATUS_REJECTED, partnershipUserRepository.countByStatus(STATUS_REJECTED));
+        counts.put(STATUS_SUSPENDED, partnershipUserRepository.countByStatus(STATUS_SUSPENDED));
         counts.put("total", partnershipUserRepository.count());
         return counts;
     }
@@ -425,8 +433,8 @@ public class PartnershipService {
         detail.put("email", partner.getEmail());
         detail.put("phone", partner.getPhone());
         detail.put("designation", partner.getDesignation());
-        detail.put("partnershipType", partner.getPartnershipType());
-        detail.put("status", partner.getStatus());
+        detail.put(KEY_PARTNERSHIP_TYPE, partner.getPartnershipType());
+        detail.put(KEY_STATUS, partner.getStatus());
         // Business
         detail.put("firmName", partner.getFirmName());
         detail.put("companyName", partner.getCompanyName());
@@ -444,7 +452,7 @@ public class PartnershipService {
         detail.put("portfolioLink", partner.getPortfolioLink());
         detail.put("certifications", partner.getCertifications());
         // Operational
-        detail.put("location", partner.getLocation());
+        detail.put(KEY_LOCATION, partner.getLocation());
         detail.put("areaOfOperation", partner.getAreaOfOperation());
         detail.put("areasCovered", partner.getAreasCovered());
         detail.put("areaServed", partner.getAreaServed());
@@ -459,7 +467,7 @@ public class PartnershipService {
         detail.put("additionalContact", partner.getAdditionalContact());
         detail.put("message", partner.getMessage());
         // Timestamps
-        detail.put("createdAt", partner.getCreatedAt());
+        detail.put(KEY_CREATED_AT, partner.getCreatedAt());
         detail.put("updatedAt", partner.getUpdatedAt());
         detail.put("approvedAt", partner.getApprovedAt());
         detail.put("lastLogin", partner.getLastLogin());
@@ -478,7 +486,7 @@ public class PartnershipService {
         List<Lead> referrals = getReferralsByPartner(partner.getId());
         long totalReferrals = referrals.size();
         long convertedReferrals = referrals.stream()
-                .filter(l -> "project_won".equals(normalizeLeadStatus(l.getLeadStatus())))
+                .filter(l -> STATUS_PROJECT_WON.equals(normalizeLeadStatus(l.getLeadStatus())))
                 .count();
 
         Map<String, Object> summary = new HashMap<>();
@@ -487,11 +495,11 @@ public class PartnershipService {
         summary.put("email", partner.getEmail());
         summary.put("phone", partner.getPhone());
         summary.put("designation", partner.getDesignation());
-        summary.put("partnershipType", partner.getPartnershipType());
-        summary.put("status", partner.getStatus());
+        summary.put(KEY_PARTNERSHIP_TYPE, partner.getPartnershipType());
+        summary.put(KEY_STATUS, partner.getStatus());
         summary.put("firmName", partner.getFirmName() != null ? partner.getFirmName() : partner.getCompanyName());
-        summary.put("location", partner.getLocation());
-        summary.put("createdAt", partner.getCreatedAt());
+        summary.put(KEY_LOCATION, partner.getLocation());
+        summary.put(KEY_CREATED_AT, partner.getCreatedAt());
         summary.put("approvedAt", partner.getApprovedAt());
         summary.put("lastLogin", partner.getLastLogin());
         summary.put("totalReferrals", totalReferrals);
@@ -511,14 +519,14 @@ public class PartnershipService {
         if ("new".equals(cleaned) || "newinquiry".equals(cleaned)) {
             return "new_inquiry";
         }
-        if ("qualified".equals(cleaned) || "qualifiedlead".equals(cleaned)) {
-            return "qualified";
+        if (STATUS_QUALIFIED.equals(cleaned) || "qualifiedlead".equals(cleaned)) {
+            return STATUS_QUALIFIED;
         }
         if ("proposalsent".equals(cleaned)) {
             return "proposal_sent";
         }
         if ("projectwon".equals(cleaned) || "won".equals(cleaned) || "converted".equals(cleaned)) {
-            return "project_won";
+            return STATUS_PROJECT_WON;
         }
         return status.toLowerCase().trim();
     }
@@ -528,7 +536,7 @@ public class PartnershipService {
      */
     @Transactional
     public void suspendPartner(Long partnerId, String updatedBy) {
-        updatePartnerStatus(partnerId, "suspended", updatedBy);
+        updatePartnerStatus(partnerId, STATUS_SUSPENDED, updatedBy);
     }
 
     // ── Referred client (friend who was referred) ────────────────────────────

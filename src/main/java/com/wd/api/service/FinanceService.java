@@ -25,6 +25,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FinanceService {
 
+        private static final String STATUS_COMPLETED = "COMPLETED";
+
         private final ProjectInvoiceService projectInvoiceService;
         private final LabourPaymentService labourPaymentService;
 
@@ -115,17 +117,17 @@ public class FinanceService {
                 milestone.setAmount(details.getAmount());
                 milestone.setDueDate(details.getDueDate());
 
-                boolean wasCompleted = "COMPLETED".equals(milestone.getStatus());
+                boolean wasCompleted = STATUS_COMPLETED.equals(milestone.getStatus());
                 if (details.getStatus() != null) {
                         milestone.setStatus(details.getStatus());
-                        if ("COMPLETED".equals(details.getStatus()) && milestone.getCompletedDate() == null) {
+                        if (STATUS_COMPLETED.equals(details.getStatus()) && milestone.getCompletedDate() == null) {
                                 milestone.setCompletedDate(java.time.LocalDate.now());
                         }
                 }
 
                 ProjectMilestone saved = milestoneRepository.save(milestone);
 
-                if (!wasCompleted && "COMPLETED".equals(saved.getStatus()) && saved.getProject() != null) {
+                if (!wasCompleted && STATUS_COMPLETED.equals(saved.getStatus()) && saved.getProject() != null) {
                         String milestoneName = saved.getName() != null ? saved.getName() : "A milestone";
                         customerNotificationFacade.notifyAll(
                                 saved.getProject().getId(),

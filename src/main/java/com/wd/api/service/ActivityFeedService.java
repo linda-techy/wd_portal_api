@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class ActivityFeedService {
@@ -138,13 +137,13 @@ public class ActivityFeedService {
                 .findByReferenceIdAndReferenceTypeOrderByCreatedAtDesc(leadId, "LEAD");
         List<ActivityFeedDTO> feedDTOs = activityFeeds.stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
 
         // Fetch from lead_interactions table
         List<LeadInteraction> interactions = leadInteractionRepository.findByLeadIdOrderByInteractionDateDesc(leadId);
         List<ActivityFeedDTO> interactionDTOs = interactions.stream()
                 .map(this::interactionToDTO)
-                .collect(Collectors.toList());
+                .toList();
 
         // Combine both lists
         List<ActivityFeedDTO> allActivities = new ArrayList<>();

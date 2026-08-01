@@ -24,6 +24,7 @@ public class FeedbackFormDto {
     private Double averageRating;
 
     public FeedbackFormDto() {
+        // No-op: default constructor for Jackson deserialization and manual DTO population.
     }
 
     public static FeedbackFormDto fromEntity(FeedbackForm entity) {

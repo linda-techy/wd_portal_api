@@ -152,11 +152,12 @@ public class MaterialIndentController {
     }
 
     /**
-     * DEPRECATED: Use /search endpoint instead
+     * @deprecated Use the {@code /search} endpoint instead; this legacy listing
+     *             endpoint is retained only for backward compatibility.
      */
     @GetMapping
     @PreAuthorize("hasAuthority('PROCUREMENT_VIEW')")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<ApiResponse<Page<MaterialIndent>>> searchIndentsOld(
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) String status,
@@ -179,8 +180,8 @@ public class MaterialIndentController {
 
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof PortalUser) {
-            return ((PortalUser) authentication.getPrincipal()).getId();
+        if (authentication != null && authentication.getPrincipal() instanceof PortalUser portalUser) {
+            return portalUser.getId();
         }
         if (authentication != null && authentication.isAuthenticated()
                 && !"anonymousUser".equals(authentication.getName())) {

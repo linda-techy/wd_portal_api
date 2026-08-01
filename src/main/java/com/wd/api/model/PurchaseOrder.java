@@ -92,6 +92,7 @@ public class PurchaseOrder extends BaseEntity {
     // ==================== Constructors ====================
 
     public PurchaseOrder() {
+        // No-op: default constructor required by JPA.
     }
 
     // ==================== Getters & Setters ====================

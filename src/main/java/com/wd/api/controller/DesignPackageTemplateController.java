@@ -26,6 +26,9 @@ public class DesignPackageTemplateController {
 
     private static final Logger logger = LoggerFactory.getLogger(DesignPackageTemplateController.class);
 
+    private static final String KEY_SUCCESS = "success";
+    private static final String KEY_MESSAGE = "message";
+
     private final DesignPackageTemplateService service;
 
     public DesignPackageTemplateController(DesignPackageTemplateService service) {
@@ -37,17 +40,17 @@ public class DesignPackageTemplateController {
     public ResponseEntity<?> list(
             @RequestParam(value = "activeOnly", defaultValue = "false") boolean activeOnly) {
         List<DesignPackageTemplate> rows = activeOnly ? service.listActive() : service.listAll();
-        return ResponseEntity.ok(Map.of("success", true, "data", rows));
+        return ResponseEntity.ok(Map.of(KEY_SUCCESS, true, "data", rows));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('DESIGN_PACKAGE_VIEW', 'DESIGN_PACKAGE_MANAGE', 'PROJECT_VIEW')")
     public ResponseEntity<?> getById(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(Map.of("success", true, "data", service.getById(id)));
+            return ResponseEntity.ok(Map.of(KEY_SUCCESS, true, "data", service.getById(id)));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(404)
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, e.getMessage()));
         }
     }
 
@@ -57,16 +60,16 @@ public class DesignPackageTemplateController {
         try {
             DesignPackageTemplate saved = service.create(body.toEntity(), userId(auth));
             return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Design package template created",
+                    KEY_SUCCESS, true,
+                    KEY_MESSAGE, "Design package template created",
                     "data", saved));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, e.getMessage()));
         } catch (Exception e) {
             logger.error("Error creating design package template", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "message", "Failed to create template"));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, "Failed to create template"));
         }
     }
 
@@ -78,16 +81,16 @@ public class DesignPackageTemplateController {
         try {
             DesignPackageTemplate saved = service.update(id, body.toEntity(), userId(auth));
             return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Design package template updated",
+                    KEY_SUCCESS, true,
+                    KEY_MESSAGE, "Design package template updated",
                     "data", saved));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, e.getMessage()));
         } catch (Exception e) {
             logger.error("Error updating design package template {}", id, e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "message", "Failed to update template"));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, "Failed to update template"));
         }
     }
 
@@ -103,10 +106,10 @@ public class DesignPackageTemplateController {
         try {
             boolean active = Boolean.TRUE.equals(body.get("active"));
             DesignPackageTemplate saved = service.setActive(id, active, userId(auth));
-            return ResponseEntity.ok(Map.of("success", true, "data", saved));
+            return ResponseEntity.ok(Map.of(KEY_SUCCESS, true, "data", saved));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, e.getMessage()));
         }
     }
 
@@ -116,10 +119,10 @@ public class DesignPackageTemplateController {
         try {
             service.delete(id);
             return ResponseEntity.ok(Map.of(
-                    "success", true, "message", "Design package template deleted"));
+                    KEY_SUCCESS, true, KEY_MESSAGE, "Design package template deleted"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(404)
-                    .body(Map.of("success", false, "message", e.getMessage()));
+                    .body(Map.of(KEY_SUCCESS, false, KEY_MESSAGE, e.getMessage()));
         }
     }
 

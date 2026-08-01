@@ -17,7 +17,6 @@ import java.util.zip.ZipOutputStream;
 import com.wd.api.dto.ChallanDtos;
 import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.*;
-import java.util.stream.Collectors;
 import java.util.ArrayList;
 
 @Service
@@ -158,7 +157,7 @@ public class ChallanService {
 
         return challanRepository.findAll(spec).stream()
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private ChallanDtos.ChallanResponse toResponse(PaymentChallan challan) {

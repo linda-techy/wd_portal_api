@@ -37,6 +37,8 @@ import java.util.Map;
 @Service
 public class WbsTemplateService {
 
+    private static final String WBS_TEMPLATE_LABEL = "WbsTemplate ";
+
     private final WbsTemplateRepository templates;
     private final WbsTemplatePhaseRepository phases;
     private final WbsTemplateTaskRepository tasks;
@@ -74,7 +76,7 @@ public class WbsTemplateService {
     @Transactional(readOnly = true)
     public WbsTemplateDto get(Long id) {
         return templates.findById(id).map(this::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("WbsTemplate " + id));
+                .orElseThrow(() -> new EntityNotFoundException(WBS_TEMPLATE_LABEL +id));
     }
 
     @Transactional(readOnly = true)
@@ -114,7 +116,7 @@ public class WbsTemplateService {
     @Transactional
     public WbsTemplateDto update(Long existingId, WbsTemplateDto req) {
         WbsTemplate prev = templates.findById(existingId)
-                .orElseThrow(() -> new EntityNotFoundException("WbsTemplate " + existingId));
+                .orElseThrow(() -> new EntityNotFoundException(WBS_TEMPLATE_LABEL +existingId));
         int nextVersion = templates.findMaxVersionForCode(prev.getCode()).orElse(0) + 1;
 
         // The partial unique index uk_wbs_template_one_active_per_code (V116)
@@ -140,7 +142,7 @@ public class WbsTemplateService {
     @Transactional
     public void deactivate(Long id) {
         WbsTemplate t = templates.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("WbsTemplate " + id));
+                .orElseThrow(() -> new EntityNotFoundException(WBS_TEMPLATE_LABEL +id));
         t.setIsActive(Boolean.FALSE);
         templates.save(t);
     }

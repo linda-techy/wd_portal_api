@@ -32,7 +32,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Controller for Customer Project operations
@@ -43,6 +42,9 @@ import java.util.stream.Collectors;
 public class CustomerProjectController {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerProjectController.class);
+
+    private static final String PROJECT_NOT_FOUND = "Project not found";
+    private static final String INTERNAL_SERVER_ERROR = "Internal server error";
 
     private final CustomerProjectService customerProjectService;
 
@@ -84,11 +86,13 @@ public class CustomerProjectController {
     }
 
     /**
-     * DEPRECATED: Get all customer projects with support for pagination and search
-     * Use /search endpoint instead
+     * Get all customer projects with support for pagination and search.
+     *
+     * @deprecated Use the {@code /search} endpoint ({@link #searchProjects})
+     *             instead, which provides standardized filtering and pagination.
      */
     @GetMapping
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<ApiResponse<Page<CustomerProjectResponse>>> getAllCustomerProjects(
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
@@ -122,10 +126,10 @@ public class CustomerProjectController {
             return customerProjectService.getProjectById(id)
                     .map(project -> ResponseEntity.ok(ApiResponse.success("Project retrieved successfully",
                             new CustomerProjectResponse(project))))
-                    .orElse(ResponseEntity.status(404).body(ApiResponse.error("Project not found")));
+                    .orElse(ResponseEntity.status(404).body(ApiResponse.error(PROJECT_NOT_FOUND)));
         } catch (Exception e) {
             logger.error("Error fetching customer project with ID: {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -149,7 +153,7 @@ public class CustomerProjectController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error creating customer project", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -184,7 +188,7 @@ public class CustomerProjectController {
                             + e.getMostSpecificCause().getMessage()));
         } catch (Exception e) {
             logger.error("Error updating customer project with ID: {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -201,7 +205,7 @@ public class CustomerProjectController {
 
         } catch (IllegalArgumentException e) {
             logger.warn("Project not found for deletion: {}", id);
-            return ResponseEntity.status(404).body(ApiResponse.error("Project not found"));
+            return ResponseEntity.status(404).body(ApiResponse.error(PROJECT_NOT_FOUND));
         } catch (IllegalStateException e) {
             logger.warn("Cannot delete project ID {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(e.getMessage()));
@@ -222,11 +226,11 @@ public class CustomerProjectController {
             List<CustomerProject> projects = customerProjectService.getProjectsByLeadId(leadId);
             List<CustomerProjectResponse> responses = projects.stream()
                     .map(CustomerProjectResponse::new)
-                    .collect(Collectors.toList());
+                    .toList();
             return ResponseEntity.ok(ApiResponse.success("Lead projects retrieved successfully", responses));
         } catch (Exception e) {
             logger.error("Error fetching projects for lead ID: {}", leadId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -339,7 +343,7 @@ public class CustomerProjectController {
     public ResponseEntity<ApiResponse<String>> createMilestonesFromTemplate(@PathVariable Long id) {
         try {
             CustomerProject project = customerProjectService.getProjectById(id)
-                    .orElseThrow(() -> new RuntimeException("Project not found"));
+                    .orElseThrow(() -> new RuntimeException(PROJECT_NOT_FOUND));
 
             if (project.getProjectType() == null) {
                 return ResponseEntity.status(400)

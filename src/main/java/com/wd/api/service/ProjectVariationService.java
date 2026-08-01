@@ -309,7 +309,7 @@ public class ProjectVariationService {
     // ---- back-compat shims (used by pre-S4 controller endpoints; deprecated) ----
 
     /** @deprecated Use {@link #submit(Long, Long)}. Removed in S5. */
-    @Deprecated
+    @Deprecated(since = "2026-06")
     @Transactional
     public ProjectVariation submitForApproval(Long id) {
         return submit(id, null);
@@ -329,7 +329,7 @@ public class ProjectVariationService {
      *     state-machine-aware endpoints (submit, cost, sendToCustomer,
      *     approve, etc.).
      */
-    @Deprecated
+    @Deprecated(since = "2026-06")
     @Transactional
     public ProjectVariation approveVariation(Long id, Long approverId) {
         ProjectVariation cr = approveByCustomer(id, null, null, null);
@@ -343,7 +343,7 @@ public class ProjectVariationService {
     }
 
     /** @deprecated Use {@link #reject(Long, String, Long)}. Removed in S5. */
-    @Deprecated
+    @Deprecated(since = "2026-06")
     @Transactional
     public ProjectVariation rejectVariation(Long id, Long approverId, String reason) {
         return reject(id, reason, approverId);

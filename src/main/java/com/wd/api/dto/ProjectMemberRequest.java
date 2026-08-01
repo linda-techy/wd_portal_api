@@ -11,6 +11,7 @@ public class ProjectMemberRequest {
     private String roleInProject;
 
     public ProjectMemberRequest() {
+        // No-op: default constructor required for JSON/bean deserialization.
     }
 
     public Long getCustomerUserId() {

@@ -22,6 +22,8 @@ public class ObservationController {
 
     private static final Logger logger = LoggerFactory.getLogger(ObservationController.class);
 
+    private static final String MSG_INTERNAL_SERVER_ERROR = "Internal server error";
+
     private final ObservationService observationService;
     private final AuthService authService;
 
@@ -48,7 +50,7 @@ public class ObservationController {
             return ResponseEntity.ok(ApiResponse.success("Observations retrieved successfully", observations));
         } catch (Exception e) {
             logger.error("Error fetching observations for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -59,7 +61,7 @@ public class ObservationController {
             return ResponseEntity.ok(ApiResponse.success("Active observations retrieved", observations));
         } catch (Exception e) {
             logger.error("Error fetching active observations for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -70,7 +72,7 @@ public class ObservationController {
             return ResponseEntity.ok(ApiResponse.success("Resolved observations retrieved", observations));
         } catch (Exception e) {
             logger.error("Error fetching resolved observations for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -81,7 +83,7 @@ public class ObservationController {
             return ResponseEntity.ok(ApiResponse.success("Observation counts retrieved", counts));
         } catch (Exception e) {
             logger.error("Error fetching observation counts for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -93,7 +95,7 @@ public class ObservationController {
             return ResponseEntity.ok(ApiResponse.success("My observations retrieved", observations));
         } catch (Exception e) {
             logger.error("Error fetching my observations", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -106,7 +108,7 @@ public class ObservationController {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error fetching observation {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -131,7 +133,7 @@ public class ObservationController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error creating observation for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -153,7 +155,7 @@ public class ObservationController {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error updating observation {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -169,7 +171,7 @@ public class ObservationController {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error resolving observation {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -184,7 +186,7 @@ public class ObservationController {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error updating observation status {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -197,7 +199,7 @@ public class ObservationController {
             return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Error deleting observation {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 }

@@ -41,6 +41,9 @@ public class TaskController {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskController.class);
 
+    private static final String INTERNAL_SERVER_ERROR = "Internal server error";
+    private static final String TASKS_RETRIEVED_SUCCESSFULLY = "Tasks retrieved successfully";
+
     private final TaskService taskService;
 
     private final PortalUserRepository portalUserRepository;
@@ -79,7 +82,7 @@ public class TaskController {
             return ResponseEntity.ok(ApiResponse.success("Alert stats retrieved successfully", stats));
         } catch (Exception e) {
             logger.error("Error fetching alert stats", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -91,7 +94,7 @@ public class TaskController {
             return ResponseEntity.ok(ApiResponse.success("Recent alerts retrieved successfully", alerts));
         } catch (Exception e) {
             logger.error("Error fetching recent alerts", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -119,10 +122,12 @@ public class TaskController {
 
     /**
      * DEPRECATED: Get all tasks - use /search instead
+     *
+     * @deprecated Use the paginated {@code /api/tasks/search} endpoint instead.
      */
     @GetMapping
     @PreAuthorize("hasAuthority('TASK_VIEW')")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<ApiResponse<List<Task>>> getAllTasks(Authentication auth) {
         try {
             PortalUser user = getCurrentUser(auth);
@@ -136,10 +141,10 @@ public class TaskController {
                 logger.info("User {} retrieved their tasks", user.getEmail());
             }
 
-            return ResponseEntity.ok(ApiResponse.success("Tasks retrieved successfully", tasks));
+            return ResponseEntity.ok(ApiResponse.success(TASKS_RETRIEVED_SUCCESSFULLY, tasks));
         } catch (Exception e) {
             logger.error("Error fetching tasks", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -166,7 +171,7 @@ public class TaskController {
             return ResponseEntity.ok(ApiResponse.success("Task retrieved successfully", task.get()));
         } catch (Exception e) {
             logger.error("Error fetching task", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -182,7 +187,7 @@ public class TaskController {
                     .ok(ApiResponse.success("My tasks retrieved successfully", taskService.getMyTasks(user)));
         } catch (Exception e) {
             logger.error("Error fetching my tasks", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -195,12 +200,12 @@ public class TaskController {
         try {
             Task.TaskStatus taskStatus = Task.TaskStatus.valueOf(status.toUpperCase());
             return ResponseEntity
-                    .ok(ApiResponse.success("Tasks retrieved successfully", taskService.getTasksByStatus(taskStatus)));
+                    .ok(ApiResponse.success(TASKS_RETRIEVED_SUCCESSFULLY, taskService.getTasksByStatus(taskStatus)));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Invalid status"));
         } catch (Exception e) {
             logger.error("Error fetching tasks by status", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -212,10 +217,10 @@ public class TaskController {
     public ResponseEntity<ApiResponse<List<Task>>> getTasksByProject(@PathVariable Long projectId) {
         try {
             return ResponseEntity
-                    .ok(ApiResponse.success("Tasks retrieved successfully", taskService.getTasksByProject(projectId)));
+                    .ok(ApiResponse.success(TASKS_RETRIEVED_SUCCESSFULLY, taskService.getTasksByProject(projectId)));
         } catch (Exception e) {
             logger.error("Error fetching tasks by project", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -230,7 +235,7 @@ public class TaskController {
             List<Task> tasks = taskService.getTasksByLead(leadId);
             logger.info("Found {} tasks for lead ID: {}", tasks.size(), leadId);
             return ResponseEntity
-                    .ok(ApiResponse.success("Tasks retrieved successfully", tasks));
+                    .ok(ApiResponse.success(TASKS_RETRIEVED_SUCCESSFULLY, tasks));
         } catch (Exception e) {
             logger.error("Error fetching tasks by lead ID {}: {}", leadId, e.getMessage(), e);
             return ResponseEntity.status(500)
@@ -259,7 +264,7 @@ public class TaskController {
             return ResponseEntity.ok(ApiResponse.success("Assignment history retrieved successfully", history));
         } catch (Exception e) {
             logger.error("Error fetching assignment history", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -331,7 +336,7 @@ public class TaskController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Unexpected error updating task", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -369,7 +374,7 @@ public class TaskController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Unexpected error assigning task", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -398,7 +403,7 @@ public class TaskController {
                     .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Unexpected error deleting task", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_SERVER_ERROR));
         }
     }
 

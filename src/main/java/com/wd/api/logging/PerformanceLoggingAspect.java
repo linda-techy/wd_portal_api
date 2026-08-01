@@ -50,7 +50,7 @@ public class PerformanceLoggingAspect {
             throw ex;
         } finally {
             long duration = System.currentTimeMillis() - start;
-            if (duration >= LoggingConstants.SLOW_API_THRESHOLD_MS) {
+            if (duration >= LoggingConstants.SLOW_API_THRESHOLD_MS && PERF_LOG.isWarnEnabled()) {
                 MethodSignature sig = (MethodSignature) joinPoint.getSignature();
                 PERF_LOG.warn("{} | CONTROLLER | {} | {}.{} | {}ms | exception={} | traceId={} | userId={}",
                         LoggingConstants.PREFIX_SLOW_API,

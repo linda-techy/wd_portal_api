@@ -25,11 +25,14 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ApprovalService {
+
+        private static final String FIELD_APPROVER = "approver";
+        private static final String STATUS_APPROVED = "APPROVED";
+        private static final String STATUS_REJECTED = "REJECTED";
 
         private final ApprovalRequestRepository approvalRepository;
         private final PortalUserRepository userRepository;
@@ -55,9 +58,9 @@ public class ApprovalService {
                                                                 searchPattern),
                                                 cb.like(cb.lower(root.join("requestedBy").get("lastName")),
                                                                 searchPattern),
-                                                cb.like(cb.lower(root.join("approver").get("firstName")),
+                                                cb.like(cb.lower(root.join(FIELD_APPROVER).get("firstName")),
                                                                 searchPattern),
-                                                cb.like(cb.lower(root.join("approver").get("lastName")), searchPattern),
+                                                cb.like(cb.lower(root.join(FIELD_APPROVER).get("lastName")), searchPattern),
                                                 cb.like(cb.lower(root.get("targetType")), searchPattern)));
                         }
 
@@ -73,7 +76,7 @@ public class ApprovalService {
 
                         // Filter by approverId
                         if (filter.getApproverId() != null) {
-                                predicates.add(cb.equal(root.get("approver").get("id"), filter.getApproverId()));
+                                predicates.add(cb.equal(root.get(FIELD_APPROVER).get("id"), filter.getApproverId()));
                         }
 
                         // Filter by status
@@ -141,9 +144,9 @@ public class ApprovalService {
                 if (ApprovalTargetType.PURCHASE_ORDER.equals(targetType)) {
                         PurchaseOrder po = poRepository.findById(targetId).orElse(null);
                         if (po != null) {
-                                if ("APPROVED".equals(status)) {
+                                if (STATUS_APPROVED.equals(status)) {
                                         po.setStatus(com.wd.api.model.enums.PurchaseOrderStatus.ISSUED);
-                                } else if ("REJECTED".equals(status)) {
+                                } else if (STATUS_REJECTED.equals(status)) {
                                         po.setStatus(com.wd.api.model.enums.PurchaseOrderStatus.DRAFT);
                                 }
                                 poRepository.save(po);
@@ -152,8 +155,8 @@ public class ApprovalService {
                         ProjectInvoice inv = invoiceRepository.findById(targetId).orElse(null);
                         if (inv != null) {
                                 inv.setStatus(
-                                                "APPROVED".equals(status) ? InvoiceStatus.ISSUED
-                                                                : ("REJECTED".equals(status) ? InvoiceStatus.DRAFT
+                                                STATUS_APPROVED.equals(status) ? InvoiceStatus.ISSUED
+                                                                : (STATUS_REJECTED.equals(status) ? InvoiceStatus.DRAFT
                                                                                 : inv.getStatus()));
                                 invoiceRepository.save(inv);
                         }
@@ -161,8 +164,8 @@ public class ApprovalService {
                         PaymentChallan challan = challanRepository.findById(targetId).orElse(null);
                         if (challan != null) {
                                 challan.setStatus(
-                                                "APPROVED".equals(status) ? "APPROVED"
-                                                                : ("REJECTED".equals(status) ? "REJECTED"
+                                                STATUS_APPROVED.equals(status) ? STATUS_APPROVED
+                                                                : (STATUS_REJECTED.equals(status) ? STATUS_REJECTED
                                                                                 : challan.getStatus()));
                                 challanRepository.save(challan);
                         }
@@ -174,7 +177,7 @@ public class ApprovalService {
         public List<ApprovalRequestDTO> getPendingApprovals(Long approverId) {
                 return approvalRepository.findByApproverIdAndStatus(approverId, "PENDING").stream()
                                 .map(this::mapToDTO)
-                                .collect(Collectors.toList());
+                                .toList();
         }
 
         private ApprovalRequestDTO mapToDTO(ApprovalRequest req) {

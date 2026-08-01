@@ -37,6 +37,8 @@ public class DpcCustomizationCatalogService {
 
     private static final Logger logger = LoggerFactory.getLogger(DpcCustomizationCatalogService.class);
 
+    private static final String CATALOG_ITEM_NOT_FOUND = "DPC customization catalog item not found: ";
+
     private final DpcCustomizationCatalogRepository repository;
 
     public DpcCustomizationCatalogService(DpcCustomizationCatalogRepository repository) {
@@ -83,7 +85,7 @@ public class DpcCustomizationCatalogService {
     @Transactional(readOnly = true)
     public DpcCustomizationCatalogItemDto getById(Long id) {
         DpcCustomizationCatalogItem entity = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("DPC customization catalog item not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(CATALOG_ITEM_NOT_FOUND + id));
         return DpcCustomizationCatalogItemDto.from(entity);
     }
 
@@ -109,7 +111,7 @@ public class DpcCustomizationCatalogService {
 
     public DpcCustomizationCatalogItemDto update(Long id, UpdateDpcCustomizationCatalogItemRequest req) {
         DpcCustomizationCatalogItem entity = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("DPC customization catalog item not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(CATALOG_ITEM_NOT_FOUND + id));
 
         // Patch semantics — only non-null fields are applied.
         if (req.code() != null) {
@@ -133,7 +135,7 @@ public class DpcCustomizationCatalogService {
 
     public void softDelete(Long id) {
         DpcCustomizationCatalogItem entity = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("DPC customization catalog item not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(CATALOG_ITEM_NOT_FOUND + id));
 
         // @SQLDelete on the entity converts this into UPDATE dpc_customization_catalog
         // SET deleted_at = NOW() ... and @SQLRestriction("deleted_at IS NULL")

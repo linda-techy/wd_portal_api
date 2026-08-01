@@ -33,6 +33,19 @@ import java.util.Map;
 @PreAuthorize("isAuthenticated()")
 public class SiteReportController {
 
+    private static final String FIELD_TITLE = "title";
+    private static final String FIELD_DESCRIPTION = "description";
+    private static final String FIELD_REPORT_TYPE = "reportType";
+    private static final String FIELD_WEATHER = "weather";
+    private static final String FIELD_MANPOWER_DEPLOYED = "manpowerDeployed";
+    private static final String FIELD_EQUIPMENT_USED = "equipmentUsed";
+    private static final String FIELD_WORK_PROGRESS = "workProgress";
+    private static final String FIELD_LATITUDE = "latitude";
+    private static final String FIELD_LONGITUDE = "longitude";
+    private static final String FIELD_LOCATION_ACCURACY = "locationAccuracy";
+    private static final String FIELD_SITE_VISIT_ID = "siteVisitId";
+    private static final String SOURCE_REPORT = "report";
+
     private final SiteReportService siteReportService;
     private final CustomerProjectRepository projectRepository;
     private final SiteVisitRepository siteVisitRepository;
@@ -61,14 +74,18 @@ public class SiteReportController {
         return ResponseEntity.ok(reports);
     }
 
+    /**
+     * @deprecated Use {@link #searchSiteReports} with a project filter instead;
+     *             this non-paginated per-project endpoint is retained only for backward compatibility.
+     */
     @GetMapping("/project/{projectId}")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     @PreAuthorize("hasAuthority('SITE_REPORT_VIEW')")
     public ResponseEntity<ApiResponse<List<SiteReportDto>>> getReportsByProject(@PathVariable Long projectId) {
         List<SiteReport> reports = siteReportService.getReportsByProject(projectId);
         List<SiteReportDto> reportDtos = reports.stream()
                 .map(SiteReportDto::new)
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
         return ResponseEntity.ok(ApiResponse.success("Reports retrieved successfully", reportDtos));
     }
 
@@ -90,7 +107,7 @@ public class SiteReportController {
     @PostMapping(consumes = { "multipart/form-data" })
     @PreAuthorize("hasAuthority('SITE_REPORT_CREATE')")
     public ResponseEntity<ApiResponse<SiteReportDto>> createReport(
-            @RequestPart("report") String reportJson,
+            @RequestPart(SOURCE_REPORT) String reportJson,
             @RequestPart(value = "photos", required = true) List<MultipartFile> photos) throws Exception {
         
         // Validate that at least one photo is provided + cap upload size
@@ -113,7 +130,7 @@ public class SiteReportController {
         PortalUser currentUser = authService.getCurrentUser();
 
         // Validate required fields
-        if (reportData.get("title") == null || reportData.get("title").toString().trim().isEmpty()) {
+        if (reportData.get(FIELD_TITLE) == null || reportData.get(FIELD_TITLE).toString().trim().isEmpty()) {
             throw new BusinessException("Title is required", HttpStatus.BAD_REQUEST, "TITLE_REQUIRED");
         }
         if (reportData.get("projectId") == null) {
@@ -121,18 +138,18 @@ public class SiteReportController {
         }
 
         SiteReport report = new SiteReport();
-        String title = (String) reportData.get("title");
+        String title = (String) reportData.get(FIELD_TITLE);
         SiteReportInputValidator.validateTitleLen(title);
         report.setTitle(title);
-        report.setDescription((String) reportData.get("description"));
+        report.setDescription((String) reportData.get(FIELD_DESCRIPTION));
         report.setStatus(SiteReportStatus.SUBMITTED);
         report.setSubmittedBy(currentUser);
 
-        if (reportData.containsKey("reportType") && reportData.get("reportType") != null) {
+        if (reportData.containsKey(FIELD_REPORT_TYPE) && reportData.get(FIELD_REPORT_TYPE) != null) {
             try {
-                report.setReportType(ReportType.valueOf(reportData.get("reportType").toString()));
+                report.setReportType(ReportType.valueOf(reportData.get(FIELD_REPORT_TYPE).toString()));
             } catch (IllegalArgumentException e) {
-                throw new BusinessException("Invalid report type: " + reportData.get("reportType"), 
+                throw new BusinessException("Invalid report type: " + reportData.get(FIELD_REPORT_TYPE), 
                     HttpStatus.BAD_REQUEST, "INVALID_REPORT_TYPE");
             }
         }
@@ -145,43 +162,43 @@ public class SiteReportController {
         report.setProject(project);
 
         // Set reporting fields
-        if (reportData.containsKey("weather")) {
-            String weather = (String) reportData.get("weather");
+        if (reportData.containsKey(FIELD_WEATHER)) {
+            String weather = (String) reportData.get(FIELD_WEATHER);
             SiteReportInputValidator.validateWeatherLen(weather);
             report.setWeather(weather);
         }
-        if (reportData.containsKey("manpowerDeployed") && reportData.get("manpowerDeployed") != null) {
-            Integer m = parseInt(reportData.get("manpowerDeployed"));
+        if (reportData.containsKey(FIELD_MANPOWER_DEPLOYED) && reportData.get(FIELD_MANPOWER_DEPLOYED) != null) {
+            Integer m = parseInt(reportData.get(FIELD_MANPOWER_DEPLOYED));
             if (m != null && m < 0) {
                 throw new BusinessException("manpowerDeployed must be >= 0",
                         HttpStatus.BAD_REQUEST, "INVALID_MANPOWER");
             }
             report.setManpowerDeployed(m);
         }
-        if (reportData.containsKey("equipmentUsed")) {
-            report.setEquipmentUsed((String) reportData.get("equipmentUsed"));
+        if (reportData.containsKey(FIELD_EQUIPMENT_USED)) {
+            report.setEquipmentUsed((String) reportData.get(FIELD_EQUIPMENT_USED));
         }
-        if (reportData.containsKey("workProgress")) {
-            report.setWorkProgress((String) reportData.get("workProgress"));
+        if (reportData.containsKey(FIELD_WORK_PROGRESS)) {
+            report.setWorkProgress((String) reportData.get(FIELD_WORK_PROGRESS));
         }
 
         // Set GPS/Location fields with bounds validation
-        if (reportData.containsKey("latitude") && reportData.get("latitude") != null) {
-            Double lat = parseDouble(reportData.get("latitude"));
-            SiteReportInputValidator.validateLatitude(lat, "report");
+        if (reportData.containsKey(FIELD_LATITUDE) && reportData.get(FIELD_LATITUDE) != null) {
+            Double lat = parseDouble(reportData.get(FIELD_LATITUDE));
+            SiteReportInputValidator.validateLatitude(lat, SOURCE_REPORT);
             report.setLatitude(lat);
         }
-        if (reportData.containsKey("longitude") && reportData.get("longitude") != null) {
-            Double lng = parseDouble(reportData.get("longitude"));
-            SiteReportInputValidator.validateLongitude(lng, "report");
+        if (reportData.containsKey(FIELD_LONGITUDE) && reportData.get(FIELD_LONGITUDE) != null) {
+            Double lng = parseDouble(reportData.get(FIELD_LONGITUDE));
+            SiteReportInputValidator.validateLongitude(lng, SOURCE_REPORT);
             report.setLongitude(lng);
         }
-        if (reportData.containsKey("locationAccuracy") && reportData.get("locationAccuracy") != null) {
-            report.setLocationAccuracy(parseDouble(reportData.get("locationAccuracy")));
+        if (reportData.containsKey(FIELD_LOCATION_ACCURACY) && reportData.get(FIELD_LOCATION_ACCURACY) != null) {
+            report.setLocationAccuracy(parseDouble(reportData.get(FIELD_LOCATION_ACCURACY)));
         }
 
-        if (reportData.containsKey("siteVisitId") && reportData.get("siteVisitId") != null) {
-            Long visitId = parseLong(reportData.get("siteVisitId"));
+        if (reportData.containsKey(FIELD_SITE_VISIT_ID) && reportData.get(FIELD_SITE_VISIT_ID) != null) {
+            Long visitId = parseLong(reportData.get(FIELD_SITE_VISIT_ID));
             SiteVisit visit = siteVisitRepository.findById(visitId)
                     .orElseThrow(() -> new ResourceNotFoundException("SiteVisit", visitId));
             report.setSiteVisit(visit);
@@ -216,41 +233,41 @@ public class SiteReportController {
         }
 
         // Update fields if provided
-        if (updateData.containsKey("title")) {
-            String title = (String) updateData.get("title");
+        if (updateData.containsKey(FIELD_TITLE)) {
+            String title = (String) updateData.get(FIELD_TITLE);
             SiteReportInputValidator.validateTitleLen(title);
             report.setTitle(title);
         }
-        if (updateData.containsKey("description")) {
-            report.setDescription((String) updateData.get("description"));
+        if (updateData.containsKey(FIELD_DESCRIPTION)) {
+            report.setDescription((String) updateData.get(FIELD_DESCRIPTION));
         }
-        if (updateData.containsKey("weather")) {
-            String weather = (String) updateData.get("weather");
+        if (updateData.containsKey(FIELD_WEATHER)) {
+            String weather = (String) updateData.get(FIELD_WEATHER);
             SiteReportInputValidator.validateWeatherLen(weather);
             report.setWeather(weather);
         }
-        if (updateData.containsKey("manpowerDeployed") && updateData.get("manpowerDeployed") != null) {
-            Integer m = parseInt(updateData.get("manpowerDeployed"));
+        if (updateData.containsKey(FIELD_MANPOWER_DEPLOYED) && updateData.get(FIELD_MANPOWER_DEPLOYED) != null) {
+            Integer m = parseInt(updateData.get(FIELD_MANPOWER_DEPLOYED));
             if (m != null && m < 0) {
                 throw new BusinessException("manpowerDeployed must be >= 0",
                         HttpStatus.BAD_REQUEST, "INVALID_MANPOWER");
             }
             report.setManpowerDeployed(m);
         }
-        if (updateData.containsKey("equipmentUsed")) {
-            report.setEquipmentUsed((String) updateData.get("equipmentUsed"));
+        if (updateData.containsKey(FIELD_EQUIPMENT_USED)) {
+            report.setEquipmentUsed((String) updateData.get(FIELD_EQUIPMENT_USED));
         }
-        if (updateData.containsKey("workProgress")) {
-            report.setWorkProgress((String) updateData.get("workProgress"));
+        if (updateData.containsKey(FIELD_WORK_PROGRESS)) {
+            report.setWorkProgress((String) updateData.get(FIELD_WORK_PROGRESS));
         }
-        if (updateData.containsKey("latitude") && updateData.get("latitude") != null) {
-            Double lat = parseDouble(updateData.get("latitude"));
-            SiteReportInputValidator.validateLatitude(lat, "report");
+        if (updateData.containsKey(FIELD_LATITUDE) && updateData.get(FIELD_LATITUDE) != null) {
+            Double lat = parseDouble(updateData.get(FIELD_LATITUDE));
+            SiteReportInputValidator.validateLatitude(lat, SOURCE_REPORT);
             report.setLatitude(lat);
         }
-        if (updateData.containsKey("longitude") && updateData.get("longitude") != null) {
-            Double lng = parseDouble(updateData.get("longitude"));
-            SiteReportInputValidator.validateLongitude(lng, "report");
+        if (updateData.containsKey(FIELD_LONGITUDE) && updateData.get(FIELD_LONGITUDE) != null) {
+            Double lng = parseDouble(updateData.get(FIELD_LONGITUDE));
+            SiteReportInputValidator.validateLongitude(lng, SOURCE_REPORT);
             report.setLongitude(lng);
         }
 
@@ -342,19 +359,19 @@ public class SiteReportController {
     }
     private Long parseLong(Object val) {
         if (val == null) return null;
-        if (val instanceof Number) return ((Number) val).longValue();
+        if (val instanceof Number number) return number.longValue();
         return Long.valueOf(new java.math.BigDecimal(val.toString()).setScale(0, java.math.RoundingMode.HALF_UP).toPlainString());
     }
 
     private Integer parseInt(Object val) {
         if (val == null) return null;
-        if (val instanceof Number) return ((Number) val).intValue();
+        if (val instanceof Number number) return number.intValue();
         return Integer.valueOf(new java.math.BigDecimal(val.toString()).setScale(0, java.math.RoundingMode.HALF_UP).toPlainString());
     }
 
     private Double parseDouble(Object val) {
         if (val == null) return null;
-        if (val instanceof Number) return ((Number) val).doubleValue();
+        if (val instanceof Number number) return number.doubleValue();
         return Double.valueOf(val.toString());
     }
 }

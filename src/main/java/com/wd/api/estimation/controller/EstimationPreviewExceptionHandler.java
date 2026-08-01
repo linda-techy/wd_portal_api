@@ -11,24 +11,27 @@ import java.util.Map;
 @RestControllerAdvice(assignableTypes = EstimationPreviewController.class)
 public class EstimationPreviewExceptionHandler {
 
+    private static final String KEY_ERROR = "error";
+    private static final String KEY_MESSAGE = "message";
+
     @ExceptionHandler(UnsupportedProjectTypeException.class)
     public ResponseEntity<Map<String, String>> unsupportedType(UnsupportedProjectTypeException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(Map.of(
-                        "error", "unsupported-project-type",
+                        KEY_ERROR, "unsupported-project-type",
                         "projectType", ex.getProjectType().name(),
-                        "message", ex.getMessage()));
+                        KEY_MESSAGE, ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> illegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", "invalid-request", "message", ex.getMessage()));
+                .body(Map.of(KEY_ERROR, "invalid-request", KEY_MESSAGE, ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, String>> illegalState(IllegalStateException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(Map.of("error", "preview-not-available", "message", ex.getMessage()));
+                .body(Map.of(KEY_ERROR, "preview-not-available", KEY_MESSAGE, ex.getMessage()));
     }
 }

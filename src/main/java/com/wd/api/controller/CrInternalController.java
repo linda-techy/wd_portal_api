@@ -31,6 +31,8 @@ public class CrInternalController {
     private static final Logger log = LoggerFactory.getLogger(CrInternalController.class);
     private static final String SIG_HEADER = "X-Portal-Signature";
     private static final String TARGET_TYPE = "CR_APPROVAL";
+    private static final String KEY_ERROR = "error";
+    private static final String INVALID_SIGNATURE = "INVALID_SIGNATURE";
 
     private final InternalHmacVerifier hmac;
     private final OtpService otpService;
@@ -55,7 +57,7 @@ public class CrInternalController {
     public ResponseEntity<Map<String, Object>> requestOtp(@RequestBody String rawBody,
                                                            HttpServletRequest request) {
         if (!hmac.verify(rawBody, request.getHeader(SIG_HEADER))) {
-            return ResponseEntity.status(401).body(Map.of("error", "INVALID_SIGNATURE"));
+            return ResponseEntity.status(401).body(Map.of(KEY_ERROR, INVALID_SIGNATURE));
         }
         RequestOtpBody body = parse(rawBody, RequestOtpBody.class);
         ProjectVariation cr = projectVariationRepository.findById(body.crId())
@@ -66,7 +68,7 @@ public class CrInternalController {
         } catch (OtpRateLimitException e) {
             log.warn("CR {} customer {} rate-limited: {}", body.crId(), body.customerUserId(), e.getMessage());
             return ResponseEntity.status(429).body(Map.of(
-                "error", "RATE_LIMITED",
+                KEY_ERROR, "RATE_LIMITED",
                 "retryAfterSeconds", e.getRetryAfterSeconds()));
         }
     }
@@ -75,7 +77,7 @@ public class CrInternalController {
     public ResponseEntity<Map<String, Object>> approve(@RequestBody String rawBody,
                                                         HttpServletRequest request) {
         if (!hmac.verify(rawBody, request.getHeader(SIG_HEADER))) {
-            return ResponseEntity.status(401).body(Map.of("error", "INVALID_SIGNATURE"));
+            return ResponseEntity.status(401).body(Map.of(KEY_ERROR, INVALID_SIGNATURE));
         }
         ApproveBody body = parse(rawBody, ApproveBody.class);
 
@@ -103,7 +105,7 @@ public class CrInternalController {
     public ResponseEntity<Map<String, Object>> getCrProjectId(@RequestBody String rawBody,
                                                                HttpServletRequest request) {
         if (!hmac.verify(rawBody, request.getHeader(SIG_HEADER))) {
-            return ResponseEntity.status(401).body(Map.of("error", "INVALID_SIGNATURE"));
+            return ResponseEntity.status(401).body(Map.of(KEY_ERROR, INVALID_SIGNATURE));
         }
         CrLookupBody body = parse(rawBody, CrLookupBody.class);
         ProjectVariation cr = projectVariationRepository.findById(body.crId())
@@ -111,7 +113,7 @@ public class CrInternalController {
         if (cr.getProject() == null) {
             // Should never happen given project_id is NOT NULL on project_variations,
             // but guard anyway so we don't NPE in service code on a corrupt row.
-            return ResponseEntity.status(404).body(Map.of("error", "CR_HAS_NO_PROJECT"));
+            return ResponseEntity.status(404).body(Map.of(KEY_ERROR, "CR_HAS_NO_PROJECT"));
         }
         return ResponseEntity.ok(Map.of(
             "crId", cr.getId(),

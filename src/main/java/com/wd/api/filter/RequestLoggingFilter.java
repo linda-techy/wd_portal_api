@@ -44,21 +44,23 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         try {
             chain.doFilter(request, response);
         } finally {
-            long duration = System.currentTimeMillis() - start;
-            String traceId   = MDC.get(LoggingConstants.MDC_TRACE_ID);
-            String userId    = MDC.get(LoggingConstants.MDC_USER_ID);
-            String userAgent = request.getHeader("User-Agent");
-            String safeUa   = userAgent != null
-                    ? userAgent.substring(0, Math.min(userAgent.length(), 80)) : "unknown";
+            if (ACCESS_LOG.isInfoEnabled()) {
+                long duration = System.currentTimeMillis() - start;
+                String traceId   = MDC.get(LoggingConstants.MDC_TRACE_ID);
+                String userId    = MDC.get(LoggingConstants.MDC_USER_ID);
+                String userAgent = request.getHeader("User-Agent");
+                String safeUa   = userAgent != null
+                        ? userAgent.substring(0, Math.min(userAgent.length(), 80)) : "unknown";
 
-            ACCESS_LOG.info("{} | {} {} | {} | {}ms | userId={} | ip={} | ua={} | traceId={}",
-                    LoggingConstants.PREFIX_ACCESS,
-                    request.getMethod(), request.getRequestURI(),
-                    response.getStatus(), duration,
-                    userId != null ? userId : "-",
-                    resolveClientIp(request),
-                    safeUa,
-                    traceId != null ? traceId : "-");
+                ACCESS_LOG.info("{} | {} {} | {} | {}ms | userId={} | ip={} | ua={} | traceId={}",
+                        LoggingConstants.PREFIX_ACCESS,
+                        request.getMethod(), request.getRequestURI(),
+                        response.getStatus(), duration,
+                        userId != null ? userId : "-",
+                        resolveClientIp(request),
+                        safeUa,
+                        traceId != null ? traceId : "-");
+            }
         }
     }
 

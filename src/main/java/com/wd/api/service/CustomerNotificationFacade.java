@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Facade for sending in-app notifications to customer-side users from portal-side events.
@@ -70,7 +69,7 @@ public class CustomerNotificationFacade {
                     .filter(m -> m.getCustomerUser() != null)
                     .map(ProjectMember::getCustomerUser)
                     .filter(u -> u.getRole() != null && OWNER_ROLES.contains(u.getRole().getName()))
-                    .collect(Collectors.toList());
+                    .toList();
 
             persistAndPush(targets, projectId, title, body, notificationType, referenceId);
         } catch (Exception e) {
@@ -90,7 +89,7 @@ public class CustomerNotificationFacade {
             List<CustomerUser> targets = members.stream()
                     .filter(m -> m.getCustomerUser() != null)
                     .map(ProjectMember::getCustomerUser)
-                    .collect(Collectors.toList());
+                    .toList();
 
             persistAndPush(targets, projectId, title, body, notificationType, referenceId);
         } catch (Exception e) {
@@ -144,7 +143,7 @@ public class CustomerNotificationFacade {
         List<String> tokens = targets.stream()
                 .map(CustomerUser::getFcmToken)
                 .filter(t -> t != null && !t.isBlank())
-                .collect(Collectors.toList());
+                .toList();
 
         if (!tokens.isEmpty()) {
             // Build data payload — avoid Map.of() because projectId may be null

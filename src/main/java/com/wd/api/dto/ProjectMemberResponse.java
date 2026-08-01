@@ -9,6 +9,7 @@ public class ProjectMemberResponse {
     private String roleInProject;
 
     public ProjectMemberResponse() {
+        // No-op: default constructor for serialization frameworks
     }
 
     public Long getId() {

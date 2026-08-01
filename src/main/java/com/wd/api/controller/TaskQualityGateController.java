@@ -4,7 +4,6 @@ import com.wd.api.dto.ApiResponse;
 import com.wd.api.dto.TaskQualityGateDTO;
 import com.wd.api.model.PortalUser;
 import com.wd.api.model.TaskQualityGate;
-import com.wd.api.repository.PortalUserRepository;
 import com.wd.api.service.TaskQualityGateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,12 +33,9 @@ public class TaskQualityGateController {
     private static final Logger logger = LoggerFactory.getLogger(TaskQualityGateController.class);
 
     private final TaskQualityGateService service;
-    private final PortalUserRepository portalUserRepository;
 
-    public TaskQualityGateController(TaskQualityGateService service,
-                                     PortalUserRepository portalUserRepository) {
+    public TaskQualityGateController(TaskQualityGateService service) {
         this.service = service;
-        this.portalUserRepository = portalUserRepository;
     }
 
     /** List all 3 gates for a task in ITP order. */

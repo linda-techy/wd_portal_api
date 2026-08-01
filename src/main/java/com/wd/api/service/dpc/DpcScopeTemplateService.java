@@ -33,6 +33,8 @@ public class DpcScopeTemplateService {
 
     private static final Logger log = LoggerFactory.getLogger(DpcScopeTemplateService.class);
 
+    private static final String SCOPE_TEMPLATE_NOT_FOUND_PREFIX = "Scope template not found: ";
+
     private final DpcScopeTemplateRepository scopeTemplateRepository;
     private final DpcScopeOptionRepository scopeOptionRepository;
 
@@ -57,7 +59,7 @@ public class DpcScopeTemplateService {
     @Transactional(readOnly = true)
     public DpcScopeTemplateDto getById(Long id) {
         DpcScopeTemplate t = scopeTemplateRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Scope template not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(SCOPE_TEMPLATE_NOT_FOUND_PREFIX + id));
         List<DpcScopeOption> options = scopeOptionRepository.findByScopeTemplateIdOrderByDisplayOrderAsc(id);
         return DpcScopeTemplateDto.from(t, options);
     }
@@ -69,7 +71,7 @@ public class DpcScopeTemplateService {
      */
     public DpcScopeTemplateDto update(Long id, UpdateScopeTemplateRequest request) {
         DpcScopeTemplate t = scopeTemplateRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Scope template not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(SCOPE_TEMPLATE_NOT_FOUND_PREFIX + id));
 
         if (request.title() != null) t.setTitle(request.title());
         if (request.subtitle() != null) t.setSubtitle(request.subtitle());
@@ -99,7 +101,7 @@ public class DpcScopeTemplateService {
     public DpcScopeOptionDto addOption(Long scopeTemplateId, CreateScopeOptionRequest req) {
         DpcScopeTemplate template = scopeTemplateRepository.findById(scopeTemplateId)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Scope template not found: " + scopeTemplateId));
+                        SCOPE_TEMPLATE_NOT_FOUND_PREFIX + scopeTemplateId));
 
         // Enforce uniqueness of code within this scope (DB UNIQUE handles the
         // race; we surface the friendly error pre-flight).
@@ -182,7 +184,7 @@ public class DpcScopeTemplateService {
      */
     public List<DpcScopeOptionDto> reorderOptions(Long scopeTemplateId, List<Long> orderedOptionIds) {
         if (!scopeTemplateRepository.existsById(scopeTemplateId)) {
-            throw new IllegalArgumentException("Scope template not found: " + scopeTemplateId);
+            throw new IllegalArgumentException(SCOPE_TEMPLATE_NOT_FOUND_PREFIX + scopeTemplateId);
         }
         if (orderedOptionIds == null || orderedOptionIds.isEmpty()) {
             throw new IllegalArgumentException("orderedOptionIds is required");

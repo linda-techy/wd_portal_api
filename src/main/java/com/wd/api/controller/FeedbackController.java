@@ -21,6 +21,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class FeedbackController {
 
+    private static final String KEY_FORM_SCHEMA = "formSchema";
+
     private final FeedbackService feedbackService;
     private final FeedbackAnalyticsService feedbackAnalyticsService;
     private final PortalUserRepository portalUserRepository;
@@ -38,8 +40,8 @@ public class FeedbackController {
         Long projectId = Long.valueOf(request.get("projectId").toString());
         String title = (String) request.get("title");
         String description = (String) request.get("description");
-        String formSchema = request.get("formSchema") != null 
-                ? request.get("formSchema").toString() 
+        String formSchema = request.get(KEY_FORM_SCHEMA) != null 
+                ? request.get(KEY_FORM_SCHEMA).toString() 
                 : null;
         
         String email = authentication.getName();
@@ -81,8 +83,8 @@ public class FeedbackController {
         
         String title = (String) request.get("title");
         String description = (String) request.get("description");
-        String formSchema = request.get("formSchema") != null 
-                ? request.get("formSchema").toString() 
+        String formSchema = request.get(KEY_FORM_SCHEMA) != null 
+                ? request.get(KEY_FORM_SCHEMA).toString() 
                 : null;
         Boolean isActive = request.get("isActive") != null 
                 ? Boolean.valueOf(request.get("isActive").toString()) 

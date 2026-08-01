@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class PaymentService {
@@ -25,6 +24,7 @@ public class PaymentService {
     private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
     private static final BigDecimal GST_PERCENTAGE = new BigDecimal("18.00");
     private static final BigDecimal HUNDRED = new BigDecimal("100");
+    private static final String STATUS_PENDING = "PENDING";
 
     private final DesignPackagePaymentRepository paymentRepository;
     private final PaymentScheduleRepository scheduleRepository;
@@ -88,7 +88,7 @@ public class PaymentService {
         payment.setDiscountAmount(discountAmount);
         payment.setTotalAmount(totalAmount);
         payment.setPaymentType(request.getPaymentType());
-        payment.setStatus("PENDING");
+        payment.setStatus(STATUS_PENDING);
         payment.setCreatedById(createdById);
 
         // Create payment schedule based on payment type
@@ -98,7 +98,7 @@ public class PaymentService {
             schedule.setInstallmentNumber(1);
             schedule.setDescription("Full Payment");
             schedule.setAmount(totalAmount);
-            schedule.setStatus("PENDING");
+            schedule.setStatus(STATUS_PENDING);
             payment.addSchedule(schedule);
         } else {
             // 3 milestone-based installments
@@ -113,7 +113,7 @@ public class PaymentService {
                 // Add remainder to first installment to ensure exact total
                 BigDecimal amount = (i == 0) ? installmentAmount.add(remainder) : installmentAmount;
                 schedule.setAmount(amount);
-                schedule.setStatus("PENDING");
+                schedule.setStatus(STATUS_PENDING);
                 payment.addSchedule(schedule);
             }
         }
@@ -286,7 +286,7 @@ public class PaymentService {
         } else if (paidCount > 0) {
             payment.setStatus("PARTIAL");
         } else {
-            payment.setStatus("PENDING");
+            payment.setStatus(STATUS_PENDING);
         }
 
         paymentRepository.save(payment);
@@ -332,7 +332,7 @@ public class PaymentService {
         // Map schedules
         List<ScheduleResponse> schedules = payment.getSchedules().stream()
                 .map(this::toScheduleResponse)
-                .collect(Collectors.toList());
+                .toList();
         response.setSchedules(schedules);
 
         return response;
@@ -351,7 +351,7 @@ public class PaymentService {
 
         List<TransactionResponse> transactions = schedule.getTransactions().stream()
                 .map(this::toTransactionResponse)
-                .collect(Collectors.toList());
+                .toList();
         response.setTransactions(transactions);
 
         return response;

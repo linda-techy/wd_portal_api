@@ -22,7 +22,6 @@ import com.wd.api.model.enums.BoqDocumentStatus;
 import com.wd.api.model.enums.DpcCustomizationSource;
 import com.wd.api.model.enums.DpcDocumentStatus;
 import com.wd.api.repository.BoqDocumentRepository;
-import com.wd.api.repository.BoqItemRepository;
 import com.wd.api.repository.CustomerProjectRepository;
 import com.wd.api.repository.DpcCustomizationLineRepository;
 import com.wd.api.repository.DpcDocumentRepository;
@@ -55,6 +54,8 @@ public class DpcDocumentService {
 
     private static final Logger log = LoggerFactory.getLogger(DpcDocumentService.class);
 
+    private static final String DPC_NOT_FOUND = "DPC document not found: ";
+
     private final DpcDocumentRepository dpcDocumentRepository;
     private final DpcDocumentScopeRepository dpcDocumentScopeRepository;
     private final DpcCustomizationLineRepository dpcCustomizationLineRepository;
@@ -62,7 +63,6 @@ public class DpcDocumentService {
     private final DpcScopeOptionRepository dpcScopeOptionRepository;
     private final BoqDocumentRepository boqDocumentRepository;
     private final CustomerProjectRepository customerProjectRepository;
-    private final BoqItemRepository boqItemRepository;
     private final PaymentStageRepository paymentStageRepository;
     private final DpcCostRollupService costRollupService;
     private final DpcCustomizationService customizationService;
@@ -75,7 +75,6 @@ public class DpcDocumentService {
                               DpcScopeOptionRepository dpcScopeOptionRepository,
                               BoqDocumentRepository boqDocumentRepository,
                               CustomerProjectRepository customerProjectRepository,
-                              BoqItemRepository boqItemRepository,
                               PaymentStageRepository paymentStageRepository,
                               DpcCostRollupService costRollupService,
                               DpcCustomizationService customizationService,
@@ -87,7 +86,6 @@ public class DpcDocumentService {
         this.dpcScopeOptionRepository = dpcScopeOptionRepository;
         this.boqDocumentRepository = boqDocumentRepository;
         this.customerProjectRepository = customerProjectRepository;
-        this.boqItemRepository = boqItemRepository;
         this.paymentStageRepository = paymentStageRepository;
         this.costRollupService = costRollupService;
         this.customizationService = customizationService;
@@ -143,7 +141,7 @@ public class DpcDocumentService {
     @Transactional(readOnly = true)
     public DpcDocumentDto getById(Long id) {
         DpcDocument dpc = dpcDocumentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("DPC document not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(DPC_NOT_FOUND + id));
         return assemble(dpc);
     }
 
@@ -158,7 +156,7 @@ public class DpcDocumentService {
 
     public DpcDocumentDto updateHeader(Long id, UpdateDpcDocumentRequest req) {
         DpcDocument dpc = dpcDocumentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("DPC document not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(DPC_NOT_FOUND + id));
         assertNotLocked(dpc);
 
         if (req.titleOverride() != null) dpc.setTitleOverride(req.titleOverride());
@@ -207,7 +205,7 @@ public class DpcDocumentService {
      */
     public DpcDocumentDto issue(Long id, Long currentUserId, byte[] renderedPdfBytes, Long persistedDocumentId) {
         DpcDocument dpc = dpcDocumentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("DPC document not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(DPC_NOT_FOUND + id));
         if (dpc.isLocked()) {
             throw new IllegalStateException("DPC " + id + " is already ISSUED");
         }
@@ -232,7 +230,7 @@ public class DpcDocumentService {
      */
     public DpcDocumentDto createNewRevision(Long previousId, Long currentUserId) {
         DpcDocument prev = dpcDocumentRepository.findById(previousId)
-                .orElseThrow(() -> new IllegalArgumentException("DPC document not found: " + previousId));
+                .orElseThrow(() -> new IllegalArgumentException(DPC_NOT_FOUND + previousId));
 
         if (!prev.isIssued()) {
             throw new IllegalStateException(

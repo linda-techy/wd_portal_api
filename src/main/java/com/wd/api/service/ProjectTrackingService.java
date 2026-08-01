@@ -15,6 +15,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProjectTrackingService {
 
+    private static final String MSG_PROJECT_NOT_FOUND = "Project not found";
+
     private final ProjectPhaseRepository phaseRepository;
     private final DelayLogRepository delayLogRepository;
     private final ProjectVariationRepository variationRepository;
@@ -32,7 +34,7 @@ public class ProjectTrackingService {
     public ProjectPhase createPhase(Long projectId, String phaseName, LocalDate plannedStart,
             LocalDate plannedEnd, Integer displayOrder) {
         CustomerProject project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException(MSG_PROJECT_NOT_FOUND));
 
         ProjectPhase phase = ProjectPhase.builder()
                 .project(project)
@@ -78,7 +80,7 @@ public class ProjectTrackingService {
     public DelayLog logDelay(Long projectId, Long phaseId, String delayType,
             LocalDate fromDate, LocalDate toDate, String reason, Long loggedById) {
         CustomerProject project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException(MSG_PROJECT_NOT_FOUND));
 
         ProjectPhase phase = phaseId != null ? phaseRepository.findById(phaseId).orElse(null) : null;
         PortalUser loggedBy = loggedById != null ? userRepository.findById(loggedById).orElse(null) : null;
@@ -107,7 +109,7 @@ public class ProjectTrackingService {
             BigDecimal estimatedAmount, Long createdById) {
         Long pId = java.util.Objects.requireNonNull(projectId);
         CustomerProject project = projectRepository.findById(pId)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+                .orElseThrow(() -> new RuntimeException(MSG_PROJECT_NOT_FOUND));
 
         ProjectVariation variation = ProjectVariation.builder()
                 .project(project)
@@ -124,7 +126,7 @@ public class ProjectTrackingService {
     }
 
     /** @deprecated Use {@link ProjectVariationService#submit(Long, Long)}. Removed in S5. */
-    @Deprecated
+    @Deprecated(since = "2026-06", forRemoval = true)
     @Transactional
     public ProjectVariation submitForApproval(Long variationId) {
         return projectVariationService.submit(java.util.Objects.requireNonNull(variationId), null);
@@ -134,7 +136,7 @@ public class ProjectTrackingService {
      * @deprecated Kept as a thin delegate to {@link ProjectVariationService}
      * so legacy callers keep working. Will be removed in S5.
      */
-    @Deprecated
+    @Deprecated(since = "2026-06", forRemoval = true)
     @Transactional
     public ProjectVariation approveVariation(Long variationId, Long approverId, boolean approve) {
         Long vId = java.util.Objects.requireNonNull(variationId);

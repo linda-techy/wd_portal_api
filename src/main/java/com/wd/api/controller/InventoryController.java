@@ -41,19 +41,25 @@ public class InventoryController {
     }
 
     /**
-     * DEPRECATED: Use /materials/search instead
+     * Returns all materials without pagination.
+     *
+     * @deprecated Use {@code /materials/search} ({@link #searchMaterials}) instead,
+     *             which supports pagination and filtering.
      */
     @GetMapping("/materials")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<List<MaterialDTO>> getAllMaterials() {
         return ResponseEntity.ok(inventoryService.getAllMaterials());
     }
 
     /**
-     * DEPRECATED: Use /stock/search with projectId filter instead
+     * Returns stock for a single project without pagination.
+     *
+     * @deprecated Use {@code /stock/search} ({@link #searchStock}) with a
+     *             {@code projectId} filter instead, which supports pagination.
      */
     @GetMapping("/stock/project/{projectId}")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<List<InventoryStockDTO>> getProjectStock(@PathVariable Long projectId) {
         return ResponseEntity.ok(inventoryService.getStockByProject(projectId));
     }

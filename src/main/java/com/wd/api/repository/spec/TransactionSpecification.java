@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 
 public class TransactionSpecification {
 
+    private static final String FIELD_PAYMENT_DATE = "paymentDate";
+
     public static Specification<PaymentTransaction> search(String query) {
         return (root, criteriaQuery, cb) -> {
             if (query == null || query.isBlank()) {
@@ -25,10 +27,10 @@ public class TransactionSpecification {
             if (start == null && end == null)
                 return null;
             if (start != null && end != null)
-                return cb.between(root.get("paymentDate"), start, end);
+                return cb.between(root.get(FIELD_PAYMENT_DATE), start, end);
             if (start != null)
-                return cb.greaterThanOrEqualTo(root.get("paymentDate"), start);
-            return cb.lessThanOrEqualTo(root.get("paymentDate"), end);
+                return cb.greaterThanOrEqualTo(root.get(FIELD_PAYMENT_DATE), start);
+            return cb.lessThanOrEqualTo(root.get(FIELD_PAYMENT_DATE), end);
         };
     }
 

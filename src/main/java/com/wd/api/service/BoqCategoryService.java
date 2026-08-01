@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -63,7 +62,7 @@ public class BoqCategoryService {
                     int itemCount = categoryRepository.countItemsByCategory(cat.getId());
                     return BoqCategoryDto.fromEntity(cat, itemCount);
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -75,7 +74,7 @@ public class BoqCategoryService {
                     int itemCount = categoryRepository.countItemsByCategory(cat.getId());
                     return BoqCategoryDto.fromEntity(cat, itemCount);
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public void softDeleteCategory(Long categoryId, Long userId) {

@@ -9,7 +9,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
@@ -60,7 +59,7 @@ public class UserController {
                                 user.getPhone(),
                                 user.getWhatsapp());
                     })
-                    .collect(Collectors.toList()));
+                    .toList());
 
             // Fetch Customer Users
             List<com.wd.api.model.CustomerUser> customerUsers = customerUserRepository.findAll();
@@ -78,7 +77,7 @@ public class UserController {
                             "Customer",
                             null,
                             null))
-                    .collect(Collectors.toList()));
+                    .toList());
 
             return ResponseEntity.ok(ApiResponse.success("Team members retrieved successfully", teamMembers));
         } catch (Exception e) {
@@ -116,7 +115,7 @@ public class UserController {
                                 user.getPhone(),
                                 user.getWhatsapp());
                     })
-                    .collect(Collectors.toList());
+                    .toList();
 
             return ResponseEntity.ok(ApiResponse.success("Portal staff retrieved successfully", staff));
         } catch (Exception e) {

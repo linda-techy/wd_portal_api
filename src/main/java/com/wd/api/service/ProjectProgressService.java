@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Service for calculating and managing project progress.
@@ -214,7 +213,7 @@ public class ProjectProgressService {
         public List<ProjectTypeTemplateDTO> getAllProjectTypeTemplates() {
                 return typeTemplateRepository.findAllWithMilestones().stream()
                                 .map(this::convertToDTO)
-                                .collect(Collectors.toList());
+                                .toList();
         }
 
         /**
@@ -278,7 +277,7 @@ public class ProjectProgressService {
                 if (entity.getMilestoneTemplates() != null) {
                         List<MilestoneTemplateDTO> milestoneDTOs = entity.getMilestoneTemplates().stream()
                                         .map(this::convertMilestoneToDTO)
-                                        .collect(Collectors.toList());
+                                        .toList();
                         dto.setMilestoneTemplates(milestoneDTOs);
                         dto.setTotalMilestones(milestoneDTOs.size());
 

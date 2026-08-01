@@ -29,6 +29,10 @@ public class SiteReportService {
 
     private static final Logger logger = LoggerFactory.getLogger(SiteReportService.class);
 
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String META_LATITUDE = "latitude";
+    private static final String META_LONGITUDE = "longitude";
+
     private final SiteReportRepository siteReportRepository;
     private final SiteReportPhotoRepository siteReportPhotoRepository;
     private final FileStorageService fileStorageService;
@@ -286,7 +290,7 @@ public class SiteReportService {
 
         // Verify ownership or admin rights
         if (!report.getSubmittedBy().getId().equals(currentUser.getId()) &&
-            (currentUser.getRole() == null || !"ADMIN".equals(currentUser.getRole().getCode()))) {
+            (currentUser.getRole() == null || !ROLE_ADMIN.equals(currentUser.getRole().getCode()))) {
             throw new BusinessException("You don't have permission to add photos to this report",
                 HttpStatus.FORBIDDEN, "FORBIDDEN");
         }
@@ -324,13 +328,13 @@ public class SiteReportService {
                     SiteReportInputValidator.validatePhotoCaptionLen(caption);
                     reportPhoto.setCaption(caption);
                 }
-                if (meta.containsKey("latitude") && meta.get("latitude") != null) {
-                    Double lat = Double.valueOf(meta.get("latitude").toString());
+                if (meta.containsKey(META_LATITUDE) && meta.get(META_LATITUDE) != null) {
+                    Double lat = Double.valueOf(meta.get(META_LATITUDE).toString());
                     SiteReportInputValidator.validateLatitude(lat, "photo");
                     reportPhoto.setLatitude(lat);
                 }
-                if (meta.containsKey("longitude") && meta.get("longitude") != null) {
-                    Double lng = Double.valueOf(meta.get("longitude").toString());
+                if (meta.containsKey(META_LONGITUDE) && meta.get(META_LONGITUDE) != null) {
+                    Double lng = Double.valueOf(meta.get(META_LONGITUDE).toString());
                     SiteReportInputValidator.validateLongitude(lng, "photo");
                     reportPhoto.setLongitude(lng);
                 }
@@ -358,7 +362,7 @@ public class SiteReportService {
 
         // Verify ownership or admin rights
         if (!report.getSubmittedBy().getId().equals(currentUser.getId()) && 
-            (currentUser.getRole() == null || !"ADMIN".equals(currentUser.getRole().getCode()))) {
+            (currentUser.getRole() == null || !ROLE_ADMIN.equals(currentUser.getRole().getCode()))) {
             throw new BusinessException("You don't have permission to delete photos from this report", 
                 HttpStatus.FORBIDDEN, "FORBIDDEN");
         }
@@ -386,7 +390,7 @@ public class SiteReportService {
 
         // Verify ownership or admin rights
         if (!report.getSubmittedBy().getId().equals(currentUser.getId()) && 
-            (currentUser.getRole() == null || !"ADMIN".equals(currentUser.getRole().getCode()))) {
+            (currentUser.getRole() == null || !ROLE_ADMIN.equals(currentUser.getRole().getCode()))) {
             throw new BusinessException("You don't have permission to reorder photos in this report", 
                 HttpStatus.FORBIDDEN, "FORBIDDEN");
         }

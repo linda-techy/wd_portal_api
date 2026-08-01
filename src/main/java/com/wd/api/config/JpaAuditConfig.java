@@ -33,8 +33,8 @@ public class JpaAuditConfig {
             }
 
             Object principal = authentication.getPrincipal();
-            if (principal instanceof PortalUser) {
-                return Optional.of(((PortalUser) principal).getId());
+            if (principal instanceof PortalUser portalUser) {
+                return Optional.of(portalUser.getId());
             }
 
             return Optional.empty();

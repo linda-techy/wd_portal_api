@@ -23,6 +23,9 @@ public class SupportTicketController {
 
     private static final Logger logger = LoggerFactory.getLogger(SupportTicketController.class);
 
+    private static final String KEY_ERROR = "error";
+    private static final String KEY_MESSAGE = "message";
+
     private final SupportTicketService supportTicketService;
 
     /**
@@ -42,7 +45,7 @@ public class SupportTicketController {
         } catch (Exception e) {
             logger.error("Error fetching support tickets", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Failed to fetch support tickets"));
+                    .body(Map.of(KEY_ERROR, "Failed to fetch support tickets"));
         }
     }
 
@@ -58,7 +61,7 @@ public class SupportTicketController {
         } catch (Exception e) {
             logger.error("Error fetching support ticket {}", id, e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Failed to fetch support ticket"));
+                    .body(Map.of(KEY_ERROR, "Failed to fetch support ticket"));
         }
     }
 
@@ -76,14 +79,14 @@ public class SupportTicketController {
             supportTicketService.assignTicket(id, assignedTo);
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "Ticket assigned successfully",
+                    KEY_MESSAGE, "Ticket assigned successfully",
                     "ticketId", id,
                     "assignedTo", assignedTo
             ));
         } catch (Exception e) {
             logger.error("Error assigning ticket {}", id, e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Failed to assign ticket"));
+                    .body(Map.of(KEY_ERROR, "Failed to assign ticket"));
         }
     }
 
@@ -101,14 +104,14 @@ public class SupportTicketController {
             supportTicketService.updateStatus(id, status);
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "Ticket status updated successfully",
+                    KEY_MESSAGE, "Ticket status updated successfully",
                     "ticketId", id,
                     "status", status
             ));
         } catch (Exception e) {
             logger.error("Error updating status for ticket {}", id, e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Failed to update ticket status"));
+                    .body(Map.of(KEY_ERROR, "Failed to update ticket status"));
         }
     }
 
@@ -123,7 +126,7 @@ public class SupportTicketController {
             @RequestBody Map<String, Object> request,
             Authentication authentication) {
         try {
-            String message = (String) request.get("message");
+            String message = (String) request.get(KEY_MESSAGE);
             String staffName = (String) request.get("staffName");
             String attachmentUrl = request.get("attachmentUrl") != null
                     ? (String) request.get("attachmentUrl")
@@ -145,7 +148,7 @@ public class SupportTicketController {
         } catch (Exception e) {
             logger.error("Error adding reply to ticket {}", id, e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Failed to add reply to ticket"));
+                    .body(Map.of(KEY_ERROR, "Failed to add reply to ticket"));
         }
     }
 }

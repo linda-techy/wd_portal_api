@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Service layer for Customer User business logic
@@ -38,6 +37,11 @@ import java.util.stream.Collectors;
 public class CustomerUserService {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerUserService.class);
+
+    private static final String FIELD_EMAIL = "email";
+    private static final String FIELD_PHONE = "phone";
+    private static final String CUSTOMER_WITH_ID = "Customer with ID ";
+    private static final String NOT_FOUND_SUFFIX = " not found";
 
     // Email validation pattern (RFC 5322 simplified)
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
@@ -82,7 +86,7 @@ public class CustomerUserService {
 
         // Batch-fetch project counts to avoid N+1
         List<Long> customerIds = page.getContent().stream()
-                .map(CustomerUser::getId).collect(Collectors.toList());
+                .map(CustomerUser::getId).toList();
 
         Map<Long, Long> projectCounts = new HashMap<>();
         if (!customerIds.isEmpty()) {
@@ -106,8 +110,8 @@ public class CustomerUserService {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.get("name")), searchPattern),
-                        cb.like(cb.lower(root.get("email")), searchPattern),
-                        cb.like(cb.lower(root.get("phone")), searchPattern),
+                        cb.like(cb.lower(root.get(FIELD_EMAIL)), searchPattern),
+                        cb.like(cb.lower(root.get(FIELD_PHONE)), searchPattern),
                         cb.like(cb.lower(root.get("companyName")), searchPattern)));
             }
 
@@ -124,12 +128,12 @@ public class CustomerUserService {
 
             // Filter by email
             if (filter.getEmail() != null && !filter.getEmail().isEmpty()) {
-                predicates.add(cb.like(cb.lower(root.get("email")), "%" + filter.getEmail().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get(FIELD_EMAIL)), "%" + filter.getEmail().toLowerCase() + "%"));
             }
 
             // Filter by phone
             if (filter.getPhone() != null && !filter.getPhone().isEmpty()) {
-                predicates.add(cb.like(root.get("phone"), "%" + filter.getPhone() + "%"));
+                predicates.add(cb.like(root.get(FIELD_PHONE), "%" + filter.getPhone() + "%"));
             }
 
             // Filter by status (active/inactive)
@@ -177,7 +181,7 @@ public class CustomerUserService {
                     response.setProjectCount(projectCount);
                     return response;
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -256,7 +260,7 @@ public class CustomerUserService {
         if (id == null)
             throw new IllegalArgumentException("Customer ID cannot be null");
         CustomerUser customerUser = customerUserRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + id + " not found"));
+                .orElseThrow(() -> new IllegalArgumentException(CUSTOMER_WITH_ID + id + NOT_FOUND_SUFFIX));
 
         // Validate request
         validateCustomerUpdateRequest(request);
@@ -278,8 +282,8 @@ public class CustomerUserService {
 
         // Audit log: track which fields changed (compare OLD values before updates)
         List<String> changedFields = new ArrayList<>();
-        if (!java.util.Objects.equals(customerUser.getEmail(), request.getEmail())) changedFields.add("email");
-        if (request.getPhone() != null && !java.util.Objects.equals(customerUser.getPhone(), request.getPhone())) changedFields.add("phone");
+        if (!java.util.Objects.equals(customerUser.getEmail(), request.getEmail())) changedFields.add(FIELD_EMAIL);
+        if (request.getPhone() != null && !java.util.Objects.equals(customerUser.getPhone(), request.getPhone())) changedFields.add(FIELD_PHONE);
         if (request.getEnabled() != null && !java.util.Objects.equals(customerUser.getEnabled(), request.getEnabled())) changedFields.add("enabled");
         if (request.getCustomerType() != null && !java.util.Objects.equals(customerUser.getCustomerType(), request.getCustomerType())) changedFields.add("customerType");
         if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) changedFields.add("password");
@@ -326,7 +330,7 @@ public class CustomerUserService {
         }
 
         CustomerUser saved = customerUserRepository.save(customerUser);
-        if (!changedFields.isEmpty()) {
+        if (!changedFields.isEmpty() && logger.isInfoEnabled()) {
             logger.info("Customer {} updated — fields changed: {}", id, String.join(", ", changedFields));
         }
         return saved;
@@ -344,7 +348,7 @@ public class CustomerUserService {
             throw new IllegalArgumentException("Customer ID cannot be null");
         final Long customerId = id;
         CustomerUser customer = customerUserRepository.findById(customerId)
-                .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + customerId + " not found"));
+                .orElseThrow(() -> new IllegalArgumentException(CUSTOMER_WITH_ID + customerId + NOT_FOUND_SUFFIX));
 
         int activeProjectCount = customerProjectRepository.countByCustomer_IdAndDeletedAtIsNull(customerId);
         boolean hasLeads = leadRepository.existsByCustomerUserId(customerId);
@@ -372,7 +376,7 @@ public class CustomerUserService {
         if (id == null)
             throw new IllegalArgumentException("Customer ID cannot be null");
         CustomerUser customer = customerUserRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Customer with ID " + id + " not found"));
+                .orElseThrow(() -> new IllegalArgumentException(CUSTOMER_WITH_ID + id + NOT_FOUND_SUFFIX));
         if (Boolean.valueOf(enabled).equals(customer.getEnabled())) return customer;
         customer.setEnabled(enabled);
         CustomerUser saved = customerUserRepository.save(customer);

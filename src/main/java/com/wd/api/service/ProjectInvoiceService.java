@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Handles project invoice generation and queries (split from FinanceService god class).
@@ -101,7 +100,7 @@ public class ProjectInvoiceService {
     public List<ProjectInvoiceDTO> getInvoicesByProject(Long projectId) {
         return projectInvoiceRepository.findByProjectId(projectId).stream()
                 .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // ── Internal helpers ──────────────────────────────────────────────────────

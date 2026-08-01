@@ -33,14 +33,11 @@ public class BoqInvoiceService {
 
     private final BoqInvoiceRepository invoiceRepository;
     private final PaymentStageRepository stageRepository;
-    private final CustomerProjectRepository projectRepository;
 
     public BoqInvoiceService(BoqInvoiceRepository invoiceRepository,
-                              PaymentStageRepository stageRepository,
-                              CustomerProjectRepository projectRepository) {
+                              PaymentStageRepository stageRepository) {
         this.invoiceRepository = invoiceRepository;
         this.stageRepository = stageRepository;
-        this.projectRepository = projectRepository;
     }
 
     // -------------------------------------------------------------------------

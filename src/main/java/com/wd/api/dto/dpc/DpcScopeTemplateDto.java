@@ -5,7 +5,6 @@ import com.wd.api.model.DpcScopeTemplate;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * DTO for a DPC scope template (admin-managed content library row).
@@ -33,7 +32,7 @@ public record DpcScopeTemplateDto(
         if (template == null) return null;
         List<DpcScopeOptionDto> optionDtos = options == null
                 ? List.of()
-                : options.stream().map(DpcScopeOptionDto::from).collect(Collectors.toList());
+                : options.stream().map(DpcScopeOptionDto::from).toList();
         return new DpcScopeTemplateDto(
                 template.getId(),
                 template.getCode(),

@@ -98,7 +98,7 @@ public class LabourService {
         public List<LabourDTO> getAllLabour() {
                 return labourRepository.findAll().stream()
                                 .map(this::mapToLabourDTO)
-                                .collect(Collectors.toList());
+                                .toList();
         }
 
         @Transactional
@@ -120,7 +120,7 @@ public class LabourService {
                                         .build();
                         LabourAttendance savedAttendance = attendanceRepository.save(attendance);
                         return mapToAttendanceDTO(java.util.Objects.requireNonNull(savedAttendance));
-                }).collect(Collectors.toList());
+                }).toList();
         }
 
         @Transactional
@@ -187,7 +187,7 @@ public class LabourService {
         public List<MeasurementBookDTO> getMBEntriesByProject(Long projectId) {
                 return mbRepository.findByProjectId(projectId).stream()
                                 .map(this::mapToMBDTO)
-                                .collect(Collectors.toList());
+                                .toList();
         }
 
         @Transactional

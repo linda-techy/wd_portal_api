@@ -34,10 +34,10 @@ public class PortalUserUpdateRequest {
     public void setRoleIdFromJson(Object roleIdValue) {
         if (roleIdValue == null) {
             this.roleId = null;
-        } else if (roleIdValue instanceof Integer) {
-            this.roleId = ((Integer) roleIdValue).longValue();
-        } else if (roleIdValue instanceof Long) {
-            this.roleId = (Long) roleIdValue;
+        } else if (roleIdValue instanceof Integer integer) {
+            this.roleId = integer.longValue();
+        } else if (roleIdValue instanceof Long longValue) {
+            this.roleId = longValue;
         } else {
             try {
                 this.roleId = Long.parseLong(roleIdValue.toString());

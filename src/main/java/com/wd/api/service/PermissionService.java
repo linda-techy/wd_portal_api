@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class PermissionService {
@@ -65,7 +64,7 @@ public class PermissionService {
 
         return permissions.stream()
                 .map(Permission::getName)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -131,7 +130,7 @@ public class PermissionService {
         }
 
         String roleCode = user.getRole().getCode();
-        return "ADMIN".equalsIgnoreCase(roleCode) || "ROLE_ADMIN".equalsIgnoreCase(roleCode);
+        return ADMIN_ROLE_CODE.equalsIgnoreCase(roleCode) || "ROLE_ADMIN".equalsIgnoreCase(roleCode);
     }
 
     /**
@@ -140,7 +139,7 @@ public class PermissionService {
     public List<String> getAllPermissions() {
         return permissionRepository.findAll().stream()
                 .map(Permission::getName)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -162,7 +161,7 @@ public class PermissionService {
 
         return permissions.stream()
                 .map(Permission::getName)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

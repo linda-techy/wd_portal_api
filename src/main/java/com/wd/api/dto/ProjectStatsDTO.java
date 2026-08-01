@@ -35,6 +35,7 @@ public class ProjectStatsDTO {
     
     // Constructors
     public ProjectStatsDTO() {
+        // No-op: default constructor for Jackson deserialization and manual DTO population.
     }
     
     // Getters and Setters

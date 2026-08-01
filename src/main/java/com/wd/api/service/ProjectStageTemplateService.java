@@ -61,14 +61,16 @@ public class ProjectStageTemplateService {
      * Percentages sum to exactly 1.0000.
      * Per-project count and percentages remain fully editable via setTemplate().
      */
+    private static final BigDecimal PCT_10 = new BigDecimal("0.1000");
+
     static final List<ProjectStageTemplateDto.StageRow> KERALA_DEFAULT_STAGES = List.of(
-            new ProjectStageTemplateDto.StageRow(1,  "Mobilisation / Advance",          new BigDecimal("0.1000"), "Advance payment on contract signing"),
-            new ProjectStageTemplateDto.StageRow(2,  "Foundation & Footing",             new BigDecimal("0.1000"), "On completion of foundation and footing"),
-            new ProjectStageTemplateDto.StageRow(3,  "Plinth Beam / DPC",                new BigDecimal("0.1000"), "On completion of plinth beam / DPC"),
+            new ProjectStageTemplateDto.StageRow(1,  "Mobilisation / Advance",          PCT_10, "Advance payment on contract signing"),
+            new ProjectStageTemplateDto.StageRow(2,  "Foundation & Footing",             PCT_10, "On completion of foundation and footing"),
+            new ProjectStageTemplateDto.StageRow(3,  "Plinth Beam / DPC",                PCT_10, "On completion of plinth beam / DPC"),
             new ProjectStageTemplateDto.StageRow(4,  "Ground Floor Slab",                new BigDecimal("0.1500"), "On casting the ground-floor roof slab"),
-            new ProjectStageTemplateDto.StageRow(5,  "First Floor Walls & Columns",      new BigDecimal("0.1000"), "On completion of first-floor walls and columns"),
+            new ProjectStageTemplateDto.StageRow(5,  "First Floor Walls & Columns",      PCT_10, "On completion of first-floor walls and columns"),
             new ProjectStageTemplateDto.StageRow(6,  "First Floor Roof Slab",            new BigDecimal("0.1500"), "On casting the first-floor roof slab"),
-            new ProjectStageTemplateDto.StageRow(7,  "Brickwork & External Plaster",     new BigDecimal("0.1000"), "On completion of brickwork and external plastering"),
+            new ProjectStageTemplateDto.StageRow(7,  "Brickwork & External Plaster",     PCT_10, "On completion of brickwork and external plastering"),
             new ProjectStageTemplateDto.StageRow(8,  "Internal Plaster & Flooring",      new BigDecimal("0.0800"), "On completion of internal plastering and flooring"),
             new ProjectStageTemplateDto.StageRow(9,  "MEP, Painting & Finishing",        new BigDecimal("0.0700"), "On completion of electrical, plumbing, painting and finishing"),
             new ProjectStageTemplateDto.StageRow(10, "Handover / Completion",            new BigDecimal("0.0500"), "Final payment on project handover")

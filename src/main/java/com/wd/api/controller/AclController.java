@@ -29,6 +29,37 @@ public class AclController {
 
     private static final Logger log = LoggerFactory.getLogger(AclController.class);
 
+    // Permission-name constants (de-duplicated literals used across role templates).
+    private static final String PERM_DASHBOARD_VIEW = "DASHBOARD_VIEW";
+    private static final String PERM_DASHBOARD_FILTER = "DASHBOARD_FILTER";
+    private static final String PERM_PROJECT_VIEW = "PROJECT_VIEW";
+    private static final String PERM_TASK_VIEW = "TASK_VIEW";
+    private static final String PERM_TASK_CREATE = "TASK_CREATE";
+    private static final String PERM_TASK_EDIT = "TASK_EDIT";
+    private static final String PERM_CUSTOMER_VIEW = "CUSTOMER_VIEW";
+    private static final String PERM_BOQ_VIEW = "BOQ_VIEW";
+    private static final String PERM_SITE_REPORT_VIEW = "SITE_REPORT_VIEW";
+    private static final String PERM_SITE_REPORT_CREATE = "SITE_REPORT_CREATE";
+    private static final String PERM_SITE_REPORT_EDIT = "SITE_REPORT_EDIT";
+    private static final String PERM_GALLERY_VIEW = "GALLERY_VIEW";
+    private static final String PERM_GALLERY_CREATE = "GALLERY_CREATE";
+    private static final String PERM_LABOUR_VIEW = "LABOUR_VIEW";
+    private static final String PERM_LABOUR_CREATE = "LABOUR_CREATE";
+    private static final String PERM_LABOUR_EDIT = "LABOUR_EDIT";
+    private static final String PERM_INVENTORY_VIEW = "INVENTORY_VIEW";
+    private static final String PERM_QC_VIEW = "QC_VIEW";
+    private static final String PERM_QC_CREATE = "QC_CREATE";
+    private static final String PERM_QC_EDIT = "QC_EDIT";
+    private static final String PERM_OBSERVATION_VIEW = "OBSERVATION_VIEW";
+    private static final String PERM_OBSERVATION_CREATE = "OBSERVATION_CREATE";
+    private static final String PERM_OBSERVATION_EDIT = "OBSERVATION_EDIT";
+    private static final String PERM_ATTENDANCE_VIEW = "ATTENDANCE_VIEW";
+    private static final String PERM_ATTENDANCE_CREATE = "ATTENDANCE_CREATE";
+    private static final String PERM_ATTENDANCE_EDIT = "ATTENDANCE_EDIT";
+    private static final String PERM_PAYMENT_VIEW = "PAYMENT_VIEW";
+    private static final String PERM_REPORT_VIEW = "REPORT_VIEW";
+    private static final String PERM_NOTIFICATION_VIEW = "NOTIFICATION_VIEW";
+
     private final PortalRoleRepository portalRoleRepository;
 
     private final PermissionRepository permissionRepository;
@@ -77,7 +108,7 @@ public class AclController {
                     r.getDescription(),
                     r.getPermissions() != null ? r.getPermissions().size() : 0
                 ))
-                .collect(Collectors.toList());
+                .toList();
             return ResponseEntity.ok(ApiResponse.success("Roles retrieved", result));
         } catch (Exception e) {
             log.error("Error fetching ACL roles", e);
@@ -102,13 +133,13 @@ public class AclController {
                         permNames = permissionRepository.findAll().stream()
                             .map(Permission::getName)
                             .sorted()
-                            .collect(Collectors.toList());
+                            .toList();
                     } else {
                         permNames = role.getPermissions() != null
                             ? role.getPermissions().stream()
                                 .map(Permission::getName)
                                 .sorted()
-                                .collect(Collectors.toList())
+                                .toList()
                             : Collections.emptyList();
                     }
                     RoleDetailDto dto = new RoleDetailDto(
@@ -152,7 +183,7 @@ public class AclController {
             List<String> permNames = permissions.stream()
                 .map(Permission::getName)
                 .sorted()
-                .collect(Collectors.toList());
+                .toList();
             RoleDetailDto dto = new RoleDetailDto(
                 role.getId(), role.getName(), role.getCode(), role.getDescription(), permNames);
 
@@ -188,7 +219,7 @@ public class AclController {
             List<ModulePermissionGroup> result = grouped.entrySet().stream()
                 .sorted(Comparator.comparingInt(e -> moduleOrder(e.getKey())))
                 .map(e -> new ModulePermissionGroup(e.getKey(), toDisplayName(e.getKey()), e.getValue()))
-                .collect(Collectors.toList());
+                .toList();
 
             return ResponseEntity.ok(ApiResponse.success("Permissions retrieved", result));
         } catch (Exception e) {
@@ -217,9 +248,9 @@ public class AclController {
                     t.description(),
                     t.permissionNames().stream()
                         .filter(existingPerms::contains)
-                        .collect(Collectors.toList())
+                        .toList()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
             return ResponseEntity.ok(ApiResponse.success("Role templates retrieved", templates));
         } catch (Exception e) {
@@ -289,121 +320,121 @@ public class AclController {
             new RoleTemplateDto("PROJECT_MANAGER", "Project Manager",
                 "Full project management — projects, tasks, BOQ, site reports, labour, procurement",
                 List.of(
-                    "DASHBOARD_VIEW", "DASHBOARD_FILTER",
-                    "PROJECT_VIEW", "PROJECT_CREATE", "PROJECT_EDIT",
-                    "TASK_VIEW", "TASK_CREATE", "TASK_EDIT", "TASK_DELETE",
-                    "CUSTOMER_VIEW",
-                    "BOQ_VIEW", "BOQ_CREATE", "BOQ_EDIT", "BOQ_APPROVE",
-                    "SITE_REPORT_VIEW", "SITE_REPORT_CREATE", "SITE_REPORT_EDIT",
-                    "GALLERY_VIEW", "GALLERY_CREATE",
-                    "LABOUR_VIEW", "LABOUR_CREATE", "LABOUR_EDIT",
+                    PERM_DASHBOARD_VIEW, PERM_DASHBOARD_FILTER,
+                    PERM_PROJECT_VIEW, "PROJECT_CREATE", "PROJECT_EDIT",
+                    PERM_TASK_VIEW, PERM_TASK_CREATE, PERM_TASK_EDIT, "TASK_DELETE",
+                    PERM_CUSTOMER_VIEW,
+                    PERM_BOQ_VIEW, "BOQ_CREATE", "BOQ_EDIT", "BOQ_APPROVE",
+                    PERM_SITE_REPORT_VIEW, PERM_SITE_REPORT_CREATE, PERM_SITE_REPORT_EDIT,
+                    PERM_GALLERY_VIEW, PERM_GALLERY_CREATE,
+                    PERM_LABOUR_VIEW, PERM_LABOUR_CREATE, PERM_LABOUR_EDIT,
                     "PROCUREMENT_VIEW", "PROCUREMENT_CREATE", "PROCUREMENT_EDIT", "PROCUREMENT_APPROVE",
-                    "INVENTORY_VIEW", "INVENTORY_CREATE", "INVENTORY_EDIT",
-                    "QC_VIEW", "QC_CREATE", "QC_EDIT",
-                    "OBSERVATION_VIEW", "OBSERVATION_CREATE", "OBSERVATION_EDIT",
+                    PERM_INVENTORY_VIEW, "INVENTORY_CREATE", "INVENTORY_EDIT",
+                    PERM_QC_VIEW, PERM_QC_CREATE, PERM_QC_EDIT,
+                    PERM_OBSERVATION_VIEW, PERM_OBSERVATION_CREATE, PERM_OBSERVATION_EDIT,
                     "SNAG_VIEW", "SNAG_CREATE", "SNAG_EDIT",
                     "QUERY_VIEW", "QUERY_CREATE", "QUERY_EDIT",
-                    "ATTENDANCE_VIEW", "ATTENDANCE_CREATE", "ATTENDANCE_EDIT",
-                    "PAYMENT_VIEW", "PAYMENT_CREATE",
-                    "REPORT_VIEW",
-                    "NOTIFICATION_VIEW"
+                    PERM_ATTENDANCE_VIEW, PERM_ATTENDANCE_CREATE, PERM_ATTENDANCE_EDIT,
+                    PERM_PAYMENT_VIEW, "PAYMENT_CREATE",
+                    PERM_REPORT_VIEW,
+                    PERM_NOTIFICATION_VIEW
                 )),
             new RoleTemplateDto("SITE_ENGINEER", "Site Engineer",
                 "Field operations — site reports, tasks, labour attendance, gallery, QC",
                 List.of(
-                    "DASHBOARD_VIEW",
-                    "PROJECT_VIEW",
-                    "TASK_VIEW", "TASK_CREATE", "TASK_EDIT",
-                    "BOQ_VIEW",
-                    "SITE_REPORT_VIEW", "SITE_REPORT_CREATE", "SITE_REPORT_EDIT",
-                    "GALLERY_VIEW", "GALLERY_CREATE",
-                    "LABOUR_VIEW", "LABOUR_CREATE", "LABOUR_EDIT",
-                    "QC_VIEW", "QC_CREATE", "QC_EDIT",
-                    "OBSERVATION_VIEW", "OBSERVATION_CREATE", "OBSERVATION_EDIT",
-                    "INVENTORY_VIEW",
-                    "ATTENDANCE_VIEW", "ATTENDANCE_CREATE", "ATTENDANCE_EDIT",
-                    "NOTIFICATION_VIEW"
+                    PERM_DASHBOARD_VIEW,
+                    PERM_PROJECT_VIEW,
+                    PERM_TASK_VIEW, PERM_TASK_CREATE, PERM_TASK_EDIT,
+                    PERM_BOQ_VIEW,
+                    PERM_SITE_REPORT_VIEW, PERM_SITE_REPORT_CREATE, PERM_SITE_REPORT_EDIT,
+                    PERM_GALLERY_VIEW, PERM_GALLERY_CREATE,
+                    PERM_LABOUR_VIEW, PERM_LABOUR_CREATE, PERM_LABOUR_EDIT,
+                    PERM_QC_VIEW, PERM_QC_CREATE, PERM_QC_EDIT,
+                    PERM_OBSERVATION_VIEW, PERM_OBSERVATION_CREATE, PERM_OBSERVATION_EDIT,
+                    PERM_INVENTORY_VIEW,
+                    PERM_ATTENDANCE_VIEW, PERM_ATTENDANCE_CREATE, PERM_ATTENDANCE_EDIT,
+                    PERM_NOTIFICATION_VIEW
                 )),
             new RoleTemplateDto("FINANCE_OFFICER", "Finance Officer",
                 "Finance, payments, invoices, and financial reporting",
                 List.of(
-                    "DASHBOARD_VIEW", "DASHBOARD_FILTER",
+                    PERM_DASHBOARD_VIEW, PERM_DASHBOARD_FILTER,
                     "FINANCE_VIEW", "FINANCE_CREATE", "FINANCE_EDIT",
-                    "PAYMENT_VIEW", "PAYMENT_CREATE", "PAYMENT_EDIT", "PAYMENT_APPROVE",
-                    "BOQ_VIEW",
-                    "REPORT_VIEW", "REPORT_EXPORT",
-                    "PROJECT_VIEW",
-                    "CUSTOMER_VIEW",
-                    "NOTIFICATION_VIEW"
+                    PERM_PAYMENT_VIEW, "PAYMENT_CREATE", "PAYMENT_EDIT", "PAYMENT_APPROVE",
+                    PERM_BOQ_VIEW,
+                    PERM_REPORT_VIEW, "REPORT_EXPORT",
+                    PERM_PROJECT_VIEW,
+                    PERM_CUSTOMER_VIEW,
+                    PERM_NOTIFICATION_VIEW
                 )),
             new RoleTemplateDto("PROCUREMENT_OFFICER", "Procurement Officer",
                 "Procurement, purchase orders, and inventory management",
                 List.of(
-                    "DASHBOARD_VIEW",
+                    PERM_DASHBOARD_VIEW,
                     "PROCUREMENT_VIEW", "PROCUREMENT_CREATE", "PROCUREMENT_EDIT", "PROCUREMENT_APPROVE",
-                    "INVENTORY_VIEW", "INVENTORY_CREATE", "INVENTORY_EDIT", "INVENTORY_DELETE",
-                    "PROJECT_VIEW",
-                    "BOQ_VIEW",
-                    "REPORT_VIEW",
-                    "NOTIFICATION_VIEW"
+                    PERM_INVENTORY_VIEW, "INVENTORY_CREATE", "INVENTORY_EDIT", "INVENTORY_DELETE",
+                    PERM_PROJECT_VIEW,
+                    PERM_BOQ_VIEW,
+                    PERM_REPORT_VIEW,
+                    PERM_NOTIFICATION_VIEW
                 )),
             new RoleTemplateDto("SALES", "Sales / CRM Executive",
                 "Lead management, customer handling, and follow-ups",
                 List.of(
-                    "DASHBOARD_VIEW", "DASHBOARD_FILTER",
+                    PERM_DASHBOARD_VIEW, PERM_DASHBOARD_FILTER,
                     "LEAD_VIEW", "LEAD_CREATE", "LEAD_EDIT", "LEAD_DELETE", "LEAD_EXPORT",
-                    "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_EDIT",
-                    "PROJECT_VIEW",
-                    "REPORT_VIEW",
-                    "NOTIFICATION_VIEW"
+                    PERM_CUSTOMER_VIEW, "CUSTOMER_CREATE", "CUSTOMER_EDIT",
+                    PERM_PROJECT_VIEW,
+                    PERM_REPORT_VIEW,
+                    PERM_NOTIFICATION_VIEW
                 )),
             new RoleTemplateDto("SITE_SUPERVISOR", "Site Supervisor",
                 "On-site supervision — labour, attendance, tasks, and observations",
                 List.of(
-                    "DASHBOARD_VIEW",
-                    "PROJECT_VIEW",
-                    "TASK_VIEW", "TASK_CREATE", "TASK_EDIT",
-                    "SITE_REPORT_VIEW", "SITE_REPORT_CREATE",
-                    "GALLERY_VIEW", "GALLERY_CREATE",
-                    "LABOUR_VIEW", "LABOUR_CREATE", "LABOUR_EDIT",
-                    "ATTENDANCE_VIEW", "ATTENDANCE_CREATE", "ATTENDANCE_EDIT",
-                    "OBSERVATION_VIEW", "OBSERVATION_CREATE",
-                    "QC_VIEW",
-                    "NOTIFICATION_VIEW"
+                    PERM_DASHBOARD_VIEW,
+                    PERM_PROJECT_VIEW,
+                    PERM_TASK_VIEW, PERM_TASK_CREATE, PERM_TASK_EDIT,
+                    PERM_SITE_REPORT_VIEW, PERM_SITE_REPORT_CREATE,
+                    PERM_GALLERY_VIEW, PERM_GALLERY_CREATE,
+                    PERM_LABOUR_VIEW, PERM_LABOUR_CREATE, PERM_LABOUR_EDIT,
+                    PERM_ATTENDANCE_VIEW, PERM_ATTENDANCE_CREATE, PERM_ATTENDANCE_EDIT,
+                    PERM_OBSERVATION_VIEW, PERM_OBSERVATION_CREATE,
+                    PERM_QC_VIEW,
+                    PERM_NOTIFICATION_VIEW
                 )),
             new RoleTemplateDto("QUALITY_SAFETY", "Quality & Safety Officer",
                 "Quality checks, observations, snags, and site reports",
                 List.of(
-                    "DASHBOARD_VIEW",
-                    "PROJECT_VIEW",
-                    "QC_VIEW", "QC_CREATE", "QC_EDIT",
-                    "OBSERVATION_VIEW", "OBSERVATION_CREATE", "OBSERVATION_EDIT",
+                    PERM_DASHBOARD_VIEW,
+                    PERM_PROJECT_VIEW,
+                    PERM_QC_VIEW, PERM_QC_CREATE, PERM_QC_EDIT,
+                    PERM_OBSERVATION_VIEW, PERM_OBSERVATION_CREATE, PERM_OBSERVATION_EDIT,
                     "SNAG_VIEW", "SNAG_CREATE", "SNAG_EDIT",
-                    "SITE_REPORT_VIEW", "SITE_REPORT_CREATE", "SITE_REPORT_EDIT",
-                    "GALLERY_VIEW",
-                    "REPORT_VIEW",
-                    "NOTIFICATION_VIEW"
+                    PERM_SITE_REPORT_VIEW, PERM_SITE_REPORT_CREATE, PERM_SITE_REPORT_EDIT,
+                    PERM_GALLERY_VIEW,
+                    PERM_REPORT_VIEW,
+                    PERM_NOTIFICATION_VIEW
                 )),
             new RoleTemplateDto("ESTIMATOR", "Estimator / Quantity Surveyor",
                 "BOQ estimation, cost analysis, and project finance visibility",
                 List.of(
-                    "DASHBOARD_VIEW",
-                    "PROJECT_VIEW",
-                    "BOQ_VIEW", "BOQ_CREATE", "BOQ_EDIT",
+                    PERM_DASHBOARD_VIEW,
+                    PERM_PROJECT_VIEW,
+                    PERM_BOQ_VIEW, "BOQ_CREATE", "BOQ_EDIT",
                     "FINANCE_VIEW",
-                    "PAYMENT_VIEW",
-                    "REPORT_VIEW", "REPORT_EXPORT",
-                    "NOTIFICATION_VIEW"
+                    PERM_PAYMENT_VIEW,
+                    PERM_REPORT_VIEW, "REPORT_EXPORT",
+                    PERM_NOTIFICATION_VIEW
                 )),
             new RoleTemplateDto("INTERN", "Intern / Trainee",
                 "Read-only access for learning and observation",
                 List.of(
-                    "DASHBOARD_VIEW",
-                    "PROJECT_VIEW",
-                    "TASK_VIEW",
-                    "SITE_REPORT_VIEW",
-                    "GALLERY_VIEW",
-                    "NOTIFICATION_VIEW"
+                    PERM_DASHBOARD_VIEW,
+                    PERM_PROJECT_VIEW,
+                    PERM_TASK_VIEW,
+                    PERM_SITE_REPORT_VIEW,
+                    PERM_GALLERY_VIEW,
+                    PERM_NOTIFICATION_VIEW
                 ))
         );
     }

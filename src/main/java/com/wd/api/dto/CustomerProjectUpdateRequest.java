@@ -51,6 +51,7 @@ public class CustomerProjectUpdateRequest {
 
     // Constructors
     public CustomerProjectUpdateRequest() {
+        // No-op: default constructor required for JSON deserialization
     }
 
     // Getters and Setters
@@ -135,12 +136,11 @@ public class CustomerProjectUpdateRequest {
     public void setSqfeet(Object sqfeet) {
         if (sqfeet == null) {
             this.sqfeet = null;
-        } else if (sqfeet instanceof BigDecimal) {
-            this.sqfeet = (BigDecimal) sqfeet;
-        } else if (sqfeet instanceof Number) {
-            this.sqfeet = BigDecimal.valueOf(((Number) sqfeet).doubleValue());
-        } else if (sqfeet instanceof String) {
-            String str = (String) sqfeet;
+        } else if (sqfeet instanceof BigDecimal bigdecimal) {
+            this.sqfeet = bigdecimal;
+        } else if (sqfeet instanceof Number number) {
+            this.sqfeet = BigDecimal.valueOf(number.doubleValue());
+        } else if (sqfeet instanceof String str) {
             if (str.trim().isEmpty()) {
                 this.sqfeet = null;
             } else {
@@ -165,14 +165,13 @@ public class CustomerProjectUpdateRequest {
     public void setLeadId(Object leadIdObj) {
         if (leadIdObj == null) {
             this.leadId = null;
-        } else if (leadIdObj instanceof Long) {
-            this.leadId = (Long) leadIdObj;
-        } else if (leadIdObj instanceof Integer) {
-            this.leadId = ((Integer) leadIdObj).longValue();
-        } else if (leadIdObj instanceof Number) {
-            this.leadId = ((Number) leadIdObj).longValue();
-        } else if (leadIdObj instanceof String) {
-            String str = (String) leadIdObj;
+        } else if (leadIdObj instanceof Long longValue) {
+            this.leadId = longValue;
+        } else if (leadIdObj instanceof Integer integer) {
+            this.leadId = integer.longValue();
+        } else if (leadIdObj instanceof Number number) {
+            this.leadId = number.longValue();
+        } else if (leadIdObj instanceof String str) {
             if (str.trim().isEmpty()) {
                 this.leadId = null;
             } else {

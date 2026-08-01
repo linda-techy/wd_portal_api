@@ -31,6 +31,9 @@ import java.util.stream.Collectors;
 @Service
 public class DelayLogService {
 
+    private static final String FIELD_LOGGED_BY = "loggedBy";
+    private static final String FIELD_TO_DATE = "toDate";
+
     private final DelayLogRepository delayLogRepository;
 
     private final CustomerProjectRepository projectRepository;
@@ -88,8 +91,8 @@ public class DelayLogService {
                         cb.like(cb.lower(root.get("delayType")), searchPattern),
                         cb.like(cb.lower(root.get("reason")), searchPattern),
                         cb.like(cb.lower(root.get("description")), searchPattern),
-                        cb.like(cb.lower(root.join("loggedBy").get("firstName")), searchPattern),
-                        cb.like(cb.lower(root.join("loggedBy").get("lastName")), searchPattern)));
+                        cb.like(cb.lower(root.join(FIELD_LOGGED_BY).get("firstName")), searchPattern),
+                        cb.like(cb.lower(root.join(FIELD_LOGGED_BY).get("lastName")), searchPattern)));
             }
 
             // Filter by projectId
@@ -104,7 +107,7 @@ public class DelayLogService {
 
             // Filter by loggedById
             if (filter.getLoggedById() != null) {
-                predicates.add(cb.equal(root.get("loggedBy").get("id"), filter.getLoggedById()));
+                predicates.add(cb.equal(root.get(FIELD_LOGGED_BY).get("id"), filter.getLoggedById()));
             }
 
             // Filter by severity (if field exists)
@@ -114,20 +117,20 @@ public class DelayLogService {
 
             // Filter by active only (toDate is null)
             if (filter.isActiveOnly()) {
-                predicates.add(cb.isNull(root.get("toDate")));
+                predicates.add(cb.isNull(root.get(FIELD_TO_DATE)));
             }
 
             // Filter by closed only (toDate is not null)
             if (filter.isClosedOnly()) {
-                predicates.add(cb.isNotNull(root.get("toDate")));
+                predicates.add(cb.isNotNull(root.get(FIELD_TO_DATE)));
             }
 
             // Filter by status (from base class)
             if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
                 if ("ACTIVE".equalsIgnoreCase(filter.getStatus())) {
-                    predicates.add(cb.isNull(root.get("toDate")));
+                    predicates.add(cb.isNull(root.get(FIELD_TO_DATE)));
                 } else if ("CLOSED".equalsIgnoreCase(filter.getStatus())) {
-                    predicates.add(cb.isNotNull(root.get("toDate")));
+                    predicates.add(cb.isNotNull(root.get(FIELD_TO_DATE)));
                 }
             }
 

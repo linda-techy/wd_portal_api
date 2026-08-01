@@ -63,6 +63,7 @@ public class Document extends BaseEntity {
 
     // Constructors
     public Document() {
+        // No-op: required no-arg constructor for JPA entity instantiation.
     }
 
     public String getUploadedByType() { return uploadedByType; }

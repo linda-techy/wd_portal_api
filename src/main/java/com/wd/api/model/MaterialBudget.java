@@ -76,6 +76,7 @@ public class MaterialBudget extends BaseEntity {
     // ==================== Constructors ====================
 
     public MaterialBudget() {
+        // No-op: default constructor required by JPA.
     }
 
     // ==================== Business Logic ====================

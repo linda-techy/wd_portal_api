@@ -33,7 +33,9 @@ public class ProjectHolidayOverride extends BaseEntity {
     @Column(nullable = false, length = 16)
     private HolidayOverrideAction action;
 
-    public ProjectHolidayOverride() {}
+    public ProjectHolidayOverride() {
+        // No-op: default constructor required by JPA.
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

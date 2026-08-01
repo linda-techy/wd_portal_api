@@ -2,7 +2,6 @@ package com.wd.api.controller;
 
 import com.wd.api.dto.*;
 import com.wd.api.model.BoqDocument;
-import com.wd.api.model.PaymentStage;
 import com.wd.api.model.PortalUser;
 import com.wd.api.service.BoqDocumentService;
 import com.wd.api.service.PaymentStageService;
@@ -30,6 +29,8 @@ public class BoqDocumentController {
 
     private static final Logger logger = LoggerFactory.getLogger(BoqDocumentController.class);
 
+    private static final String INTERNAL_ERROR = "An internal error occurred";
+
     private final BoqDocumentService boqDocumentService;
     private final PaymentStageService paymentStageService;
 
@@ -55,7 +56,7 @@ public class BoqDocumentController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to create BOQ document", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_ERROR));
         }
     }
 
@@ -71,7 +72,7 @@ public class BoqDocumentController {
             return ResponseEntity.status(403).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to fetch BOQ document {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_ERROR));
         }
     }
 
@@ -87,7 +88,7 @@ public class BoqDocumentController {
             return ResponseEntity.status(403).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to fetch BOQ documents for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_ERROR));
         }
     }
 
@@ -103,7 +104,7 @@ public class BoqDocumentController {
             return ResponseEntity.status(403).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to fetch approved BOQ for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_ERROR));
         }
     }
 
@@ -121,7 +122,7 @@ public class BoqDocumentController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to submit BOQ document {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_ERROR));
         }
     }
 
@@ -137,7 +138,7 @@ public class BoqDocumentController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to internally approve BOQ document {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_ERROR));
         }
     }
 
@@ -164,7 +165,7 @@ public class BoqDocumentController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to record customer approval for BOQ document {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_ERROR));
         }
     }
 
@@ -182,7 +183,7 @@ public class BoqDocumentController {
             return ResponseEntity.status(400).body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to reject BOQ document {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_ERROR));
         }
     }
 
@@ -197,7 +198,7 @@ public class BoqDocumentController {
             return ResponseEntity.ok(ApiResponse.success("OK", stages));
         } catch (Exception e) {
             logger.error("Failed to fetch payment stages for document {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_ERROR));
         }
     }
 
@@ -211,7 +212,7 @@ public class BoqDocumentController {
             return ResponseEntity.ok(ApiResponse.success("OK", stages));
         } catch (Exception e) {
             logger.error("Failed to fetch payment stages for project {}", projectId, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("An internal error occurred"));
+            return ResponseEntity.status(500).body(ApiResponse.error(INTERNAL_ERROR));
         }
     }
 

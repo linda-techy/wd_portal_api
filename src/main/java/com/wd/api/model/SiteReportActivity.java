@@ -54,7 +54,9 @@ public class SiteReportActivity {
         if (createdAt == null) createdAt = LocalDateTime.now();
     }
 
-    public SiteReportActivity() {}
+    public SiteReportActivity() {
+        // No-op: required no-arg constructor for JPA entity instantiation.
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

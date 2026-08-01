@@ -38,7 +38,9 @@ public class ProjectScheduleConfig extends BaseEntity {
     @Column(name = "last_alerted_handover_date")
     private LocalDate lastAlertedHandoverDate;
 
-    public ProjectScheduleConfig() {}
+    public ProjectScheduleConfig() {
+        // No-op: required no-arg constructor for JPA entity instantiation.
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

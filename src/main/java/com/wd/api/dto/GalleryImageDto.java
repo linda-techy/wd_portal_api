@@ -27,6 +27,7 @@ public class GalleryImageDto {
     private LocalDateTime createdAt;
 
     public GalleryImageDto() {
+        // No-op: default constructor for framework/serialization use.
     }
 
     public static GalleryImageDto fromEntity(GalleryImage entity) {

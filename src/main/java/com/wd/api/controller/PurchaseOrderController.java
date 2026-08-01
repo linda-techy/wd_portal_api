@@ -36,9 +36,13 @@ public class PurchaseOrderController {
 
     /**
      * DEPRECATED: Use /search endpoint instead
+     *
+     * @deprecated Use the {@code GET /search} endpoint
+     *             ({@link #searchPurchaseOrders(PurchaseOrderSearchFilter)}) with a
+     *             {@code projectId} filter instead.
      */
     @GetMapping("/project/{projectId}")
-    @Deprecated
+    @Deprecated(since = "2026-06", forRemoval = true)
     public ResponseEntity<List<PurchaseOrder>> getProjectPurchaseOrders(@PathVariable Long projectId) {
         return ResponseEntity.ok(poService.getProjectPurchaseOrders(projectId));
     }

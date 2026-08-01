@@ -34,6 +34,7 @@ public class SiteVisitDTO {
     private String forceCloseReason;
 
     public SiteVisitDTO() {
+        // No-op: default constructor for the builder and serialization frameworks
     }
 
     // Builder pattern

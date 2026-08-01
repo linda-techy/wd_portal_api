@@ -23,6 +23,9 @@ public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
+    private static final String KEY_ERROR = "error";
+    private static final String KEY_MESSAGE = "message";
+
     private final AuthService authService;
 
     public AuthController(AuthService authService) {
@@ -37,11 +40,11 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             logger.warn("Login validation failed: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", e.getMessage()));
+                .body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
             logger.error("Login failed for user {}: {}", loginRequest.getEmail(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", "Invalid email or password"));
+                .body(Map.of(KEY_ERROR, "Invalid email or password"));
         }
     }
 
@@ -53,11 +56,11 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             logger.warn("Refresh token validation failed: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", e.getMessage()));
+                .body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
             logger.error("Refresh token failed: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", "Invalid or expired refresh token"));
+                .body(Map.of(KEY_ERROR, "Invalid or expired refresh token"));
         }
     }
 
@@ -82,7 +85,7 @@ public class AuthController {
                 !authentication.isAuthenticated() ||
                 "anonymousUser".equals(authentication.getPrincipal())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", "Not authenticated"));
+                .body(Map.of(KEY_ERROR, "Not authenticated"));
         }
 
         String email = authentication.getName();
@@ -92,7 +95,7 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Failed to get current user for email {}: {}", email, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", "Authentication failed"));
+                .body(Map.of(KEY_ERROR, "Authentication failed"));
         }
     }
 
@@ -108,14 +111,14 @@ public class AuthController {
         try {
             String fcmToken = body.get("fcmToken");
             if (fcmToken == null || fcmToken.isBlank()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "fcmToken is required"));
+                return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, "fcmToken is required"));
             }
             authService.registerFcmToken(authentication.getName(), fcmToken);
-            return ResponseEntity.ok(Map.of("message", "FCM token registered"));
+            return ResponseEntity.ok(Map.of(KEY_MESSAGE, "FCM token registered"));
         } catch (Exception e) {
             logger.error("Failed to register FCM token for {}: {}", authentication.getName(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to register FCM token"));
+                    .body(Map.of(KEY_ERROR, "Failed to register FCM token"));
         }
     }
 
@@ -130,7 +133,7 @@ public class AuthController {
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
         String email = body.getOrDefault("email", "").trim();
         if (email.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, "Email is required"));
         }
         try {
             authService.forgotPassword(email);
@@ -139,7 +142,7 @@ public class AuthController {
             logger.warn("Forgot-password error (suppressed) for email {}: {}", email, e.getMessage());
         }
         return ResponseEntity.ok(Map.of(
-                "message", "If that email is registered, a reset link has been sent."));
+                KEY_MESSAGE, "If that email is registered, a reset link has been sent."));
     }
 
     /**
@@ -152,21 +155,21 @@ public class AuthController {
         String newPassword = body.getOrDefault("newPassword", "");
 
         if (token.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Reset token is required"));
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, "Reset token is required"));
         }
         if (newPassword.length() < 8) {
             return ResponseEntity.badRequest().body(
-                    Map.of("error", "Password must be at least 8 characters"));
+                    Map.of(KEY_ERROR, "Password must be at least 8 characters"));
         }
         try {
             authService.resetPassword(token, newPassword);
-            return ResponseEntity.ok(Map.of("message", "Password has been reset successfully. You can now log in."));
+            return ResponseEntity.ok(Map.of(KEY_MESSAGE, "Password has been reset successfully. You can now log in."));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
             logger.error("Reset password failed: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Password reset failed. Please try again."));
+                    .body(Map.of(KEY_ERROR, "Password reset failed. Please try again."));
         }
     }
 

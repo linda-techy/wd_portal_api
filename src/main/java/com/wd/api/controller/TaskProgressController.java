@@ -35,6 +35,8 @@ public class TaskProgressController {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskProgressController.class);
 
+    private static final String KEY_ERROR = "error";
+
     private final TaskProgressUpdateService progressService;
     private final PortalUserRepository portalUserRepo;
 
@@ -62,13 +64,13 @@ public class TaskProgressController {
             String msg = e.getMessage();
             if (msg != null && msg.toLowerCase().contains("not found")) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", msg));
+                        .body(Map.of(KEY_ERROR, msg));
             }
-            return ResponseEntity.badRequest().body(Map.of("error", msg));
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, msg));
         } catch (Exception e) {
             logger.error("Failed to update task progress for task {}", taskId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to update progress"));
+                    .body(Map.of(KEY_ERROR, "Failed to update progress"));
         }
     }
 }

@@ -200,7 +200,7 @@ public final class EstimationCalculator {
             lineItems.add(new LineItem(
                     com.wd.api.estimation.domain.enums.LineType.GST,
                     "GST (" + ctx.gstRate().multiply(new java.math.BigDecimal("100")).toPlainString() + "%)",
-                    null, null, null, null, gst, order++));
+                    null, null, null, null, gst, order));
         }
 
         java.util.List<String> warnings = new java.util.ArrayList<>();

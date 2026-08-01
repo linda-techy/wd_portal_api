@@ -23,13 +23,16 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/portal-users")
 public class PortalUserController {
 
     private static final Logger logger = LoggerFactory.getLogger(PortalUserController.class);
+
+    private static final String MSG_INTERNAL_SERVER_ERROR = "Internal server error";
+    private static final String MSG_USER_NOT_FOUND = "User not found";
+    private static final String MSG_USER_ID_REQUIRED = "User ID is required";
 
     private final PortalUserRepository portalUserRepository;
 
@@ -56,11 +59,11 @@ public class PortalUserController {
             List<PortalUser> users = portalUserRepository.findAll();
             List<PortalUserResponse> responses = users.stream()
                     .map(PortalUserResponse::new)
-                    .collect(Collectors.toList());
+                    .toList();
             return ResponseEntity.ok(ApiResponse.success("Portal users retrieved successfully", responses));
         } catch (Exception e) {
             logger.error("Error fetching portal users", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -107,7 +110,7 @@ public class PortalUserController {
                     .ok(ApiResponse.success("Paginated portal users retrieved successfully", responsePage));
         } catch (Exception e) {
             logger.error("Error fetching paginated portal users", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -120,13 +123,13 @@ public class PortalUserController {
         try {
             Optional<PortalUser> userOpt = portalUserRepository.findById(id);
             if (!userOpt.isPresent()) {
-                return ResponseEntity.status(404).body(ApiResponse.error("User not found"));
+                return ResponseEntity.status(404).body(ApiResponse.error(MSG_USER_NOT_FOUND));
             }
             return ResponseEntity
                     .ok(ApiResponse.success("User retrieved successfully", new PortalUserResponse(userOpt.get())));
         } catch (Exception e) {
             logger.error("Error fetching portal user with ID: {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -184,7 +187,7 @@ public class PortalUserController {
 
         } catch (Exception e) {
             logger.error("Error creating portal user", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -199,12 +202,12 @@ public class PortalUserController {
         try {
             // Validate ID
             if (id == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("User ID is required"));
+                return ResponseEntity.badRequest().body(ApiResponse.error(MSG_USER_ID_REQUIRED));
             }
 
             Optional<PortalUser> userOpt = portalUserRepository.findById(id);
             if (!userOpt.isPresent()) {
-                return ResponseEntity.status(404).body(ApiResponse.error("User not found"));
+                return ResponseEntity.status(404).body(ApiResponse.error(MSG_USER_NOT_FOUND));
             }
 
             PortalUser user = userOpt.get();
@@ -272,7 +275,7 @@ public class PortalUserController {
 
         } catch (Exception e) {
             logger.error("Error updating portal user with ID: {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -285,11 +288,11 @@ public class PortalUserController {
     public ResponseEntity<ApiResponse<Void>> deletePortalUser(@PathVariable Long id) {
         try {
             if (id == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("User ID is required"));
+                return ResponseEntity.badRequest().body(ApiResponse.error(MSG_USER_ID_REQUIRED));
             }
 
             if (!portalUserRepository.existsById(id)) {
-                return ResponseEntity.status(404).body(ApiResponse.error("User not found"));
+                return ResponseEntity.status(404).body(ApiResponse.error(MSG_USER_NOT_FOUND));
             }
 
             portalUserRepository.deleteById(id);
@@ -297,7 +300,7 @@ public class PortalUserController {
 
         } catch (Exception e) {
             logger.error("Error deleting portal user with ID: {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -309,11 +312,11 @@ public class PortalUserController {
         try {
             List<PortalRoleDTO> roles = portalRoleRepository.findAll().stream()
                     .map(PortalRoleDTO::new)
-                    .collect(Collectors.toList());
+                    .toList();
             return ResponseEntity.ok(ApiResponse.success("Portal roles retrieved successfully", roles));
         } catch (Exception e) {
             logger.error("Error fetching portal roles", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -329,20 +332,20 @@ public class PortalUserController {
             List<Long> roleIds = portalRoleRepository.findAll().stream()
                     .filter(role -> role.getCode() != null && roleCodes.contains(role.getCode()))
                     .map(com.wd.api.model.PortalRole::getId)
-                    .collect(Collectors.toList());
+                    .toList();
 
             // Get users with those role IDs
             List<PortalUser> users = portalUserRepository.findAll().stream()
                     .filter(user -> user.getRole() != null && roleIds.contains(user.getRole().getId()))
-                    .collect(Collectors.toList());
+                    .toList();
 
             List<PortalUserResponse> responses = users.stream()
                     .map(PortalUserResponse::new)
-                    .collect(Collectors.toList());
+                    .toList();
             return ResponseEntity.ok(ApiResponse.success("Portal users retrieved successfully", responses));
         } catch (Exception e) {
             logger.error("Error fetching portal users by role codes", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -356,12 +359,12 @@ public class PortalUserController {
             @Valid @RequestBody com.wd.api.dto.ChangePasswordRequest request) {
         try {
             if (id == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("User ID is required"));
+                return ResponseEntity.badRequest().body(ApiResponse.error(MSG_USER_ID_REQUIRED));
             }
 
             Optional<PortalUser> userOpt = portalUserRepository.findById(id);
             if (!userOpt.isPresent()) {
-                return ResponseEntity.status(404).body(ApiResponse.error("User not found"));
+                return ResponseEntity.status(404).body(ApiResponse.error(MSG_USER_NOT_FOUND));
             }
 
             PortalUser user = userOpt.get();
@@ -385,7 +388,7 @@ public class PortalUserController {
 
         } catch (Exception e) {
             logger.error("Error changing password for user ID: {}", id, e);
-            return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+            return ResponseEntity.status(500).body(ApiResponse.error(MSG_INTERNAL_SERVER_ERROR));
         }
     }
 }

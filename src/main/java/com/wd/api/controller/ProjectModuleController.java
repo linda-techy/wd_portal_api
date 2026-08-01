@@ -21,6 +21,8 @@ public class ProjectModuleController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectModuleController.class);
 
+    private static final String REFERENCE_TYPE_PROJECT = "PROJECT";
+
     private final DocumentService documentService;
 
     public ProjectModuleController(DocumentService documentService) {
@@ -40,7 +42,7 @@ public class ProjectModuleController {
                 return ResponseEntity.badRequest()
                     .body(ApiResponse.error("File is required and cannot be empty"));
             }
-            DocumentResponse doc = documentService.uploadDocument(projectId, "PROJECT", file, categoryId, description);
+            DocumentResponse doc = documentService.uploadDocument(projectId, REFERENCE_TYPE_PROJECT, file, categoryId, description);
             return ResponseEntity.ok(ApiResponse.success("Document uploaded successfully", doc));
         } catch (IllegalArgumentException e) {
             logger.warn("Validation error uploading document for project {}: {}", projectId, e.getMessage());
@@ -56,7 +58,7 @@ public class ProjectModuleController {
     public ResponseEntity<ApiResponse<List<DocumentResponse>>> getDocuments(
             @PathVariable Long projectId) {
         try {
-            List<DocumentResponse> docs = documentService.getDocuments(projectId, "PROJECT");
+            List<DocumentResponse> docs = documentService.getDocuments(projectId, REFERENCE_TYPE_PROJECT);
             return ResponseEntity.ok(ApiResponse.success("Documents retrieved successfully", docs));
         } catch (Exception e) {
             logger.error("Failed to get documents for project {}: {}", projectId, e.getMessage(), e);
@@ -70,7 +72,7 @@ public class ProjectModuleController {
             @PathVariable Long projectId) {
         try {
             List<com.wd.api.dto.ProjectModuleDtos.DocumentCategoryDto> categories = documentService
-                    .getAllCategories("PROJECT");
+                    .getAllCategories(REFERENCE_TYPE_PROJECT);
             return ResponseEntity.ok(ApiResponse.success("Project document categories retrieved successfully", categories));
         } catch (Exception e) {
             logger.error("Failed to get document categories for project {}: {}", projectId, e.getMessage(), e);

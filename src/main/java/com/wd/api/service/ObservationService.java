@@ -24,12 +24,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class ObservationService {
 
     private static final Logger logger = LoggerFactory.getLogger(ObservationService.class);
+
+    private static final String OBSERVATION_NOT_FOUND = "Observation not found with id: ";
 
     private final ObservationRepository observationRepository;
     private final CustomerProjectRepository projectRepository;
@@ -104,7 +105,7 @@ public class ObservationService {
         List<Observation> observations = observationRepository.findByProjectIdOrderByReportedDateDesc(projectId);
         return observations.stream()
                 .map(ObservationDto::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -112,7 +113,7 @@ public class ObservationService {
         List<Observation> observations = observationRepository.findActiveByProjectId(projectId);
         return observations.stream()
                 .map(ObservationDto::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -120,13 +121,13 @@ public class ObservationService {
         List<Observation> observations = observationRepository.findResolvedByProjectId(projectId);
         return observations.stream()
                 .map(ObservationDto::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public ObservationDto getObservationById(Long id) {
         Observation observation = observationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(OBSERVATION_NOT_FOUND + id));
         return ObservationDto.fromEntity(observation);
     }
 
@@ -170,7 +171,7 @@ public class ObservationService {
             String location, String priority, String severity,
             String status, MultipartFile image) {
         Observation observation = observationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(OBSERVATION_NOT_FOUND + id));
 
         if (title != null)
             observation.setTitle(title);
@@ -202,7 +203,7 @@ public class ObservationService {
     @Transactional
     public ObservationDto resolveObservation(Long id, String resolutionNotes, PortalUser resolvedBy) {
         Observation observation = observationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(OBSERVATION_NOT_FOUND + id));
 
         observation.setStatus(ObservationStatus.RESOLVED);
         observation.setResolutionNotes(resolutionNotes);
@@ -218,7 +219,7 @@ public class ObservationService {
     @Transactional
     public ObservationDto updateStatus(Long id, String status) {
         Observation observation = observationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(OBSERVATION_NOT_FOUND + id));
 
         observation.setStatus(ObservationStatus.valueOf(status));
         Observation updatedObservation = observationRepository.save(observation);
@@ -228,7 +229,7 @@ public class ObservationService {
     @Transactional
     public void deleteObservation(Long id) {
         Observation observation = observationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Observation not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(OBSERVATION_NOT_FOUND + id));
 
         // Delete image file if exists
         if (observation.getImagePath() != null) {
@@ -253,6 +254,6 @@ public class ObservationService {
         List<Observation> observations = observationRepository.findByReportedByIdOrderByReportedDateDesc(userId);
         return observations.stream()
                 .map(ObservationDto::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

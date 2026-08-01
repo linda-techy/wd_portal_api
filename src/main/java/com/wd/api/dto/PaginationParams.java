@@ -23,6 +23,7 @@ public class PaginationParams {
     private String sortOrder = "desc";
 
     public PaginationParams() {
+        // No-op: default constructor required for JSON/bean deserialization.
     }
 
     // Getters and Setters

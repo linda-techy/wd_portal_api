@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * BOQ Service - Core business logic for BOQ management.
@@ -26,6 +25,11 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class BoqService {
+
+    private static final String ENTITY_BOQ_ITEM = "BOQ_ITEM";
+    private static final String MSG_BOQ_ITEM_NOT_FOUND = "BOQ item not found: ";
+    private static final String FIELD_STATUS = "status";
+    private static final String FIELD_ITEM_CODE = "itemCode";
 
     private final BoqItemRepository boqItemRepository;
     private final BoqWorkTypeRepository boqWorkTypeRepository;
@@ -123,7 +127,7 @@ public class BoqService {
 
         item = boqItemRepository.save(item);
 
-        auditService.logCreate("BOQ_ITEM", item.getId(), project.getId(), userId, item);
+        auditService.logCreate(ENTITY_BOQ_ITEM, item.getId(), project.getId(), userId, item);
 
         return BoqItemResponse.fromEntity(item);
     }
@@ -210,7 +214,7 @@ public class BoqService {
         item = boqItemRepository.save(item);
 
         Map<String, Object> newState = captureItemState(item);
-        auditService.logUpdate("BOQ_ITEM", id, item.getProject().getId(), userId, oldState, newState);
+        auditService.logUpdate(ENTITY_BOQ_ITEM, id, item.getProject().getId(), userId, oldState, newState);
 
         return BoqItemResponse.fromEntity(item);
     }
@@ -231,7 +235,7 @@ public class BoqService {
 
         boqItemRepository.save(item);
 
-        auditService.logDelete("BOQ_ITEM", id, item.getProject().getId(), userId);
+        auditService.logDelete(ENTITY_BOQ_ITEM, id, item.getProject().getId(), userId);
     }
 
     // ---- Status Workflow ----
@@ -248,7 +252,7 @@ public class BoqService {
         item.setStatus(BoqItemStatus.APPROVED);
         item = boqItemRepository.save(item);
 
-        auditService.logApprove("BOQ_ITEM", id, item.getProject().getId(), userId);
+        auditService.logApprove(ENTITY_BOQ_ITEM, id, item.getProject().getId(), userId);
 
         return BoqItemResponse.fromEntity(item);
     }
@@ -265,7 +269,7 @@ public class BoqService {
         item.setStatus(BoqItemStatus.LOCKED);
         item = boqItemRepository.save(item);
 
-        auditService.logLock("BOQ_ITEM", id, item.getProject().getId(), userId);
+        auditService.logLock(ENTITY_BOQ_ITEM, id, item.getProject().getId(), userId);
 
         return BoqItemResponse.fromEntity(item);
     }
@@ -290,7 +294,7 @@ public class BoqService {
         item.setStatus(BoqItemStatus.COMPLETED);
         item = boqItemRepository.save(item);
 
-        auditService.logUpdate("BOQ_ITEM", id, item.getProject().getId(), userId, null, Map.of("status", "COMPLETED"));
+        auditService.logUpdate(ENTITY_BOQ_ITEM, id, item.getProject().getId(), userId, null, Map.of(FIELD_STATUS, "COMPLETED"));
 
         return BoqItemResponse.fromEntity(item);
     }
@@ -299,7 +303,7 @@ public class BoqService {
 
     public BoqItemResponse recordExecution(Long id, RecordExecutionRequest request, Long userId) {
         BoqItem item = boqItemRepository.findByIdWithLock(id)
-                .orElseThrow(() -> new IllegalArgumentException("BOQ item not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(MSG_BOQ_ITEM_NOT_FOUND + id));
 
         projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
 
@@ -321,14 +325,14 @@ public class BoqService {
         item.setExecutedQuantity(newExecuted);
         item = boqItemRepository.saveAndFlush(item);
 
-        auditService.logExecute("BOQ_ITEM", id, item.getProject().getId(), userId, request.quantity());
+        auditService.logExecute(ENTITY_BOQ_ITEM, id, item.getProject().getId(), userId, request.quantity());
 
         return BoqItemResponse.fromEntity(item);
     }
 
     public BoqItemResponse recordBilling(Long id, RecordExecutionRequest request, Long userId) {
         BoqItem item = boqItemRepository.findByIdWithLock(id)
-                .orElseThrow(() -> new IllegalArgumentException("BOQ item not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(MSG_BOQ_ITEM_NOT_FOUND + id));
 
         projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
 
@@ -350,14 +354,14 @@ public class BoqService {
         item.setBilledQuantity(newBilled);
         item = boqItemRepository.saveAndFlush(item);
 
-        auditService.logBill("BOQ_ITEM", id, item.getProject().getId(), userId, request.quantity());
+        auditService.logBill(ENTITY_BOQ_ITEM, id, item.getProject().getId(), userId, request.quantity());
 
         return BoqItemResponse.fromEntity(item);
     }
 
     public BoqItemResponse correctExecution(Long id, CorrectionRequest request, Long userId) {
         BoqItem item = boqItemRepository.findByIdWithLock(id)
-                .orElseThrow(() -> new IllegalArgumentException("BOQ item not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(MSG_BOQ_ITEM_NOT_FOUND + id));
 
         projectAccessGuard.verifyPortalAccess(userId, item.getProject().getId());
 
@@ -401,7 +405,7 @@ public class BoqService {
         correctionDetails.put("reason", request.reason());
         correctionDetails.put("reference", request.referenceNumber() != null ? request.referenceNumber() : "N/A");
 
-        auditService.logUpdate("BOQ_ITEM", id, item.getProject().getId(), userId,
+        auditService.logUpdate(ENTITY_BOQ_ITEM, id, item.getProject().getId(), userId,
             Map.of(request.type().name(), currentValue),
             correctionDetails
         );
@@ -424,7 +428,7 @@ public class BoqService {
         List<BoqItem> items = boqItemRepository.findByProjectIdWithAssociations(projectId);
         return items.stream()
                 .map(BoqItemResponse::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -488,7 +492,7 @@ public class BoqService {
                                 ((Number) r[2]).intValue(),
                                 toBD(r[3]), toBD(r[4]), toBD(r[5]), toBD(r[6])
                         ))
-                        .collect(Collectors.toList());
+                        .toList();
 
         List<BoqFinancialSummary.WorkTypeFinancialBreakdown> workTypeBreakdown =
                 boqItemRepository.getFinancialWorkTypeBreakdown(projectId).stream()
@@ -498,7 +502,7 @@ public class BoqService {
                                 ((Number) r[2]).intValue(),
                                 toBD(r[3]), toBD(r[4]), toBD(r[5]), toBD(r[6])
                         ))
-                        .collect(Collectors.toList());
+                        .toList();
 
         return new BoqFinancialSummary(
                 projectId,
@@ -536,7 +540,7 @@ public class BoqService {
 
     private BoqItem findActiveById(Long id) {
         BoqItem item = boqItemRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("BOQ item not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(MSG_BOQ_ITEM_NOT_FOUND + id));
         
         if (item.isDeleted()) {
             throw new IllegalArgumentException("BOQ item has been deleted: " + id);
@@ -551,7 +555,7 @@ public class BoqService {
         List<BoqItem> existing = boqItemRepository.findByProjectIdAndItemCodeAndDeletedAtIsNull(projectId, itemCode);
         existing = existing.stream()
                 .filter(i -> !i.getId().equals(excludeItemId))
-                .collect(Collectors.toList());
+                .toList();
 
         if (!existing.isEmpty()) {
             throw new IllegalArgumentException("Item code '" + itemCode + "' already exists in this project");
@@ -579,12 +583,12 @@ public class BoqService {
     private Map<String, Object> captureItemState(BoqItem item) {
         Map<String, Object> state = new HashMap<>();
         state.put("id", item.getId());
-        state.put("itemCode", item.getItemCode());
+        state.put(FIELD_ITEM_CODE, item.getItemCode());
         state.put("hsnSacCode", item.getHsnSacCode());
         state.put("description", item.getDescription());
         state.put("quantity", item.getQuantity());
         state.put("unitRate", item.getUnitRate());
-        state.put("status", item.getStatus());
+        state.put(FIELD_STATUS, item.getStatus());
         return state;
     }
 
@@ -600,7 +604,7 @@ public class BoqService {
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.get("description")), searchPattern),
                         cb.like(cb.lower(root.get("notes")), searchPattern),
-                        cb.like(cb.lower(root.get("itemCode")), searchPattern)));
+                        cb.like(cb.lower(root.get(FIELD_ITEM_CODE)), searchPattern)));
             }
 
             if (filter.getProjectId() != null) {
@@ -617,7 +621,7 @@ public class BoqService {
 
             if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
                 try {
-                    predicates.add(cb.equal(root.get("status"),
+                    predicates.add(cb.equal(root.get(FIELD_STATUS),
                             com.wd.api.model.enums.BoqItemStatus.valueOf(filter.getStatus().toUpperCase())));
                 } catch (IllegalArgumentException ignored) {
                     // Invalid status value — skip filter rather than crash
@@ -626,7 +630,7 @@ public class BoqService {
 
             if (filter.getItemCode() != null && !filter.getItemCode().isEmpty()) {
                 predicates.add(
-                        cb.like(cb.lower(root.get("itemCode")),
+                        cb.like(cb.lower(root.get(FIELD_ITEM_CODE)),
                                 "%" + filter.getItemCode().toLowerCase() + "%"));
             }
 

@@ -9,6 +9,7 @@ public class CheckOutRequest {
     private String notes;
 
     public CheckOutRequest() {
+        // No-op: default constructor required for JSON/bean deserialization.
     }
 
     public Double getLatitude() {

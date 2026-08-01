@@ -29,6 +29,8 @@ public class LeadExportService {
 
     private static final Logger logger = LoggerFactory.getLogger(LeadExportService.class);
 
+    private static final String STATUS_QUALIFIED = "qualified";
+
     private final LeadRepository leadRepository;
 
     public LeadExportService(LeadRepository leadRepository) {
@@ -227,9 +229,9 @@ public class LeadExportService {
                 if ("new".equals(normalizedStatus)) {
                     statusPredicates.add(cb.equal(dbStatusCleaned, "newinquiry"));
                     statusPredicates.add(cb.equal(dbStatusCleaned, "new"));
-                } else if ("qualified".equals(normalizedStatus)) {
+                } else if (STATUS_QUALIFIED.equals(normalizedStatus)) {
                     statusPredicates.add(cb.equal(dbStatusCleaned, "qualifiedlead"));
-                    statusPredicates.add(cb.equal(dbStatusCleaned, "qualified"));
+                    statusPredicates.add(cb.equal(dbStatusCleaned, STATUS_QUALIFIED));
                 } else if ("proposal_sent".equals(normalizedStatus)) {
                     statusPredicates.add(cb.equal(dbStatusCleaned, "proposalsent"));
                 } else if ("won".equals(normalizedStatus)) {
@@ -320,8 +322,8 @@ public class LeadExportService {
             return "new";
         } else if (cleaned.equals("contacted")) {
             return "contacted";
-        } else if (cleaned.equals("qualifiedlead") || cleaned.equals("qualified")) {
-            return "qualified";
+        } else if (cleaned.equals("qualifiedlead") || cleaned.equals(STATUS_QUALIFIED)) {
+            return STATUS_QUALIFIED;
         } else if (cleaned.equals("proposalsent")) {
             return "proposal_sent";
         } else if (cleaned.equals("projectwon") || cleaned.equals("won") || cleaned.equals("converted")) {

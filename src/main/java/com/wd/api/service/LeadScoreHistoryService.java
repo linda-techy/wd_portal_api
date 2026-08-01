@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Service for managing lead score history
@@ -98,7 +97,7 @@ public class LeadScoreHistoryService {
 
                     return dto;
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

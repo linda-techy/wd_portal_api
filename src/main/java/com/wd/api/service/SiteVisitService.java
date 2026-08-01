@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Service for managing site visits with check-in/check-out functionality
@@ -41,6 +40,10 @@ import java.util.stream.Collectors;
 public class SiteVisitService {
 
     private static final Logger logger = LoggerFactory.getLogger(SiteVisitService.class);
+
+    private static final String FIELD_VISITED_BY = "visitedBy";
+    private static final String FIELD_VISIT_STATUS = "visitStatus";
+    private static final String VISIT_NOT_FOUND = "Visit not found";
 
     private final SiteVisitRepository siteVisitRepository;
     private final CustomerProjectRepository projectRepository;
@@ -86,8 +89,8 @@ public class SiteVisitService {
                 String searchPattern = "%" + filter.getSearch().toLowerCase() + "%";
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.join("project").get("name")), searchPattern),
-                        cb.like(cb.lower(root.join("visitedBy").get("firstName")), searchPattern),
-                        cb.like(cb.lower(root.join("visitedBy").get("lastName")), searchPattern),
+                        cb.like(cb.lower(root.join(FIELD_VISITED_BY).get("firstName")), searchPattern),
+                        cb.like(cb.lower(root.join(FIELD_VISITED_BY).get("lastName")), searchPattern),
                         cb.like(cb.lower(root.get("notes")), searchPattern)));
             }
 
@@ -98,7 +101,7 @@ public class SiteVisitService {
 
             // Filter by visitedById
             if (filter.getVisitedById() != null) {
-                predicates.add(cb.equal(root.get("visitedBy").get("id"), filter.getVisitedById()));
+                predicates.add(cb.equal(root.get(FIELD_VISITED_BY).get("id"), filter.getVisitedById()));
             }
 
             // Filter by visitType
@@ -113,11 +116,11 @@ public class SiteVisitService {
 
             // Filter by visitStatus or active only
             if (filter.isActiveOnly()) {
-                predicates.add(cb.equal(root.get("visitStatus"), VisitStatus.CHECKED_IN));
+                predicates.add(cb.equal(root.get(FIELD_VISIT_STATUS), VisitStatus.CHECKED_IN));
             } else if (filter.getVisitStatus() != null && !filter.getVisitStatus().isEmpty()) {
                 try {
                     VisitStatus visitStatus = VisitStatus.valueOf(filter.getVisitStatus().toUpperCase());
-                    predicates.add(cb.equal(root.get("visitStatus"), visitStatus));
+                    predicates.add(cb.equal(root.get(FIELD_VISIT_STATUS), visitStatus));
                 } catch (IllegalArgumentException e) {
                     // Invalid visit status, skip filter
                 }
@@ -127,7 +130,7 @@ public class SiteVisitService {
             if (filter.getStatus() != null && !filter.getStatus().isEmpty()) {
                 try {
                     VisitStatus visitStatus = VisitStatus.valueOf(filter.getStatus().toUpperCase());
-                    predicates.add(cb.equal(root.get("visitStatus"), visitStatus));
+                    predicates.add(cb.equal(root.get(FIELD_VISIT_STATUS), visitStatus));
                 } catch (IllegalArgumentException e) {
                     // Invalid status, skip filter
                 }
@@ -205,8 +208,10 @@ public class SiteVisitService {
                         null, msg);
                 throw new IllegalStateException(msg);
             }
-            logger.info("Check-in GPS validated for user {}: {} from project site",
-                    userId, GeoUtils.formatDistance(distanceKm));
+            if (logger.isInfoEnabled()) {
+                logger.info("Check-in GPS validated for user {}: {} from project site",
+                        userId, GeoUtils.formatDistance(distanceKm));
+            }
         }
 
         // Create new visit
@@ -253,7 +258,7 @@ public class SiteVisitService {
     @Transactional
     public SiteVisitDTO checkOut(Long visitId, CheckOutRequest request, Long userId) {
         SiteVisit visit = siteVisitRepository.findById(visitId)
-                .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(VISIT_NOT_FOUND));
 
         // Verify ownership
         if (!visit.getVisitedBy().getId().equals(userId)) {
@@ -288,8 +293,10 @@ public class SiteVisitService {
                         visit.getId(), msg);
                 throw new IllegalStateException(msg);
             }
-            logger.info("Check-out GPS validated for user {}: {} from project site",
-                    userId, GeoUtils.formatDistance(distanceKm));
+            if (logger.isInfoEnabled()) {
+                logger.info("Check-out GPS validated for user {}: {} from project site",
+                        userId, GeoUtils.formatDistance(distanceKm));
+            }
         }
 
         // Perform check-out (this validates status and calculates duration)
@@ -322,7 +329,7 @@ public class SiteVisitService {
             throw new IllegalArgumentException("A reason is required when force-closing a visit.");
         }
         SiteVisit visit = siteVisitRepository.findById(visitId)
-                .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(VISIT_NOT_FOUND));
         PortalUser admin = portalUserRepository.findById(adminUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin user not found"));
 
@@ -340,8 +347,10 @@ public class SiteVisitService {
         visit.forceClose(admin, reason.trim());
         visit = siteVisitRepository.save(visit);
 
-        logger.warn("Site visit {} force-closed by admin {} ({}). Reason: {}",
-                visitId, adminUserId, admin.getEmail(), reason.trim());
+        if (logger.isWarnEnabled()) {
+            logger.warn("Site visit {} force-closed by admin {} ({}). Reason: {}",
+                    visitId, adminUserId, admin.getEmail(), reason.trim());
+        }
         return mapToDTO(visit);
     }
 
@@ -360,7 +369,7 @@ public class SiteVisitService {
     public List<SiteVisitDTO> getAllActiveVisits() {
         return siteVisitRepository.findAllActiveVisits().stream()
                 .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -369,7 +378,7 @@ public class SiteVisitService {
     public List<SiteVisitDTO> getTodaysVisitsForProject(Long projectId) {
         return siteVisitRepository.findTodaysVisitsByProject(projectId).stream()
                 .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -378,7 +387,7 @@ public class SiteVisitService {
     public List<SiteVisitDTO> getVisitsByProject(Long projectId) {
         return siteVisitRepository.findByProjectIdOrderByVisitDateDesc(projectId).stream()
                 .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -389,7 +398,7 @@ public class SiteVisitService {
         LocalDateTime end = endDate.atTime(LocalTime.MAX);
         return siteVisitRepository.findByProjectAndDateRange(projectId, start, end).stream()
                 .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -400,7 +409,7 @@ public class SiteVisitService {
         LocalDateTime end = endDate.atTime(LocalTime.MAX);
         return siteVisitRepository.findByUserAndDateRange(userId, start, end).stream()
                 .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -409,7 +418,7 @@ public class SiteVisitService {
     public SiteVisitDTO getVisitById(Long id) {
         return siteVisitRepository.findById(id)
                 .map(this::mapToDTO)
-                .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(VISIT_NOT_FOUND));
     }
 
     /**
@@ -472,7 +481,7 @@ public class SiteVisitService {
     @Transactional
     public void cancelVisit(Long visitId, Long userId) {
         SiteVisit visit = siteVisitRepository.findById(visitId)
-                .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(VISIT_NOT_FOUND));
 
         if (visit.getVisitStatus() != VisitStatus.PENDING) {
             throw new IllegalStateException("Can only cancel pending visits");

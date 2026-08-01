@@ -26,6 +26,11 @@ public class PartnershipController {
 
     private static final Logger logger = LoggerFactory.getLogger(PartnershipController.class);
 
+    private static final String KEY_ERROR = "error";
+    private static final String KEY_MESSAGE = "message";
+    private static final String KEY_SUCCESS = "success";
+    private static final String KEY_CLIENT_NAME = "clientName";
+
     private final PartnershipService partnershipService;
 
     private final LeadService leadService;
@@ -48,7 +53,7 @@ public class PartnershipController {
         } catch (RuntimeException e) {
             logger.warn("Partner login failed for request: {}", e.getMessage());
             Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
+            error.put(KEY_ERROR, e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
         }
     }
@@ -65,7 +70,7 @@ public class PartnershipController {
             String password = (String) requestBody.get("password");
             if (password == null || password.trim().isEmpty()) {
                 return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Password is required"));
+                    .body(Map.of(KEY_ERROR, "Password is required"));
             }
 
             // Remove password from the map and convert to PartnershipApplicationRequest
@@ -79,7 +84,7 @@ public class PartnershipController {
         } catch (RuntimeException e) {
             logger.error("Partnership application failed: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
+            error.put(KEY_ERROR, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
     }
@@ -91,7 +96,7 @@ public class PartnershipController {
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
         Map<String, String> response = new HashMap<>();
-        response.put("message", "Logged out successfully");
+        response.put(KEY_MESSAGE, "Logged out successfully");
         return ResponseEntity.ok(response);
     }
 
@@ -104,7 +109,7 @@ public class PartnershipController {
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
         String email = body.get("email");
         if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, "Email is required"));
         }
         try {
             partnershipService.sendForgotPasswordEmail(email.trim().toLowerCase());
@@ -113,8 +118,8 @@ public class PartnershipController {
         }
         // Always return success to prevent email enumeration
         return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "If an account with that email exists, a reset link has been sent."
+                KEY_SUCCESS, true,
+                KEY_MESSAGE, "If an account with that email exists, a reset link has been sent."
         ));
     }
 
@@ -131,18 +136,18 @@ public class PartnershipController {
 
         if (email == null || token == null || newPassword == null
                 || email.isBlank() || token.isBlank() || newPassword.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "email, token, and newPassword are required"));
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, "email, token, and newPassword are required"));
         }
 
         try {
             partnershipService.resetPassword(email.trim().toLowerCase(), token.trim(), newPassword);
             return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Password reset successfully. You can now log in with your new password."
+                    KEY_SUCCESS, true,
+                    KEY_MESSAGE, "Password reset successfully. You can now log in with your new password."
             ));
         } catch (RuntimeException e) {
             logger.warn("Partner password reset failed: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
         }
     }
 
@@ -184,7 +189,7 @@ public class PartnershipController {
 
             // Build a PartnershipReferralRequest from the map
             PartnershipReferralRequest request = new PartnershipReferralRequest();
-            request.setClientName((String) referralData.get("clientName"));
+            request.setClientName((String) referralData.get(KEY_CLIENT_NAME));
             request.setClientEmail((String) referralData.get("clientEmail"));
             request.setClientPhone((String) referralData.get("clientPhone"));
             request.setClientWhatsapp((String) referralData.get("clientWhatsapp"));
@@ -203,17 +208,17 @@ public class PartnershipController {
             Lead createdLead = leadService.createLeadFromPartnershipReferral(request);
 
             Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Referral submitted successfully");
+            response.put(KEY_SUCCESS, true);
+            response.put(KEY_MESSAGE, "Referral submitted successfully");
             response.put("leadId", createdLead.getId());
-            response.put("clientName", request.getClientName());
+            response.put(KEY_CLIENT_NAME, request.getClientName());
             response.put("partnerName", partner.getFullName());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
             logger.error("Failed to submit referral: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
+            error.put(KEY_ERROR, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
     }
@@ -240,18 +245,18 @@ public class PartnershipController {
             Lead createdLead = leadService.createLeadFromPartnershipReferral(request);
 
             Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Referral submitted successfully as lead");
+            response.put(KEY_SUCCESS, true);
+            response.put(KEY_MESSAGE, "Referral submitted successfully as lead");
             response.put("leadId", createdLead.getId());
             response.put("leadSource", "referral_architect");
-            response.put("clientName", request.getClientName());
+            response.put(KEY_CLIENT_NAME, request.getClientName());
             response.put("partnerName", partner.getFullName());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
             logger.error("Failed to submit referral as lead: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
+            error.put(KEY_ERROR, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
     }
@@ -328,7 +333,7 @@ public class PartnershipController {
 
         // Additional
         request.setAdditionalContact((String) data.get("additionalContact"));
-        request.setMessage((String) data.get("message"));
+        request.setMessage((String) data.get(KEY_MESSAGE));
 
         return request;
     }

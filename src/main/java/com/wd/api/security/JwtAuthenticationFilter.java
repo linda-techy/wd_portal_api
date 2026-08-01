@@ -1,6 +1,5 @@
 package com.wd.api.security;
 
-import com.wd.api.security.JwtConstants;
 import com.wd.api.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

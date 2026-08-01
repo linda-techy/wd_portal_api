@@ -37,8 +37,11 @@ public class QualityCheckController {
         }
     }
 
+    /**
+     * @deprecated Use the paginated {@code /search} endpoint with a project filter instead.
+     */
     @GetMapping("/project/{projectId}")
-    @Deprecated
+    @Deprecated(since = "2026-06")
     public ResponseEntity<ApiResponse<List<QualityCheck>>> getProjectChecks(@PathVariable Long projectId) {
         try {
             List<QualityCheck> checks = qualityCheckService.getProjectChecks(projectId);
